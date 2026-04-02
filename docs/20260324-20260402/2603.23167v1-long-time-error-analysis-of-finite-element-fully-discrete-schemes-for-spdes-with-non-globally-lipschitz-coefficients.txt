@@ -1,0 +1,9518 @@
+Title: Long-time error analysis of finite element fully discrete schemes for SPDEs with non-globally Lipschitz coefficients
+
+URL Source: https://arxiv.org/pdf/2603.23167v1
+
+Published Time: Wed, 25 Mar 2026 01:11:14 GMT
+
+Number of Pages: 58
+
+Markdown Content:
+# Long-time error analysis of finite element fully discrete schemes for SPDEs with non-globally Lipschitz coefficients ∗Ruisheng Qi a, Xiaojie Wang b,    
+
+> aSchool of Mathematics and Statistics, Yancheng Teachers University, Yancheng, China qiruisheng123@126.com
+> bSchool of Mathematics and Statistics, HNP-LAMA, Central South University, Changsha, China x.j.wang7@csu.edu.cn and x.j.wang7@gmail.com
+
+March 25, 2026 
+
+Abstract 
+
+The present paper proposes new fully discrete schemes for long-time approximations of stochastic partial differential equations (SPDEs) with non-globally Lipschitz coeffi-cients in a bounded domain D ⊂ Rd, d = 1 , 2, 3. A novel family of linearly implicit time-stepping schemes is introduced, based on a standard Galerkin finite element spatial semi-discretization. A distinguishing feature of the schemes is that the proposed finite element fully discrete approximations preserve uniform-in-time moment bounds in a Ba-nach space Lr(D), r > 2, without requiring any restriction on the time-space discretization stepsize ratio. To show it, some non-standard arguments are developed. First, we derive long-time error estimates in the Banach space Lr(D) for finite element fully discrete ap-proximations of the deterministic linear parabolic equation with non-smooth initial value, which is, to our knowledge, new for the literature on numerical PDEs and of independent interest. These error estimates together with the contractive property of the semi-group in 
+
+Lr(D), r > 2, the dissipativity of the nonlinearity and the particular benefit of the taming strategy help us establish the desired uniform-in-time moment bounds. Then both strong and weak error bounds of the proposed schemes are carefully analyzed in a setting of low regularity, with uniform-in-time convergence rates obtained for cases of both space-time white and trace-class noises. The analysis is highly nontrivial, due to the finite element dis-cretization, the low regularity and the presence of the super-linearly growing nonlinearity. Finally, numerical results are presented to verify the previous theoretical findings. 
+
+Key words: stochastic partial differential equation, finite element method, long-time error estimates, uniform-in-time moment bounds. 
+
+> ∗R.Q. was supported by the Reaserch Fund for Yancheng Teachers University under 204040025. X.W. were supported by Natural Science Foundation of China (12471394, 12371417, 12071488) and Hunan Basic Science Research Center for Mathematical Analysis (2024JC2002).
+
+1
+
+> arXiv:2603.23167v1 [math.NA] 24 Mar 2026
+
+## 1 Introduction 
+
+As an important class of stochastic models, stochastic partial differential equations (SPDEs) find many applications in the area of science and engineering, such as finance, geosciences, statistical mechanics, meteorology and biology. Since their analytical solutions can be rarely available, one usually relies on numerical solutions to investigate the underlying models. In the present paper, we are interested in fully discrete finite element approximations of the following parabolic SPDEs dX(t) = −AX (t) + F (X(t)) dt + dW (t), X (0) = X0, (1.1) in a real separable Hilbert space H := L2(D) with inner product ⟨· , ·⟩ and the induced norm ∥ · ∥ =
+
+⟨· , ·⟩ 12 . Here D ⊂ Rd, d = 1 , 2, 3 is a bounded domain and −A is assumed to be the Laplace operator with Dirichlet boundary condition on the domain D. Moreover, the stochastic process {W (t)}t≥0 is an 
+
+H-valued (possibly cylindrical) Q-Wiener process and F is a nonlinear Nemytskij operator associated with a real-valued function f : R → R, i.e., 
+
+F (u)( x) := f (u(x)) , x ∈ D. 
+
+In the last decades, a large amount of work is devoted to strong and weak approximations of SPDEs (1.1) over finite-time horizon (see, e.g., [1–4, 10, 11, 13, 18, 20, 23, 25, 32, 33, 37], to just mention a few). Recently, there has been a growing interest in long-time approximations of SPDEs (e.g., [6,8,9,14,15,21, 22,27,34]). For example, in a globally Lipschitz setting for the drift term F , the authors of [8] and [14] used the classical linear implicit Euler and exponential Euler scheme, respectively, to approximate the invariant measure of the parabolic SPDE (1.1), with uniform-in-time weak convergence rates obtained. Higher-order approximations of invariant measure of SPDEs with a gradient structure can be found in a very recent preprint [7]. For SPDEs with polynomial growing (thus non-globally Lipschitz) F , the long-time approximations and their uniform-in-time error analysis turn out to be a challenging problem. In [15], the authors relied on the spectral Galerkin drift-implicit Euler scheme to approximate the invariant measure of the Allen-Cahan type SPDEs (1.1), where uniform-in-time weak convergence rates were derived. The expensive computational costs of the drift-implicit Euler scheme, however, force people to look for a cheaper alternative. In 2022, Bréhier [6] investigated long-time semi-discretization in time of Allen-Cahan type SPDEs (1.1) via an explicit tamed exponential Euler scheme, where moment bounds for the numerical scheme were obtained with a polynomial dependence with respect to the time horizon. Later in [34], by not discretizing the stochastic convolution, the authors proposed a spectral Galerkin tamed accelerated exponential Euler method for uniform-in-time weak approximations of one-dimensional (d = 1 ) SPDEs (1.1), while computing the temporally undiscretized stochastic convolution and the 
+
+L∞-norm of the numerical solution for every time step is costly. More recently in [21], a novel and easy-to-implement spectral Galerkin explicit fully discretizaton scheme of exponential type was introduced for long-time approximations of SPDEs (1.1) in multiple dimensions with non-globally Lipschitz coefficients. There, uniform-in-time moment bounds of the numerical approximations and uniform-in-time weak convergence rates were derived. Clearly, the above uniform-in-time convergence rates for approximations of SPDEs with non-globally Lipschitz coefficients are all revealed, based on a spectral Galerkin spatial discretetization that only works for very regular domain such as a rectangle. The analysis of uniform-in-time conver-gence rate for the finite element method is, to the best of our knowledge, still missing in the literature. 2In this paper, we aim to fill this gap and propose a class of novel, linearly implicit fully discrete finite element methods for SPDEs (1.1) with polynomially growing nonlinearity. Let Vh ⊂ H10 (D) be the continuous piecewise linear finite element space and Ph an L2-projection operator from L2(D) to 
+
+Vh. Then the fully discrete finite element approximation is to find Vh-valued stochastic process Xmτ,h ,
+
+m ∈ N such that 
+
+Xmτ,h − Xm−1 
+
+> τ,h
+
++ τ A hXmτ,h = τ F τ,h (Xm−1 
+
+> τ,h
+
+) + Ph(W (tm) − W (tm−1)) , X 0 
+
+> τ,h
+
+= PhX0, (1.2) where 
+
+Fτ,h (u)( x) := fτ,h (u(x)) , x ∈ D, (1.3) with fτ,h being a modification of f given by 
+
+fτ,h (v) := f (v)
+
+(
+
+1 + ( β1τ θ + β2hρ)|v| 2q−2
+
+> α
+
+)α , (1.4) for α ∈ (0 , 1] , θ, ρ, β 1, β 2 > 0. For simplicity, one can think of f as a polynomial of odd degree 
+
+2q − 1, q ≥ 2 with a negative leading coefficient. Here the degree α ∈ (0 , 1] and the convergence parameters θ, ρ are chosen to obey the condition max { 12 αρ, αθ } < 1 + d 
+
+> 2q(2 q−1)
+
+− d 
+
+> 4
+
+. We mention that such a modification of f in (1.4) is inspired by the spectral Galerkin fully discretization scheme of exponential type proposed by our previous work [21]. In order to conduct the long-time error analysis, a crucial ingredient is to establish uniform-in-time moment bounds of numerical approximations in the Banach space L4q−2(D), q ≥ 2. Clearly, the nonlinearity F obeys the following dissipativity property 
+
+⟨− F (v), v ⟩ ≥ C1∥v∥2qL2q (D) − C2, ∀v ∈ L2q(D), (1.5) and PhF still preserves the dissipativity property 
+
+⟨− PhF (vh), v h⟩ ≥ C1∥vh∥2qL2q (D) − C2, ∀vh ∈ Vh, (1.6) for some constants C1, C 2 > 0. This suffices to prove the uniform-in-time moment bound for the numerical approximations in L2(D) (Lemma 5.2). By noting that the nonlinearity F also enjoys the dissipativity property in ˙H1:
+
+⟨−∇ F (v), ∇v⟩ ≥ − C3∥∇ v∥2, ∀v ∈ H10 (D), C3 > 0, (1.7) a natural idea is to establish the uniform bound in ˙H1, which combined with the Sobolev embedding would promise the desired bound in the Banach space L4q−2(D), q ≥ 2. Unfortunately, such an idea might work in the spectral Galerkin spatial discretization but does not work in the finite element setting. Indeed, the presence of the finite element projection Ph in front of the drift term F destroys the dissipativity property of F in ˙H1:
+
+〈 − A 12 
+
+> h
+
+PhF (vh), A 12 
+
+> h
+
+vh
+
+〉 = 〈 − A 12 PhF (vh), A 12 vh
+
+〉 ≱ −C3∥∇ vh∥2, ∀vh ∈ Vh. (1.8) We mention that the finite element approximation of stochastic Cahn-Hilliard equation faces a similar difficulty (see, e.g., the introduction of [19]). Additional difficulties come from the possibly low regu-larity and multiple dimension setting. Indeed, the considered SPDEs might evolve in ˙Hγ for γ < 12 .3To overcome these difficulties, our methodology consists of three steps. As the first step, we use (1.6) to easily get the uniform-in-time moment bounds for the numerical solution Xmτ,h in L2(D)-norm and the discretized version of the stochastic convolution WA(t) in a Banach space (Lemmas 5.1, 5.2). As the second step, we analyze the error estimates in L4q−2(D)-norm of the fully discrete finite element method for the corresponding deterministic linear parabolic equation with non-smooth initial value (cf. Theorem 4.1). To the best of our knowledge, such error estimates are even new for the literature on numerical PDEs and of independent interest. For the last step, by combining the corresponding deterministic error estimates with L2(D)-moment bound of Xmτ,h , uniform-in-time moment bounds for the discretized version of the stochastic convolution WA(t), a contractive property of the semi-group in L4q−2(D), the dissipativity of the nonlinearity and the particular benefit of the taming strategy, we are able to obtain the desired uniform-in-time moment bounds of the proposed fully discrete finite element methods (Theorem 5.3). It is worthwhile to mention that we do not put any restriction on the time-space discretization stepsize ratio, which is usually required in the finite element setting in the literature, even for finite-time moment bounds. Armed with the uniform-in-time moment bounds and the new error estimates for the fully discrete finite element method, we carefully analyze both strong and weak convergence of the proposed fully discrete schemes. More accurately, by fixing method parameters ρ = 2 , θ = 1 and α < 1 + d 
+
+> 2q(2 q−1)
+
+− d
+
+> 4
+
+we obtain uniform-in-time strong convergence rates (Theorem 6.4): 
+
+sup 
+
+> m∈N0
+
+∥X(tm) − Xmτ,h ∥Lp(Ω; H) ≤ C(hmin {γ, 2} + τ min { γ 
+
+> 2,1}
+
+) (1.9) and uniform-in-time weak convergence rates (Theorem 7.8): 
+
+∣∣E[φ(X(tm)) ] − E[φ(Xmτ,h )]∣ ∣ ≤ C(1 + t−ιm + ( tm − τ )− 12 )( h2ι + τ ι), (1.10) where ι < min {γ, 1} and the parameter γ coming from the condition 2.15 characterizes the spatial regularity of the noise process and the solution of SPDE. Different from strong and weak convergence analysis in the literature, new arguments and more careful estimates are developed in the uniform-in-time error analysis. For instance, two auxiliary processes are constructed in the strong error analysis (see (6.6)) and uniform-in-time Malliavin regularity estimates of the numerical approximations are carefully analyzed (cf. Lemma 7.3). The outline of this paper is as follows. In the next section, we introduce the considered SPDEs. In Section 3, we propose the fully discrete finite element method for (1.1). Section 4 provides error estimates of the fully discrete finite element approximation of the corresponding deterministic linear parabolic equation with non-smooth initial data. In Section 5, we apply the deterministic error estimates to establish the uniform-in-time moment bounds of the numerical solution. Section 6 is devoted to the uniform-in-time strong convergence for the proposed fully discretization. In Section 7, we study the uniform-in-time weak convergence. Numerical results are presented in Section 8 to verify the theoretical findings. Finally, a short conclusion is given. 
+
+## 2 The considered SPDEs with uniform-in-time regularity 
+
+In this section, we make some assumptions for SPDEs (1.1) and establish the uniform-in-time spatio-temporal regularity of the mild solutions. First, the following assumptions are made, concerning the linear operator A, the nonlinear term F , the noise process W (t) and the initial data X0.4Assumption 2.1 (Linear operator A) Let D be a bounded convex domain in Rd for d ∈ { 1, 2, 3} with smooth boundary. Let −A : dom (A) ⊂ H → H be the Laplacian with homogeneous Dirichlet boundary conditions, defined by −Au = ∆ u with u ∈ dom (A) := H2(D) ∩ H10 (D).
+
+Assumption 2.1 guarantees that −A generates an analytic and contractive semi-group in H and 
+
+Lp(D), p ≥ 2, denoted by E(t) := e−tA , t > 0. Also, this assumption implies the existence of the eigen-system {(λj , e j )}j∈N in H such that Ae j = λj ej for j ∈ N and λj → ∞ as j → ∞ . By the spectral theory, we can also define the fractional powers of A on H in a simple way, e.g., Aαv =∑∞ 
+
+> j=1
+
+λαj ⟨v, e j ⟩ ej , α ∈ R. Note that Hα := D(A α 
+
+> 2
+
+) is a real Hilbert space with the inner product 
+
+⟨A α 
+
+> 2
+
+·, A α 
+
+> 2
+
+·⟩ and the associated norm ∥ · ∥ α := ∥A α 
+
+> 2
+
+· ∥ . It is well-known (see e.g. [24]) that the following regularity properties of E(·) hold: for any t > 0, μ ≥ 0, ν ∈ [0 , 1] 
+
+∥E(t)∥L(H) ≤ e−λ1t, ∥AμE(t)∥L(H) ≤ Ct −μ, ∥A−ν (I − E(t)) ∥L(H) ≤ Ct ν . (2.1) Moreover, for any 0 ≤ t1 < t 2 < ∞ we have 
+
+∫ t2
+
+> t1
+
+∥A ϱ 
+
+> 2
+
+E(s)v∥2 ds ≤ C|t2 − t1|1−ϱ∥v∥2, ∀v ∈ H, ϱ ∈ [0 , 1] , (2.2) 
+
+∥∥∥Aϱ
+
+∫ t2
+
+> t1
+
+E(t2 − σ)v dσ
+
+∥∥∥ ≤ C|t2 − t1|1−ϱ∥v∥, ∀v ∈ H, ϱ ∈ [0 , 1] . (2.3) Also, for any positive integer l, the semi-group E(·) satisfies the following contractive property: 
+
+∥E(t)v∥L2l(D) ≤ ∥ v∥L2l(D), ∀ v ∈ L2l(D), t ≥ 0. (2.4) 
+
+Assumption 2.2 (Nonlinearity) Let q ∈ [2 , ∞) be an integer for d = 1 , 2 and q = 2 for d = 3 , and let F : L4q−2(D) → H be a deterministic mapping given by 
+
+F (v)( x) = f (v(x)) , x ∈ D, (2.5) 
+
+where f (x) = ∑2q−1 
+
+> j=0
+
+aj xj , x ∈ R with a2q−1 < 0 and aj ∈ R, j ∈ { 0, 1, 2, · · · , 2q − 2}.
+
+Based on the above assumption, one can easily deduce the following properties of f .
+
+Lemma 2.3 Let Assumption 2.2 be fulfilled. Then, there exist constants Lf ∈ R and Rf , c 0, c 1,
+
+c2, c 3, c 4, c 5 > 0 such that, for all x, y ∈ R
+
+f ′(x) ≤Lf , (2.6) 
+
+|f ′(x)| ∨ | f ′′ (x)| ≤ Rf (1 + |x|2q−2), (2.7) 
+
+(x + y)f (x) ≤ − c0|x|2q + c1|y|2q + c2, (2.8) 
+
+|f (x) − f (y)| ≤ c3(1 + |x2q−2 + |y|2q−2)|x − y|, (2.9) 
+
+|f (x)| ≤ c4|x|2q−1 + c5. (2.10) Before coming to the noise process, we introduce additional notations and spaces. Let L(H) denote the Banach space of all bounded linear operators on H, equipped with the usual operator norm. Also, 5let L2(H) be the Hilbert space consisting of all Hilbert-Schmidt operators from H to H, equipped with the inner product and the norm, 
+
+〈Γ1, Γ2
+
+〉 
+
+> L2(H)
+
+=
+
+> ∞
+
+∑
+
+> j=1
+
+〈Γ1ϕj , Γ2ϕj
+
+〉, ∥Γ∥2 
+
+> L2(H)
+
+=
+
+> ∞
+
+∑
+
+> j=1
+
+∥∥Γϕj ∥2, (2.11) where {ϕj }j∈N is an arbitrary orthonormal basis of H. If Γ ∈ L 2(H) and L ∈ L (H), then ΓL, L Γ ∈L2(H) and 
+
+∥ΓL∥L2(H) ≤ ∥ L∥L(H)∥Γ∥L2(H), ∥LΓ∥L2(H) ≤ ∥ L∥L(H)∥Γ∥L2(H). (2.12) Now we make the following assumptions on the noise process and the initial data. 
+
+Assumption 2.4 (Noise process) Let {W (t)}t≥0 be a standard H-valued (possibly cylindrical) Q-Wiener process with a covariance operator L(H) ∋ Q : H → H being a symmetric nonnegative operator such that the stochastic convolution defined by 
+
+WA(t) := 
+
+∫ t
+
+> 0
+
+E(t − s) d W (s), (2.13) 
+
+is well-defined in L4q−2(D) and satisfies, for any p ≥ 1sup 
+
+> t≥0
+
+∥WA(t)∥Lp(Ω; L4q−2(D)) < ∞. (2.14) 
+
+Moreover, we assume 
+
+∥A γ−12 Q 12 ∥L2(H) < ∞, for some γ ∈ [ (q−1) d 
+
+> 2q−1
+
+, 2]. (2.15) 
+
+Assumption 2.5 (Initial data) Let X0 : Ω → H be F0/B(H)-measurable and satisfy for any p ∈ N,
+
+∥X0∥Lp(Ω; L4q−2(D)) < ∞. (2.16) 
+
+Moreover, suppose that the following condition holds 
+
+∥X0∥Lp(Ω; V ) + ∥X0∥Lp(Ω; Hγ ) < ∞, (2.17) 
+
+where γ ∈ [ (q−1) d 
+
+> 2q−1
+
+, 2] is the parameter from (2.15) .
+
+Before addressing the well-posedness of the mild solution of (1.1), we introduce a useful auxiliary lemma, concerning the Sobolev embedding theorem, which can be found in Triebel (1978, Theorem 2.8.1/Remark 2 and Theorem 4.6.1 in [29]) and Yagi (2009, Theorem 1.36 in [35]). 
+
+Lemma 2.6 Let D ⊂ Rd, d = 1 , 2, 3 be a bounded domain with Lipschitz boundary. Let β ∈ [0 , ∞)
+
+and r ∈ (1 , ∞) such that βr < d . Then there exists a positive constant C = C(β, r, d, D ) such that 
+
+∥v∥Ls(D) ≤ C∥v∥W β,r (D), s ∈
+
+[
+
+r, rd d−βr 
+
+]
+
+, ∀v ∈ W β,r (D). (2.18) 
+
+In addition, the following embeddings hold 
+
+Hδ(D) ⊂ V := C(D, R) and L2(D) ⊂ W δ, 1(D), δ > d 
+
+> 2
+
+, d = 1 , 2, 3. (2.19) 6Under all the above assumptions, the well-posedness of the SPDE (1.1) has been established, (see, e.g., [12, Chapter 6] or [31]). 
+
+Theorem 2.7 Suppose Assumptions 2.1-2.2 and the conditions (2.14) and (2.16) hold. Then the SPDE (1.1) admits a unique mild solution, given by 
+
+X(t) = E(t)X0 +
+
+∫ t
+
+> 0
+
+E(t − s)F (X(s)) d s + WA(t), (2.20) 
+
+satisfying 
+
+sup 
+
+> t≥0
+
+∥X(t)∥Lp(Ω; L4q−2(D)) < ∞. (2.21) 
+
+If the conditions (2.15) and (2.17) additionally hold, the mild solution enjoys further spatial-temporal regularity as follows: 
+
+sup 
+
+> t≥0
+
+∥X(t)∥Lp(Ω; Hγ ) ≤ C < ∞, (2.22) 
+
+and, for 0 < s < t < ∞∥X(t) − X(s)∥Lp(Ω; H) ≤ C(t − s) min {γ, 1} 
+
+> 2
+
+, (2.23) 
+
+where C = C(γ, Q, X 0) is time independent. Additionally, if γ ∈ ( d 
+
+> 2
+
+, 2) for d ∈ { 1, 2, 3} or γ ∈ ( q−12q−1 , 12 )
+
+with Q = I for d = 1 , then 
+
+sup 
+
+> t∈[0 ,∞)
+
+∥X(t)∥Lp(Ω; V ) ≤ C < ∞. (2.24) 
+
+Proof of Theorem 2.7. For the proof of (2.24), please refer to [21, Lemma 5.5]. Based on the estimate (2.21), one can follow similar arguments used in the proof of [25, Theorem 2.1] and carefully apply the smooth property (2.1)-(2.3) of the semi-group E(t) to show (2.22)-(2.23). Hence it remains to show (2.21). Note that X(t) possesses the following decomposition X(t) = Y (t) + WA(t), where dY (t) = −AY (t) dt + F (Y (t) + WA(t)) dt, Y (0) = X0. (2.25) Now we are in a position to derive the uniform-in-time moment bounds of Y (t) in L2q(D)-norm. By (2.8), taking the L2-inner product of the above equation by Y 2q−1(t) and using integration by parts, 7we have 
+
+12q
+
+(
+
+∥Y (t)∥2qL2q (D) − ∥ Y (0) ∥2qL2q (D)
+
+)
+
+=
+
+∫ t
+
+> 0
+
+〈Y 2q−1(s), −AY (s) + F (Y (s) + WA(s))〉 ds
+
+= − 2q − 1
+
+q2
+
+∫ t
+
+> 0
+
+⟨∇ Y q(s), ∇Y q(s)⟩ ds +
+
+∫ t
+
+> 0
+
+〈Y 2q−1(s), F (Y (s) + WA(s))〉 ds
+
+≤ − 2q − 1
+
+q2
+
+∫ t
+
+> 0
+
+⟨∇ Y q(s), ∇Y q(s)⟩ ds − c0
+
+∫ t
+
+> 0
+
+∥Y (s) + WA(s)∥4q−2 
+
+> L4q−2(D)
+
+ds
+
++ c1
+
+∫ t
+
+> 0
+
+∥WA(s)∥4q−2 
+
+> L4q−2(D)
+
+ds + c2t
+
+≤ − (2 q − 1) λ1
+
+q2
+
+∫ t
+
+> 0
+
+∥Y (s)∥2qL2q (D) ds −̂ c0
+
+∫ t
+
+> 0
+
+∥Y (s)∥4q−2 
+
+> L4q−2(D)
+
+ds
+
++̂ c1
+
+∫ t
+
+> 0
+
+∥WA(s)∥4q−2 
+
+> L4q−2(D)
+
+ds +̂ c2t. 
+
+(2.26) An application of Gronwall’s inequality with Y (0) = X0 then yields 
+
+∥Y (t)∥2qL2q (D) ≤e− (4 q−2) λ1tq ∥X0∥2qL2q (D) + C1
+
+∫ t
+
+> 0
+
+e− (4 q−2) λ1(t−s) 
+
+> q
+
+∥WA(s)∥4q−2 
+
+> L4q−2(D)
+
+ds
+
++ C2
+
+∫ t
+
+> 0
+
+e− (4 q−2) λ1(t−s) 
+
+> q
+
+ds. 
+
+(2.27) Taking p 
+
+> 2q
+
+-moment, p ≥ 2q and then taking supreme over t lead to 
+
+sup 
+
+> t≥0
+
+∥Y (t)∥2qLp(Ω; L2q (D)) ≤ C∥X0∥2qLp(Ω; L2q (D)) + C sup 
+
+> t≥0
+
+∥WA(t)∥4q−2 
+
+> L
+> p(4 q−2) 2q(Ω; L4q−2(D))
+
++ C < ∞, (2.28) which in combination with the decomposition X(t) = Y (t) + WA(t) implies 
+
+sup 
+
+> t≥0
+
+∥X(t)∥2qLp(Ω; L2q (D)) ≤ C sup 
+
+> t≥0
+
+∥Y (t)∥2qLp(Ω; L2q (D)) + C sup 
+
+> t≥0
+
+∥WA(t)∥2qLp(Ω; L2q (D)) < ∞. (2.29) Based on (2.29), we are now devoted to the uniform-in-time moment bound of X(t) in L4q−2(D).We consider two cases including Case I: dimensions one and two and Case II: dimension three. 
+
+Case I: dimensions one and two. 
+
+By (2.1), (2.19), a contractive property of the semi-group in L4q−2(D) and (2.18) with β = (q−1) d 
+
+> 2q−1
+
+,8s = 4 q − 2 and r = 2 , we have, for δ ∈
+
+( d
+
+2 , 2 − (q−1) d
+
+2q−1
+
+)
+
+, d ∈ { 1, 2}∥Y (t)∥Lp(Ω; L4q−2(D)) ≤∥ X(0) ∥Lp(Ω; L4q−2(D)) +
+
+∫ t
+
+0
+
+∥E(t − s)F (X(s)) ∥Lp(Ω; L4q−2(D)) ds
+
+≤∥ X(0) ∥Lp(Ω; L4q−2(D)) +
+
+∫ t
+
+0
+
+∥∥∥∥A (q−1) d 
+
+> 2(2 q−1)
+
+E(t − s)F (X(s)) 
+
+∥∥∥∥Lp(Ω; H)
+
+ds
+
+≤∥ X(0) ∥Lp(Ω; L4q−2(D)) + C
+
+∫ t
+
+0
+
+e− λ1(t−s)2 (t − s)− (q−1) d 
+
+> 2(2 q−1)
+
+− δ 
+
+> 2
+
+∥F (X(s)) ∥Lp(Ω; L1(D)) ds
+
+≤∥ X(0) ∥Lp(Ω; L4q−2(D)) + C
+
+(
+
+1 + 
+
+(
+
+sup 
+
+t≥0
+
+∥X(t)∥Lp(2 q−1) (Ω; L2q−1(D)) 
+
+)2q−1)
+
+< ∞,
+
+(2.30) where in the fourth inequality we used the fact 0 < (q−1) d
+
+2(2 q−1) + δ
+
+2 < 1 and, for any t > 0
+
+∫ t
+
+0
+
+e− λ1(t−s)2 (t − s)− (q−1) d 
+
+> 2(2 q−1)
+
+− δ 
+
+> 2
+
+ds ≤ C < ∞.
+
+Thus we deduce 
+
+sup 
+
+t≥0
+
+∥X(t)∥Lp(Ω; L4q−2(D)) ≤ sup 
+
+t≥0
+
+∥Y (t)∥Lp(Ω; L4q−2(D)) + sup 
+
+t≥0
+
+∥WA(t)∥Lp(Ω; L4q−2(D)) , (2.31) as required in dimensions one and two. 
+
+Case II: dimension three. 
+
+We now show (2.21) in dimension three. In this case, 4q − 2 = 6 and by (2.29) we have 
+
+sup 
+
+t≥0
+
+∥X(t)∥4
+
+Lp(Ω; L4(D)) < ∞. (2.32) This and (2.18) with β = 12 , s = 2 and r = 65 enable us to derive 
+
+∥A− 12 F (X(s)) ∥Lp(Ω; H) ≤ C∥F (X(s)) ∥Lp(Ω; L 65 (D)) ≤ C
+
+(
+
+1 + sup 
+
+s≥0
+
+∥X(s)∥L3p(Ω; L4(D)) 
+
+)3
+
+< ∞. (2.33) Applying again (2.1), the contractive property of the semi-group in L6(D) and (2.18) but with β = 910 ,
+
+s = 5 and r = 2 , it follows 
+
+∥Y (t)∥Lp(Ω; L5(D)) ≤∥ E(t − s)X0∥Lp(Ω; L5(D)) + C
+
+∫ t
+
+0
+
+∥A 920 E(t − s)F (X(s)) ∥Lp(Ω; H) ds
+
+≤∥ X0∥Lp(Ω; L6(D)) +
+
+∫ t
+
+0
+
+(t − s)− 19 20 e− λ1(t−s)2 ∥A− 12 F (X(s)) ∥Lp(Ω; H) ds
+
+≤∥ X0∥Lp(Ω; L6(D)) + C
+
+(
+
+1 + sup 
+
+s≥0
+
+∥X(s)∥L3p(Ω; L4(D)) 
+
+)3
+
+< ∞.
+
+(2.34) As a consequence, we have 
+
+sup 
+
+t≥0
+
+∥X(t)∥Lp(Ω; L5(D)) < ∞. (2.35) 9Similarly as above, one can acquire 
+
+∥Y (t)∥Lp(Ω; L6(D)) ≤∥ E(t − s)X0∥Lp(Ω; L6(D)) + C
+
+∫ t
+
+> 0
+
+∥A 12 E(t − s)F (X(s)) ∥Lp(Ω; H) ds
+
+≤∥ X0∥Lp(Ω; L6(D)) + C
+
+∫ t
+
+> 0
+
+∥A 12 + 320 E(t − s)A− 320 F (X(s)) ∥Lp(Ω; H) ds
+
+≤∥ X0∥Lp(Ω; L6(D)) + C
+
+∫ t
+
+> 0
+
+(t − s)− 12 − 320 e− λ1(t−s)2 ∥F (X(s)) ∥Lp(Ω; L 53 (D)) ds
+
+≤∥ X0∥Lp(Ω; L6(D)) + C
+
+(
+
+1 + sup 
+
+> s≥0
+
+∥X(s)∥L3p(Ω; L5(D)) 
+
+)3
+
+< ∞,
+
+(2.36) which combined with (2.14) shows (2.21) in dimension three. Hence, this finishes the proof. □
+
+## 3 The fully discrete schemes 
+
+In this section, we propose fully discrete finite element methods for SPDEs (1.1) and show the uniform-in-time moment bounds of the solution to the fully discrete problem, which will be used later in the convergence analysis. Let Vh ⊂ H10 (D) be the space of continuous functions that are piecewise linear over the quasi-uniform triangulation Th of D. Define a discrete Laplace operator −Ah : Vh → Vh by 
+
+⟨Ahvh, χ h⟩ = a(vh, χ h) := ⟨∇ vh, ∇χh⟩ , ∀vh, χ h ∈ Vh. (3.1) The operator Ah is self-adjoint, positive definite on Vh, and has an orthonormal eigenbasis {ej,h }Nh
+
+> j=1
+
+in Vh with the corresponding eigenvalues {λj,h 
+
+}Nh
+
+> j=1
+
+, satisfying 
+
+0 < λ 1,h < λ 2,h ≤ · · · ≤ λj,h ≤ · · · ≤ λNh,h , (3.2) where dim( Vh) = Nh. Moreover, we introduce a discrete norm on Vh, defined by 
+
+|vh|α,h = ∥A α 
+
+> 2
+> h
+
+vh∥ =
+
+( Nh∑
+
+> j=1
+
+λαj,h | ⟨ vh, e j,h ⟩ | 2) 12
+
+, v h ∈ Vh, α ∈ R, (3.3) which is induced by the discrete inner product (vh, w h)α,h := ⟨Aαh vh, w h⟩, ∀vh, w h ∈ Vh. Note that 
+
+|vh|1 = ∥A 12 vh∥ = ∥∇ vh∥ = ∥A 12 
+
+> h
+
+vh∥ = |vh|1,h , vh ∈ Vh. (3.4) In addition, we introduce a Riesz representation operator Rh : H10 (D) → Vh defined by 
+
+a(Rhv, χ h) = a(v, χ h), ∀v ∈ H10 (D), χ h ∈ Vh, (3.5) and a generalized projection operator Ph : H → Vh given by 
+
+⟨Phv, χ h⟩ = ⟨v, χ h⟩ , ∀v ∈ H, χ h ∈ Vh. (3.6) Then the operators Ph and Rh have the following error estimates 
+
+∥(I − Ph)v∥−s ≤ Ch s+r∥v∥r, 0 ≤ s ≤ r ≤ 2, (3.7) 10 and 
+
+∥(I − Rh)v∥s ≤ Ch r−s∥v∥r, s ∈ [0 , 1] , r ∈ [1 , 2] . (3.8) It is clear that Ph is also a projection operator from H−1 to Vh and 
+
+PhA = AhRh. (3.9) If the mesh Th is quasi-uniform, Ph is bounded with respect to L∞(D) and L1(D) norms: 
+
+∥Phv∥L∞(D) ≤ C∥v∥L∞(D), ∀v ∈ L∞(D), (3.10) 
+
+∥Phv∥L1(D) ≤ C∥v∥L1(D), ∀v ∈ L1(D). (3.11) For the proof of (3.10) in dimension two, we refer to [28, Lemma 6.1]. The same arguments can be adapted to establish (3.10) in dimensions one and three. The estimate (3.11) follows by duality: 
+
+∥Phv∥L1(D) = sup 
+
+> χ∈L∞(D)
+
+⟨Phv, χ ⟩∥χ∥L∞(D)
+
+= sup 
+
+> χ∈L∞(D)
+
+⟨v, P hχ⟩∥χ∥L∞(D)
+
+= C∥v∥L1(D), ∀v ∈ L1(D). (3.12) By the Sobolev interpolation theory, the boundedness of the projection operator Ph in L1(D) and 
+
+L∞(D) norms implies that there exists a constant C = C(p) such that for any p ∈ (1 , ∞),
+
+∥Phv∥Lp(D) ≤ C∥v∥Lp(D), ∀ v ∈ Lp(D). (3.13) Thanks to (3.13), (2.19) with s = 2 , r = pp−1 and β = d(p−2) 2p , the inverse inequality ∥vh∥ ≤ 
+
+Ch d( 12 − p−1 
+
+> p)
+
+∥vh∥L pp−1 (D), for p ≥ 2 and [28, Lemma 5.3], we obtain 
+
+∥A− d(p−2) 4p 
+
+> h
+
+Phw∥ ≤ Ch d(p−2) 2p ∥Phw∥ + ∥A− d(p−2) 4p Phw∥≤Ch d(p−2) 2p hd   
+
+> (12−p−1
+> p
+> )
+
+∥Phw∥L pp−1 (D) + C∥Phw∥L pp−1 (D)
+
+≤C∥w∥L pp−1 (D).
+
+(3.14) By duality, we also have for p > 2 and q = pp−1
+
+∥vh∥Lp(D) = sup  
+
+> w∈Lq(D)
+
+⟨vh, w ⟩∥w∥Lq (D)
+
+= sup  
+
+> w∈Lq(D)
+
+〈
+
+A 
+
+> d(p−2) 4p
+> h
+
+vh, A − d(p−2) 4p 
+
+> h
+
+Phw
+
+〉
+
+∥w∥Lq (D)
+
+≤ C∥A 
+
+> d(p−2) 4p
+> h
+
+vh∥. (3.15) In addition, the operators A and Ah obey 
+
+C1∥A μ 
+
+> 2
+> h
+
+Phv∥ ≤ ∥ A μ 
+
+> 2
+
+v∥ ≤ C2∥A μ 
+
+> 2
+> h
+
+Phv∥, ∀v ∈ Hμ, μ ∈ [−1, 1] . (3.16) Moreover, the operator AhPhA−1 is bounded, that is 
+
+∥AhPhv∥ ≤ C∥v∥2, ∀v ∈ H2. (3.17) 11 Indeed, the inverse inequality ∥AhPh∥L(H) ≤ Ch −2 and AhRh = PhA help us to obtain: 
+
+∥AhPhv∥ ≤ ∥ AhPh(I − Rh)v∥ + ∥PhAv ∥ ≤ Ch −2∥(I − Rh)v∥ + C∥v∥2 ≤ C∥v∥2. (3.18) Combining (3.17) and (3.16) gives 
+
+∥A μ 
+
+> 2
+> h
+
+PhA− μ 
+
+> 2
+
+∥L(H) = ∥(A μ 
+
+> 2
+> h
+
+PhA− μ 
+
+> 2
+
+)∗∥L(H) = ∥A− μ 
+
+> 2
+
+A μ 
+
+> 2
+> h
+
+Ph∥L(H) < ∞, μ ∈ [−1, 2] . (3.19) Similar as in (3.14), we have, the inverse inequality ∥vh∥ ≤ Ch − d 
+
+> 2
+
+∥vh∥L1(D) and ∥A− κ 
+
+> 2
+
+v∥ ≤ C∥v∥L1(D),for any κ > d
+
+> 2
+
+∥A− κ 
+
+> 2
+> h
+
+Phχ∥ ≤ C∥A− κ 
+
+> 2
+
+Phχ∥ + Ch κ∥Phχ∥ ≤ C∥v∥L1(D). (3.20) By the duality, the above estimates implies, for any κ ∈ ( d 
+
+> 2
+
+, 2) 
+
+∥vh∥V =∥vh∥L∞(D) = sup 
+
+> χ∈L1(D)
+
+〈
+
+A κ 
+
+> 2
+> h
+
+vh, A − κ 
+
+> 2
+> h
+
+Phχ
+
+〉
+
+∥χ∥L1(D)
+
+≤C sup 
+
+> χ∈L1(D)
+
+∥A κ 
+
+> 2
+> h
+
+vh∥∥ A− κ 
+
+> 2
+> h
+
+Phχ∥∥χ∥L1(D)
+
+≤ C∥A κ 
+
+> 2
+> h
+
+vh∥, ∀vh ∈ Vh.
+
+(3.21) Let τ be a uniform time step-size and tm = mτ, m ∈ Z+. Then the fully discrete finite element approximation of the problem (1.1) is to find Xmτ,h ∈ Vh such that 
+
+Xmτ,h − Xm−1 
+
+> τ,h
+
++ τ A hXmτ,h = τ F τ,h (Xm−1 
+
+> τ,h
+
+) + Ph∆Wm, X 0 
+
+> h
+
+= PhX0, (3.22) where we denote ∆Wm := W (tm) − W (tm−1) for brevity and Fτ,h : L2q−2(D) → H is given by 
+
+Fτ,h (u)( x) := fτ,h (u(x)) , x ∈ D. (3.23) Here fτ,h : R → R is a modification of the mapping f , defined by 
+
+fτ,h (u) := f (u)
+
+(1 + ( β1τ θ + β2hρ)|u| 2q−2
+
+> α
+
+)α , (3.24) where the parameters θ, ρ, β 1, β 2 > 0 and we require max {αθ, 12 αρ } < 1 + d 
+
+> 4q(2 q−1)
+
+− d 
+
+> 4
+
+. By iteration, the solution of (3.22) can be rewritten as 
+
+Xmτ,h = Emτ,h PhX0 + τ
+
+> m−1
+
+∑
+
+> j=0
+
+Em−jτ,h PhFτ,h (Xjτ,h ) + 
+
+> m
+
+∑
+
+> j=1
+
+Em+1 −jτ,h Ph∆Wj , (3.25) for m ∈ N+, where the operator Emτ,h is defined by Emτ,h := ( I + τ A h)−mPh.
+
+We now present two useful results that play an important role in proving moment bounds of the numerical solution and the convergence analysis below. The first one concerns properties of the operator family {Emτ,h }m≥1.12 Lemma 3.1 Let Assumption 2.1 be fulfilled . Then there exists a constant C independent of h, τ and 
+
+m ∈ { 1, 2, · · · , } such that for any x ∈ H
+
+∥A μ 
+
+> 2
+> h
+
+Emτ,h Phx∥ ≤ C min {t− μ 
+
+> 2
+> m
+
+, t −2 
+
+> m
+
+}∥ x∥, μ ∈ [0 , 2] , (3.26) 
+
+(
+
+τ
+
+> m
+
+∑
+
+> i=n
+
+∥A ϱ 
+
+> 2
+> h
+
+Eiτ,h Phx∥2) 12
+
+≤Ct 1−ϱ
+
+> 2
+> m−n
+
+∥x∥, ϱ ∈ [0 , 1] , (3.27) 
+
+∥∥∥τ
+
+> m
+
+∑
+
+> i=n
+
+AϱhEiτ,h Phx
+
+∥∥∥ ≤Ct 1−ϱm−n∥x∥, ϱ ∈ [0 , 1] , (3.28) 
+
+∥A− ν 
+
+> 2
+> h
+
+(I − Emτ,h )Phx∥ ≤ Ct ν
+
+> 2
+> m
+
+∥x∥, ν ∈ [0 , 2] . (3.29) The proof of this lemma will be given in the Appendix. Based on the above results on f , we can derive some properties of fτ,h (·), which can be shown by a slight modification of the proof of [21, (3.8)-(3.11)]. 
+
+Lemma 3.2 Let Assumption 2.2 be fulfilled and let the mapping fτ,h (·) be given by (3.24) . Then, there exist constants τ ∗, h ∗ ∈ (0 , ∞) such that for 0 < τ ≤ τ ∗ and 0 < h ≤ h∗, fτ,h satisfies the following conditions: for some θ > 0 and ρ > 0, α ∈ (0 , 1] satisfying max {αθ, 12 αρ } < 1 + dq(2 q−1) − d 
+
+> 4
+
+, there exist constants ˜c0, ˜c1, ˜c2, ˜c3, ˜c4, ˜c5, independent of τ and h, such that for any u, v ∈ R
+
+2( u + v)fτ,h (u) + τ |fτ,h (u)|2 ≤˜c1(1 + |v|2q) − ˜c0|u|2, (3.30) 
+
+|fτ,h (u)| ≤ ˜c2|f (u)|, (3.31) 
+
+|fτ,h (u)| ≤ ˜c3(1 + |u| + ( τ θ + hρ)−α|u|), (3.32) 
+
+|fτ,h (u) − fτ,h (v)| ≤ ˜c4(1 + |u|2q−2 + |v|2q−2)|u − v|, (3.33) 
+
+|f (v) − fτ,h (v)| ≤ ˜c5(τ θ + hρ)|v| 2q−2 
+
+> α
+
+|f (v)|. (3.34) 
+
+## 4 Error estimates in Banach spaces for the finite element fully dis-cretizations of the deterministic linear parabolic equation 
+
+In order to derive uniform-in-time moment bounds of the numerical solution Xmτ,h , we need to establish new error estimates in a Banach space Lp(D), p ≥ 2 for the fully discrete finite element approximation of the linear parabolic equation: 
+
+u(t) + Au (t) = 0 , u (0) = v, (4.1) whose solution can be written as u(t) = E(t)v. Define the fully discrete approximation operators 
+
+Φnτ,h := E(tn) − Enτ,h Ph.
+
+Theorem 4.1 Let Assumption 2.1 be fulfilled. Then, there exists a constant C independent of h, τ 
+
+and tn such that for any p ≥ 2
+
+∥Φnτ,h v∥Lp(D) ≤ C(h2+ dp − d 
+
+> 2
+
++ τ 1+ d   
+
+> 2p−d
+> 4
+
+) min {t−1 
+
+> n
+
+, t −2 
+
+> n
+
+}∥ v∥, d ∈ { 1, 2, 3}. (4.2) 13 Proof of Theorem 4.1. We begin with deriving error estimates of the semi-discrete finite element approximation of the linear equation. The semidiscrete problem is to find uh(t) ∈ Vh such that duh(t)
+
+dt + Ahuh(t) = 0 , u h(0) = Phv, (4.3) whose solution can be written as uh(t) = Eh(t)Phv, where Eh(t) := e−tA h is the semi-group generated by −Ah. To streamline the error analysis, we denote 
+
+eh(t) := u(t) − uh(t), ξh(t) := Phu(t) − uh(t), ρ(t) := ( I − Rh)u(t).
+
+Owing to (4.1), (4.3) and the fact PhA = AhRh, one knows dξh(t)
+
+dt + Ahξh(t) = Ah(Rh − Ph)u(t) = −AhPhρ(t). (4.4) By integration and noting ξh(0) = 0 , one gets 
+
+ξh(t) = −
+
+∫ t
+
+> 0
+
+Eh(t − s)AhPhρ(s) ds =
+
+∫ t
+
+> 0
+
+E′
+
+> h
+
+(t − s)Phρ(s) ds. (4.5) Noting t2 = s2 + 2 s(t − s) + ( t − s)2, one can write 
+
+t2ξh =
+
+(∫ t
+
+> 2
+> 0
+
++
+
+∫ t
+
+> t
+> 2
+
+) (s2 + 2 s(t − s) + ( t − s)2)E′
+
+> h
+
+(t − s)Phρ(s) ds
+
+=: 
+
+> 3
+
+∑
+
+> j=1
+
+(Ij + II j ).
+
+(4.6) Using the inverse inequality ∥vh∥Lp(D) ≤ Ch dp − d 
+
+> 2
+
+∥vh∥, ∀vh ∈ Vh, p ≥ 2 and the fact ∥E′
+
+> h
+
+(t)Phv∥ ≤ 
+
+Ct −1∥v∥, we have, for any t > 0
+
+∥E′
+
+> h
+
+(t)Phv∥Lp(D) ≤ Ct −1h dp − d 
+
+> 2
+
+∥v∥. (4.7) By (2.1) and (3.8), we deduce 
+
+∥ρ(t)∥ + t∥ρt(t)∥ ≤ Ch 2(∥Au (t)∥ + t∥Au t(t)∥) ≤ Ch 2(∥AE (t)v∥ + t∥AE ′(t)v∥)
+
+≤Ch 2t−1e− λ1t 
+
+> 2
+
+∥v∥. (4.8) Thus 
+
+∥I1∥Lp(D) ≤
+
+∫ t
+
+> 2
+> 0
+
+∥s2E′
+
+> h
+
+(t − s)Phρ(s)∥Lp(D) ds ≤ Ch dp − d
+
+> 2
+
+∫ t
+
+> 2
+> 0
+
+s2(t − s)−1∥ρ(s)∥ ds
+
+≤Ch 2+ dp − d 
+
+> 2
+
+t−1
+
+∫ t
+
+> 2
+> 0
+
+se − λ1s 
+
+> 2
+
+∥v∥ ds ≤ Ch 2+ dp − d 
+
+> 2
+
+t2 min {t−1, t −2}∥ v∥,
+
+(4.9) where in the third inequality we used the fact 
+
+t−1
+
+∫ t
+
+> 2
+> 0
+
+se − λ1s 
+
+> 2
+
+ds ≤ Ct −1
+
+∫ t
+
+> 2
+> 0
+
+s ds ≤ Ct, 
+
+14 for 0 < t ≤ 1 and 
+
+t−1
+
+∫ t
+
+> 2
+> 0
+
+se − λ1s 
+
+> 2
+
+ds ≤ C
+
+∫ t
+
+> 2
+> 0
+
+e− λ1s 
+
+> 2
+
+ds ≤ C, 
+
+for t ≥ 1. For II 1, after integration by parts, we infer 
+
+II 1 = −
+
+∫ t
+
+> t
+> 2
+
+s2E′
+
+> h
+
+(t − s)Phρ(s) ds
+
+= [Eh(t − s)s2Phρ(s)] ∣∣∣t
+
+> t
+> 2
+
+−
+
+∫ t
+
+> t
+> 2
+
+Eh(t − s) (2sP hρ(s) + s2Phρs(s)) ds
+
+=t2Phρ(t) − t2
+
+4 Eh(t/ 2) Phρ(t/ 2) −
+
+∫ t
+
+> t
+> 2
+
+Eh(t − s) (2sP hρ(s) + s2Phρs(s)) ds. 
+
+(4.10) Similarly, one can acquire, by (4.8) and the inverse inequality ∥vh∥Lp(D) ≤ Ch dp − d 
+
+> 2
+
+∥vh∥, for p ≥ 2
+
+∥II 1∥Lp(D) ≤Ct 2h dp − d 
+
+> 2
+
+(∥ρ(t)∥ + ∥ρ(t/ 2) ∥) + Ch dp − d
+
+> 2
+
+∫ t
+
+> t
+> 2
+
+(s∥ρ(s)∥ + s2∥ρs(s)∥) ds
+
+≤Cth 2+ dp − d 
+
+> 2
+
+(e− λ1t 
+
+> 2
+
++ e− λ1t 
+
+> 4
+
+)∥v∥ + Ch 2+ dp − d
+
+> 2
+
+∫ t
+
+> t
+> 2
+
+e− λ1s 
+
+> 2
+
+ds∥v∥≤Ch 2+ dp − d 
+
+> 2
+
+t2 min {t−1, t −2}∥ v∥,
+
+(4.11) and 
+
+∥I2 + II 2 + II 3∥Lp(D)
+
+≤Ch dp − d
+
+> 2
+
+(∫ t
+
+> 0
+
+s(t − s)∥E′
+
+> h
+
+(t − s)Phρ(s)∥ ds +
+
+∫ t
+
+> t
+> 2
+
+(t − s)2∥E′
+
+> h
+
+(t − s)Phρ(s)∥ ds
+
+)
+
+≤Ch 2+ dp − d
+
+> 2
+
+(∫ t
+
+> 0
+
+e− λ1(t−s)2 e− λ1s 
+
+> 2
+
+∥v∥ ds +
+
+∫ t
+
+> t
+> 2
+
+(t − s)s−1e− λ1s 
+
+> 2
+
+∥v∥ ds
+
+)
+
+≤Ch 2+ dp − d 
+
+> 2
+
+t2 min {t−1, t −2}∥ v∥.
+
+(4.12) For I3, we integrate by parts to obtain 
+
+I3 = −
+
+∫ t
+
+> 2
+> 0
+
+(t − s)2E′
+
+> h
+
+(t − s)Phρ(s) ds
+
+= − (t − s)2E′
+
+> h
+
+(t − s)Pĥ ρ(s)| t 
+
+> 2
+> s=0
+
++
+
+∫ t
+
+> 2
+> 0
+
+((t − s)2E′′  
+
+> h
+
+(t − s) − 2( t − s)E′
+
+> h
+
+(t − s))Pĥ ρ(s) ds
+
+= t2
+
+4 E′
+
+> h
+
+(t/ 2) Pĥ ρ(t/ 2) + 
+
+∫ t
+
+> 2
+> 0
+
+((t − s)2E′′  
+
+> h
+
+(t − s) − 2( t − s)E′
+
+> h
+
+(t − s))Pĥ ρ(s) ds, 
+
+(4.13) where we denote ̂
+
+ρ(t) := 
+
+∫ t
+
+> 0
+
+ρ(s) ds. 
+
+15 Since E′′  
+
+> h
+
+(t) = A2
+
+> h
+
+Eh(t) and ∥AμhEh(t)∥L(H) ≤ Ct −μe− λ1t 
+
+> 2
+
+for any μ ≥ 0, t > 0, one can show 
+
+t2∥E′′  
+
+> h
+
+(t)Phv∥ + t∥E′
+
+> h
+
+(t)Phv∥ ≤ Ce −λ1t 
+
+> 2
+
+∥v∥. (4.14) By (3.8) and (2.3), we show 
+
+∥̂ρ(t)∥ ≤ Ch 2
+
+∥∥∥∥∫ t
+
+> 0
+
+Au (s) ds
+
+∥∥∥∥ ≤ Ch 2∥v∥. (4.15) Thus, using the inverse inequality ∥vh∥Lp(D) ≤ Ch dp − d 
+
+> 2
+
+∥vh∥, ∀vh ∈ Vh shows, for any p ≥ 2
+
+∥I3∥Lp(D) ≤Ch dp − d
+
+> 2
+
+(
+
+∥t2E′
+
+> h
+
+(t/ 2) Pĥ ρ(t/ 2) ∥ +
+
+∫ t
+
+> 2
+> 0
+
+((t − s)2∥E′′  
+
+> h
+
+(t − s)Pĥ ρ(s)∥
+
++ 2( t − s)∥E′
+
+> h
+
+(t − s)Pĥ ρ(s)∥) ds
+
+)
+
+≤Ch 2+ dp − d
+
+> 2
+
+(
+
+te −λ1t 
+
+> 4
+
++
+
+∫ t
+
+> 2
+> 0
+
+e −λ1(t−s)2 ds
+
+)
+
+∥v∥≤Ch 2+ dp − d 
+
+> 2
+
+te − λ1t 
+
+> 4
+
+∥v∥ ≤ Ch 2+ dp − d 
+
+> 2
+
+t2 min {t−1, t −2}∥ v∥.
+
+(4.16) Finally, plugging estimates (4.9), (4.11), (4.12) and (4.16) into (4.6) leads to, for any p ≥ 2
+
+∥ξh(t)∥Lp(D) ≤ C min {t−1, t −2}h2+ dp − d 
+
+> 2
+
+∥v∥. (4.17) To bound ρ(t) in Lp-norm, we employ the Gagliardo-Nirenberg inequality 
+
+∥v∥Lp(D) ≤ C ∑
+
+> K∈T h
+
+∥v∥
+
+> (p−2) d
+> 4p
+> H2(K)
+
+∑
+
+> K∈T h
+
+∥v∥1− (p−2) d 
+
+> 4p
+> L2(K)
+
+(4.18) to conclude, for any p ≥ 2
+
+∥ρ(t)∥Lp(D) ≤C ∑
+
+> K∈T h
+
+∥ρ(t)∥
+
+> (p−2) d
+> 4p
+> H2(K)
+
+∑
+
+> K∈T h
+
+∥ρ(t)∥1− (p−2) d
+
+> 4p
+> L2(K)
+
+≤C(∥ρ(t)∥H1(D) + |u(t)|H2(D)) (p−2) d 
+
+> 4p
+
+∥ρ(t)∥1− (p−2) d
+
+> 4p
+
+≤Ch 2+ dp − d
+
+> 2
+
+((1 + h + h2)∥u(t)∥2
+
+) (p−2) d 
+
+> 4p
+
+∥u(t)∥1− (p−2) d
+
+> 4p
+> 2
+
+≤Ch 2+ dp − d 
+
+> 2
+
+t−1e− λ1t 
+
+> 2
+
+∥v∥ ≤ Ch 2+ dp − d 
+
+> 2
+
+min {t−1, t −2}∥ v∥,
+
+(4.19) where in the second inequality we used the fact Rhu is a piecewise continuous linear function over the quasiuniform triangulation Th of D. Therefore, by (4.17) and (4.19), we obtain, for any p ≥ 2
+
+∥(E(t) − Eh(t)Ph)v∥Lp(D) ≤ Ch 2+ dp − d 
+
+> 2
+
+min {t−1, t −2}∥ v∥. (4.20) It remains to bound ∥(Eh(tn) − Enτ,h )Phv∥Lp(D). For this, we need to bound ∥(Eh(tn) − Enτ,h )Phv∥ and 
+
+∥Ah(Eh(tn) − Enτ,h )Phv∥. By using the expansion of Phv in terms of {(λj,h , e jj,h )}Nh
+
+> j=1
+
+, one can get 
+
+∥∥(Eh(tn) − Enτ,h )Phv∥∥2 =
+
+> Nh
+
+∑
+
+> j=1
+
+(
+
+e−λj,h tn − (1 + τ λ j,h )−n)2
+
+⟨Phv, e j,h ⟩2 . (4.21) 16 To proceed further, consider two cases: τ λ j,h ≤ 1 and τ λ j,h > 1, and denote r(z) := (1 + z)−1, z > 0.As shown in the proof of [28, Theorem 7.1], there exist two positive constants C and c such that 
+
+|r(z) − e−z | ≤ Cz 2, ∀z ∈ [0 , 1] , (4.22) 
+
+r(z) ≤ e−cz , ∀z ∈ [0 , 1] . (4.23) These two inequalities suffice to ensure that, for n = 1 , 2, 3, · · · ,
+
+∣∣r(z)n − e−nz )∣∣ =
+
+∣∣∣(r(z) − e−z )
+
+> n−1
+
+∑
+
+> j=0
+
+r(z)n−1−j e−zj 
+
+∣∣∣ ≤ Cz 2ne −c(n−1) z . (4.24) For the case τ λ j,h ≤ 1, the above inequality and the bound sup s∈[0 ,∞) se −cs < ∞ imply, 
+
+|e−λj,h tn − r(τ λ j,h )n| ≤ Cnτ 2λ2
+
+> j,h
+
+e−cλ j,h tn−1 ≤ Cτ λ j,h e− cλ j,h tn  
+
+> 2
+
+tnλj,h e− cλ j,h tn 
+
+> 2
+
+≤Cτ t −1 
+
+> n
+
+e− cλ 1,h tn  
+
+> 4
+
+≤ Cτ min {t−1 
+
+> n
+
+, t −2 
+
+> n
+
+}.
+
+(4.25) For the case τ λ j,h > 1, using (9.5) with μ = 0 , (9.4) with μ = 0 and employing the fact sup λ≥1 e− nλ  
+
+> 2
+
+≤
+
+Cn −1 lead to 
+
+|e−λj,h tn − r(τ λ j,h )n| ≤| e−λj,h tn | + |r(τ λ j,h )n|≤Ce − λj,h tn  
+
+> 2
+
+sup 
+
+> λ≥1
+
+e− nλ  
+
+> 2
+
++ Cτ 2t−2
+
+> n
+
+≤Ce − λ1tn  
+
+> 4
+
+n−1 + Cτ 2t−2
+
+> n
+
+≤Cτ t −1 
+
+> n
+
+e−ct n + Cτ 2t−2 
+
+> n
+
+≤ Cτ min {t−1 
+
+> n
+
+, t −2 
+
+> n
+
+},
+
+(4.26) which combined with (4.25) shows 
+
+|e−λj,h tn − r(τ λ j,h )n| ≤ Cτ min {t−1 
+
+> n
+
+, t −2 
+
+> n
+
+}. (4.27) This together with (4.21) enables us to obtain 
+
+∥(Eh(tn) − Enτ,h )Phv∥ ≤ Cτ min {t−1 
+
+> n
+
+, t −2 
+
+> n
+
+}∥ v∥. (4.28) Now let us bound ∥Ah(Eh(tn)) − Enτ,h )Phv∥. Similarly as in (2.1), we derive 
+
+∥A μ 
+
+> 2
+> h
+
+Eh(tn)Phv∥ ≤ Ct − μ 
+
+> 2
+> n
+
+e− λ1tn  
+
+> 2
+
+∥v∥ ≤ C min {t− μ 
+
+> 2
+> n
+
+, t −2 
+
+> n
+
+}. (4.29) Then the above estimate in combination with (3.26) implies 
+
+∥Ah(Eh(tn) − Enτ,h )Phv∥ ≤ C min {t−1 
+
+> n
+
+, t −2 
+
+> n
+
+}∥ v∥. (4.30) By the discrete analogue of the Gagliardo-Nirenberg inequality 
+
+∥vh∥Lp(D) ≤ C∥Ahvh∥ (p−2) d 
+
+> 4p
+
+∥vh∥1− (p−2) d 
+
+> 4p
+
+, p ≥ 2,
+
+17 we have 
+
+∥(Eh(tn) − Enτ,h )Phv∥Lp(D) ≤∥ Ah(Eh(tn) − Enτ,h )Phv∥ (p−2) d 
+
+> 4p
+
+∥(Eh(tn) − Enτ,h )Phv∥1− (p−2) d
+
+> 4p
+
+≤Cτ 1+ d   
+
+> 2p−d
+> 4
+
+min {t−1 
+
+> n
+
+, t −2 
+
+> n
+
+}∥ v∥.
+
+(4.31) This completes the proof of the lemma. □
+
+In the subsequent weak error analysis, we also need the following error estimate: 
+
+∥Φnτ,h v∥−1 ≤ C(hμ + τ μ 
+
+> 2
+
+)∥v∥−1+ μ, μ ∈ [0 , 2] . (4.32) In the case μ ∈ [1 , 2] , we refer to [36, Lemma 2.8]. By interpolation theory, it suffices to validate (4.32) in the case μ = 0 , which follows from (3.16) and the stability of Emτ,h and E(t) in H.
+
+## 5 Uniform-in-time moment bounds of the fully discrete schemes 
+
+The objective of this section is to derive uniform-in-time moment bounds of the considered fully discrete scheme (3.22), which essentially relies on uniform moment bounds for the discretized version of the stochastic convolution WA(t), defined by 
+
+W mτ,h := 
+
+> m
+
+∑
+
+> j=1
+
+Em+1 −jτ,h Ph∆Wj . (5.1) 
+
+Lemma 5.1 Let Assumptions 2.1, 2.4 be fulfilled with γ ∈
+
+[ (2 q2−q−1) d 
+
+> 2q(2 q−1)
+
+, 2
+
+]
+
+. For any p > 1, there exist a positive constant C(Q, p ) such that 
+
+sup 
+
+> m∈N
+
+∥W mτ,h ∥Lp(Ω; L2q(2 q−1) (D)) + sup 
+
+> m∈N
+
+∥A γ 
+
+> 2
+> h
+
+W mτ,h ∥Lp(Ω; H) ≤ C(Q, p ) < ∞. (5.2) 
+
+Additionally, if γ ∈ ( d 
+
+> 2
+
+, 2] for d ∈ { 1, 2, 3} or γ ∈ (0 , 12 ) with Q = I for d = 1 , then there exists a constant C = C(Q, p ) such that 
+
+sup 
+
+> m∈N
+
+∥W mτ,h ∥Lp(Ω; V ) ≤ C(Q, p ) < ∞. (5.3) The proof is provided in the appendix. A slight modification of the proof of [21, Lemma 4.4] gives the following lemma on the uniform-in-time moment bound of the fully discretization (3.22) in L2(D).
+
+Lemma 5.2 (Uniform-in-time moment bounds in L2(D)) Let Assumptions 2.1-2.5 be fulfilled with 
+
+γ ∈ [ (2 q2−q−1) d 
+
+> 2q(2 q−1)
+
+, 2] and max {αθ, 12 αρ } < 1 + d 
+
+> 4q(2 q−1)
+
+− d 
+
+> 4
+
+. For any p ≥ 1, there exists a constant 
+
+C = C(X0, Q, p, q ) such that 
+
+sup 
+
+> m∈N0
+
+∥Xmτ,h ∥Lp(Ω; H) ≤ C(X0, Q, p, q ) < ∞. (5.4) 
+
+Theorem 5.3 Let all conditions in Lemma 5.2 hold true for γ ∈
+
+[
+
+max 
+
+{ d(2 q−2+ α(2 q−3)) 2(2 q−2+ α(2 q−1)) , (2 q2−q−1) d
+
+> 2q(2 q−1)
+
+}
+
+, 2
+
+]
+
+and let Xmτ,h be produced by the fully discretization scheme (3.22) . Then there exists a positive constant 
+
+C = C(X0, Q, p, q ) such that, for any p ≥ 1,
+
+sup 
+
+> m∈N0
+
+(∥Xmτ,h ∥Lp(Ω; L2q(2 q−1) (D)) + ∥A γ 
+
+> 2
+> h
+
+Xmτ,h ∥Lp(Ω; H)
+
+) ≤ C < ∞, (5.5) 18 and, for β ∈ [0 , γ ]
+
+∥∥A β 
+
+> 2
+> h
+
+(Xmτ,h − Xnτ,h )∥∥Lp(Ω; H) ≤ C|tm − tn|min { 12 , γ−β 
+
+> 2}
+
+. (5.6) 
+
+In addition, if γ ∈ ( d 
+
+> 2
+
+, 2] or γ ∈ (0, 12
+
+] with Q = I in dimension one, then 
+
+sup 
+
+> m∈N0
+
+∥Xmτ,h ∥Lp(Ω; V ) ≤ C < ∞. (5.7) 
+
+Proof of Theorem 5.3. To show this theorem, we introduce two auxiliary processes, 
+
+Rmτ,h := τ
+
+> m−1
+
+∑
+
+> l=0
+
+(Em−lτ,h Ph − E(tm − tl))Fτ,h (Xlτ,h ) + W mτ,h + Emτ,h PhX0 − E(tm)X0, (5.8) and 
+
+˜Y mτ,h := Xmτ,h − R mτ,h . (5.9) Recalling (3.25), we arrive at, for all m ∈ N0
+
+˜Y mτ,h = E(tm) ˜Y 0 
+
+> τ,h
+
++ τ
+
+> m−1
+
+∑
+
+> l=0
+
+E(tm − tl)Fτ,h (Xlτ,h ) = E(τ ) ˜Y m−1 
+
+> τ,h
+
++ τ E (τ )Fτ,h (Xm−1 
+
+> τ,h
+
+). (5.10) By the proof of [21, Theorem 4.3], it suffices to show sup m∈N0 ∥R mτ,h ∥Lp(Ω; L2q(2 q−1) (D)) < ∞. Note first that we have, by (2.1), (3.26), (3.15), (2.18) with s = 2 q(2 q − 1) , r = 2 and β = (2 q2−q−1) d
+
+> 2q(2 q−1)
+
+∥Em+1  
+
+> τ,h
+
+Phv − E(tm+1 )v∥L2q(2 q−1) (D) ≤C
+
+(∥ ∥∥A 
+
+> (2 q2−q−1) d
+> 4q(2 q−1)
+> h
+
+Em+1  
+
+> τ,h
+
+Phv
+
+∥∥∥ +
+
+∥∥∥A (2 q2−q−1) d 
+
+> 4q(2 q−1)
+
+E(tm+1 )v
+
+∥∥∥)
+
+≤C min 
+
+{
+
+t−2
+
+> m+1
+
+, t − (2 q2−q−1) d
+
+> 4q(2 q−1)
+> m+1
+
+}
+
+∥v∥ ,
+
+(5.11) or 
+
+∥Em+1  
+
+> τ,h
+
+Phv − E(tm+1 )v∥L2q(2 q−1) (D) ≤ C
+
+∥∥∥A (2 q2−q−1) d 
+
+> 4q(2 q−1)
+
+v
+
+∥∥∥. (5.12) Since max {αθ, 12 αρ } < 1+ d 
+
+> 4q(2 q−1)
+
+− d 
+
+> 4
+
+, there exists a constant δ ∈ (0 , 1) such that (1+ d 
+
+> 4q(2 q−1)
+
+− d 
+
+> 4
+
+)δ ≥
+
+max {αθ, 12 αρ }. Therefore, the above two estimates together with (3.32) and (4.2) for p = 2 q(2 q − 1) 
+
+19 imply 
+
+sup 
+
+m∈N0
+
+∥R m+1 
+
+τ,h ∥Lp(Ω; L2q(2 q−1) (D)) 
+
+≤ sup 
+
+m∈N0
+
+τ
+
+m∑
+
+l=0 
+
+∥∥∥(Em+1 −lτ,h Ph − E(tm+1 − tl))Fτ,h (Xlτ,h )
+
+∥∥∥Lp(Ω; L2q(2 q−1) (D)) 
+
++ sup 
+
+m∈N0
+
+∥∥∥W m+1 
+
+τ,h 
+
+∥∥∥Lp(Ω; L2q(2 q−1) (D)) + sup 
+
+m∈N0
+
+∥∥∥(E(tm+1 ) − Em+1 
+
+τ,h Ph)X0
+
+∥∥∥Lp(Ω; L2q(2 q−1) (D)) 
+
+≤ sup 
+
+m∈N0
+
+τ
+
+m∑
+
+l=0 
+
+∥∥∥(Em+1 −lτ,h Ph − E(tm+1 − tl))Fτ,h (Xlτ,h )
+
+∥∥∥δLp(Ω; L2q(2 q−1) (D)) 
+
+·
+
+∥∥∥(Em+1 −lτ,h Ph − E(tm+1 − tl))Fτ,h (Xlτ,h )
+
+∥∥∥1−δLp(Ω; L2q(2 q−1) (D)) + C(Q, p )
+
+≤C sup 
+
+m∈N0
+
+τ
+
+m∑
+
+l=0 
+
+(
+
+h2+ d 
+
+> 2q(2 q−1)
+
+− d 
+
+> 2
+
++ τ 1+ d 
+
+> 4q(2 q−1)
+
+− d
+
+> 4
+
+)δ
+
+min {t−δm+1 −l, t −2δm+1 −l} min 
+
+{
+
+t− (1 −δ)(2 q2−q−1) d
+
+> 4q(2 q−1)
+
+m+1 −l , t −2(1 −δ)
+
+m+1 −l
+
+}
+
+· (1 + (1 + ( hρ + τ θ)−α)∥Xlτ,h ∥Lp(Ω; H)
+
+) + C(Q, p )
+
+≤C sup 
+
+m∈N0
+
+τ
+
+m∑
+
+l=0 
+
+min 
+
+{
+
+t−δ− (1 −δ)(2 q2−q−1) d
+
+> 4q(2 q−1)
+
+m+1 −l , t −2
+
+m+1 −l
+
+}
+
+sup 
+
+m∈N+
+
+∥Xmτ,h ∥Lp(Ω; H) + C(Q, p ) < ∞,
+
+(5.13) where in the last inequality, we used the fact 
+
+sup 
+
+m∈N0
+
+τ
+
+m∑
+
+l=0 
+
+min 
+
+{
+
+t−δ− (1 −δ)(2 q2−q−1) d
+
+> 4q(2 q−1)
+
+m+1 −l , t −2
+
+m+1 −l
+
+}
+
+< ∞,
+
+as δ + (1 −δ)(2 q2−q−1) d
+
+4q(2 q−1) < 1. Following similar arguments as in the proof of [21, (4.25)], we deduce 
+
+sup 
+
+m∈N0
+
+∥ ˜Y mτ,h ∥Lp(Ω; L4q−2(D)) < ∞, (5.14) which together with (5.13) shows 
+
+sup 
+
+m∈N0
+
+∥Xmτ,h ∥Lp(Ω; L4q−2(D)) ≤ sup 
+
+m∈N0
+
+∥ ˜Y mτ,h ∥Lp(Ω; L4q−2(D)) + sup 
+
+m∈N0
+
+∥R mτ,h ∥Lp(Ω; L4q−2(D)) < ∞. (5.15) This guarantees 
+
+sup 
+
+m∈N0
+
+∥Fτ,h (Xmτ,h )∥Lp(Ω; H) ≤ sup 
+
+m∈N0
+
+∥F (Xmτ,h )∥Lp(Ω; H) < ∞. (5.16) To show (5.5) and (5.6), we consider two cases: γ ∈ [ (2 q2−q−2) d
+
+2q(2 q−1) , κ ] and γ ∈ (κ, 2] , where κ ∈ ( d
+
+2 , 2) .20 For the former case γ ∈ [ (2 q2−q−2) d
+
+2q(2 q−1) , κ ], we have, by (3.19), (3.26), (5.2) and (5.16) 
+
+sup 
+
+m∈N0
+
+∥A γ
+
+> 2
+
+h Xmτ,h ∥Lp(Ω; H) ≤ sup 
+
+m∈N0
+
+∥∥∥∥∥A γ
+
+> 2
+
+h
+
+(
+
+Emτ,h PhX0 + τ
+
+m−1∑
+
+l=0 
+
+Em−lτ,h PhFτ,h (Xlτ,h ) + W mτ,h 
+
+)∥∥∥∥∥Lp(Ω; H)
+
+≤C(∥X0∥Lp(Ω; Hγ ) + C sup 
+
+m∈N0
+
+∥Fτ,h (Xmτ,h )∥Lp(Ω; H)τ sup 
+
+m∈N0
+
+m−1∑
+
+l=0 
+
+min {t− γ
+
+> 2
+
+m−l, t −2
+
+m−l}
+
++ sup 
+
+m∈N0
+
+∥A γ
+
+> 2
+
+h W mτ,h ∥Lp(Ω; H) < ∞,
+
+(5.17) and by (3.19), (3.26), (3.27), (3.29), the Burkholder-Davis-Gundy type inequality 
+
+∥A β
+
+> 2
+
+h (Xmτ,h − Xnτ,h )∥Lp(Ω; H)
+
+≤∥ A β
+
+> 2
+
+h (I − Em−nτ,h )Xnτ,h ∥Lp(Ω; H) +
+
+m−1∑
+
+i=n
+
+τ ∥A β
+
+> 2
+
+h Em−iτ,h PhFτ,h (Xi−1
+
+τ,h )∥Lp(Ω; H)
+
++
+
+( m−1∑
+
+i=n
+
+τ ∥A β
+
+> 2
+
+h Em−iτ,h PhQ 12 ∥2
+
+L2(H)
+
+) 12
+
+≤Ct γ−β
+
+> 2
+
+m−n∥A γ
+
+> 2
+
+h Xnτ,h ∥L2(Ω; H) + Cτ 
+
+m−1∑
+
+i=n
+
+min {t− β
+
+> 2
+
+m−i, t −2
+
+m−i} sup 
+
+m∈N0
+
+∥F (Xmτ,h )∥Lp(Ω; H)
+
++ Ct min {γ−β, 1}
+
+> 2
+
+m−n ∥A γ−12 Q 12 ∥L2(H)
+
+≤Ct min {γ−β, 1}
+
+> 2
+
+m−n ,
+
+(5.18) for β ∈ [0 , γ ], where in the last inequality we used the following estimate, for γ ∈ [ (2 q2−q−2) d
+
+2q(2 q−1) , κ ]
+
+τ
+
+m−1∑
+
+i=n
+
+min {t− β
+
+> 2
+
+m−i, t −2
+
+m−i} ≤ Ct γ−β
+
+> 2
+
+m−nτ
+
+m−1∑
+
+i=n
+
+min 
+
+{
+
+t− γ
+
+> 2
+
+m−i, t −2− γ−β
+
+> 2
+
+m−i
+
+}
+
+≤ Ct γ−β
+
+> 2
+
+m−n. (5.19) Next, let us focus on the other case γ ∈ (κ, 2] . In this case, one can observe 
+
+sup 
+
+m∈N0
+
+∥Xmτ,h ∥Lp(Ω; L∞(D)) ≤ C sup 
+
+m∈N0
+
+∥A κ
+
+> 2
+
+h Xmτ,h ∥Lp(Ω; H) < ∞,
+
+as already verified in the former case. Thus, employing (3.21) and (5.18) yields 
+
+∥Ph
+
+(Fτ,h (Xm−1
+
+τ,h ) − Fτ,h (Xl−1
+
+τ,h ))∥Lp(Ω; H)
+
+≤
+
+∥∥∥(
+
+1 + ∥Xm−1
+
+τ,h ∥2q−2
+
+L∞(D) + ∥Xl−1
+
+τ,h ∥2q−2
+
+L∞(D))
+
+)
+
+∥Xm−1
+
+τ,h − Xl−1
+
+τ,h ∥
+
+∥∥∥Lp(Ω; R)
+
+≤C(tm − tl) min {κ, 1} 
+
+> 2
+
+.
+
+(5.20) 21 This in combination with (3.26), (3.28) and (5.16) implies, for β ∈ (κ, 2] 
+
+∥∥∥∥∥A β 
+
+> 2
+> h
+
+τ
+
+> m−1
+
+∑
+
+> l=n
+
+Em−lτ,h PhFτ,h (Xl−1 
+
+> τ,h
+
+)
+
+∥∥∥∥∥Lp(Ω; H)
+
+≤
+
+∥∥∥∥∥A β 
+
+> 2
+> h
+
+τ
+
+> m−1
+
+∑
+
+> l=n
+
+Em−lτ,h PhFτ,h (Xm−1 
+
+> τ,h
+
+)
+
+∥∥∥∥∥Lp(Ω; H)
+
++ τ
+
+> m−1
+
+∑
+
+> l=n
+
+∥A β 
+
+> 2
+> h
+
+Em−lτ,h ∥L(H)∥Fτ,h (Xm−1 
+
+> τ,h
+
+) − Fτ,h (Xl−1 
+
+> τ,h
+
+)∥Lp(Ω; H)
+
+≤C(tm − tn) 2−β 
+
+> 2
+
+sup 
+
+> m∈N0
+
+∥Fτ,h (Xlτ,h )∥Lp(Ω; H) + Cτ 
+
+> m−1
+
+∑
+
+> l=n
+
+min {t− β
+
+> 2
+> m−l
+
+, t −2
+
+> m−l
+
+}(tm − tl) min {κ, 1}
+
+> 2
+
+≤C(tm − tn) 2−β 
+
+> 2
+
++ C(tm − tn) 2−β 
+
+> 2
+
+τ
+
+> m−1
+
+∑
+
+> l=n
+
+min 
+
+{
+
+t−1+ min {κ, 1} 
+
+> 2
+> m−l
+
+, t −2− 2−β  
+
+> 2+min {κ, 1}
+> 2
+> m−l
+
+}
+
+≤C(tm − tn) 2−β 
+
+> 2
+
+.
+
+(5.21) Along the lines of the proof (5.17) and (5.18), we can show (5.5) and (5.6). Based on the estimates (5.5), (5.6) and (5.3)£¬ we can follow the similar arguments of the proof of (5.17) to prove (5.7). Hence, the proof of this theorem is complete. □
+
+As a direct consequence of Theorem 5.3, the following results hold. 
+
+Proposition 5.4 Let all conditions in Theorem 5.3 hold true. For any p ≥ 1, there exists a constant 
+
+C = C(X0, Q, p, q ) such that 
+
+sup 
+
+> m∈N0
+
+(∥F (Xmτ,h )∥Lp(Ω; H) + sup 
+
+> m∈N0
+
+∥f ′(Xmτ,h )∥Lp(Ω; L2q (D)) 
+
++ ∥f ′′ (Xmτ,h )∥Lp(Ω; L2q (D)) + ∥(Xmτ,h ) 2q−2 
+
+> α
+
+F (Xmτ,h )∥Lp(Ω; L1(D)) ≤ C < ∞.
+
+(5.22) 
+
+## 6 Strong convergence analysis of the full discretization scheme 
+
+This section is devoted to the strong convergence of the fully-discrete finite element method (3.22). To do this, we need to introduce two auxiliary processes. The first one is 
+
+˜Xmτ,h = Emτ,h PhX0 + τ
+
+> m−1
+
+∑
+
+> l=0
+
+Em−lτ,h PhF (X(tl+1 )) + W mτ,h . (6.1) In view of (3.26), (5.2), (5.5) and (2.22), one can acquire 
+
+sup 
+
+> m∈N
+
+∥A γ 
+
+> 2
+> h
+
+˜Xmτ,h ∥Lp(Ω; H) < ∞. (6.2) Another one is to find Xmτ,h ∈ Vh such that 
+
+Xmτ,h − Xm−1 
+
+> τ,h
+
++ τ A hXmτ,h = τ P hF (Xmτ,h ) + Ph∆W m, (6.3) 22 whose solution can be reformulated as 
+
+Xmτ,h = Emτ,h PhX0 +
+
+> m
+
+∑
+
+> l=1
+
+Em+1 −lτ,h PhF (Xlτ,h ) + W mτ,h . (6.4) Under Assumptions 2.1-2.5, one can deduce 
+
+sup 
+
+> m∈N0
+
+∥A γ 
+
+> 2
+> h
+
+Xmτ,h ∥Lp(Ω ,H ) ≤ C(p, Q ) < ∞. (6.5) With the above two auxiliary processes, we separate the considered error ∥X(tm) − Xmh ∥Lp(Ω; H) as 
+
+∥X(tm) − Xmτ,h ∥Lp(Ω; H) ≤ ∥ X(tm) − ˜Xmτ,h ∥Lp(Ω; H) + ∥ ˜Xmτ,h − Xmτ,h ∥Lp(Ω; H) + ∥Xmτ,h − Xmτ,h ∥Lp(Ω; H).
+
+(6.6) In what follows, we will bound the above three errors, separately. Following the same argument as in the proof of [25, (4.37)], one can bound the error ∥X(tm) − ˜Xmτ,h ∥Lp(Ω; H) as follows. 
+
+Lemma 6.1 Let all conditions in Theorem 5.3 be fulfilled. Then, there exists a positive constant 
+
+C = C(p, Q ) independent of h and τ such that for p ≥ 1sup 
+
+> m∈N0
+
+∥X(tm) − ˜Xmτ,h ∥Lp(Ω; H) ≤ C(hγ + τ γ 
+
+> 2
+
+). (6.7) Next lemma will present the convergence result of the error ∥Xmτ,h − Xmτ,h ∥Lp(Ω; H).
+
+Lemma 6.2 Let all conditions in Theorem 5.3 be fulfilled. Then, there exists a positive constant 
+
+C = C(p, Q ) independent of h and τ such that for p ≥ 1sup 
+
+> m∈N0
+
+∥Xmτ,h − Xmτ,h ∥Lp(Ω; H) ≤ C(hmin {γ,ρ } + τ min {θ, γ 
+
+> 2}
+
+). (6.8) 
+
+Proof of Lemma 6.2. Subtracting (6.4) from (3.25), the error ∥Xmτ,h − Xmτ,h ∥Lp(Ω ,H ) can be split into the following two terms 
+
+∥Xmτ,h − Xmτ,h ∥Lp(Ω; H) ≤
+
+∥∥∥∥∥
+
+> m
+
+∑
+
+> l=1
+
+τ E m+1 −lτ,h Ph(F (Xlτ,h ) − F (Xl−1 
+
+> τ,h
+
+)) 
+
+∥∥∥∥∥Lp(Ω; H)
+
++
+
+> m
+
+∑
+
+> l=1
+
+τ ∥Em+1 −lτ,h Ph(F (Xl−1 
+
+> τ,h
+
+) − Fτ,h (Xl−1 
+
+> τ,h
+
+)) ∥Lp(Ω; H)
+
+=: J1 + J2.
+
+(6.9) By (3.26) and for κ ∈ ( d 
+
+> 2
+
+, 2) , (3.34) and (5.22), the second term J2 can be estimated as follows: 
+
+J2 ≤
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}∥ A− κ 
+
+> 2
+> h
+
+(F (Xl−1 
+
+> τ,h
+
+) − Fτ,h (Xl−1 
+
+> τ,h
+
+)) ∥Lp(Ω; H)
+
+≤
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}∥ F (Xl−1 
+
+> τ,h
+
+) − Fτ,h (Xl−1 
+
+> τ,h
+
+)∥Lp(Ω; L1(D)) 
+
+≤C(hρ + τ θ)
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+} sup 
+
+> m∈N0
+
+∥(Xmτ,h ) 2q−2 
+
+> α
+
+F (Xmτ,h )∥Lp(Ω; L1(D)) 
+
+≤C(hρ + τ θ).
+
+(6.10) 23 To bound the first term J1, we apply Taylor’s formula to decompose it further into four additional terms as follows 
+
+J1 ≤
+
+∥∥∥∥∥
+
+> m
+
+∑
+
+> l=1
+
+τ E m+1 −lτ,h PhF ′(Xl−1 
+
+> τ,h
+
+)( I − Eτ,h )Xl−1
+
+> τ,h
+
+∥∥∥∥∥Lp(Ω; H)
+
++
+
+∥∥∥∥∥
+
+> m
+
+∑
+
+> l=1
+
+τ 2Em+1 −lτ,h PhF ′(Xl−1 
+
+> τ,h
+
+)Eτ,h PhFτ,h (Xl−1 
+
+> τ,h
+
+)
+
+∥∥∥∥∥Lp(Ω; H)
+
++
+
+∥∥∥∥∥
+
+> m
+
+∑
+
+> l=1
+
+τ E m+1 −lτ,h PhF ′(Xl−1 
+
+> τ,h
+
+)Eτ,h Ph∆W l
+
+∥∥∥∥∥Lp(Ω; H)
+
++
+
+∥∥∥∥∥
+
+> m
+
+∑
+
+> l=1
+
+τ E m+1 −lτ,h PhRF (Xlτ,h , X l−1 
+
+> τ,h
+
+)
+
+∥∥∥∥∥Lp(Ω; H)
+
+=: J11 + J12 + J13 + J14 ,
+
+(6.11) where the remainder term RF reads, 
+
+RF (Xlτ,h , X l−1 
+
+> τ,h
+
+) := 
+
+∫ 10
+
+F ′′ (Xl−1 
+
+> τ,h
+
++ λ(Xlτ,h − Xl−1 
+
+> τ,h
+
+))( Xlτ,h − Xl−1 
+
+> τ,h
+
+, X lτ,h − Xl−1
+
+> τ,h
+
+)(1 − λ) dλ. 
+
+In the sequel we treat the above four terms one by one. Thanks to (3.20), (3.26), (3.29), (5.5) and (5.22), we derive, for any fixed κ ∈ ( d 
+
+> 2
+
+, 2) ,
+
+J11 ≤C
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}∥ A− κ 
+
+> 2
+> h
+
+PhF ′(Xl−1 
+
+> τ,h
+
+)( I − Eτ,h )Xl−1 
+
+> τ,h
+
+∥Lp(Ω; H)
+
+≤C
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}∥ F ′(Xl−1 
+
+> τ,h
+
+)( I − Eτ,h )Xl−1 
+
+> τ,h
+
+∥Lp(Ω; L1(D)) 
+
+≤C
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}∥ f ′(Xl−1 
+
+> τ,h
+
+)∥L2p(Ω; H)∥(I − Eτ,h )Xl−1 
+
+> τ,h
+
+∥L2p(Ω; H)
+
+≤C
+
+> m
+
+∑
+
+> l=1
+
+τ 1+ γ 
+
+> 2
+
+min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+} sup 
+
+> m∈N0
+
+∥f ′(Xmτ,h )∥L2p(Ω; H) sup 
+
+> m∈N0
+
+∥A γ 
+
+> 2
+> h
+
+Xmτ,h ∥L2p(Ω; H)
+
+≤Cτ γ 
+
+> 2
+
+,
+
+(6.12) where in the last inequality we used the fact, 
+
+sup 
+
+> m∈N0
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1
+
+} < ∞, κ ∈ ( d 
+
+> 2
+
+, 2) . (6.13) Similarly, using (3.20), (3.26), (6.13) and (5.22) implies that, for any fixed κ ∈ ( d 
+
+> 2
+
+, 2) 
+
+J12 ≤C
+
+> m
+
+∑
+
+> l=1
+
+τ 2 min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}∥ PhF ′(Xl−1 
+
+> τ,h
+
+)Eτ,h PhFτ,h (Xl−1 
+
+> τ,h
+
+)∥Lp(Ω; L1(D)) 
+
+≤C
+
+> m
+
+∑
+
+> l=1
+
+τ 2 min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+} sup 
+
+> m∈N0
+
+∥f ′(Xmτ,h )∥L2p(Ω; H) sup 
+
+> m∈N0
+
+∥F (Xmτ,h )∥L2p(Ω; H)
+
+≤Cτ. 
+
+(6.14) 24 Owing to the stochastic Fubini theorem (e.g., see [16, Theorem 4.18]) and the Burkholder-Davis-Gundy-type inequality, we obtain, for the term J13 ,
+
+J13 =
+
+∥∥∥∥∥
+
+m∑
+
+l=1 
+
+∫ tl
+
+tl−1
+
+∫ tl
+
+tl−1
+
+Em+1 −lτ,h PhF ′(Xl−1
+
+τ,h )Eτ,h Ph dW (σ) ds
+
+∥∥∥∥∥Lp(Ω; H)
+
+=
+
+∥∥∥∥∥
+
+m∑
+
+l=1 
+
+∫ tl
+
+tl−1
+
+∫ tl
+
+tl−1
+
+Em+1 −lτ,h PhF ′(Xl−1
+
+τ,h )Eτ,h Ph ds dW (σ)
+
+∥∥∥∥∥Lp(Ω; H)
+
+≤C
+
+
+
+m∑
+
+l=1 
+
+∫ tl
+
+tl−1
+
+∥∥∥∥∥∫ tl
+
+tl−1
+
+Em+1 −lτ,h PhF ′(Xl−1
+
+τ,h )Eτ,h Ph ds
+
+∥∥∥∥∥
+
+2
+
+Lp(Ω; L02)
+
+dσ
+
+
+
+> 12
+
+≤C
+
+( m∑
+
+l=1 
+
+τ 3 min {1, t −4
+
+m+1 −l}
+
+∥∥∥F ′(Xl−1
+
+τ,h )Eτ,h Ph
+
+∥∥∥2
+
+Lp(Ω; L02)
+
+) 12
+
+.
+
+(6.15) For γ ∈ (0 , d
+
+2 ], from (5.22), (3.15), (3.26) and the Hölder inequality, one can deduce 
+
+J13 ≤
+
+( m∑
+
+l=1 
+
+τ 3 min {1, t −4
+
+m+1 −l
+
+} ∥f ′(Xl−1
+
+τ,h )∥2
+
+Lp(Ω; L4)∥A d
+
+> 8
+
+h Eτ,h Ph∥2
+
+L02
+
+) 12
+
+≤
+
+( m∑
+
+l=1 
+
+τ 3− 4−4γ+d 
+
+> 4
+
+min {1, t −4
+
+m+1 −l
+
+} ∥f ′(Xl−1
+
+τ,h )∥2
+
+Lp(Ω; L4(D)) ∥A γ−12
+
+h Ph∥2
+
+L02
+
+) 12
+
+≤Cτ 4−d+4 γ 
+
+> 8
+
+sup 
+
+m∈N0
+
+∥f ′(Xmτ,h )∥Lp(Ω; L4(D)) ≤ Cτ γ 
+
+> 2
+
+.
+
+(6.16) For γ ∈ ( d
+
+2 , 2] , applying (3.21) and (5.5) implies sup m∈N0 ∥f ′(Xmτ,h )∥Lp(Ω; L∞(D)) < ∞. Further, we have, by (3.26), (3.16) and Assumption 2.4 
+
+J13 ≤
+
+( m∑
+
+l=1 
+
+τ 3 min {1, t −4
+
+m+1 −l}∥ f ′(Xl−1
+
+τ,h )∥2
+
+Lp(Ω; L∞(D)) ∥Eτ,h Ph∥2
+
+L02
+
+) 12
+
+≤
+
+( m∑
+
+l=1 
+
+τ 3−max {0,1−γ} min {1, t −4
+
+m+1 −l} sup 
+
+m∈N
+
+∥f ′(Xmτ,h )∥2
+
+Lp(Ω; L∞(D)) ∥A γ−12
+
+h Ph∥2
+
+L02
+
+) 12
+
+≤Cτ γ 
+
+> 2
+
+∥A γ−12 Q 12 ∥L2(H).
+
+(6.17) Thus, the above three estimates ensure 
+
+J13 ≤ Cτ γ 
+
+> 2
+
+. (6.18) Now we turn our attention to the term J14 . Thanks to (6.13), (3.20) and (3.26), we derive 
+
+J14 ≤C
+
+m∑
+
+l=1 
+
+τ min {t− κ 
+
+> 2
+
+, t −2
+
+m+1 −l}∥ A− κ
+
+> 2
+
+h PhRF (Xlτ,h , X l−1
+
+τ,h )∥Lp(Ω; H)
+
+≤C
+
+m∑
+
+l=1 
+
+τ min {t− κ 
+
+> 2
+
+, t −2
+
+m+1 −l}∥ RF (Xlτ,h , X l−1
+
+τ,h )∥Lp(Ω; L1(D)) .
+
+(6.19) 25 For γ ∈ ( (2 q2−q−2) d 
+
+> 2q(2 q−1)
+
+, d
+
+> 2
+
+], applying (5.22), (6.13), (5.6), (3.15) and the Hölder inequality implies 
+
+J14 ≤C
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}
+
+∫ 10
+
+∥f ′′ (Xl−1 
+
+> τ,h
+
++ λ(Xlτ,h − Xl−1 
+
+> τ,h
+
+)) ∥L2p(Ω; L2q ) dλ∥Xlτ,h − Xl−1 
+
+> τ,h
+
+∥2  
+
+> L4p(Ω; L4q
+> 2q−1)
+
+≤C(1 + sup 
+
+> m∈N0
+
+∥Xmτ,h ∥L2p(2 q−2) (Ω; L2q(2 q−2) (D)) )2q−2
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}∥ A 
+
+> d
+> 8q
+> h
+
+(Xlτ,h − Xl−1 
+
+> τ,h
+
+)∥2
+
+> L4p(Ω; H)
+
+≤Cτ min {γ− d  
+
+> 4q,1}
+
+≤ Cτ min { γ      
+
+> 2+γ
+> 2−d
+> 4q,1}
+
+≤ Cτ min { γ  
+
+> 2,1}
+
+= Cτ γ 
+
+> 2
+
+,
+
+(6.20) where in the last inequality we used the fact γ 
+
+> 2
+
+− d 
+
+> 4q
+
+> 0. For γ ∈ ( d 
+
+> 2
+
+, 2] , by applying (3.21), (5.5), (6.13) and (5.6), one can observe 
+
+J14 ≤C
+
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}
+
+∫ 10
+
+∥f ′′ (Xl−1 
+
+> τ,h
+
++ λ(Xlτ,h − Xl−1 
+
+> τ,h
+
+)) ∥L2p(Ω; L∞(D)) dλ∥Xlτ,h − Xl−1 
+
+> τ,h
+
+∥2
+
+> L4p(Ω; H)
+
+≤Cτ min {γ, 1} sup 
+
+> m∈N0
+> m
+
+∑
+
+> l=1
+
+τ min {t− κ
+
+> 2
+> m+1 −l
+
+, t −2
+
+> m+1 −l
+
+}(1 + sup 
+
+> m∈N0
+
+∥Xmτ,h ∥L2p(2 q−2) (Ω; L∞(D)) )2q−2
+
+≤Cτ min {γ, 1},
+
+(6.21) which in combination with (6.20) and (6.19) arrives at 
+
+J14 ≤ Cτ γ 
+
+> 2
+
+. (6.22) Putting the estimates (6.12), (6.14), (6.18) and (6.22) back into (6.11) results in 
+
+J1 ≤ Cτ γ 
+
+> 2
+
+, (6.23) which together with (6.10) and (6.9) shows (6.8) and ends the proof of this lemma. □
+
+Finally, we turn our attention to the error ∥ ˜Xmτ,h − Xmτ,h ∥Lp(Ω; H).
+
+Lemma 6.3 Let all conditions in Theorem 5.3 be satisfied. For any fixed time-point T ∈ (0 , ∞), let 
+
+τ = T /M , M ∈ N be a time-step size. Then there exist positive constants τ ∗, h ∗ and C = C(T, p, Q )
+
+such that for all τ ≤ τ ∗, h ≤ h∗ and ∀ p ≥ 1,
+
+sup  
+
+> m∈{ 1,2,...,M }
+
+∥ ˜Xmτ,h − Xmτ,h ∥Lp(Ω; H) ≤ C(hmin {γ,ρ } + τ min { γ 
+
+> 2,θ }
+
+). (6.24) 
+
+If additionally Lf < λ 1, then one can show the uniform-in-time strong error estimates: for any 
+
+τ ∈ (0 , τ ∗),
+
+sup 
+
+> m∈N
+
+∥ ˜Xmτ,h − Xmτ,h ∥Lp(Ω; H) ≤ C(hmin {γ,ρ } + τ min { γ 
+
+> 2,θ }
+
+). (6.25) 
+
+Proof of Lemma 6.3. Note first that ˜Xmτ,h − Xmτ,h obeys 
+
+˜Xmτ,h − Xmτ,h − ( ˜Xm−1 
+
+> τ,h
+
+− Xm−1 
+
+> τ,h
+
+) + τ A h( ˜Xmτ,h − Xmτ,h ) = τ P h
+
+(F (X(tm)) − F (Xmτ,h )). (6.26) 26 Multiplying this equation by ˜Xmτ,h − Xmτ,h and using the fact (Ahvh, v h) = ∥∇ vh∥2, ∀vh ∈ Vh yield 
+
+12 (∥ ˜Xmτ,h − Xmτ,h ∥2 − ∥ ˜Xm−1 
+
+> τ,h
+
+− Xm−1 
+
+> τ,h
+
+∥2) + τ ∥ ˜Xmτ,h − Xmτ,h ∥21
+
+≤
+
+〈 ˜Xmτ,h − Xmτ,h − ( ˜Xm−1 
+
+> τ,h
+
+− Xm−1 
+
+> τ,h
+
+), ˜Xmτ,h − Xmτ,h 
+
+〉
+
++ τ
+
+〈
+
+∇( ˜Xmτ,h − Xmτ,h ), ∇( ˜Xmτ,h − Xmτ,h )
+
+〉
+
+=τ
+
+〈
+
+F (X(tm)) − F ( ˜Xmτ,h 
+
+), ˜Xmτ,h − Xmτ,h 
+
+〉
+
++ τ
+
+〈
+
+F ( ˜Xmτ,h ) − F (Xmτ,h ), ˜Xmτ,h − Xmτ,h 
+
+〉
+
++ τ
+
+〈
+
+F (Xmτ,h ) − F (Xmτ,h ), ˜Xmτ,h − Xmτ,h 
+
+〉
+
+.
+
+(6.27) Due to Assumption 2.2 and the inequality ab ≤ 12ϵ a2 + ϵ 
+
+> 2
+
+b2, for any ϵ > 012 (∥ ˜Xmτ,h − Xmτ,h ∥2 − ∥ ˜Xm−1 
+
+> τ,h
+
+− Xm−1 
+
+> τ,h
+
+∥2) + τ ∥ ˜Xmτ,h − Xmτ,h ∥21
+
+≤Lf τ ∥ ˜Xmτ,h − Xmτ,h ∥2 + τ
+
+2ϵ ∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tm)) − F ( ˜Xmτ,h ) + F (Xmτ,h ) − F (Xmτ,h ))∥2
+
++ τ ϵ 
+
+2 ∥ ˜Xmτ,h − Xmτ,h ∥21.
+
+(6.28) Summation on m, taking ϵ = 1 and employing the fact ˜X0 
+
+> τ,h
+
+− X0 
+
+> τ,h
+
+= 0 show 
+
+∥ ˜Xmτ,h − Xmτ,h ∥2 ≤2Lf τ
+
+> m
+
+∑
+
+> l=1
+
+∥ ˜Xlτ,h − Xlτ,h ∥2
+
++ τ
+
+> m
+
+∑
+
+> l=1
+
+∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tl)) − F ( ˜Xlτ,h ) + F (Xlτ,h ) − F (Xlτ,h ))∥2.
+
+(6.29) Further, by Gronwall’s inequality and letting τ < 12Lf we arrive at 
+
+∥ ˜Xmτ,h − Xmτ,h ∥2 ≤ C(T )τ
+
+> m
+
+∑
+
+> l=1
+
+∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tl)) − F ( ˜Xlτ,h ) + F (Xlτ,h ) − F (Xlτ,h ))∥2. (6.30) Taking expectation and using the Hölder inequality lead to 
+
+E[∥ ˜Xmτ,h − Xmτ,h ∥2p] ≤ C(T )τ
+
+> m
+
+∑
+
+> l=1
+
+E[∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tl)) − F ( ˜Xlτ,h ) + F (Xlτ,h ) − F (Xlτ,h ))∥2p]. (6.31) In view of (5.5), (2.22), (6.2) and (6.8), we infer 
+
+∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tm)) − F ( ˜Xmτ,h ))∥L2p(Ω; H)
+
+≤C∥F (X(tm)) − F ( ˜Xmτ,h )∥L2p(Ω; L 65 (D)) 
+
+≤C
+
+∥∥∥∥X(tm) − ˜Xmτ,h ∥(1 + ∥X(tm)∥2q−2 
+
+> L3(2 q−2) (D)
+
++ ∥ ˜Xmτ,h ∥2q−2
+
+> L3(2 q−2) (D)
+
+)∥∥∥L2p(Ω; R)
+
+≤C(hγ + τ γ 
+
+> 2
+
+).
+
+(6.32) Similarly as above, 
+
+∥A− 12 
+
+> h
+
+Ph
+
+(F (Xmτ,h )) − F (Xmτ,h ))∥L2p(Ω; H) ≤ C(hmin {γ,ρ } + τ min { γ 
+
+> 2,θ }
+
+). (6.33) 27 Gathering the above three estimates together results in 
+
+∥ ˜Xmτ,h − Xmτ,h ∥L2p(Ω; H) ≤ C(T )( hmin {γ,ρ } + τ min { γ 
+
+> 2,θ }
+
+), (6.34) which shows (6.40). In the case Lf < λ 1, we take ϵ = λ1 − Lf in (6.28) and utilize the fact ∥∇ vh∥2 ≥ λ1∥vh∥2 for any 
+
+vh ∈ Vh, to obtain  
+
+> 12
+
+(∥ ˜Xmτ,h − Xmτ,h ∥2 − ∥ ˜Xm−1 
+
+> τ,h
+
+− Xm−1 
+
+> τ,h
+
+∥2) + λ1−Lf 
+
+> 2
+
+τ ∥ ˜Xmτ,h − Xmτ,h ∥2
+
+≤ τ  
+
+> 2( λ1−Lf)
+
+∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tm)) − F ( ˜Xmτ,h ) + F (Xmτ,h ) − F (Xmτ,h ))∥2.
+
+(6.35) Employing the estimate (1 + x)−1 ≤ e−cx , x ∈ [0 , 1] for some c > 0 implies 
+
+∥ ˜Xmτ,h − Xmτ,h ∥2 ≤ 11+ τ (λ1−Lf ) ∥ ˜Xm−1 
+
+> τ,h
+
+− Xm−1 
+
+> τ,h
+
+∥2
+
++ τ    
+
+> (1+ τ(λ1−Lf))( λ1−Lf)
+
+∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tm)) − F ( ˜Xmτ,h ) + F (Xmτ,h ) − F (Xmτ,h ))∥2
+
+≤ τλ1−Lf e−cτ (λ1−Lf )∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tm)) − F ( ˜Xmτ,h ) + F (Xmτ,h ) − F (Xmτ,h ))∥2
+
++ e−cτ (λ1−Lf )∥ ˜Xm−1 
+
+> τ,h
+
+− Xm−1 
+
+> τ,h
+
+∥2.
+
+(6.36) By summation over m, noting that ˜X0 
+
+> τ,h
+
+− X0 
+
+> τ,h
+
+= 0 and denoting ˜c := c(λ1 − Lf ), we arrive at 
+
+∥ ˜Xmτ,h − Xmτ,h ∥2 ≤ e−˜cτ ∥ ˜Xm−1 
+
+> τ,h
+
+− Xm−1 
+
+> τ,h
+
+∥2
+
++ τ e −˜cτ  
+
+> λ1−Lf
+
+∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tm)) − F ( ˜Xmτ,h ) + F (Xmτ,h ) − F (Xmτ,h ))∥2
+
+≤ τλ1−Lf
+
+> m
+
+∑
+
+> j=1
+
+e−˜ct m+1 −j ∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tj )) − F ( ˜Xjτ,h ) + F (Xjτ,h ) − F (Xjτ,h ))∥2.
+
+(6.37) Similarly as in (6.34), we use (6.32) and (6.33) to show 
+
+E[∥ ˜Xmτ,h − Xmτ,h ∥2p] ≤Cτ 
+
+> m
+
+∑
+
+> j=1
+
+e−˜ct m+1 −j E[∥A− 12 
+
+> h
+
+Ph
+
+(F (X(tm)) − F ( ˜Xmτ,h ) + F (Xmτ,h ) − F (Xmτ,h ))∥2p]
+
+≤Cτ 
+
+> m
+
+∑
+
+> l=1
+
+e−˜ct m+1 −j (hmin {γ,ρ } + τ min { γ 
+
+> 2,θ }
+
+)2p
+
+≤C(hmin {γ,ρ } + τ min { γ 
+
+> 2,θ }
+
+)2p,
+
+(6.38) where in the first and last inequalities, we used the fact 
+
+τ sup 
+
+> m∈N0
+> m
+
+∑
+
+> j=1
+
+e−˜ct m+1 −j < ∞. (6.39) This shows (6.25) and ends the proof of this lemma. □
+
+Armed with Lemmas 6.1-6.3, one can easily deduce strong convergence of the fully-discrete finite element method (3.22) as follows. 28 Theorem 6.4 Let all conditions in Theorem 5.3 be satisfied. For any fixed time-point T ∈ (0 , ∞), let 
+
+τ = T /M , M ∈ N be a time-step size. Then there exist positive constants τ ∗, h ∗ and C = C(T, p, Q )
+
+such that for all τ ≤ τ ∗, h ≤ h∗ and ∀ p ≥ 1,
+
+sup  
+
+> m∈{ 1,2,...,M }
+
+∥X(tm) − Xmτ,h ∥Lp(Ω; H) ≤ C(hmin {γ,ρ } + τ min { γ 
+
+> 2,θ }
+
+). (6.40) 
+
+If additionally Lf < λ 1, then one can show the uniform-in-time strong error estimates: for any 
+
+τ ∈ (0 , τ ∗),
+
+sup 
+
+> m∈N0
+
+∥X(tm) − Xmτ,h ∥Lp(Ω; H) ≤ C(hmin {γ,ρ } + τ min { γ 
+
+> 2,θ }
+
+). (6.41) 
+
+## 7 Uniform-in-time weak convergence analysis 
+
+This section aims to establish uniform-in-time weak error bounds of the proposed fully discrete schemes, which forces us to first derive Malliavin regularity estimates of the numerical approximations. 
+
+7.1 Malliavin regularity estimates of fully discrete finite element approximations 
+
+In this part, we are devoted to the Malliavin regularity of the numerical solution, which plays an important role in controlling the stochastic integral error term in the weak convergence analysis. Let us start with the introduction of Malliavin derivative. Let U0 := Q 12 (H). For any deterministic mapping Ψ ∈ L2([0 , T ]; L2(U0, R)), let M : L2([0 , T ]; L2(U0, R)) → L2(Ω; R) be an isonormal process, given by 
+
+M (Ψ) := 
+
+∫ T
+
+> 0
+
+Ψ( t) dW (t). (7.1) With this, we define the family of smooth cylindrical random variables by, 
+
+S(H) = 
+
+{
+
+G =
+
+> n
+
+∑
+
+> i=1
+
+gi
+
+(M (Ψ 1), · · · , M (Ψ m))hi, g i ∈ C∞ 
+
+> p
+
+(Rm, R), h i ∈ H, i = 1 , · · · , n, n ∈ N
+
+}
+
+, (7.2) for Ψj ∈ L2([0 , T ]; L2(U0, R)), j = 1 , 2, 3 · · · , m , m ∈ N, where C∞ 
+
+> p
+
+(Rm, R) represents the space of all real-valued C∞-functions on Rm with polynomial growth. For G ∈ S(H), the Malliavin derivative of 
+
+G, at time s ∈ [0 , T ], is defined as 
+
+DsG := 
+
+> n
+
+∑
+
+> i=1
+> m
+
+∑
+
+> j=1
+
+∂j gi
+
+(M (Ψ 1), · · · , M (Ψ m))hi ⊗ Ψj (s). (7.3) Let D1,2(H) be the closure of the set of smooth random variables S(H) in the space L2(Ω; H) with respect to the norm 
+
+∥G∥D1,2(H) =
+
+(
+
+E[∥G∥2] + E
+
+∫ T
+
+> 0
+
+∥DtG∥2
+
+> L02
+
+dt
+
+) 12
+
+. (7.4) 29 Then, the Malliavin integration by parts formula is valid (see, e.g., [17, Lemma 2.1]), namely, for any 
+
+G ∈ D1,2(H) and adapted process Ψ( t) ∈ L2(Ω; L2([0 , T ], L02
+
+), it holds 
+
+E〈DG, Ψ〉  
+
+> L2([0 ,T ],L02)
+
+= E
+
+〈
+
+G, 
+
+∫ T
+
+> 0
+
+Ψ( t) dW (t)
+
+〉 
+
+> H
+
+. (7.5) Additionally, we define the process Dus G by 〈DsG, u 〉 = Dus G, which represents Malliavin derivative in the direction u ∈ U0. Moreover, the chain rule of the Malliavin derivative is valid. For another separable Hilbert space H, if ρ ∈ C1 
+
+> b
+
+(H, H), then ρ(G) ∈ D1,2(H) and Dμt (ρ(G)) = ρ′(G) · Dut G.Now, we intend to establish the Malliavin regularity of the numerical approximations, which re-quires additional properties on f and fτ,h . Under Assumption 2.2, one can easily deduce the following properties of f .
+
+Lemma 7.1 Let Assumption 2.2 be fulfilled. Then, there exist constants c6 and c7, c 8, c 9 > 0 such that, for all x, y ∈ R
+
+f ′(x)|x| − sign (x)(2 q − 2) f (x) ≤c6 − c7|x|x2q−2, (7.6) 
+
+|f ′(x)|x| − sign (x)(2 q − 2) f (x)| ≤ c8 + c9|x|2q−1. (7.7) 
+
+Lemma 7.2 Let Assumption 2.2 be fulfilled and Lf < λ 1. Then, there exist two constants τ ∗ ∈ (0 , ∞)
+
+and h∗ ∈ (0 , ∞) such that 0 < τ ≤ τ ∗ and 0 < h ≤ h∗, the transformation fτ,h defined in (3.24) 
+
+satisfies the following condition: 
+
+2f ′
+
+> τ,h
+
+(x)y2 + τ |f ′
+
+> τ,h
+
+(x)y|2 ≤ (λ1 + Lf )y2. (7.8) 
+
+Proof of Lemma 7.2. It is easy to see 
+
+f ′
+
+> τ,h
+
+(x) = f ′(x)
+
+(1+( β1τ θ +β2hρ)|x| 2q−2 
+
+> α)α
+
+− sign (x) (2 q−2) f (x)( β1τ θ +β2hρ)|x| 2q−2 
+
+> α−1
+
+(1+( β1τ θ +β2hρ)|x| 2q−2 
+
+> α)α+1
+
+= f ′(x)
+
+(1+( β1τ θ +β2hρ)|x| 2q−2 
+
+> α)α+1
+
++
+
+(f ′(x)|x|− (2 q−2) sign (x)f (x)
+
+)(β1τ θ +β2hρ)|x| 2q−2 
+
+> α−1
+
+(1+( β1τ θ +β2hρ)|x| 2q−2 
+
+> α)α+1
+
+.
+
+(7.9) This together with Assumption 2.2 implies 
+
+2f ′
+
+> τ,h
+
+(x) ≤2Lf + (2 c6−2c7x2q−2|x|)( β1τ θ +β2hρ)|x| 2q−2 
+
+> α−1
+
+(1+( β1τ θ +β2hρ)|x| 2q−2 
+
+> α)α+1
+
+≤2Lf + 2c6(β1τ θ +β2hρ) α      
+
+> 2q−2(( β1τθ+β2hρ)|x|2q−2
+> α)2q−2−α
+> 2q−2
+
+(1+( β1τ θ +β2hρ)|x| 2q−2 
+
+> α)α+1
+
+− 2c7x2q−2(β1τ θ +β2hρ)|x| 2q−2
+
+> α
+
+(1+( β1τ θ +β2hρ)|x| 2q−2 
+
+> α)α+1
+
+≤2Lf + 2 c6(β1τ θ + β2hρ) α 
+
+> 2q−2
+
+− 2c7(β1τ θ +β2hρ)|x| (2 q−2)( α+1) 
+
+> α
+
+(1+( β1τ θ +β2hρ)|x| 2q−2 
+
+> α)α+1
+
+.
+
+(7.10) 30 Similarly as above, 
+
+∣∣∣ τ 12 f ′(x)
+
+(1+( β1τ θ +β2hρ)|x| 2q−2
+
+> α
+
+)α+1 
+
+∣∣∣ ≤ Rf τ 12 (1+ |x|2q−2)
+
+(1+( β1τ θ +β2hρ)|x| 2q−2
+
+> α
+
+)α+1 
+
+≤Rf τ 12 + Rf τ 12 |x|2q−2
+
+(1+( β1τ θ +β2hρ)|x| 2q−2
+
+> α
+
+)α+1 ,
+
+(7.11) and 
+
+∣∣∣∣∣
+
+τ 12 (f ′(x)|x| − (2 q − 2) sign (x)f (x))( β1τ θ + β2hρ)|x| 2q−2 
+
+> α
+
+−1
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)α+1 
+
+∣∣∣∣∣
+
+≤ τ 12 (β1τ θ + β2hρ)( c8 + c9|x|2q−1)|x| 2q−2 
+
+> α
+
+−1
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)α+1 
+
+≤ c8τ 12 (β1τ θ + β2hρ) α 
+
+> 2q−2
+
+(( β1τ θ + β2hρ)|x| 2q−2 
+
+> α
+
+) 2q−2−α
+
+> 2q−2
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)α+1 
+
++ c9τ 12 (β1τ θ + β2hρ)|x| (2 q−2)( α+1) 
+
+> α
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)α+1 
+
+≤c8τ 12 (β1τ θ + β2hρ) α 
+
+> 2q−2
+
++ c9τ 12 (β1τ θ + β2hρ)|x| (2 q−2)( α+1) 
+
+> α
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2 
+
+> α
+
+)α+1 
+
+(7.12) Therefore, 
+
+τ |f ′
+
+τ,h (x)|2 ≤
+
+(
+
+Rf τ 12 + c8τ 12 (β1τ θ + β2hρ) α
+
+> 2q−2
+
++ Rf τ 12 |x|2q−2 + c9τ 12 (β1τ θ + β2hρ)|x| (2 q−2)( α+1) 
+
+> α
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2 
+
+> α
+
+)α+1 
+
+)2
+
+≤2τ
+
+(
+
+Rf + c8(β1τ θ + β2hρ) α
+
+> 2q−2
+
+)2
+
++ 4 
+
+( R2
+
+f τ |x|4q−4 + c29τ (β1τ θ + β2hρ)2|x| (4 q−4)( α+1) 
+
+> α
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2 
+
+> α
+
+)2α+2 
+
+)
+
+.
+
+(7.13) 31 This in combination with (7.10) shows 
+
+2f ′
+
+τ,h (x) + τ |f ′
+
+τ,h (x)|2
+
+≤2Lf + 2 c6(β1τ θ + β2hρ) α 
+
+> 2q−2
+
++ 2 τ
+
+(
+
+Rf + c8(β1τ θ + β2hρ) α
+
+> 2q−2
+
+)2
+
+− 2c7(β1τ θ + β2hρ)|x| (2 q−2)( α+1) 
+
+> α
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)α+1 + 4( R2
+
+f τ |x|4q−4 + c29τ (β1τ θ + β2hρ)2|x| (4 q−4)( α+1)  
+
+> α
+
+)
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)2α+2 
+
+≤2Lf + 2 c6(β1τ θ + β2hρ) α 
+
+> 2q−2
+
++ 2 τ
+
+(
+
+Rf + c8(β1τ θ + β2hρ) α
+
+> 2q−2
+
+)2
+
+− 2c7(β1τ θ + β2hρ)|x| (2 q−2)( α+1) 
+
+> α
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)α+1 
+
++
+
+4R2 
+
+> f
+
+(1 −α)τ 1− 2αθ 
+
+> 1+ α
+
+α+1 + 8R2 
+
+> f
+
+ατ 1− 2αθ  
+
+> 1+ α+θ
+
+α+1 |x| (2 q−2)( α+1)  
+
+> α
+
++ 4 c29τ (β1τ θ + β2hρ)2|x| (4 q−4)( α+1) 
+
+> α
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)2α+2 
+
+≤2Lf + 2 c6(β1τ θ + β2hρ) α 
+
+> 2q−2
+
++ 2 τ
+
+(
+
+Rf + c8(β1τ θ + β2hρ) α
+
+> 2q−2
+
+)2
+
++ 4R2
+
+f (1 − α)
+
+α + 1 τ 1− 2αθ 
+
+> 1+ α
+
++
+
+(
+
+−2c7 + 8R2 
+
+> f
+
+β−11 αα+1 τ 1− 2αθ  
+
+> 1+ α
+
++ 4 c29β−α
+
+1 τ 1−αθ 
+
+)
+
+(β1τ θ + β2hρ)|x| (2 q−2)( α+1)  
+
+> α
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2 
+
+> α
+
+)α+1 
+
+(1 + ( β1τ θ + β2hρ)|x| 2q−2
+
+> α
+
+)2α+2 ,
+
+(7.14) where in the second inequality we used the Young inequality τ 2αθ  
+
+> 1+ α
+
+|x|4q−4 ≤ 1−α
+
+1+ α + 2α
+
+1+ α τ θ|x| (2 q−2)(1+ α) 
+
+> α
+
+.Under the condition LF < λ 1, there exist constants τ ∗ and h∗ such that for τ ∈ (0 , τ ∗) and h ∈ (0 , h ∗),
+
+−2c7 + 8R2 
+
+> f
+
+β−11 αα+1 τ 1− 2αθ  
+
+> 1+ α
+
++ 4 c29β−α
+
+1 τ 1−αθ ≤ 0, (7.15) and 
+
+2c6(β1τ θ + β2hρ) α 
+
+> 2q−2
+
++ 2 τ
+
+(
+
+Rf + c8(β1τ θ + β2hρ) α
+
+> 2q−2
+
+)2
+
++ 4R2 
+
+> f
+
+(1 −α)
+
+α+1 τ 1− 2αθ  
+
+> 1+ α
+
+≤ λ1 − Lf . (7.16) This shows (7.8) and ends the proof of this lemma. □
+
+Next, we consider the Malliavin derivative of the continuous version of the discrete solution process and prove some estimates needed later. Below, we introduce a continuous version of the fully finite element approximation (3.22), defined by Xτ,h (t) = Xmτ,h for t = tm and, for t ∈ [tm, t m+1 )
+
+Xτ,h (t) = Xmτ,h +
+
+∫ ttm
+
+(−Eτ,h AhXmτ,h + Eτ,h Fτ,h (Xmτ,h )) dt +
+
+∫ ttm
+
+Eτ,h Ph dW (t). (7.17) 
+
+Lemma 7.3 Suppose Assumptions 2.1-2.5 are valid for γ ∈ ( d
+
+2 , 2] or γ ∈ (0, 12
+
+) with Q = I in dimension one. Let Xmτ,h be the solution of the fully discretization (3.22) . Then the Malliavin derivative of Xτ,h (t) satisfies, for s < t m and t ∈ [tm, t m+1 )
+
+∥A β−12 Dzs Xτ,h (t)∥Lp(Ω; H) ≤ C∥A β−12
+
+h Dzs Xτ,h (t)∥Lp(Ω; H) ≤ C(Q, X 0, p, γ )∥A β−12
+
+h Phz∥, (7.18) 
+
+where β = min {γ, 1} and the constant C(Q, X 0, γ ) is independent of h, τ , s and t.
+
+32 Proof of Lemma 7.3. For s ≥ tm−1, one has Dzs Xnτ,h = 0 , for n = 1 , 2, · · · , m − 1. For tm−1 ≤ s < t m,one sees 
+
+Dzs Xmτ,h = Eτ,h Phz + Eτ,h PhDF τ,h (Xm−1 
+
+> τ,h
+
+)DsXm−1 
+
+> τ,h
+
+= Eτ,h Phz. (7.19) Hence, it is easy to show, for s ∈ [tm−1, t m)
+
+∥Dzs Xmτ,h ∥Lp(Ω; H) ≤ ∥ Eτ,h Phz∥ ≤ Cτ − 1−β 
+
+> 2
+
+∥A β−12 z∥, (7.20) and 
+
+∥A β−12 
+
+> h
+
+Dzs Xmτ,h ∥Lp(Ω; H) ≤ ∥ A β−12 
+
+> h
+
+Eτ,h Phz∥Lp(Ω; H) ≤ C∥A β−12 z∥. (7.21) By (3.22) and the chain rule, the Malliavin derivative of Xmτ,h can be derived as follows, for s < t m−1,
+
+lsτ ≤ s < (ls + 1) τDzs Xmτ,h − Dzs Xm−1 
+
+> τ,h
+
+= −τ A hDzs Xmτ,h + τ P hDF τ,h (Xm−1 
+
+> τ,h
+
+)Dzs Xm−1 
+
+> τ,h
+
+, (7.22) where ls = [ sτ
+
+]. By iteration, the solution of the above problem can be rewritten as 
+
+Dzs Xmτ,h = Em−ls 
+
+> τ,h
+
+Phz + τ
+
+> m−1
+
+∑
+
+> j=ls+1
+
+Em−jτ,h PhDF τ,h (Xjτ,h )Dzs Xjτ,h . (7.23) Multiplying (7.22) by Dzs Xmτ,h and using the equality (x − y)x = 12 (x2 − y2 + ( x − y)2) yield 
+
+12 (∥Dzs Xmτ,h ∥2 − ∥ Dzs Xm−1 
+
+> τ,h
+
+∥2 + ∥Dzs Xmτ,h − Dzs Xm−1 
+
+> τ,h
+
+∥2)= − τ ∥∇ Dzs Xmτ,h ∥2 + τ (DF τ,h (Xm−1 
+
+> τ,h
+
+)Dzs Xm−1 
+
+> τ,h
+
+, D zs Xmτ,h − Dzs Xm−1 
+
+> τ,h
+
+)+ τ (DF τ,h (Xm−1 
+
+> τ,h
+
+)Dzs Xm−1 
+
+> τ,h
+
+, D zs Xm−1 
+
+> τ,h
+
+)
+
+≤ − τ ∥∇ Dzs Xmτ,h ∥2 + 12 τ 2∥DF τ,h (Xm−1 
+
+> τ,h
+
+)Dzs Xm−1 
+
+> τ,h
+
+∥2
+
++ 12 ∥Dzs Xmτ,h − Dzs Xm−1 
+
+> τ,h
+
+∥2 + τ (DF τ,h (Xm−1 
+
+> τ,h
+
+)Dzs Xm−1 
+
+> τ,h
+
+, D zs Xm−1 
+
+> τ,h
+
+).
+
+(7.24) Therefore, we rely on Lemma 7.2 to get  
+
+> 12
+
+(∥Dzs Xmτ,h ∥2 − ∥ Dzs Xm−1 
+
+> τ,h
+
+∥2) ≤ − τ λ 1∥Dzs Xmτ,h ∥2 + τ (Lf + λ1 − Lf
+
+2 )∥Dzs Xm−1 
+
+> τ,h
+
+∥2, (7.25) implying 
+
+∥Dzs Xmτ,h ∥2 ≤ 1 + τ (λ1 + Lf )1 + 2 τ λ 1
+
+∥Dzs Xm−1 
+
+> τ,h
+
+∥2 ≤ 11 + τ (λ1−Lf )1+( λ1+Lf )τ
+
+∥Dzs Xm−1 
+
+> τ,h
+
+∥2
+
+≤ 11 + τ (λ1−Lf )1+( λ1+Lf )τ ∗
+
+∥Dzs Xm−1 
+
+> τ,h
+
+∥2.
+
+(7.26) 33 This means that, for any τ ∈ (0 , τ ∗)
+
+∥(1 + τ A h)−1(1 + τ P hDF τ,h (Xm−1 
+
+> τ,h
+
+)∥2 
+
+> L(H)
+
+≤ 11 + τ (λ1−Lf )1+( λ1+Lf )τ ∗
+
+. (7.27) By Vz (m, s ) := Dzs Xmτ,h − Em−ls 
+
+> τ,h
+
+Phz, it follows 
+
+Vz (m, s ) = Vz (m − 1, s ) − τ A hVz (m, s ) + τ P hDF τ,h (Xm−1 
+
+> τ,h
+
+) · Vz (m − 1, s )+ τ P hDF τ,h (Xm−1 
+
+> τ,h
+
+) · Em−1−ls 
+
+> τ,h
+
+Phz. (7.28) Moreover, by (3.26), (7.27) and the fact V (ls + 1 , z ) = Dzs Xls+1  
+
+> τ,h
+
+− Eτ,h Phz = 0 
+
+∥Vz (m, s )∥ ≤∥ (1 + τ A h)−1(1 + τ P hDF τ,h (Xm−1 
+
+> τ,h
+
+)) · Vz (m − 1, s )∥
+
++ ∥(1 + τ A h)−1τ P hDF τ,h (Xm−1 
+
+> τ,h
+
+) · Em−1−ls 
+
+> τ,h
+
+Phz∥≤∥ Vz (m − 1, s )∥ + (1 + λ1τ )−1τ ∥DF τ,h (Xm−1 
+
+> τ,h
+
+) · Em−1−ls 
+
+> τ,h
+
+Phz∥≤Cτ 
+
+> m−1
+
+∑
+
+> j=ls+1
+
+∥DF τ,h (Xjτ,h ) · Ej−ls 
+
+> τ,h
+
+Phz∥≤Cτ 
+
+> m−1
+
+∑
+
+> j=ls+1
+
+min 
+
+{
+
+t− μ 
+
+> 2
+> j−ls
+
+, t −2
+
+> j−ls
+
+} ( 
+
+1 + ∥Xjτ,h ∥2q−2
+
+> V
+
+)
+
+∥A− μ 
+
+> 2
+> h
+
+Phz∥,
+
+(7.29) for μ ∈ [0 , 1] , which together with (6.13) leads to 
+
+∥Vz (m, s )∥Lp(Ω; H) ≤Cτ 
+
+> m−1
+
+∑
+
+> j=ls+1
+
+min 
+
+{
+
+t− μ 
+
+> 2
+> j−ls
+
+, t −2
+
+> j−ls
+
+}
+
+∥A− μ 
+
+> 2
+> h
+
+Phz∥(1 + sup 
+
+> m∈N
+
+∥Xjτ,h ∥2q−2 
+
+> L(2 q−2) p(Ω ,V )
+
+)
+
+≤C∥A− μ 
+
+> 2
+> h
+
+Phz∥.
+
+(7.30) Then, from (3.16) and (3.26), it follows that, for s < t m−1
+
+∥Dzs Xmτ,h ∥Lp(Ω; H) ≤∥ Vz (m, s )∥Lp(Ω; H) + ∥Em−ls 
+
+> τ,h
+
+Phz∥≤C
+
+(
+
+1 + min 
+
+{
+
+t− 1−β 
+
+> 2
+> m−ls
+
+, t −2
+
+> m−ls
+
+}) 
+
+∥A β−12 z∥. (7.31) Hence by the above estimate and (7.20), we have for s < t m
+
+∥Dzs Xmτ,h ∥Lp(Ω; H) ≤ C
+
+(
+
+1 + min 
+
+{
+
+t− 1−β 
+
+> 2
+> m−ls
+
+, t −2
+
+> m−ls
+
+}) 
+
+∥A β−12 z∥. (7.32) Furthermore, the a priori estimate of Xjτ,h , the smooth regularity of Ejτ,h in Lemma 3.1 and the above 34 estimate imply, for s < t m
+
+∥A β−12 
+
+> h
+
+Dzs Xmτ,h ∥Lp(Ω; H)
+
+≤∥ A β−12 
+
+> h
+
+Em−ls 
+
+> τ,h
+
+Phz∥ +
+
+> m−1
+
+∑
+
+> j=ls+1
+
+∥A β−12 
+
+> h
+
+Em−jτ,h DF τ,h (Xjτ,h )Dzs Xjτ,h ∥Lp(Ω; H)
+
+≤∥ A β−12 
+
+> h
+
+Phz∥ + C
+
+> m−1
+
+∑
+
+> j=ls+1
+
+∥∥∥(1 + ∥Xjτ,h ∥2q−2 
+
+> V
+
+)∥Dzs Xjτ,h ∥
+
+∥∥∥Lp(Ω; R)
+
+≤∥ A β−12 z∥ + Cτ 
+
+> m−1
+
+∑
+
+> j=ls+1
+
+(
+
+1 + min {t− 1−β 
+
+> 2
+> j−ls
+
+, t −2 
+
+> j−ls
+
+}
+
+)
+
+∥A β−12 z∥≤C∥A β−12 z∥.
+
+(7.33) Next, we show (7.18) based on the above estimates. By (7.17) and the chain rule, the Malliavin derivative of Xτ,h (t), for t ∈ [tm, t m+1 ) can be derived as follows, for s < t m,
+
+Dzs Xτ,h (t) = Dzs Xmτ,h − (t − tm)Eτ,h AhDzs Xmτ,h + ( t − tm)Eτ,h DF τ,h (Xmτ,h )DsXmτ,h . (7.34) Similarly as in (7.33), we obtain, for s < t m,
+
+∥A β−12 
+
+> h
+
+Dzs Xτ,h (t)∥Lp(Ω; H)
+
+≤∥ A β−12 
+
+> h
+
+Dzs Xmτ,h ∥Lp(Ω; H) + ( t − tm)∥AhEτ,h A β−12 
+
+> h
+
+Dzs Xmτ,h ∥Lp(Ω; H)
+
++ ( t − tm)∥Eτ,h A β−12 
+
+> h
+
+PhDF τ,h (Xmτ,h )Dzs Xmτ,h ∥Lp(Ω; H)
+
+≤C(1 + + τ τ −1)∥A β−12 
+
+> h
+
+Dzs Xmτ,h ∥Lp(Ω; H) + τ ∥PhDF τ,h (Xmτ,h )Dzs Xmτ,h ∥Lp(Ω; H)
+
+≤C
+
+(
+
+1 + τ min {t− 1−β 
+
+> 2
+> m−ls
+
+, t −2 
+
+> m−ls
+
+}
+
+)
+
+∥A β−12 z∥ ≤ C(Q, X 0, p, γ )∥A β−12 z∥.
+
+(7.35) This shows, for s < t m and t ∈ [tm, t m+1 )
+
+∥A β−12 
+
+> h
+
+DsXτ,h (t)∥Lp(Ω; L02) =
+
+E
+
+( ∑ 
+
+> l∈N+
+
+∥A β−12 
+
+> h
+
+DQ 12 el 
+
+> s
+
+Xτ,h (t)∥2) p
+
+> 2
+
+
+
+> 1
+> p
+
+≤C
+
+( ∑ 
+
+> l∈N+
+
+∥A β−12 Q 12 el∥2) p
+
+> 2
+
+
+
+> 1
+> p
+
+≤C∥A β−12 Q 12 ∥L2(H).
+
+(7.36) The proof of this lemma is thus complete. □
+
+7.2 Uniform-in-time weak convergence rate 
+
+The goal of this subsection is to carry out the uniform-in-time weak convergence analysis of the fully discrete finite element approximation (3.22). Under the condition Lf < λ 1, we can acquire an exponential convergence to equilibrium for the SPDE (1.1) (see, e.g. [6, Proposition 3.3], [5, Theorem 12.5]). 35 Proposition 7.4 Let Assumptions 2.1-2.4 be fulfilled and let Lf < λ 1. Let X(t, x ) be the mild solution of (1.1) with initial value X(0) := x ∈ H. Then there exist constants c > 0 and C > 0 such that for any φ ∈ C2 
+
+> b
+
+(H), t ≥ 0 and u, v ∈ H
+
+|E[φ(X(t, u ))] − E[φ(X(t, v ))] | ≤ C∥φ∥C1 
+
+> b(H)
+
+e−ct ∥u − v∥. (7.37) Due to the Doob theorem, Proposition 7.4 ensures the existence of the unique invariant measure of SPDE (1.1). 
+
+Theorem 7.5 Let Assumptions 2.1-2.4 be fulfilled and let Lf < λ 1. Then the SPDE (1.1) admits a unique invariant measure μ.
+
+For the weak convergence analysis below, we need to consider the spectral Galerkin method for (1.1). For N ∈ N, we define a finite-dimensional subspace HN ⊂ H by HN := span {e1, e 2, · · · , e N },where {ei}Ni=1 is the N -first eigenvectors of the dominant linear operator A. Let PN be the projection operator from H to HN , defined by PN vo = ∑Nn=1 ⟨v, e n⟩ en, v ∈ Hϑ, ϑ ∈ R+. It is easy to show 
+
+∥(I − PN )v∥ ≤ λ− ϑ 
+
+> 2
+> N
+
+∥v∥ϑ, ∀v ∈ Hϑ, ϑ ≥ 0. (7.38) Then the spectral Galerkin approximation of (1.1) is given by dXN (t) = −AN XN (t) + PN F (XN (t)) dt = PN dW (t), X N (0) = PN X0, (7.39) where AN = PN A. Let φ ∈ C2 
+
+> b
+
+(H) and we define 
+
+μN (t, x ) := E[φ(XN (t, x ))] , t ≥ 0, x ∈ H, (7.40) which is the unique solution of the Kolmogorov equation associated with XN (t, x ), (see [16, Theorem 9.16]) 
+
+∂tμN (t, x ) = Dμ N (t, x ) · (−AN x + PN F (x)) + 12 Tr[ D2μN (t, x )PN Q 12 (PN Q 12 )∗], (7.41) with μN (0 , ·) = φ(PN ·).The next lemma presents the uniform-in-time moments bound of the numerical solution XN (t, x ),(see, e.g., [21, Lemma 5.5], [15, Lemma 2]). 
+
+Lemma 7.6 Suppose Assumptions 2.1-2.5 are valid for γ ∈ ( d 
+
+> 2
+
+, 2] or γ ∈ (0 , 12 ) with Q = I in dimension one. Let XN (t), t ≥ 0 be the mild solution of (7.39) with the initial value XN (0) := XN 
+
+> 0
+
+.Then, there exists a constant C := C(Q, p, q, γ ) such that 
+
+sup 
+
+> t≥0
+
+∥XN (t)∥Lp(Ω; V ) ≤ C
+
+(
+
+1 + ∥XN 
+
+> 0
+
+∥  
+
+> (2 q−1)[(2 q−2)((8 q−8) −(2 q−3) d)+4] 4−(2 q−3) d
+> L
+> (2 q−1)[(2 q−2)((8 q−8) −(2 q−3) d)+4] p
+> 4−(2 q−3) d(Ω; V)
+
+)
+
+, (7.42) 
+
+where C is independent of m.
+
+Also, we need the regularity estimates for μN (·, ·), N ∈ N, (see [21, Lemma 5.5]). 36 Lemma 7.7 For any φ ∈ C2 
+
+> b
+
+(H) and 0 < ϑ 0, ϑ 1, ϑ 2, ϑ1 + ϑ2 < 1, there exist constants c > 0,
+
+C(Q, ϑ 0, φ ) > 0, and C(Q, ϑ 1, ϑ 2, φ ) > 0 such that x, y, z ∈ HN and t > 0
+
+|Dμ N (t, x )y| ≤ C(Q, ϑ 0, φ )
+
+(
+
+1 + sup 
+
+> s∈[0 ,t ]
+
+E
+
+[
+
+∥XN (s, x )∥2qV
+
+]) (1 + t−ϑ0 )e−ct ∥y∥−2ϑ0 ,
+
+∣∣D2μN (t, x ) · (y, z )∣∣ ≤C(Q, ϑ 1, ϑ 2, φ )
+
+(
+
+1 + sup 
+
+> s∈[0 ,t ]
+
+E
+
+[
+
+∥XN (s, x )∥8q−2
+
+> V
+
+])
+
+(1 + t−ϑ1−ϑ2 )e−ct ∥y∥−2ϑ1 ∥z∥−2ϑ2 .
+
+(7.43) 
+
+Theorem 7.8 Let Assumptions 2.1-2.5 and Assumption 7.2 be valid for γ ∈ ( d 
+
+> 2
+
+, 2] or γ ∈ (0 , 12 ) with 
+
+Q = I in dimension one. Let X(t) and Xmτ,h , m ∈ N, be defined by (2.20) and (3.25) , respectively. Let the condition max { 12 αρ, αθ } < 1 + d 
+
+> 2q(2 q−1)
+
+− d 
+
+> 4
+
+hold. Then there exists a constant C(Q, X 0, γ ) > 0,such that for any ι ∈ (0 , β ), β := min {γ, 1},
+
+∣∣E[φ(X(tm)) ] − E[φ(Xmτ,h )]∣ ∣ ≤ C(1 + t−ιm + ( tm − τ )− 12 )( hmin {2ι,ρ } + τ min {ι,θ }), (7.44) 
+
+where C is independent of tm.Proof of Theorem 7.8. By recalling the fact μN (t, x ) = E[φ(XN (t, x ))] , t ≥ 0, we decompose the weak error into the following three terms 
+
+E[φ(X(tm)) ] − E[φ(Xmτ,h )] =E[φ(X(tm)) ] − E[φ(XN (tm)) ] + E[φ(XN (tm)) ] − E[φ(PN Xmτ,h )]
+
++ E[φ(PN Xmτ,h )] − E[φ(Xmτ,h )].
+
+(7.45) For the third term, we have, by (5.5) and (7.38), for ι ∈ (0 , min {γ, 1})
+
+E[φ(PN Xmτ,h )] − E[φ(Xmτ,h )] ≤ ∥ φ∥C1 
+
+> b(H)
+
+∥(PN − I)Xmτ,h ∥Lp(Ω; H) (7.46) 
+
+≤ Cλ − ι 
+
+> 2
+> N
+
+∥A ι 
+
+> 2
+
+Xmτ,h ∥Lp(Ω; H) → 0, N → ∞ .
+
+For the first term, we use the well-established strong convergence rate within finite time horizon (see [25, Theorem 4.1] ), and take the limit N → ∞ to obtain 
+
+|E[φ(X(tm)) ] − E[φ(XN (tm)) ]| ≤ ∥ φ∥C1 
+
+> b(H)
+
+∥X(tm) − XN (tm)∥L2(Ω; H) ≤ C(tm, φ )λ− γ 
+
+> 2
+> N
+
+→ 0. (7.47) For the second term, we note that μN (t, x ) = E [φ(XN (t, x )) ] , t ≥ 0, x ∈ H and divide it into two parts: 
+
+∣∣E[φ(XN (tm)) ] − E[φ(PN Xmτ,h )]∣ ∣ =E[μN (tm, X 0)] − E[μN (0 , X mτ,h )]
+
+=E[μN (tm, X 0)] − E[μN (tm, P hX0)]
+
++ E[μN (tm, P hX0)] − E[μN (0 , X mτ,h )].
+
+(7.48) 37 Owing to (3.7) and Lemma 7.7, one can see 
+
+∣∣E[μN (tm, X 0)] − E[μN (tm, P hX0)]∣ ∣
+
+≤
+
+∫ 10
+
+∣∣E[Dμ N (tm, P hX0 + ξ(I − Ph)X0) · (I − Ph)X0
+
+]∣ ∣ dξ
+
+≤C
+
+∫ 10
+
+(1 + sup 
+
+> s∈[0 ,t m]
+
+E
+
+[
+
+∥X(s, P hX0 + ξ(I − Ph)X0)∥2qV
+
+]
+
+) dξ(1 + t−ιm )e−ct m ∥(I − Ph)X0∥−2ι
+
+≤C(Q, X 0, q, d )(1 + t−ιm )h2ι.
+
+(7.49) To proceed with the second term in (7.48), we decompose it further as follows: 
+
+E[μN (tm, P hX0)] − E[μN (0 , X mτ,h )]
+
+=
+
+> m−1
+
+∑
+
+> n=0
+
+(
+
+E [μN (mτ − nτ, X nτ,h )] − E
+
+[
+
+μN (mτ − (n + 1) τ, X n+1  
+
+> τ,h
+
+)
+
+]) 
+
+= (E [μN (mτ, X 0
+
+> τ,h
+
+)] − E [μN (mτ − τ, X 1
+
+> τ,h
+
+)]) 
+
++
+
+> m−1
+
+∑
+
+> n=1
+
+(
+
+E [μN (mτ − nτ, X nτ,h )] − E
+
+[
+
+μN (mτ − (n + 1) τ, X n+1  
+
+> τ,h
+
+)
+
+]) 
+
+.
+
+(7.50) Applying the Itô formula to Xτ,h (t) defined by (7.17) gives 
+
+μN (t, X τ,h (t)) = μN (tk, X τ,h (tk)) + 
+
+∫ ttk
+
+dμN
+
+ds (s, X τ,h (s)) + Lk,τ μN (s, X τ,h (s)) ds
+
++
+
+∫ ttk
+
+〈Dμ N (s, X τ,h (s)) , dW (s)〉,
+
+(7.51) where 
+
+Lk,τ μN (t, X τ,h (t)) = 〈−Eτ,h AhXmτ,h + Eτ,h Fτ,h (Xmτ,h ), Dμ N (t, X τ,h (t)) 〉
+
++ 12 Tr {Eτ,h PhQ(Eτ,h Ph)∗D2μN (t, X τ,h (t))} . (7.52) Then utilizing the Kolmogorov equation shows 
+
+E[μN (tm, P hX0)] − E[μN (0 , X mτ,h )]
+
+= (E [μN (mτ, X 0
+
+> τ,h
+
+)] − E [μN (mτ, X 1
+
+> τ,h
+
+)]) 
+
++
+
+> m−1
+
+∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+12 E
+
+[
+
+Tr 
+
+{( 
+
+Eτ,h PhQ(Eτ,h Ph)∗ − PN Q 12 (PN Q 12 )∗)
+
+D2μN (tm − t, X τ,h (t))}] 
+
+dt
+
++
+
+> m−1
+
+∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+E [〈 AN Xτ,h (t) − Eτ,h AhXnτ,h , Dμ N (tm − t, X τ,h (t)) 〉] dt
+
++
+
+∫ tn+1 
+
+> tn
+
+E [〈 Eτ,h PhFτ,h (Xnτ,h ) − PN F (Xτ,h (t)) , Dμ N (tm − t, X τ,h (t)) 〉] dt
+
+= (E [μN (mτ, X 0
+
+> τ,h
+
+)] − E [μN (mτ − τ, X 1
+
+> τ,h
+
+)]) +
+
+> m−1
+
+∑
+
+> n=1
+
+(an + bn + cn).
+
+(7.53) 38 From (5.5), the Markov property, a priori estimates of Xmτ,h and regularity estimates in Lemma 7.7, it follows that, 
+
+∣∣E [μN (tm, X 0
+
+> τ,h
+
+)] − E [μN (tm − τ, X 1
+
+> τ,h
+
+)]∣ ∣
+
+= ∣∣E [μN (tm − τ, X (τ, P hX0)) ] − E [μN (tm − τ, X 1
+
+> τ,h
+
+)]∣ ∣
+
+=
+
+∫ 10
+
+∣∣E [Dμ N (tm − τ, ξX (τ, P hX0) + (1 − ξ)X1
+
+> τ,h
+
+) · (X(τ, P hX0) − X1
+
+> τ,h
+
+)]∣ ∣ dξ
+
+≤C(Q, φ )
+
+∫ 10
+
+(
+
+1 + sup  
+
+> s∈[0 ,t m−τ]
+
+E[∥XN (s, ξX (τ, P hX0) + (1 − ξ)X1
+
+> τ,h
+
+)∥2qV
+
+] dξ
+
+)
+
+· (1 + ( tm − τ )− 12 )e−c(tm−τ )E [∥X(τ, P hX0) − X1
+
+> τ,h
+
+∥−1
+
+]
+
+≤C(Q, φ )
+
+(
+
+1 + ( tm − τ )− 12
+
+)
+
+e−c(tm−τ )(h2 min {γ, 1} + τ min {γ, 1}),
+
+(7.54) where 
+
+E [∥X(τ, P hX0) − X1
+
+> τ,h
+
+∥−1
+
+] = E
+
+[∥ ∥∥∥∫ τ
+
+> 0
+
+E(τ − s)F (X(s)) ds − τ F τ,h (X0
+
+> τ,h
+
+)
+
+∥∥∥∥−1
+
+]
+
++ E [∥(E(τ ) − Eτ,h Ph)PhX0∥−1] + E
+
+[∥ ∥∥∥∫ τ
+
+> 0
+
+(E(τ − s) − Eτ,h Ph) dW (s)
+
+∥∥∥∥−1
+
+]
+
+≤C(h1+min {γ, 1} + τ 1+min {γ, 1} 
+
+> 2
+
+)∥X0∥Hmin {γ, 1} + C
+
+(∫ τ
+
+> 0
+
+∥A− 12 (E(τ − s) − Eτ,h Ph)∥2
+
+> L02
+
+ds
+
+) 12
+
+Cτ ( sup 
+
+> t∈[0 ,∞)
+
+∥F (X(t)) ∥L1(Ω; H) + sup 
+
+> m∈N0
+
+∥F (Xmτ,h )∥L1(Ω; H))
+
+≤C(h1+min {γ, 1} + τ 1+min {γ, 1} 
+
+> 2
+
++ τ ) + Cτ 12 (hmin {γ, 1} + τ min {γ, 1} 
+
+> 2
+
+)∥A min {γ, 1}− 12 ∥L02
+
+≤C(h2 min {γ, 1} + τ min {γ, 1}).
+
+(7.55) Here we used (4.32), (2.22), (5.5) and the isometry property in the first inequality and (4.32) in the second inequality. In what follows, we focus on estimating the terms an, b n, c n. First we split the term 
+
+an into six parts: 
+
+an = 12
+
+∫ tn+1 
+
+> tn
+
+E [Tr ((Eτ,h Ph − I)PhQ(Eτ,h Ph)∗D2μN (tm − t, X τ,h (t)) )] dt
+
++ 12
+
+∫ tn+1 
+
+> tn
+
+E [Tr ((Ph − I)Q(Eτ,h Ph)∗D2μN (tm − t, X τ,h (t)) )] dt
+
++ 12
+
+∫ tn+1 
+
+> tn
+
+E [Tr (Q(Eτ,h Ph − Ph)∗D2μN (tm − t, X τ,h (t)) )] dt
+
++ 12
+
+∫ tn+1 
+
+> tn
+
+E [Tr (Q(Ph − I)∗D2μN (tm − t, X τ,h (t)) )] dt
+
++ 12
+
+∫ tn+1 
+
+> tn
+
+E [Tr ((I − PN )QD 2μN (tm − t, X τ,h (t)) )] dt
+
++ 12
+
+∫ tn+1 
+
+> tn
+
+E [Tr (PN Q(I − PN )∗D2μN (tm − t, X τ,h (t)) )] dt
+
+=: a1 
+
+> n
+
++ a2 
+
+> n
+
++ a3 
+
+> n
+
++ a4 
+
+> n
+
++ a5 
+
+> n
+
++ a6
+
+> n
+
+.
+
+(7.56) 39 Using the property of Hilbert-Schmidt and trace operator, we get, for any ε > 0
+
+|a1
+
+n| ≤ 12
+
+∫ tn+1 
+
+tn
+
+∣∣∣E
+
+[
+
+Tr 
+
+(
+
+A−β+εh (Eτ,h − I)A β−12
+
+h PhA 1−β 
+
+> 2
+
+A β−12 QA β−12 A 1−β 
+
+> 2
+
+A β−12
+
+h PhEτ,h 
+
+A 1−β
+
+> 2
+
+h PhA β−12 A 1−β 
+
+> 2
+
+D2μN (tm − t, X τ,h (t)) A β+1 2 −εA− β+1 2 +εA β+1 2 −εh Ph
+
+)]∣ ∣∣ dt
+
+≤ 12
+
+∫ tn+1 
+
+tn
+
+E
+
+[
+
+∥A−β+εh (Eτ,h − I)∥L(H)∥A β−12 ∥2
+
+L02
+
+∥Eτ,h Ph∥L(H)∥A 1−β
+
+> 2
+
+h PhA β−12 ∥2
+
+L(H)
+
+· ∥ A 1−β 
+
+> 2
+
+A β−12
+
+h Ph∥L(H)∥A 1−β 
+
+> 2
+
+D2μN (tm − t, X τ,h (t)) A β+1 −2ε 
+
+> 2
+
+∥L(H)∥A− β+1 −2ε 
+
+> 2
+
+A β+1 −2ε
+
+> 2
+
+h Ph∥L(H)
+
+]
+
+dt, 
+
+(7.57) and then obtain by (3.16), (3.19), (3.29), Lemmas 3.1, 7.7 
+
+|a1
+
+n| ≤ Cτ β−ε
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t)
+
+(
+
+1 + sup 
+
+s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV
+
+])
+
+dt
+
+≤Cτ β−ε
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t) dt. 
+
+(7.58) For a2
+
+n, we follow the similar approach used in the proof of (7.58), with (3.7) used instead to obtain 
+
+|a2
+
+n| = 12
+
+∫ tn+1 
+
+tn
+
+∣∣∣E
+
+[
+
+Tr 
+
+(
+
+A− 1+ β 
+
+> 2
+
++ε(Ph − I)A 1−β 
+
+> 2
+
+A β−12 QA β−12 A 1−β
+
+> 2
+
+· A β−12
+
+h PhEτ,h A 1−β
+
+> 2
+
+h PhA β−12 A 1−β 
+
+> 2
+
+D2μN (tm − t, X τ,h (t)) A 1+ β 
+
+> 2
+
+−ε)]∣ ∣∣ dt
+
+≤ 12
+
+∫ tn+1 
+
+tn
+
+E
+
+[
+
+∥A− 1+ β 
+
+> 2
+
++ε(Ph − I)A 1−β 
+
+> 2
+
+∥L(H)∥A β−12 ∥2
+
+L02
+
+∥A 1−β 
+
+> 2
+
+A β−12
+
+h Ph∥L(H)
+
+· ∥ Eτ,h Ph∥L(H)∥A 1−β
+
+> 2
+
+h PhA β−12 ∥L(H)∥A 1−β 
+
+> 2
+
+D2μN (tm − t, X τ,h (t)) A 1+ β 
+
+> 2
+
+−ε∥L(H)
+
+]
+
+dt
+
+≤Ch 2−2ε
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t)
+
+(
+
+1 + sup 
+
+s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV
+
+])
+
+dt
+
+≤Ch 2−2ε
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t) dt. 
+
+(7.59) By the same arguments of the proof of (7.58) and (7.59), one can find that 
+
+|a3
+
+n + a4
+
+n + a5
+
+n + a6
+
+n| ≤ C(h2β−2ε + τ β−ε + λ−β+εN )
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t) dt. (7.60) Putting the estimates (7.58), (7.59) and (7.60) back into (7.56) gives 
+
+m−1∑
+
+n=1 
+
+|an| ≤ C(h2β−2ε + τ β−ε + λ−β+εN )
+
+∫ tm
+
+0
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t) dt
+
+≤C(Q, X 0, γ )( h2β−2ε + τ β−ε + λ−β+εN ).
+
+(7.61) 40 Next, we turn our attention to cn. For this purpose, we first have 
+
+cn =E
+
+∫ tn+1 
+
+> tn
+
+〈(Eτ,h Ph − I)Fτ,h (Xnτ,h ), Dμ N (tm − t, X τ,h (t)) 〉 dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈Fτ,h (Xnτ,h ) − F (Xnτ,h ), Dμ N (tm − t, X τ,h (t)) 〉 dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈F (Xnτ,h ) − F (Xτ,h (t)) , Dμ N (tm − t, X τ,h (t)) 〉 dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈(I − PN )F (Xτ,h (t)) , Dμ N (tm − t, X τ,h (t)) 〉 dt =: c1 
+
+> n
+
++ c2 
+
+> n
+
++ c3 
+
+> n
+
++ c4
+
+> n
+
+.
+
+(7.62) Let us begin with estimating c1
+
+> n
+
+. Using Lemma 7.7 and Theorems 2.7 and 5.3 yields, for any ε ∈ (0 , β )
+
+> m−1
+
+∑
+
+> n=1
+
+|c1
+
+> n
+
+| =
+
+> m−1
+
+∑
+
+> n=1
+
+E
+
+∫ tn+1 
+
+> tn
+
+∣∣〈(Eτ,h Ph − I)Fτ,h (Xnτ,h ), Dμ N (tm − t, X τ,h (t)) 〉∣ ∣ dt
+
+≤C
+
+> m−1
+
+∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−β+ε)
+
+e−c(tm−t)∥A−β+ε(Eτ,h Ph − I)∥L(H)
+
+· E
+
+[( 
+
+1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (s)) ∥2qV
+
+])
+
+∥Fτ,h (Xnτ,h )∥
+
+]
+
+dt
+
+≤C(h2β−2ε + τ β−ε)
+
+> m−1
+
+∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−β+ε)
+
+e−c(tm−t) dt, 
+
+≤C(h2β−2ε + τ β−ε),
+
+(7.63) where in the second inequality we used the fact that 
+
+∥A−μ(Eτ,h Ph − I)∥L(H) ≤∥ A−μ(Ph − I)∥L(H) + ∥A−μAμhA−μh (Eτ,h − I)Ph∥L(H)
+
+≤C(h2μ + τ μ) (7.64) for any μ ∈ [0 , 1] due to (3.19), (3.7) and (3.29). In the same way, one can acquire for the term c2
+
+> nm−1
+
+∑
+
+> n=1
+
+|c2
+
+> n
+
+| ≤ 
+
+> m−1
+
+∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+E| 〈Fτ,h (Xnτ,h ) − F (Xnτ,h ), Dμ N (tm − t, X τ,h (t)) 〉 | dt
+
+≤C
+
+> m−1
+
+∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+E
+
+[(1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV
+
+]) ∥F (Xnτ,h ) − Fτ,h (Xnτ,h )∥
+
+]
+
+e−c(tm−t) dt
+
+≤C(τ θ + hρ)
+
+> m−1
+
+∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+sup 
+
+> m∈N0
+
+E
+
+[
+
+∥(Xmτ,h ) 2q−2 
+
+> α
+
+F (Xmτ,h )∥
+
+]
+
+e−c(tm−t) dt
+
+≤C(τ θ + hρ)
+
+> m−1
+
+∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+e−c(tm−t) dt
+
+≤C(τ θ + hρ),
+
+(7.65) 41 where we used (3.34) in the second inequality and Proposition 5.4 in the third inequality. For the term c3
+
+> n
+
+, we use (7.17) and the Taylor expansion of F to make the following decomposition: 
+
+c3 
+
+> n
+
+= E
+
+∫ tn+1 
+
+> tn
+
+(t − tn) 〈Dμ N (tm − t, X τ,h (t)) , DF (Xnτ,h )AhEτ,h Xnτ,h 
+
+〉 dt
+
+− E
+
+∫ tn+1 
+
+> tn
+
+(t − tn) 〈Dμ N (tm − t, X τ,h (t)) , DF (Xnτ,h )Eτ,h PhFτ,h (Xnτ,h )〉 dt
+
+− E
+
+∫ tn+1 
+
+> tn
+
+〈
+
+Dμ N (tm − t, X τ,h (t)) , DF (Xnτ,h )
+
+∫ ttn
+
+Eτ,h Ph dW (s)
+
+〉
+
+dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈Dμ N (tm − t, X τ,h (t)) , DF (Xnτ,h )RF (Xnτ,h , X τ,h (t)) 〉 dt
+
+=c3,1 
+
+> n
+
++ c3,2 
+
+> n
+
++ c3,3 
+
+> n
+
++ c3,4 
+
+> n
+
+,
+
+(7.66) where RF (Xnτ,h , X τ,h (t)) is a remainder term, given by 
+
+RF (Xnτ,h , X τ,h (t)) := −
+
+∫ 10
+
+D2F (Xnτ,h + λ(Xτ,h (t) − Xnτ,h ))( Xτ,h (t) − Xnτ,h , X τ,h (t) − Xnτ,h 
+
+)(1 − λ) dλ. 
+
+Concerning c3,1 
+
+> n
+
+, we first use [21, (5.12)] to get, for any ϑ ∈ (0 , 1) , some η ∈ (max { d 
+
+> 2
+
+, 1}, 2)
+
+∥A− η 
+
+> 2
+
+DF (u)v∥ ≤ C(1 + max {∥ u∥V , ∥u∥ϑ}2q−2)∥v∥−ϑ, (7.67) and then utilizing (3.26), Theorem 5.3 and Lemma 7.7 gives, for any ε ∈ (0 , β )
+
+|c3,1 
+
+> n
+
+| ≤ Cτ 
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t)
+
+E
+
+[( 
+
+1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV ]
+
+)
+
+∥A− η 
+
+> 2
+
+DF (Xnτ,h )AhEτ,h Xnτ,h ∥
+
+]
+
+dt
+
+≤Cτ 
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t)
+
+E
+
+[(
+
+1 + max {∥ Xnτ,h ∥V , ∥A β  
+
+> 2−εh
+
+Xnτ,h ∥} 2q−2)
+
+∥A− β  
+
+> 2+εh
+
+AhEτ,h Xnτ,h ∥
+
+]
+
+dt
+
+≤Cτ β−ε
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t) dt sup 
+
+> m∈N
+
+∥A β 
+
+> 2
+> h
+
+Xmτ,h ∥L2(Ω; H)
+
+≤Cτ β−ε
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t) dt. 
+
+(7.68) Similarly as the above estimate, the term c3,2 
+
+> n
+
+can be estimated as follows 
+
+|c3,2 
+
+> n
+
+| ≤ Cτ 
+
+∫ tn+1 
+
+> tn
+
+e−c(tm−t)E
+
+[(1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV
+
+]) ∥f ′(Xnτ,h )∥V
+
+∥Eτ,h Ph∥L(H)∥Fτ,h (Xnτ,h )∥
+
+]
+
+dt
+
+≤Cτ 
+
+∫ tn+1 
+
+> tn
+
+e−c(tm−t) dt. 
+
+(7.69) 42 In light of (3.26), Lemmas 7.3, 7.7, Theorem 5.3 and the Malliavin integration by parts, it follows that 
+
+|c3,3 
+
+> n
+
+| =
+
+∣∣∣∣E
+
+∫ tn+1 
+
+> tn
+
+∫ ttn
+
+〈D2μN (tm − t, X τ,h (t)) DsXτ,h (t), DF (Xnτ,h )Eτ,h Ph
+
+〉
+
+> L02
+
+dsdt
+
+∣∣∣∣
+
+≤
+
+∫ tn+1 
+
+> tn
+
+∫ ttn
+
+(
+
+1 + ( tm − t)− 1−β
+
+> 2
+
+)
+
+e−c(tm−t)E
+
+[(1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥8q−2 
+
+> V
+
+])
+
+∥A β−12 
+
+> h
+
+DsXτ,h (t)∥L02 ∥DF (Xnτ,h ) · Eτ,h Ph∥L02 ds dt
+
+]
+
+≤C
+
+∫ tn+1 
+
+> tn
+
+∫ ttn
+
+(1 + ( tm − t) β−12 )e−c(tm−t)E[∥A β−12 
+
+> h
+
+DsXτ,h (t)∥L02
+
+(1 + ∥Xnτ,h ∥2q−2 
+
+> V
+
+)] ∥A 1−β 
+
+> 2
+> h
+
+Eτ,h ∥L(H)∥A β−12 
+
+> h
+
+Ph∥L02 dt
+
+≤Cτ 1+ β
+
+> 2
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t) β−12
+
+)
+
+e−c(tm−t) dt. 
+
+(7.70) For the term c3,4 
+
+> n
+
+, we first note that ∥A− η 
+
+> 2
+
+v∥ ≤ C∥v∥L1(D), for v ∈ L1(D) by the embedding theorem and some η ∈ (max { d 
+
+> 2
+
+, 1}, 2). Therefore, by Theorem 5.3 and Lemma 7.7, we arrive at 
+
+|c3,4 
+
+> n
+
+| ≤ 
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t)E
+
+[( 
+
+1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV ]
+
+)
+
+· ∥ A− η 
+
+> 2
+
+DF (Xnτ,h )RF (Xnτ,h , X τ,h (t)) ∥
+
+]
+
+dt
+
+≤C
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t)E
+
+[
+
+∥DF (Xnτ,h )RF (Xnτ,h , X τ,h (t)) ∥L1(D)
+
+]
+
+dt
+
+≤C
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t)E
+
+[
+
+(1 + ∥Xnτ,h ∥2q−2 
+
+> V
+
++ ∥Xτ,h (t)∥2q−2 
+
+> V
+
+)∥Xnτ,h − Xτ,h (t)∥2]
+
+dt
+
+≤Cτ β
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t) dt. 
+
+(7.71) Gathering (7.68)-(7.71), we conclude that for any ε ∈ (0 , β ) and some η ∈ (max { d 
+
+> 2
+
+, 1}, 2),
+
+> m−1
+
+∑
+
+> n=1
+
+|c3
+
+> n
+
+| ≤ Cτ β−εm−1∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t) β−12 + ( tm − t)− η
+
+> 2
+
+)
+
+e−c(tm−t) dt ≤ Cτ β−ε. (7.72) At the moment we follow similar arguments used in the proof of (7.63) to derive, for any ε ∈ (0 , β )
+
+> m−1
+
+∑
+
+> n=1
+
+|c4
+
+> n
+
+| ≤ Cλ −β+εNm−1∑
+
+> n=1
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−β+ε)
+
+e−c(tm−t) dt ≤ Cλ −β+εN . (7.73) From the estimates (7.63), (7.65), (7.72) and (7.73), it follows that for any ε ∈ (0 , β ),
+
+> m−1
+
+∑
+
+> n=1
+
+|cn| ≤ C(τ min {θ,β −ε} + hmin {ρ, 2β−2ε} + λ−β+εN ). (7.74) 43 Now we split bn as bn = b1 
+
+> n
+
++ b2 
+
+> n
+
++ b3 
+
+> n
+
++ b4
+
+> n
+
+, where 
+
+b1 
+
+> n
+
+:= E
+
+∫ tn+1 
+
+> tn
+
+〈(I − Eτ,h )AhXnτ,h , Dμ N (tm − t, X τ,h (t)〉 dt, (7.75) 
+
+b2 
+
+> n
+
+:= E
+
+∫ tn+1 
+
+> tn
+
+〈Ah(Xτ,h (t) − Xnτ,h ), Dμ N (tm − t, X τ,h (t)〉 dt, (7.76) 
+
+b3 
+
+> n
+
+:= E
+
+∫ tn+1 
+
+> tn
+
+〈AX τ,h (t) − AhXτ,h (t), Dμ N (tm − t, X τ,h (t)〉 dt, (7.77) 
+
+b4 
+
+> n
+
+:= E
+
+∫ tn+1 
+
+> tn
+
+〈(PN − I)AX τ,h (t), Dμ N (tm − t, X τ,h (t)〉 dt. (7.78) To bound the term b1
+
+> n
+
+, we make a further decomposition as follows: 
+
+b1 
+
+> n
+
+=E
+
+∫ tn+1 
+
+> tn
+
+〈(I − Eτ,h )AhEnτ,h PhX0, Dμ N (tm − t, X τ,h (t)) 〉 dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+τ
+
+> n−1
+
+∑
+
+> j=0
+
+〈
+
+(I − Eτ,h )AhEn−jτ,h PhFτ,h (Xjτ,h ), Dμ N (tm − t, X τ,h (t)) 
+
+〉
+
+dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈
+
+(I − Eτ,h )Ahn∑
+
+> j=1
+
+∫ tj
+
+> tj−1
+
+En−j+1  
+
+> τ,h
+
+Ph dW (s), Dμ N (tm − t, X τ,h (t)) 
+
+〉
+
+dt
+
+=: b1,1 
+
+> n
+
++ b1,2 
+
+> n
+
++ b1,3 
+
+> n
+
+.
+
+(7.79) The first term b1,1 
+
+> n
+
+is similar to c1 
+
+> n
+
+above and is treated in the same way: 
+
+|b1,1 
+
+> n
+
+| ≤ 
+
+∫ tn+1 
+
+> tn
+
+|E 〈(I − Eτ,h )AhEnτ,h PhX0, Dμ N (tm − t, X τ,h (t)) 〉 | dt
+
+≤C
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)E
+
+[(1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV ])
+
+∥A−1+ ε 
+
+> 2
+
+A1− ε 
+
+> 2
+> h
+
+Ph∥L(H)∥A ε 
+
+> 2
+> h
+
+(I − Eτ,h )Enτ,h PhX0∥
+
+]
+
+dt
+
+≤C
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)∥A−β+εh (I − Eτ,h )Aβ− ε 
+
+> 2
+> h
+
+Enτ,h PhX0∥ dt
+
+≤Cτ β−ε
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) min 
+
+{
+
+t−β+ ε 
+
+> 2
+> n
+
+, t −2
+
+> n
+
+}
+
+dt
+
+≤Cτ β−ε
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) min 
+
+{
+
+t−β+ ε 
+
+> 2
+
+, t −2}
+
+dt, 
+
+(7.80) where we utilized the fact 1 
+
+> tn
+
+≤ 2 
+
+> t
+
+, for t ∈ (tn, t n+1 ), n = 1 , 2, · · · in the last inequality. Similarly as 44 above, we have by (6.13) 
+
+|b1,2
+
+n | ≤ 
+
+∫ tn+1 
+
+tn
+
+τ
+
+n−1∑
+
+j=0 
+
+∣∣∣E
+
+〈
+
+(I − Eτ,h )AhEn−jτ,h PhFτ,h (Xjτ,h ), Dμ N (tm − t, X τ,h (t)) 
+
+〉∣ ∣∣ dt
+
+≤C
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)τ
+
+n−1∑
+
+j=0 
+
+E[∥A−1+ εh (I − Eτ,h )A1− ε
+
+> 2
+
+h En−jτ,h PhFτ,h (Xjτ,h )∥] dt
+
+≤Cτ 1−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)τ
+
+n−1∑
+
+j=0 
+
+min {t−1+ ε
+
+> 2
+
+n−j , t −2
+
+n−j } dt
+
+≤Cτ 1−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) dt. 
+
+(7.81) For the term b1,3
+
+n , we rely on Malliavin integration by parts, Lemmas 3.1, 7.3, 7.7 and Theorem 5.3 to obtain 
+
+|b1,3
+
+n | ≤ 
+
+∫ tn+1 
+
+tn
+
+n∑
+
+j=1 
+
+∫ tj
+
+tj−1
+
+∣∣∣∣E
+
+〈
+
+(I − Eτ,h )AhEn−j+1 
+
+τ,h Ph, D 2μN (tm − t, X τ,h (t)) DsXτ,h (t)
+
+〉
+
+L02
+
+∣∣∣∣ ds dt
+
+≤
+
+∫ tn+1 
+
+tn
+
+n∑
+
+j=1 
+
+∫ tj
+
+tj−1
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)∥A− 1+ β−ε
+
+> 2
+
+h (I − Eτ,h )AhEn−j+1 
+
+τ,h Ph∥L02
+
+E
+
+[
+
+(1 + sup 
+
+s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥8q−2
+
+V ]) ∥A β−12 DsXτ,h (t)∥L02
+
+]
+
+ds dt
+
+≤
+
+∫ tn+1 
+
+tn
+
+n∑
+
+j=1 
+
+∫ tj
+
+tj−1
+
+(1 + ( tm − t)−1+ ε 
+
+> 2
+
+)e−c(tm−t)
+
+· ∥ A−β+εh (Eτ,h − I)Ph∥L(H)∥A1− ε
+
+> 2
+
+h En−j+1 
+
+τ,h ∥L(H)∥A β−12
+
+h Ph∥L02 ds dt
+
+≤Cτ β−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)dtτ 
+
+n∑
+
+j=1 
+
+min {t−1+ ε
+
+> 2
+
+n−j+1 , t −2
+
+n−j+1 }≤Cτ β−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) dt. 
+
+(7.82) We conclude this step by gathering the previous estimates. This enables us to write 
+
+m−1∑
+
+n=1 
+
+|b1
+
+n| ≤ Cτ β−εm−1∑
+
+n=1 
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+(1 + min {t−1+ ε 
+
+> 2
+
+, t −2})e−c(tm−t) dt ≤ Cτ β−ε. (7.83) 45 Recalling the definition Xτ,h (t) in (7.17), the term b2 
+
+> n
+
+is divided into the following three terms 
+
+b2 
+
+> n
+
+=E
+
+∫ tn+1 
+
+> tn
+
+(t − tn) 〈−A2
+
+> h
+
+Eτ,h Xnτ,h , Dμ N (tm − t, X τ,h (t)〉 dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+(t − tn) 〈AhEτ,h Fτ,h (Xnτ,h ), Dμ N (tm − t, X τ,h (t)〉 dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈
+
+Ah
+
+∫ ttn
+
+Eτ,h PhdW (s), Dμ N (tm − t, X τ,h (t)
+
+〉
+
+dt
+
+=: b2,1 
+
+> n
+
++ b2,2 
+
+> n
+
++ b2,3 
+
+> n
+
+.
+
+(7.84) To deal with the term b2,1 
+
+> n
+
+, we make a further decomposition: 
+
+b2,1 
+
+> n
+
+=E
+
+∫ tn+1 
+
+> tn
+
+(t − tn) 〈−A2
+
+> h
+
+Eτ,h Enτ,h PhX0, Dμ N (tm − t, X τ,h (t)〉 dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+(t − tn)
+
+〈
+
+−A2
+
+> h
+
+Eτ,h τ
+
+> n−1
+
+∑
+
+> j=0
+
+En−jτ,h Fτ,h (Xjτ,h ) Dμ N (tm − t, X τ,h (t)
+
+〉
+
+dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+(t − tn)
+
+〈
+
+−A2
+
+> hn
+
+∑
+
+> j=1
+
+En−j+1  
+
+> τ,h
+
+Ph∆Wj , Dμ N (tm − t, X τ,h (t)
+
+〉
+
+dt
+
+=b2,1,1 
+
+> n
+
++ b2,1,2 
+
+> n
+
++ b2,1,3 
+
+> n
+
+.
+
+(7.85) Owing to the smoothing effect of Eτ,h in Lemma 3.1, the Malliavin regularity in Lemma 7.7, and the a priori estimate of Xτ,h (t), we have 
+
+|b2,1,1 
+
+> n
+
+| ≤ 
+
+∫ tn+1 
+
+> tn
+
+(t − tn)
+
+∣∣∣E
+
+〈
+
+A−1+ ε 
+
+> 2
+
+A2
+
+> h
+
+Eτ,h Enτ,h PhX0, A 1− ε 
+
+> 2
+
+Dμ N (tm − t, X τ,h (t)) 
+
+〉∣ ∣∣ dt
+
+≤Cτ 
+
+∫ tn+1 
+
+> tn
+
+E
+
+[ ( 
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)(
+
+1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV
+
+])
+
+∥A−1+ ε 
+
+> 2
+
+A1− ε 
+
+> 2
+> h
+
+Ph∥L(H)
+
+∥∥∥AεhEτ,h ∥L(H)∥A1− ε 
+
+> 2
+> h
+
+Enτ,h PhX0
+
+∥∥∥]
+
+dt
+
+≤Cτ 1−ε
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) min 
+
+{
+
+t−1+ ε 
+
+> 2
+> n
+
+, t −2
+
+> n
+
+}
+
+dt
+
+≤Cτ 1−ε
+
+∫ tn+1 
+
+> tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) min 
+
+{
+
+t−1+ ε 
+
+> 2
+
+, t −2}
+
+dt, 
+
+(7.86) 46 for n = 1 , 2, · · · , m − 1. Similarly as above 
+
+|b2,1,2
+
+n | ≤ τ
+
+∫ tn+1 
+
+tn
+
+E
+
+[∥ ∥∥A−1+ ε 
+
+> 2
+
+A2
+
+hEτ,h τ
+
+n−1∑
+
+j=0 
+
+En−jτ,h Fτ,h (Xjτ,h )
+
+∥∥∥∥A1− ε 
+
+> 2
+
+Dμ N (tm − t, X τ,h (t)) ∥
+
+]
+
+dt
+
+≤Cτ 
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)E
+
+[( 
+
+1 + sup 
+
+s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV
+
+])
+
+∥A−1+ ε 
+
+> 2
+
+A1− ε
+
+> 2
+
+h Ph∥L(H)∥AεhEτ,h ∥L(H)τ
+
+n−1∑
+
+j=0 
+
+∥A1− ε
+
+> 2
+
+h En−jτ,h Ph∥L(H)∥Fτ,h (Xjτ,h )∥
+
+]
+
+dt
+
+≤Cτ 1−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)τ
+
+n−1∑
+
+j=0 
+
+min 
+
+{
+
+t−1+ ε
+
+> 2
+
+n−j , t −2
+
+n−j
+
+}
+
+dt
+
+≤Cτ 1−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) dt. 
+
+(7.87) Following similar arguments as used in the proof of (7.82), we obtain 
+
+|b2,1,3
+
+n |≤ τ
+
+∫ tn+1 
+
+tn
+
+∣∣∣E
+
+[ n∑
+
+j=1 
+
+∫ tj
+
+tj−1
+
+〈
+
+A2
+
+hEn−j+1 
+
+τ,h Ph, D 2μN (tm − t, X τ,h (t)) DsXτ,h (t)
+
+〉
+
+L02
+
+]
+
+ds
+
+∣∣∣ dt
+
+≤ Cτ 
+
+∫ tn+1 
+
+tn
+
+n∑
+
+j=1 
+
+∫ tj
+
+tj−1
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)E
+
+[( 
+
+1 + sup 
+
+s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥8q−2
+
+V
+
+])
+
+∥A− 1+ β−ε 
+
+> 2
+
+A 1+ β−ε
+
+> 2
+
+h Ph∥L(H)∥A1− ε
+
+> 2
+
+h En−j+1 
+
+τ,h Ph∥L(H)∥A1−β+εh Eτ,h ∥L(H)∥A β−12
+
+h Ph∥L02 ∥A β−12 DsXτ,h (t)∥L02
+
+]
+
+ds dt
+
+≤ Cτ τ −1+ β−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t)
+
+n∑
+
+j=1 
+
+τ min 
+
+{
+
+t−1+ ε
+
+> 2
+
+n−j+1 , t −2
+
+n−j+1 
+
+}
+
+dt
+
+≤ Cτ β−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) dt. 
+
+(7.88) Thus, inserting (7.86), (7.87) and (7.88) into (7.85) shows 
+
+|b2,1
+
+n | ≤ Cτ β−ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+) (1 + min {t−1+ ε, t −2}) e−c(tm−t) dt. (7.89) Next we treat easy terms b2,2
+
+n and b2,3
+
+n . Following similar arguments as used in the proof of (7.69) and 47 thanks to Lemmas 7.7, 3.1 and Theorems 5.3, 2.7, one can show 
+
+|b2,2
+
+n | ≤ 
+
+∫ tn+1 
+
+tn
+
+∣∣(t − tn)E 〈AhEτ,h Fτ,h (Xnτ,h ), Dμ N (tm − t, X τ,h (t)) 〉∣ ∣ dt
+
+≤Cτ 
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε)e−c(tm−t)∥A−1+ εA1−εh Ph∥L(H)
+
+E
+
+[
+
+(1 + sup 
+
+s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV ]) ∥AεhEτ,h Fτ,h (Xnτ,h )∥
+
+]
+
+dt
+
+≤Cτ 1−εE
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε)e−c(tm−t)E[∥Fτ,h (Xnτ,h )∥] dt
+
+≤Cτ 1−ε
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε)e−c(tm−t) dt. 
+
+(7.90) The estimation of b2,3
+
+n is similar to that of c2,3
+
+n :
+
+|b2,3
+
+n | =
+
+∫ tn+1 
+
+tn
+
+∫ ttn
+
+∣∣∣E 〈AhEτ,h Ph, D 2μN (tm − t, X τ,h (t)) DsXτ,h (t)〉
+
+L02
+
+∣∣∣ dt
+
+≤C
+
+∫ tn+1 
+
+tn
+
+∫ ttn
+
+(1 + ( tm − t)−1+ ε)e−c(tm−t)E
+
+[
+
+(1 + sup 
+
+s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥8q−2
+
+V
+
+]
+
+∥A− 1+ β 
+
+> 2
+
++εA 1+ β 
+
+> 2
+
+−εh Ph∥L(H)∥A− 1+ β 
+
+> 2
+
++εh AhEτ,h ∥L02 ∥A β−12 DsXτ,h (t)∥L02
+
+]
+
+ds dt
+
+≤Cτ 
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t)∥A1−β+εh Eτ,h ∥L(H)∥A β−12
+
+h Ph∥L02 dt
+
+≤Cτ β−ε
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t) dt. 
+
+(7.91) Combining the above estimates, we conclude 
+
+m−1∑
+
+n=1 
+
+|b2
+
+n| ≤ Cτ β−εm−1∑
+
+n=1 
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε)(1 + min {t−1+ ε, t −2})e−c(tm−t) dt ≤ Cτ β−ε. (7.92) Regarding the term b3
+
+n, we use the relation AhRh = PhA to write 
+
+〈AX τ,h (t) − AhXτ,h (t), Dμ N (tm − t, X τ,h (t)) 〉
+
+= ⟨Xτ,h (t), (PhA − AhPh)Dμ (tm − t, X τ,h (t)) ⟩
+
+= 〈Xτ,h (t), A h(Rh − Ph)Dμ N (tm − t, X τ,h (t)) 〉 ,
+
+(7.93) 48 which together with the definition of Xτ,h (t) in (7.17) yields the following decomposition: 
+
+b3 
+
+> n
+
+=E
+
+∫ tn+1 
+
+> tn
+
+〈
+
+Xτ,h (t), A h(Rh − Ph)Dμ N (tm − t, ˜Xτ,h (t)) 
+
+〉
+
+dt
+
+=E
+
+∫ tn+1 
+
+> tn
+
+〈
+
+(t − tn)Eτ,h PhFτ,h (Xnτ,h ), A h(Rh − Ph)Dμ N (tm − t, X τ,h (t)) 
+
+〉
+
+dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈 ∫ ttn
+
+Eτ,h Ph dW (s), A h(Rh − Ph)Dμ N (tm − t, X τ,h (t)) 
+
+〉
+
+dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈
+
+(1 − (t − tn)AhEτ,h )Enτ,h PhX0, A h(Rh − Ph)Dμ N (tm − t, X τ,h (t)) 
+
+〉
+
+dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈
+
+(1 − (t − tn)AhEτ,h )
+
+> n−1
+
+∑
+
+> j=0
+
+τ E n−jτ,h PhFτ,h (Xjτ,h ), A h(Rh − Ph)Dμ N (tm − t, X τ,h (t)) 
+
+〉
+
+dt
+
++ E
+
+∫ tn+1 
+
+> tn
+
+〈
+
+(1 − (t − tn)AhEτ,h )
+
+> n−1
+
+∑
+
+> j=0
+
+τ
+
+∫ tj+1 
+
+> tj
+
+En−jτ,h Ph dW (s), A h(Rh − Ph)Dμ N (tm − t, X τ,h (t)) 
+
+〉
+
+dt
+
+=: b3,1 
+
+> n
+
++ b3,2 
+
+> n
+
++ b3,3 
+
+> n
+
++ b3,4 
+
+> n
+
++ b3,5 
+
+> n
+
+.
+
+(7.94) Next, we will bound b3,i n , i = 1 , 2, 3, 4, 5, separately. From (3.7), the smoothing property of Eτ,h in Lemma 3.1, Malliavin regularity in Lemma 7.7 and the a priori estimate of Xτ,h (t), it follows that for any ε ∈ (0 , β )
+
+|b3,1 
+
+> n
+
+| =
+
+∫ tn+1 
+
+> tn
+
+(t − tn)
+
+∣∣∣E
+
+〈
+
+AhEτ,h PhFτ,h (Xnτ,h ), (Rh − Ph)A−1+ εA1−εDμ N (tm − t, X τ,h (t)) 
+
+〉∣ ∣∣ dt
+
+≤Cτ 
+
+∫ tn+1 
+
+> tn
+
+(1 + ( tm − t)−1+ ε)e−c(tm−t)E
+
+[
+
+(1 + sup 
+
+> s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥2qV ]) 
+
+∥AhEτ,h Ph∥L(H)∥Fτ,h (Xnτ,h )∥∥ (Ph − Rh)A−1+ ε∥L(H)
+
+]
+
+dt
+
+≤Ch 2−2ε
+
+∫ tn+1 
+
+> tn
+
+(1 + ( tm − t)−1+ ε)e−c(tm−t) dt. 
+
+(7.95) Utilizing (3.8), Malliavin calculus integration by parts, the regularity of μN (·, ·), Malliavin differentia-49 bility of Xτ,h (t) and the a priori estimate of Xτ,h (t), one can observe that for any ε ∈ (0 , β )
+
+|b3,2
+
+n | ≤ 
+
+∫ tn+1 
+
+tn
+
+∫ ttn
+
+∣∣∣E
+
+〈
+
+A β−12 A 1−β
+
+> 2
+
+h AhEτ,h A β−12
+
+h Ph,A 1−β 
+
+> 2
+
+(Ph − Rh)A− 1+ β 
+
+> 2
+
++εA 1+ β 
+
+> 2
+
+−εD2μN (tm − t, X τ,h (t)) A 1−β 
+
+> 2
+
+A β−12 DsXτ,h (t)
+
+〉
+
+L02
+
+∣∣∣ ds dt
+
+≤
+
+∫ tn+1 
+
+tn
+
+∫ ttn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t)E
+
+[
+
+(1 + sup 
+
+s∈[0 ,t m−t]
+
+E[∥X(s, X τ,h (t)) ∥8q−2
+
+V ]) ∥AhEτ,h ∥L(H)
+
+∥A β−12 A β−12
+
+h Ph∥L(H)∥A β−12
+
+h Ph∥L02 ∥A 1−β 
+
+> 2
+
+(Ph − Rh)A− 1+ β 
+
+> 2
+
++ε∥L(H)∥A β−12 DsXτ,h (t)∥L02
+
+]
+
+ds dt
+
+≤ Ch 2β−2ε
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t) dt. 
+
+(7.96) Then following similar arguments as used in the estimation of b3,1
+
+n , b2,1,1
+
+n and b2,1,2
+
+n yields 
+
+|b3,3
+
+n | + |b3,4
+
+n | ≤ Ch 2β−2ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+min {t−1+ ε 
+
+> 2
+
+, t −2}e−c(tm−t) dt. 
+
+(7.97) Similar arguments as used in estimating b3,2
+
+n implies 
+
+b3,5
+
+n ≤
+
+∫ tn+1 
+
+tn
+
+n−1∑
+
+j=0 
+
+∫ tj+1 
+
+tj
+
+∣∣∣E
+
+〈
+
+A β+1 −ε
+
+> 2
+
+h (I − (t − tn)AhEτ,h )En−jτ,h A 1−β
+
+> 2
+
+h A β−12
+
+h Ph,A 1−β+ε
+
+> 2
+
+h (Rh − Ph)A− 1+ β−ε 
+
+> 2
+
+A 1+ β−ε 
+
+> 2
+
+D2μN (tm − t, X τ,h (t)) A 1−β 
+
+> 2
+
+A β−12 DsXτ,h (t)
+
+〉
+
+L02
+
+ds
+
+∣∣∣ dt
+
+≤Ch 2β−2ε
+
+∫ tn+1 
+
+tn
+
+n−1∑
+
+j=0 
+
+τ min {t−1+ ε
+
+> 2
+
+n−j , t −2
+
+n−j }
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) dt
+
+≤Ch 2β−2ε
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+e−c(tm−t) dt. 
+
+(7.98) Thanks to (7.95)-(7.98) and (7.94), one can deduce 
+
+m−1∑
+
+n=1 
+
+|b3
+
+n| ≤ Ch 2β−2εm−1∑
+
+n=1 
+
+∫ tn+1 
+
+tn
+
+(
+
+1 + ( tm − t)−1+ ε + ( tm − t)−1+ ε
+
+> 2
+
+)
+
+(1 + min {t−1+ ε 
+
+> 2
+
+, t −2})e−c(tm−t) dt
+
+≤Ch 2β−2ε.
+
+(7.99) Employing similar techniques used in the proof of (7.95), we show 
+
+m−1∑
+
+n=1 
+
+|b4
+
+n| =
+
+m−1∑
+
+n=1 
+
+∣∣∣∣E
+
+∫ tn+1 
+
+tn
+
+〈
+
+A− β 
+
+> 2
+
++ε(I − PN )A β 
+
+> 2
+
+Xτ,h (t), A 1−εDμ N (tm − t, X τ,h (t)) 
+
+〉
+
+dt
+
+∣∣∣∣
+
+≤Cλ − β 
+
+> 2
+
++εNm−1∑
+
+n=1 
+
+∫ tn+1 
+
+tn
+
+(1 + ( tm − t)−1+ ε) e−c(tm−t) dt
+
+≤Cλ − β 
+
+> 2
+
++εN .
+
+(7.100) 50 By (7.83), (7.92), (7.99) and (7.100), we conclude 
+
+> m−1
+
+∑
+
+> n=1
+
+|bn| ≤ C(h2β−2ε + τ β−ε + Cλ − β  
+
+> 2+εN
+
+). (7.101) Therefore, combining all the estimates of an, b n, c n together gives 
+
+E[μN (tm, P hX0)] − E[μN (0 , X mτ,h )] ≤ C(h2β−2ε + τ β−ε + Cλ − β  
+
+> 2+εN
+
+). (7.102) Finally, by (7.46), (7.47) and (7.102) and taking N → ∞ , we obtain 
+
+∣∣E[φ(X(tm)) ] − E[φ(Xmτ,h )]∣ ∣ ≤ C(hmin {2β−2ε,ρ } + τ min {β−ε,θ }), (7.103) as required. □
+
+Let μ be the unique invariant measure of the SPDE (1.1). If the fully discrete finite element scheme (3.22) possesses a unique invariant measure μτ,h , then we have the following convergence rate between 
+
+μ and μτ,h .
+
+Proposition 7.9 Let Assumptions 2.1-2.5 and Assumption 7.2 are valid for γ ∈ ( d 
+
+> 2
+
+, 2] or γ ∈ (0 , 12 )
+
+with Q = I in dimension one. Then, there exists a constant c such that for any φ ∈ C2 
+
+> b
+
+and m it holds 
+
+∣∣∣∣E
+
+[
+
+φ(Xmτ,h ) −
+
+∫
+
+> H
+
+φ dμ
+
+]∣ ∣∣∣ ≤ C(X0, Q, D, φ )( τ δ + hι + e−cmτ ) (7.104) 
+
+with δ ∈ (0 , min {θ, β }), ι ∈ (0 , min {ρ, 2β}), where β = min {γ, 1}. Furthermore, if μτ,h is an ergodic invariant measure of the numerical solution {Xmτ,h }m≥0, we have 
+
+∣∣∣∣∣E
+
+[∫
+
+> Ph(H)
+
+φ dμτ,h −
+
+∫
+
+> H
+
+φ dμ
+
+]∣ ∣∣∣∣ ≤ C(X0, Q, ϕ )( τ δ + hι). (7.105) 
+
+## 8 Numerical experiments 
+
+In this section, we present some numerical experiments to confirm our previous theoretical finding. For simplicity, we consider the stochastic partial differential equation in one dimension as follows 
+
+{ du(t) = uxx (t)dt + ( u − u3)dt + dW (t), (t, x ) ∈ [0 , T ] × [0 , 1] ,u(0) = 0 , v (0) = 0 , x ∈ [0 , 1] , (8.1) where {W (t)}t∈[0 ,1] stands for a standard Q-Wiener process with the covariance operator Q = Λ −s,
+
+s = {0, 0.5005 }. One can easily check that Assumption 2.4 is valid and the condition (2.15) is fulfilled with γ = 0 .5 for Q = I and γ = 1 for Q = A−0.5005 . In the following experiments, we consider the fully discrete scheme (3.22) with fτ,h (·) given by (3.24), where we take β1 = β2 = 1 , θ = 1 , ρ = 2 , α = 0 .25 .Throughout the numerical tests, the expectation is approximated by the Monte-Carlo approximation using average over 2000 samples. We first test the long-time behaviors of the scheme (3.22). To this end, we take h = 2 −5 and 
+
+τ = 2 −6 and the expectation E[sin( π/ 4 − ∥ Xmτ,h ∥2)] is approximated by taking average over 5000 
+
+samples. Figure 1 shows that the average E[sin( π/ 4 − ∥ Xmτ,h ∥2)] started from different values with the terminal time T = 8 and it converges to the same equilibrium in a short time. 51 0 1 2 3 4 5 6 7 8
+
+> Long-time beheaviors
+> 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1
+> Mean
+> Long-time beheaviors of fully-discrete FEM discretion
+> Initial 1
+> Initial 2
+> Initial 3
+> Initial 4
+> Initial 5
+
+Fig. 1: Long-time behaviors for the scheme in the trace noise case ( Tr( Q) < ∞)Next, we test the long-time strong convergence rate. We conduct relevant experiments on a large time interval [0 , T ] with T = 8 . To test the convergence rate in time, numerical simulations are performed with four different time step-sizes τ = T / 2m, m ∈ { 6, 7, 8, 9} and a fixed space step-size 
+
+h = 2 −7. The resulting strong errors against mesh sizes in logarithmic scale are depicted in Figure 2 and one can observe that the strong error converges with order 0.5 in the space-time white noise case and with order 1 in the trace class noise case, which is consistent with the previous theoretical findings. The ”true” solution is identified with numerical ones using small step-sizes hexact = 2 −7 and 
+
+τexact = T / 212 , T = 8 .10 -2 10 -1 10 0  
+
+> Time stepsize
+> 10 -2
+> 10 -1
+> 10 0
+> Strong errors
+> approx error
+> order=0.25 10 -2 10 -1 10 0
+> Time stepsize
+> 10 -2
+> 10 -1
+> 10 0
+> Strong errors
+> approx error
+> order=0.5
+
+Fig. 2: Long-time strong convergence rates in time (Left: Q = I; Right: Q = A−0.5005 )As simulating the strong errors, we test the weak convergence rates in time at the endpoint T = 8 .Here, the ”true” solutions are computed by numerical solutions using small step-size hexact = 2 −6
+
+and τexact = T / 212 . In Figure 3, we present the resulting errors of the proposed method (3.22) in time direction under four time mesh sizes τ = T / 2m, m ∈ { 5, 6, 7, 8} with a small space step-size 
+
+hexact = 2 −6. As expected, the numerical performance is all consistent with the previous theoretical results. 52 10 -2 10 -1 10 0  
+
+> Time stepsize
+> 10 -4
+> 10 -3
+> 10 -2
+> 10 -1
+> 10 0
+> Weak errors
+> φ(·)=sin(|| ·||)
+> φ(·)=cos(|| ·|| 2-π/4)
+> φ(·)=exp(-|| ·|| 2)
+> order=0.25
+> order=0.5
+> order=1 10 -2 10 -1 10 0
+> Time stepsize
+> 10 -4
+> 10 -3
+> 10 -2
+> 10 -1
+> 10 0
+> Weak errors
+> φ(·)=sin(|| ·||)
+> φ(·)=cos(|| ·|| 2-π/4)
+> φ(·)=exp(-|| ·|| 2)
+> order=0.25
+> order=0.5
+> order=1
+
+Fig. 3: Long-time weak convergence rates in time (Left: Q = I; Right: Q = A−0.5005 )
+
+## 9 Conclusion 
+
+In this work, we propose and analyze new fully discrete schemes for long-time approximations of SPDEs with additive noises and non-globally Lipschitz coefficients in a bounded domain D ⊂ Rd, d = 1 , 2, 3.Based on a standard Galerkin finite element spatial semi-discretization, a novel family of linearly implicit time-stepping schemes is introduced, preserving uniform-in-time moment bounds in Banach spaces, without requiring any restriction on the time-space discretization stepsize ratio. Both strong and weak errors are analyzed for the proposed fully discrete schemes, with uniform-in-time strong and weak convergence rates obtained. As an ongoing project, we are focusing on long-time finite element approximations of SPDEs with multiplicative trace-class noises in multiple dimensions. 
+
+## Appendix 
+
+Proof of Lemma 3.1. For the proof of (3.29), please refer to [26, Lemma 5.2]. The assertion (3.28) in the case ρ = 1 can be found in [26, Lemma 5.2] and the case ρ = 0 is obvious by the stability of 
+
+Emτ,h . Thus, the interpolation technique implies the intermediate cases. For the proof of (3.26) in the case tm ∈ (0 , 1] , one can consult [26, Lemma 5.2]. It remains to show (3.26) for tm ≥ 1. By using the expansion of Phv in terms of {ej,h }Nh
+
+j=1 , one knows 
+
+∥A μ
+
+> 2
+
+h Emτ,h Phv∥2 =
+
+Nh∑
+
+j=1 
+
+λμj,h r(λj,h τ )2m〈v, e j,h 
+
+〉2. (9.1) Thus, it is sufficient to show that for any μ ∈ [0 , 2] 
+
+λ μ
+
+> 2
+
+j,h r(λj,h τ )m ≤ Ct −2
+
+m , (9.2) where C is a positive constant, independent of m, h and τ . To prove it, we consider two cases: 
+
+τ λ j,h ≤ 1 and τ λ j,h > 1. For the case τ λ j,h ≤ 1, we get by (4.23) 
+
+λ μ
+
+> 2
+
+j,h r(λj,h τ )m ≤ Cλ μ
+
+> 2
+
+j,h e− ctmλ 12 ≤ Cτ − μ 
+
+> 2
+
+t−2
+
+m ≤ Ct −2
+
+m . (9.3) 53 For the case τ λ j,h > 1, it is easy to show that, for m = 1 
+
+λ μ
+
+> 2
+> j,h
+
+r(λj,h τ ) ≤ Cτ −1λ−1+ μ 
+
+> 2
+> j,h
+
+≤ Cτ − μ 
+
+> 2
+
+= Cτ 2− μ 
+
+> 2
+
+t−21 , (9.4) and for any m ≥ 2
+
+λ μ
+
+> 2
+> j,h
+
+r(λj,h τ )m ≤Cτ − μ 
+
+> 2
+
+(1 + τ λ j,h )−m+1 ≤ Cτ − μ 
+
+> 2
+
+sup 
+
+> λ≥1
+
+(1 + λ)−m+1 
+
+≤Cτ − μ 
+
+> 2
+
+(m − 1) −2 ≤ Cτ − μ 
+
+> 2
+
+m−2 ≤ Cτ 2− μ 
+
+> 2
+
+t−2 
+
+> m
+
+.
+
+(9.5) Hence the desired assertion (9.2) follows and the proof of this lemma is complete. □
+
+Proof of Lemma 5.1. The assertion (5.2) can be directly proven by using (3.15), (3.27) with ϱ = γ
+
+and the Burkholder inequality. In view of (5.2) and (3.21), (5.3) in the case γ ∈ ( d 
+
+> 2
+
+, 2] follows. To show (5.3) for the case γ ∈ (0 , 12 ) with Q = I in dimension one, we assume the domain D = [0 , L ] and the quasi-uniform triangulation of D is a uniform mesh. Let h = L 
+
+> Nh+1
+
+. The eigen-system {(λj,h , e j,h )}Nh
+
+> j=1
+
+}
+
+of Ah in Vh satisfies the following property (see [30]):  
+
+> 4j2
+> L2
+
+≤ λj,h ≤ 3π2j2 
+
+> L2
+
+, j = 1 , 2, · · · , Nh, (9.6) and 
+
+∥ej,h ∥L∞(D) ≤
+
+√ 6 
+
+> L
+
+, (9.7) 
+
+|ej,h (x) − ej,h (y)| ≤ 
+
+√ 6 
+
+> Lπj L
+
+|x − y|, (9.8) for ∀x, y ∈ [ih, (i + 1) h], i = 0 , 1, 2, · · · , Nh + 1 . Therefore, W mτ,h can be written as 
+
+W mτ,h = ∑
+
+> k∈N+
+> m
+
+∑
+
+> j=1
+> Nh
+
+∑
+
+> l=1
+
+(1 + τ λ l,h )−(m+1 −j) ⟨ek, e l,h ⟩ el,h (βk(tj ) − βk(tj−1)) . (9.9) This together with (9.6)-(9.8) and using the Itô isometry imply 
+
+E[|W mτ,h (x) − W mτ,h (y)|2]
+
+≤E
+
+ ∑
+
+> k∈N+
+
+
+
+> m
+
+∑
+
+> j=1
+> Nh
+
+∑
+
+> l=1
+
+(1 + τ λ l,h )−(m+1 −j) ⟨ek, e l,h ⟩ (el,h (x) − el,h (y)) ( βk(tj ) − βk(tj−1)) 
+
+
+
+> 2
+
+
+
+≤ ∑
+
+> k∈N+
+> m
+
+∑
+
+> j=1
+
+τ
+
+( Nh∑
+
+> l=1
+
+(1 + τ λ l,h )−(m+1 −j) ⟨ek, e l,h ⟩ (el,h (x) − el,h (y)) 
+
+)2
+
+≤
+
+> m
+
+∑
+
+> j=1
+
+τ
+
+> Nh
+
+∑
+
+> l=1
+> Nh
+
+∑
+
+> i=1
+
+(1 + τ λ l,h )−(m+1 −j)(1 + τ λ i,h )−(m+1 −j) ⟨el,h , e i,h ⟩ (el,h (x) − el,h (y)) ( ei,h (x) − ei,h (y)) 
+
+≤
+
+> Nh
+
+∑
+
+> l=1
+> m
+
+∑
+
+> j=1
+
+τ (1 + τ λ l,h )−2( m+1 −j) (el,h (x) − el,h (y)) 2 .
+
+(9.10) 54 To proceed further, one should bound ∑mj=1 τ (1 + τ λ l,h )−2( m+1 −j). To this end, we consider two cases: 
+
+τ λ l,h ≤ 1 and τ λ l,h > 1. For the case τ λ l,h ≤ 1, we obtain by (4.23) and (9.6): 
+
+> m
+
+∑
+
+> j=1
+
+τ (1 + τ λ l,h )−2( m+1 −j) ≤ C
+
+> m
+
+∑
+
+> j=1
+
+τ e −2cλ l,h tm+1 −j ≤ Cλ −1 
+
+> l,h
+
+≤ Cl −2. (9.11) For the case τ λ l,h > 1, we have 
+
+> m
+
+∑
+
+> j=1
+
+τ (1 + τ λ l,h )−2( m+1 −j) ≤ τ (1 + τ λ l,h )−2
+
+> m−1
+
+∑
+
+> j=0
+
+(1 + τ λ l,h )−2j ≤ Cλ −1
+
+> l,h m−1
+
+∑
+
+> j=0
+
+2−2j ≤ Cλ −1 
+
+> l,h
+
+≤ Cl −2.
+
+(9.12) The above two estimates imply 
+
+> m
+
+∑
+
+> j=1
+
+τ (1 + τ λ l,h )−2( m+1 −j) ≤ Cl −2. (9.13) Additionally, for i > j , x ∈ [ih, (i + 1) h] and y ∈ [jh, (j + 1) h], it follows from (9.7) that 
+
+|el,h (x) − el,h (y)| ≤| el,h (x) − el,h (ih )| + |el,h (ih ) − el,h (( i − 1) h)| + · · · 
+
++ |el,h (j + 2) h) − el,h (( j + 1) h)| + |el,h (j + 1) h) − el,h (y)|≤
+
+√ 6
+
+Lπl L |x − y|.
+
+(9.14) As a consequence, using (9.7), (9.8), (9.14) and (9.13), one can derive 
+
+E[|W mτ,h (x) − W mτ,h (y)|2] ≤C
+
+> Nh
+
+∑
+
+> l=1
+
+l−2|el,h (x) − el,h (y)| 45 (|el,h (x)| + |el,h (y)|) 65
+
+≤C
+
+> Nh
+
+∑
+
+> l=1
+
+l−2l 45 |x − y| 45 ≤ C|x − y| 45 .
+
+(9.15) In the same way, 
+
+sup 
+
+> m∈N+
+
+sup 
+
+> x∈D
+
+E[|W mτ,h (x)|2] < ∞. (9.16) Using the Sobolev embedding inequality W 15 ,p ⊂ V, p > 5, one can find, for any m ∈ N+
+
+E[∥W mτ,h ∥pV ] ≤C
+
+∫ L
+
+> 0
+
+E[|W mτ,h (x)|]p dx + C
+
+∫ L
+
+> 0
+
+∫ L
+
+> 0
+
+E[|W mτ,h (x) − W mτ,h (y)|]p
+
+|x − y| p  
+
+> 5+1
+
+dxdy
+
+≤C
+
+∫ L
+
+> 0
+
+(E[|W mτ,h (x)|2]) p 
+
+> 2
+
+dx + C
+
+∫ L
+
+> 0
+
+∫ L
+
+> 0
+
+(E[|W mτ,h (x) − W mτ,h (y)|]2) p
+
+> 2
+
+|x − y| p  
+
+> 5+1
+
+dxdy
+
+≤C
+
+(
+
+1 + 
+
+∫ L
+
+> 0
+
+∫ L
+
+> 0
+
+|x − y| p  
+
+> 5−1
+
+dxdy
+
+)
+
+< ∞,
+
+(9.17) where in the second inequality we also used the fact that the discrete stochastic convolution W mτ,h 
+
+is Gaussian. The desired assertion in the case p ∈ [2 , 5] can be immediately shown by the Hölder inequality. □
+
+55 References 
+
+[1] A. Andersson and S. Larsson. Weak convergence for a spatial approximation of the nonlinear stochastic heat equation. Mathematics of Computation , 85(299):1335–1358, 2012. [2] R. Anton, D. Cohen, and L. Quer-Sardanyons. A fully discrete approximation of the one-dimensional stochastic heat equation. IMA Journal of Numerical Analysis , 40(1):247–284, 2018. [3] D. C. Antonopoulou, B. Egwu, and Y. Yan. A posteriori error analysis of space-time discontinuous Galerkin methods for the ￿-stochastic Allen–Cahn equation. IMA Journal of Numerical Analysis ,44(3):1862–1902, 2024. [4] S. Becker, B. Gess, and P. E. Jentzen, Arnulf Kloeden. Strong convergence rates for explicit space-time discrete numerical approximations of stochastic Allen-Cahn equations. Stochastic Partial Differential Equations: Analysis and Computations , 11(1):211–268, 2023. [5] C.-E. Bréhier. Stochastic Partial Differential Equations and Applications-VII, Exponential Er-godicity for Stochastic Reaction-Diffusion Equations,in: Lect. Notes Pure Appl. Math. vol. 245, pp.115-131. Chapman Hall/CHC, Boea Raton, FL, 2006. [6] C.-E. Bréhier. Approximation of the invariant distribution for a class of ergodic SPDEs using an explicit tamed exponential Euler scheme. ESAIM: Mathematical Modelling and Numerical Analysis , 56(1):151–175, 2022. [7] C.-E. Bréhier, A. Laurent, A. Debussche, and G. Vilmart. Preconditioning for the high-order sampling of the invariant distribution of parabolic semilinear SPDEs. arXiv preprint arXiv:2512.17714 , 2025. [8] C.-E. Bréhier. Approximation of the invariant measure with an Euler scheme for stochastic PDEs driven by space-time white noise. Potential Analysis , 40:1–40, 2014. [9] C.-E. Bréhier. Analysis of a modified regularity-preserving euler scheme for parabolic semilinear spdes: Total variation error bounds for the numerical approximation of the invariant distribution. 
+
+Foundations of Computational Mathematics , 25:511–586, 2025. [10] C.-E. Bréhier and L. Goudenège. Weak convergence rates of splitting schemes for the stochastic Allen–Cahn equation. BIT Numerical Mathematics , 60(3):543–582, 2020. [11] M. Cai, S. Gan, and X. Wang. Weak convergence rates for an explicit full-discretization of stochastic Allen–Cahn equation with additive noise. Journal of Scientific Computing , 86:1–30, 2021. [12] S. Cerrai. Second order PDE’s in finite and infinite dimension: a probabilistic approach . Springer, 2001. [13] C. Chen, T. Dang, and J. Hong. Strong convergence of adaptive time-stepping schemes for the stochastic Allen-Cahn equation. IMA Journal of Numerical Analysis , 45(1):404–450, 2025. [14] Z. Chen, S. Gan, and X. Wang. A full-discrete exponential euler approximation of the invariant measure for parabolic stochastic partial differential equations. Applied Numerical Mathematics ,17:135–158, 2020. 56 [15] J. Cui, J. Hong, and L. Sun. Weak convergence and invariant measure of a full discretization for parabolic spdes with non-globally lipschitz coefficients. Stochastic Processes and their Applica-tions , 134:55–93, 2021. [16] G. Da Prato and J. Zabczyk. Stochastic equations in infinite dimensions . Cambridge university press, 2014. [17] A. Debussche. Weak approximation of stochastic partial differential equations: the nonlinear case. Mathematics of Computation , 80:89–117, 2011. [18] X. Feng, Y. Li, and Y. Zhang. Finite element methods for the stochastic allen–cahn equation with gradient-type multiplicative noise. SIAM Journal on Numerical Analysis , 55(1):194–216, 2017. [19] D. Furihata, M. Kovács, S. Larsson, and F. Lindgren. Strong convergence of a fully discrete finite element approximation of the stochastic cahn–hilliard equation. SIAM Journal on Numerical Analysis , 56(2):708–731, 2018. [20] A. Jentzen and P. Pušnik. Strong convergence rates for an explicit numerical approximation method for stochastic evolution equations with non-globally lipschitz continuous nonlinearities. 
+
+IMA Journal of Numerical Analysis , 40(2):1005–1050, 2020. [21] Y. Jiang and X. Wang. Uniform-in-time weak error estimates of explicit full-discretization schemes for spdes with non-globally lipschitz coefficients. arXiv preprint arXiv:2504.21364 , 2025. [22] Z. Liu and J. Shen. Geometric ergodicity and optimal error estimates for a class of novel tamed schemes to super-linear stochastic pdes. arxiv preprint arxiv:2502.19117 , 2025. [23] A. K. Majee and A. Proh. Optimal strong rates of convergence for a space-time discretization of the stochastic Allen-Cahn equation with multiplicative noise. Computational Methods in Applied Mathematics , 18(2):297–311, 2018. [24] A. Pazy. Semigroups of linear operators and applications to partial differential equations . Springer Science & Business Media, 1983. [25] R. Qi and X. Wang. Optimal error estimates of galerkin finite element methods for stochastic Allen-Cahn equation with additive noise. Journal of Scientific Computing , 80:1171–1194, 2019. [26] R. Qi and X. Wang. Error estimates of semidiscrete and fully discrete finite element methods for the cahn–hilliard–cook equation. SIAM Journal on Numerical Analysis , 58(3):1613–1653, 2020. [27] X. Qi and Y. Yan. Long time stability and strong convergence of an efficient tamed scheme for stochastic allen-cahn equation driven additive white noise. Applied Numerical Mathematics ,224:22–36, 2026. [28] V. Thomée. Galerkin finite element methods for parabolic problems , volume 25. Springer Science & Business Media, 2007. [29] H. Triebel. Interpolation theory, function spaces, differential operators . Amsterdam:North Hol-land, 1978. 57 [30] J. B. Walsh. Finite element methods for parabolic stochastic pde’s. Potential Analysis , 23:1–43, 2005. [31] M. Wang and X. Wang. A linearly implicit finite element full-discretization scheme for spdes with nonglobally lipschitz coefficients. IMA Journal of Numerical Analysis , 45(1):516–579, 2025. [32] X. Wang. Weak error estimates of the exponential Euler scheme for semi-linear SPDEs without Malliavin calculus. Discrete Continuous Dynamical Systems - Series A (DCDS-A) , 36(1):481–497, 2015. [33] X. Wang. An efficient explicit full-discrete scheme for strong approximation of stochastic Allen– Cahn equation. Stochastic Processes and their Applications , 130(10):6271–6299, 2020. [34] Y. Wang and W. Cao. Approximation of the invariant measure for stochastic Allen-Cahn equation via an explicit fully discrete scheme. arXiv preprint arXiv:2408.00953v1 , 2024. [35] A. Yagi. Abstract parabolic evolution equations and their applications . Springer Science & Business Media, 2009. [36] Y. Yan. Galerkin finite element methods for stochastic parabolic partial differential equations. 
+
+SIAM Journal on Numerical Analysis , 43(4):1363–1384, 2005. [37] M. Zhang, Y. Zou, R. Zhang, and Y. Cao. Weak convergence analysis for the finite element approximation to stochastic Allen-Cahn equation driven by multiplicative white noise. arXiv preprint arXiv:2503.17981v1 , 2025. 58

@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-001.webp",
+      "caption": "Figure 4: Performance assessment of the proposed Symbolic–KAN method for the Van der Pol problem (Section 3.2.1). The relative errors of the reconstructed solution and the identified parameters a, µ, and c are examined under systematic variations of the data and architectural hyperparameters. The figure illustrates the effect of changing the number of training samples Ntr while keeping the number of interior collocation points and the network configuration fixed; varying the number of interior collocation points |Sr| for a fixed training set and architecture; modifying the network depth L while maintaining the remaining hyperparameters fixed; and adjusting the number of neurons per layer, Kℓ, with all other settings unchanged. The results highlight the robustness and stability of the proposed framework with respect to both data availability and network design choices.",
+      "page": 11,
+      "index": 1,
+      "width": 929,
+      "height": 520
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-002.webp",
+      "caption": "Figure 3: Comparison between the ground truth and Symbolic–KAN predicted solutions for the Van der Pol problem (Section 3.2.1) over two observation horizons, T = 20 (top row) and T = 50 (bottom row). All experiments are conducted with |Sr| = 10,000, Ntr = 100, and the network configuration [L,Kℓ, E] = [4, 6, 3].",
+      "page": 11,
+      "index": 2,
+      "width": 983,
+      "height": 496
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-003.webp",
+      "caption": "Table 2: Results of the Van der Pol problem (Section 3.2.1). All experiments use |Sr| = 10,000 and Ntr = 100. The validation error E(uθ), representing the mean relative L2 error averaged over the state variables is reported along with the predicted parameters a, µ, and c. In this experiment, we employ the function library {sin, cos, exp, x, x2} and the network configuration [L,Kℓ, E] = [4, 6, 3]. The resulting symbolic primitives chosen after hardening are reported for each unit in each layer. Note that, in this example, the unit gates were disabled (i.e., no unit pruning).",
+      "page": 10,
+      "index": 3,
+      "width": 996,
+      "height": 259
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-004.webp",
+      "caption": "Table 4: Results for the Laplace problem (Section 3.3.2). All experiments are conducted with |Sr| = 10,000 interior collocation points and |Sb| = 400 boundary collocation points. For each method, the network configuration (L,Kℓ, E), and the validation error E(uθ) are reported. For the Symbolic–KAN model, the selected symbolic primitives after the hardening stage are also listed. The candidate library used for symbolic discovery is {1, x, x2, sin, cos, sinh, cosh, exp}. For baseline models, kCheb denotes the degree of the Chebyshev polynomial expansion used in cPIKAN. Note that, in this example, the unit gates were disabled (i.e., no unit pruning).",
+      "page": 14,
+      "index": 4,
+      "width": 996,
+      "height": 307
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-005.webp",
+      "caption": "Figure 6: Comparative evaluation of Symbolic–KAN, cPIKAN, and PINN for Laplace equation (Section 3.3.2). All network configurations and training settings are listed in Table 4. The comparison highlights the accuracy of the proposed Symbolic–KAN framework relative to vanilla cPIKAN and PINN.",
+      "page": 14,
+      "index": 5,
+      "width": 970,
+      "height": 281
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-006.webp",
+      "caption": "Table 3: Results for the 1D reaction–diffusion problem (Section 3.3.1). All experiments are conducted with |Sr| = 5,000 interior collocation points and Ntr = 100 training samples. The table reports, for each method, the network configuration (L,Kℓ, E), the validation error E(uθ), and the identified reaction coefficient κ. For the Symbolic–KAN model, the selected symbolic primitives after the hardening stage are also listed. The candidate library used for symbolic discovery is {sin, cos, exp, x, x2}. For baseline models, kCheb denotes the degree of the Chebyshev polynomial expansion used in cPIKAN. Note that, in this example, the unit gates were disabled (i.e., no unit pruning).",
+      "page": 13,
+      "index": 6,
+      "width": 996,
+      "height": 477
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-007.webp",
+      "caption": "Figure 5: Comparative evaluation of Symbolic–KAN, cPIKAN, and PINN for the 1D reaction–diffusion problem (Section 3.3.1) on the extended domain x ∈ [−4, 4]. The predicted reaction coefficient κ̂ is also reported in each case. All network configurations and training settings are consistent with those listed in Table 3. The comparison highlights the accuracy of the proposed Symbolic– KAN framework in both solution reconstruction and parameter identification relative to vanilla cPIKAN and PINN.",
+      "page": 13,
+      "index": 7,
+      "width": 980,
+      "height": 477
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-008.webp",
+      "caption": "Table 1: Results of the data-driven regression tests for 1D functions (Section 3.1). For each target function, we report the network configuration (L,Kℓ, E), the number of training samples Ntr, the relative prediction error E(Fθ), and the discrete symbolic primitives selected by Symbolic–KAN before (reported in | · |) and after the hardening stage, indicated by → symbol. Entries marked as alive denote the unit retained in the final symbolic structure, whereas killed indicates units pruned during training.",
+      "page": 8,
+      "index": 8,
+      "width": 996,
+      "height": 347
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-009.webp",
+      "caption": "Figure 1: A schematic layout of the operations performed by a unit within a layer in the proposed Symbolic–KAN framework.",
+      "page": 4,
+      "index": 9,
+      "width": 996,
+      "height": 510
+    },
+    {
+      "url": "assets/figures/arxiv/2603.23854v1/fig-010.webp",
+      "caption": "Figure 2: Symbolic–KAN reconstruction result for the target function F (x) = x2 in the data-driven regression experiment (Section 3.1). The upper-left panels illustrate how the model learns both the function’s symbolic structure and its numerical behavior. Through gated optimization, only the relevant primitive corresponding to the linear and quadratic terms are retained, while redundant components are suppressed, yielding a compact interpretable form consistent with the ground truth. The final prediction closely matches the target function across the training region and extends smoothly beyond it, demonstrating accurate interpolation and, to some extent, extrapolation performance with consistently low residual error.",
+      "page": 9,
+      "index": 10,
+      "width": 996,
+      "height": 525
+    }
+  ]
+}
