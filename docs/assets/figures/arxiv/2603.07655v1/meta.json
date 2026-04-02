@@ -1,0 +1,198 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-001.webp",
+      "caption": "Figure 13: Tractability assessment of persistent challenges facing ML-based PDE solvers, organised by the four categories of Sections 6.1–6.4. Each row details one failure mode across three columns: Current Status (how the challenge manifests in practice today), Improvement Trajectory (most credible near- to medium-term mitigation pathways from the literature), and Tractability (Addressable, Partially addressable, or Fundamental), reflecting whether clear technical solutions exist or the limitation is intrinsic to neural approximation and stochastic optimisation. It also indicates tractability level: green (addressable, solutions already demonstrated), gold (partially addressable, requiring further conceptual progress), red (fundamental, unlikely to yield without new mathematical foundations). The rightmost column uses filled coloured markers (following the taxonomy of Figure 7) to show which method families are primarily affected; unfilled circles indicate minor or no impact. No Fundamental challenge is confined to a single architecture: the accuracy ceiling and lack of a priori error bounds affect every ML-PDE family reviewed, confirming these as intrinsic properties of the neural paradigm rather than specific design choices.",
+      "page": 70,
+      "index": 1,
+      "width": 896,
+      "height": 561
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-002.webp",
+      "caption": "Figure 3: Illustration of the multiscale challenge for PDEs in spatially heterogeneous media with rapidly oscillating coefficient a(x, x/ϵ). Shown across four scale-separation ratios ϵ ∈ {0.20, 0.10, 0.04, 0.015}: (A) Coefficient a(x, x/ϵ) = 1.5 + 0.8 sin(2πx/ϵ) for decreasing ϵ. The dashed line indicates the homogenized value a∗ = 1.5. Inset: magnification near x = 0 showing increasingly rapid oscillations that direct discretization must resolve. (B) Solutions uϵ(x) (solid) compared to the smooth homogenized limit u∗(x) (dashed). Inset: zoom at the peak (x ≈ 0.5) revealing that oscillatory corrections decay with ϵ but remain visible on the microscale, even where the macroscopic profiles are nearly indistinguishable. (C) Relative L2 error versus mesh size h (decreasing left to right) for direct finite element discretization and the homogenized solver. Direct simulation shows an O(ϵ) error plateau for h ≫ ϵ, with second-order O(h2) convergence only when h≪ ϵ — a resolution demand that becomes computationally intractable for small ϵ. The homogenized approach yields uniform O(h2) convergence independent of ϵ at greatly reduced cost.",
+      "page": 11,
+      "index": 2,
+      "width": 898,
+      "height": 300
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-003.webp",
+      "caption": "Figure 9: Computational economics of machine learning methods for PDE solution. All cost and speedup estimates are order-of-magnitude syntheses from representative published benchmarks [26, 31, 32, 34, 231, 248, 316] and illustrate the relative computational character of each method family. Actual values vary significantly with problem dimensionality, resolution, rollout horizon, implementation quality, and classical baseline. (A) Log-log scatter of training cost (GPUhours) versus inference speedup (relative to classical solver) for eight representative ML-PDE families. Diagonal iso-lines show break-even query count Nbe = Ctrain/(Cclassical − Cinference) (Eq. 50): methods above the Nbe = 100 line recoup training investment after fewer than 100 queries. Shaded quadrants separate the favorable regime (high speedup, low training cost) from the unfavorable one (low speedup, high training cost). (B) Cumulative cost versus query count for a classical solver and three representative neural methods, based on the amortization model of Eq. 50. Vertical dashed lines indicate break-even crossovers: the minimum query count at which each neural method becomes cheaper overall than repeated classical solves. Shaded regions delineate unfavorable regimes (few-query problems, left) from favorable ones (many-query scenarios such as uncertainty quantification, parametric studies, and real-time control, right).",
+      "page": 57,
+      "index": 3,
+      "width": 896,
+      "height": 388
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-004.webp",
+      "caption": "Figure 7: Classification of ML models for PDE modeling. Methods are organized by the degree to which physical knowledge is embedded into the learning process, ranging from purely data-driven surrogates to hybrid approaches that tightly couple learned components with classical solvers.",
+      "page": 38,
+      "index": 4,
+      "width": 943,
+      "height": 373
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-005.webp",
+      "caption": "Table 4: Order-of-magnitude training costs by method family. Compute and memory are indicative; actual costs vary substantially with problem size, rollout horizon, and hardware. GPU memory reflects typical on-device usage per batch during training, not offline dataset storage.",
+      "page": 58,
+      "index": 5,
+      "width": 942,
+      "height": 903
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-006.webp",
+      "caption": "Table 8: Comprehensive comparison of classical PDE solution methods: computational characteristics, adaptivity capabilities, nonlinearity handling, theoretical guarantees, implementation requirements, and key distinguishing features.",
+      "page": 122,
+      "index": 6,
+      "width": 1406,
+      "height": 838
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-007.webp",
+      "caption": "Table 7: Comparative anatomy of classical numerical methods and machine learning approaches for PDE solution across five discriminating axes. Entries characterize paradigm-level behavior, not every individual method within each paradigm.",
+      "page": 75,
+      "index": 7,
+      "width": 941,
+      "height": 736
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-008.webp",
+      "caption": "Figure 2: Characterisation of the six fundamental computational challenges in PDE solution. A. Radar chart showing the challenge severity profile (scored 0–10) for six representative application domains across the axes: (I) high dimensionality, (II) nonlinearity and multiplicity, (III) geometric complexity, (IV) discontinuities and non-smoothness, (V) multiscale phenomena, and (VI) multiphysics coupling. B. Symmetric interaction-severity matrix quantifying how each pair of challenges amplifies computational difficulty. The diagonal entries denote inherent challenge severity, and the markers indicate the dominant co-occurring challenge pair for each application.",
+      "page": 7,
+      "index": 8,
+      "width": 896,
+      "height": 386
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-009.webp",
+      "caption": "Table 1: Machine learning method families for PDE solving: core principles, computational complexity, and data scaling. Complexity reflects the typical computational cost per forward evaluation; actual performance depends on problem-specific factors including resolution, dimensionality, and architecture choices.",
+      "page": 39,
+      "index": 9,
+      "width": 959,
+      "height": 893
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-010.webp",
+      "caption": "Table 5: Assessment of ML-PDE challenge tractability. Challenges are classified by whether improvement trajectories are clear (Addressable), partially available (Partially addressable), or reflect fundamental properties of neural approximation and stochastic optimization (Fundamental).",
+      "page": 71,
+      "index": 10,
+      "width": 929,
+      "height": 709
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-011.webp",
+      "caption": "Figure 12: Bayesian optimization for hyperparameter selection. Left: After evaluating validation performance (red curve, unknown to the optimizer) at a sparse set of hyperparameter configurations, a Gaussian process surrogate (black line, with ±1σ uncertainty in gray) models the objective landscape. The expected improvement acquisition function (green) identifies the next configuration to evaluate by balancing exploitation of the current best region (left peak) against exploration of high-uncertainty regions (right peak). In this iteration, exploration dominates and the next candidate is selected near λ = 8.5. Right: After observing the objective at the new configuration, the surrogate model is updated with substantially reduced uncertainty in the explored region. The acquisition function now concentrates around the promising region near λ = 2.7, demonstrating convergence toward the true optimum. For neural PDE solvers, λ represents a high-dimensional hyperparameter vector and each evaluation requires training a complete model to convergence, making systematic optimization computationally expensive. Adapted from [329].",
+      "page": 66,
+      "index": 11,
+      "width": 912,
+      "height": 281
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-012.webp",
+      "caption": "Table 3: Hybrid and physics-coupled method selection guidelines. The entries in this table are not mutually exclusive, as many applications benefit from combining multiple strategies.",
+      "page": 54,
+      "index": 12,
+      "width": 935,
+      "height": 961
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-013.webp",
+      "caption": "Figure 4: Illustration of four principal discretization paradigms on a common L-shaped domain, highlighting differences in geometric flexibility and approximation properties. (A) Finite difference method (FDM): structured Cartesian grid with the canonical five-point stencil emphasized. It shows the central-difference approximation ∂2u/∂x2 ≈ (ui+1 − 2ui + ui−1)/h 2 at the stencil center. (B) Finite element method (FEM): unstructured triangulation with one representative element Ke highlighted. The global system is governed by the weak form a(uh, vh) = ℓ(vh) for all test functions vh ∈ Vh. (C) Finite volume method (FVM): structured control-volume partition enforcing local conservation. The integral form d dt ∫ Vi",
+      "page": 14,
+      "index": 13,
+      "width": 943,
+      "height": 261
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-014.webp",
+      "caption": "Figure 1: Hierarchical taxonomy of partial differential equations (PDEs), organized by type (elliptic, parabolic, hyperbolic), linearity, and canonical examples with their governing mathematical forms.",
+      "page": 3,
+      "index": 14,
+      "width": 896,
+      "height": 623
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-015.webp",
+      "caption": "Figure 6: Capability assessment matrix for five classical discretization families across the six core computational challenges outlined in Section 2. Each cell is color-coded based on the method’s inherent mathematical suitability, accompanied by a concise annotation of the key enabling mechanism or limiting factor. Rows: finite difference methods (FDM), finite element methods (FEM), finite volume methods (FVM), spectral/spectral element methods, and meshless/boundary element methods. Columns: (I) high dimensionality, (II) nonlinearity and solution multiplicity, (III) geometric complexity, (IV) discontinuities and non-smoothness, (V) multiscale phenomena, (VI) multiphysics coupling. No classical method excels uniformly across all challenges. The most intractable weaknesses—high dimensionality (I) and multiscale phenomena (V)—persist across the board and provide the primary impetus for exploring machine learning approaches in Section 5.",
+      "page": 35,
+      "index": 15,
+      "width": 896,
+      "height": 371
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-016.webp",
+      "caption": "Table 2: PINN variants: modifications and applications.",
+      "page": 46,
+      "index": 16,
+      "width": 959,
+      "height": 453
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-017.webp",
+      "caption": "Figure 10: Hierarchical summary of major challenges in applying machine learning to scientific computing, organized into four major categories: solution reliability, data-related challenges, computational challenges, and model and theoretical limitations.",
+      "page": 60,
+      "index": 17,
+      "width": 923,
+      "height": 835
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-018.webp",
+      "caption": "Figure 5: Quantitative illustration of the curse of dimensionality for classical grid-based and sampling methods applied to d-dimensional PDEs and parametric problems. A. Degrees of freedom (or function evaluations) required for a fixed resolution N as a function of dimension d, plotted on a logarithmic scale. Full tensor-grid discretisation with N points per dimension scales asNd (crimson curves;N = 20 dashed,N = 50 solid), crossing the practical ceiling of 1012 degrees of freedom (shaded region, corresponding to terabyte-scale memory) at d = 6 forN = 50 and d = 8 forN = 20. The Smolyak sparse grid [46] scales asO(N(log2N)d−1) (blue), providing order-of-magnitude reductions over the full grid but requiring bounded mixed derivatives ∥Dαf∥ L 2 ≤ C|α|1 ; the dashed continuation past d = 14 marks the regime where this smoothness condition generically fails. Monte Carlo (MC, emerald) and quasi-Monte Carlo (QMC, teal) methods are dimension-independent by construction, with sample counts determined solely by the target accuracy ε and independent of d; the reduced basis method (gold, dashed) achieves low online cost O(N3 rb) when the solution manifoldMµ has low Kolmogorov n-width, but its offline snapshot cost grows with the dimension of the parameter space. Background shading identifies four tractability regimes: all methods viable (d ≤ 3); sparse grid viable (d = 3–8); only MC/QMC viable (d = 8–14); and MC viable at reduced accuracy only (d > 14). B. Achievable error ε for a fixed total degree-of-freedom budget of Ntotal = 106, showing how accuracy degrades with dimension for each method. Full-grid FD/FEM with k = 2 and sparse-grid k = 2 deliver engineering accuracy (ε ≤ 10−2 ) only up to d ≈ 4 and d ≈ 6, respectively, within this budget. Monte Carlo achieves a dimension-independent accuracy of ε ∼ N−1/2 = 10−3 regardless of d. Horizontal reference lines mark engineering (ε = 10−2 ) and scientific (ε = 10−4 ) accuracy thresholds. C. The formal DOF scaling expression for the four method families, the key mathematical assumption required for that scaling to hold, and the condition under which the method breaks down. The reduced basis method occupies a qualitatively different position: its tractability depends not on the spatial dimension d but on the intrinsic dimension of the solution manifoldMµ, quantified by the Kolmogorov n-width dn(Mµ)→ 0; when this condition fails (e.g. for transport-dominated or bifurcating problems), the method loses its efficiency advantage. Taken together, the three panels establish that breaking the curse of dimensionality within the classical paradigm requires either strong a priori regularity assumptions (sparse grid) or a fundamental change in approximation paradigm (MC/QMC, reduced basis), each of which incurs its own structural cost.",
+      "page": 28,
+      "index": 18,
+      "width": 896,
+      "height": 394
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-019.webp",
+      "caption": "Figure 14: Convergent evolution of classical numerical methods and machine learning approaches toward shared mathematical structures for PDE approximation. The figure depicts classical solvers (left) and ML methods (right), both rooted in three common mathematical foundations: operator/functional analysis, variational principles and Sobolev theory, and spectral/harmonic analysis. Four horizontal levels connect independently developed method pairs. Each level is colour-coded by its shared mathematical domain. Central convergence boxes comprise three tiers: the structural parallel, the precise governing equations/mathematical equivalence, and the key distinction that separates the approaches despite their shared architecture. Row 1: Geometric multigrid↔ graph neural networks (GNNs). Both propagate corrections hierarchically across scales. A multigrid V-cycle is mathematically equivalent to a GNN with fixed aggregation weights Ws, We determined by the operator A rather than learned. Classical multigrid guarantees convergence via two-grid analysis (h-ellipticity, approximation property); GNNs learn the hierarchy from data without certified rates. Row 2: Spectral Galerkin↔ Fourier Neural Operator (FNO). Both rely on truncated spectral expansions computed inO(N logN) via FFT, yielding identical Gibbs ringing at discontinuities. Classical methods certify convergence via Jackson/Bernstein theory; FNO’s learned filter Rθ(k) lacks prescribed approximation rates. Row 3: Reduced Basis / POD-Galerkin↔ neural operators (DeepONet, FNO). Both exploit low Kolmogorov n-width of parametric solution manifolds. DeepONet’s branch-trunk decomposition nonlinearly generalises the POD ansatz (trunk ≈modes, branch ≈ coefficients), but learned rather than SVD-derived. This enables approximation in regimes requiring many POD modes, at the expense of the greedy certificate and a priori dimension bound from n-width theory. Row 4: Sparse grids / Smolyak construction↔ transformer self-attention. Both capitalise on energy concentration in low-order ANOVA terms of high-dimensional functions. Sparse grids analytically derive interactions from mixed Sobolev smoothness ∥Dαf∥ L 2 ≤ C|α|1 , reducing cost from O(Nd) to O(N(logN)d−1) with certification. Transformer attention learns informative interactions from data, forgoing a priori regularity assumptions at the cost of O(n2d) scaling and no certified dimension reduction. Convergent evolution across these parallels is driven by a single mathematical imperative: efficient PDE approximation—classical or learned—must exploit the low effective dimensionality, hierarchical organisation, and spectral content of solution manifolds. 77",
+      "page": 77,
+      "index": 19,
+      "width": 850,
+      "height": 659
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-020.webp",
+      "caption": "Table 6: ML-PDE method comparison. Accuracy † reflects indicative relative L2 errors; values vary substantially across problem settings. UQ column indicates native support (Native), approximate support via ensemble or dropout (Approx.), or absence (No/Limited).",
+      "page": 73,
+      "index": 20,
+      "width": 939,
+      "height": 1182
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-021.webp",
+      "caption": "Figure 16: Error budget decomposition across hybrid design archetypes (Eq. (51): terms (1) discretisation, (2) neural approximation, (3) coupling). A. Illustrative relative magnitudes of all three terms across five archetypes, ordered conservative to aggressive. A1 Neural constitutive law: FEM skeleton intact; classical h-p certificates preserved; coupling small. A2 Neural preconditioner: coupling structurally near-zero, as the preconditioner affects convergence rate only, not the converged solution. A3 Physics-ML hybrid: all three terms contribute; closest to a balanced budget. A4 Learned dynamics (Neural ODE / PEDS): coupling accumulates per autoregressive step and dominates alongside neural approximation error. A5 End-to-end neural solver (e.g. FNO, DeepONet, PINN): no classical skeleton; coupling is identically zero; effectively all error is neural approximation with no computable bound. Dashed line marks the A3 total budget εused as normalisation in panel B. B. Balanced error budget for A3. Bars show the fraction of ε per term; dashed line at ε/3 is the equal-investment target; arrows indicate over- or undertargeting. Control mechanisms (right): mesh refinement at certified rate∼hk for (1); architecture, data N , regularisation λ with no certified rate for (2); Schwarz / mortar / DD coupling and flux continuity for (3). Term (3) is chronically under-targeted because no computable a posteriori estimator for ∥Nθ(uh)− uhybrid∥V yet exists (cf. open problem P4, § 7.5).",
+      "page": 83,
+      "index": 21,
+      "width": 896,
+      "height": 370
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-022.webp",
+      "caption": "Figure 15: Complementarity phase space for classical numerical methods and machine learning approaches to PDE solution. A. Two-dimensional deployment space spanned by the degree of physics specification (horizontal axis, from empirically characterised to be fully specified from first principles) and the certification requirement (vertical axis, from statistical accuracy sufficient to deductive certified accuracy required). Three shaded regions demarcate the natural domain of each paradigm: the classical-dominant zone where the governing operator L is fully known and certification is required; the ML-dominant zone where physics is unknown or intractable and statistical accuracy suffices; and the hybrid transition where the problem decomposes naturally into a classical skeleton and a learned component. Two dashed boundary curves mark the certifiability threshold C (above which deductive error bounds are required) and the physics specification threshold P (to the right of which the governing equations are sufficiently characterised for classical discretisation); the hybrid zone is the region between these boundaries. Eighteen representative application domains are plotted as labelled points, colour-coded by discipline cluster: safety and certification, rigorous physical modelling, data-rich and empirical physics, inverse and data assimilation problems, surrogate and real-time deployment, and the research frontier methods. The deployment decisions depend simultaneously on both axes. B. The three genuine complementarities identified in Section 7.3, each corresponding to a zone of panel A. Each box presents the intrinsic limitation of each paradigm and the open target — the capability that a well-designed hybrid method must achieve to address both limitations simultaneously. Complementarity 1: classical refinement guarantees convergence but costsO(h−d) in dimension d; ML avoids the curse of dimensionality but provides no certified bound outside the training distribution Dtrain. Complementarity 2: classical methods enforce conservation and inf-sup conditions by construction, but require geometry-conforming meshes; ML methods are mesh-free but trade geometric error guarantees for distributional assumptions on the training geometry. The open target for Complementarity 2 — simultaneously mesh-free and conservation-certified, enforcing ∇ · F = 0 or ∆S ≥ 0 by architecture on unstructured inputs — is a core unsolved problem of hybrid design. Complementarity 3: classical methods certify solutions to completely and correctly specified problems; ML methods accommodate unknown constitutive relations and empirical closures, but at the cost of conflating physical uncertainty and statistical approximation error with no mechanism for separating the two. These limitations are intrinsic in the sense of Section 7.3: they follow from the foundational assumptions of each paradigm and cannot be resolved by engineering refinement within that paradigm alone.",
+      "page": 80,
+      "index": 22,
+      "width": 943,
+      "height": 534
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-023.webp",
+      "caption": "Figure 8: Spectrum of hybrid ML–PDE methods, ordered by retained physical fidelity (left: fully classical solvers; right: fully data-driven surrogates). Five representative strategy families are positioned along the axis: - ML-accelerated solvers: preserve the full PDE operator, augmenting only numerical kernels with learned components for speed; - residual / error-correcting models: maintain physics baseline while learning discrepancy terms for unresolved scales or missing closures; - hybrid physics-ML solvers: replace costly sub-models (e.g., constitutive laws, fine-scale homogenization, geochemical modules) inside a structure-preserving PDE framework; - physicsenhanced deep surrogates & neural differential equations (PEDS, Neural ODEs): leverage low-fidelity physics as inductive bias, expressing dynamics via adjoint-friendly continuous architectures; - Koopman and foundation models: linearize nonlinear dynamics in learned latent spaces or enable transfer across PDE families with minimal retraining. The upper boxes list provably preserved physical structures (conservation laws, symmetries, boundary conditions); the lower boxes highlight key computational gains over classical or purely data-driven baselines.",
+      "page": 48,
+      "index": 23,
+      "width": 898,
+      "height": 400
+    },
+    {
+      "url": "assets/figures/arxiv/2603.07655v1/fig-024.webp",
+      "caption": "Figure 11: Out-of-distribution (OoD) generalisation and degradation for representative ML-PDE method families. All contours and curves reflect qualitative trends synthesised from published benchmarks and illustrate characteristic degradation behaviour rather than precise, problemspecific performance. Actual rates depend on the PDE type, the parameter-space geometry, the training-set coverage, and the architectural choices. (A) Two-dimensional slice of parameter space (e.g., Reynolds number vs. diffusion coefficient). The white ellipse bounds the training distribution Dtrain; the background colour field shows normalised relative L2 error (green: near-zero inside training support; crimson: high far outside). Iso-accuracy contours indicate extrapolation range before unacceptable degradation: - PINNs (steel, solid): minimal extension beyond training boundary (per-instance training). - Neural operators FNO/DeepONet (emerald, dashed): moderate extension via resolution-invariant operator learning. - Hybrid physics-ML methods (gold, dash-dot): substantially larger reach, driven by PDE operator as inductive bias. - Foundation models (crimson, dotted): irregular/asymmetric boundary due to uneven cross-PDE-family transfer. Classical solvers (omitted) show no distribution-shift dependence; error is controlled solely by discretisation parameters. (B) Normalised L2 error versus OoD distance d(ξ,Dtrain) for the four ML families plus classical reference (dark navy, flat). Vertical dashed line: training boundary. Shaded regions separate in-distribution from OoD regimes. Horizontal band: representative acceptable-accuracy threshold. PINNs degrade most steeply; hybrids degrade most slowly (physics structure persists); foundation models show intermediate rates with slower initial fall-off (benefit of broad pretraining) but higher in-distribution error. No ML family achieves the distribution-independent behaviour of classical solvers.",
+      "page": 63,
+      "index": 24,
+      "width": 896,
+      "height": 381
+    }
+  ]
+}

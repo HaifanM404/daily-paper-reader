@@ -1,0 +1,3821 @@
+Title: Exp-ParaDiag: Time-Parallel Exponential Integrators for Parabolic PDEs
+
+URL Source: https://arxiv.org/pdf/2603.04350v1
+
+Published Time: Thu, 05 Mar 2026 02:31:23 GMT
+
+Number of Pages: 33
+
+Markdown Content:
+EXP-PARADIAG: TIME-PARALLEL EXPONENTIAL INTEGRATORS FOR PARABOLIC PDES   
+
+> GOBINDA GARAI AND NAGAIAH CHAMAKURI
+> Abstract. This paper introduces Exp-ParaDiag, a novel time-parallel method that combines the strength of exponential integrators into the ParaDiag framework. We develop and analyze Exp-ParaDiag based on first and second order accurate exponential integrators. We establish the convergence of the proposed methods both as preconditioned fixed-point iterations and as precon-ditioners within the GMRES framework. Furthermore, we extend the Exp-ParaDiag formulation to achieve sixth-order temporal accuracy using exponential integrators. The proposed approach is also generalized to nonlinear problems, for which convergence is rigorously demonstrated. A series of numerical experiments is presented to validate the theoretical results and to illustrate the robustness and efficiency of the developed methods.
+
+1. Introduction 
+
+Parabolic partial differential equations (PDEs) are fundamental in modeling time-dependent phenomena such as heat diffusion, fluid dynamics, and phase transitions, yet their numeri-cal solution often demands significant computational resources due to the inherent sequen-tial nature of time-stepping methods. In recent decades, the pursuit of efficient solvers has spurred the development of time-parallel techniques, which aim to distribute temporal computations between multiple processors, thereby accelerating simulations of large-scale systems. A comprehensive overview of parallel-in-time (PinT) methods can be found in [10, 12]. Notable among these PinT methods are the diagonalization-based strategies. A diagonalization-based approach for space-time systems was initially proposed in [23], incor-porating non-uniform variable time steps. The study presented in [24] introduces a block circulant preconditioner for the all-at-once formulation, with the resulting system solvable via diagonalization. The ParaDiag framework, introduced in [13] at the differential level, is based on diagonalization and periodic-like initial conditions to achieve temporal parallelism by diagonalizing a reformulated temporal discretization matrix in an all-at-once system. The ParaDiag approach, employed both as a fixed-point iteration and as a preconditioner within the generalized minimal residual (GMRES) method, has been successfully applied to various PDEs, as demonstrated in [20, 29, 22, 14]. Simultaneously, exponential integrators (EI) have emerged as powerful tools for solving stiff PDEs by exactly integrating the linear part of the system via the matrix exponential, potentially enabling larger time steps without sacrificing stability [4, 5, 9]. Examples of such methods include Exponential Time Differencing (ETD) schemes and integrating factor     
+
+> 2020 Mathematics Subject Classification. 65M12, 65Y05, 65M15, 65F08.
+> Key words and phrases. Exponential integrators, time-parallel methods, convergence analysis, parabolic models, exponential ParaDiag method, high-order time integration. Corresponding authors: Gobinda Garai and Nagaiah Chamakuri.
+> 1
+> arXiv:2603.04350v1 [math.NA] 4 Mar 2026 2G. GARAI AND N. CHAMAKURI
+
+(IF)-based methods. Despite their advantages, this approach presents two primary chal-lenges: computing the matrix exponential—particularly in high-dimensional settings—and efficiently performing matrix exponential–vector products. Recent advances in large-scale computing and the development of parallel algorithms for matrix exponentiation [6, 25], along with the introduction of Krylov subspace techniques for approximating matrix ex-ponentials [17, 26], have made it feasible to apply exponential integrators to large-scale problems. In addition, considerable progress has been made in efficient methods for com-puting the action of a matrix exponential on a vector [1, 2]. These developments have enabled the successful application of exponential integrators to a wide range of PDEs, in-cluding the Navier–Stokes equations [19], the shallow water equations [16], and phase-field models [18, 15], among others. In this work, our model problem has the following form: 
+
+ut “ Lu ` N puq, (1.1) with suitable initial and boundary conditions, which will be specified later for the particular problem under consideration. Here L is a linear operator, and N puq represents a nonlinear term. We consider the following forms of the operator L:
+
+L :“ a∆ ´ c, (1.2) where a and c are strictly positive numbers. We assume that N satisfies a one-sided Lipschitz condition with constant M, i.e., 
+
+xN pu1q ´ N pu2q, u1 ´ u2y ď ´ M}u1 ´ u2}2, @t P r 0, T s, u1, u2 P Rm, (1.3) where x¨ , ¨y denotes the standard Euclidean inner product. In this study, we propose a novel framework that combines the strengths of exponen-tial integrators with the ParaDiag strategy, leading to an Exponential-ParaDiag (Exp-ParaDiag) method. By integrating exponential time discretization within the ParaDiag structure, we develop a scalable space-time solver capable of efficiently handling both stiff and non-stiff PDEs. We examine the proposed Exp-ParaDiag approach from two comple-mentary perspectives: first, as a standalone fixed-point iteration scheme; and second, as an effective preconditioner within the GMRES iterative solver. Furthermore, the framework is systematically extended to support higher-order time discretization schemes and nonlin-ear PDEs, demonstrating its flexibility, robustness, and potential for broad applicability in solving complex evolution equations. The paper is organized as follows. Section 2 introduces the Exp-ParaDiag method at the differential level, along with an analysis of its convergence behavior. In Section 3, we exam-ine Exp-ParaDiag both as a preconditioned fixed-point method and as a preconditioner for GMRES, presenting the corresponding convergence results. Section 4 focuses on extending Exp-ParaDiag to a second-order discretization scheme, developing both a preconditioned fixed-point method and a GMRES preconditioner, accompanied by convergence analysis. In Section 5, we extend the Exp-ParaDiag formulation to higher-order EI. Section 6 extends the proposed methods to nonlinear problems. Finally, Section 7 reports a comprehensive set of numerical experiments designed to assess the performance of the proposed methods, illustrating their accuracy and robustness across a range of test problems. PINT FOR EXPONENTIAL INTEGRATORS 3
+
+2. Formulation and Convergence of Exp-ParaDiag 
+
+In this section, we present and analyze the ParaDiag method based on exponential integrators in the linear setting. At the differential level, the ParaDiag formulation takes the following form: 
+
+$’&’%
+
+ukt “ Luk, px, t q P Ω ˆ p 0, T s,ukpx, 0q “ αu kpx, T q ´ αu k´1px, T q ` u0pxq, x P Ω,uk “ 0, px, t q P B Ω ˆ p 0, T s,
+
+(2.1) where α is the free parameter and k is the iteration number. Applying the centered finite difference method in space on a uniformly discretized interval with mesh size h and 
+
+Nx interior points, employing a first-order EI for time with uniform time step ∆ t and 
+
+Nt “ T {∆t, we get the following fully-discrete iterative system corresponding to (2.1) : 
+
+#
+
+ukn “ Aukn´1, where A “ exp p∆tLhq, and n “ 1, 2, ¨ ¨ ¨ , N t,
+
+uk 
+
+> 0
+
+“ αukNt ´ αuk´1 
+
+> Nt
+
+` u0, (2.2) where un denotes solution at n-th time step. Here Lh “ a∆h ´ cI x P RNxˆNx , with ∆ h
+
+denotes discrete Laplacian corresponding to homogeneous Dirichlet boundary conditions and Ix is the identity matrix. The space-time system corresponding to (2.2) is given by 
+
+pIt b Ix ´ Cα 
+
+> 0
+
+b Aq Uk “ bk´1, (2.3) where U “ p u1, u2, ¨ ¨ ¨ , uNt qJ P RNxNt , bk´1 “ `´αA uk´1 
+
+> Nt
+
+` Au0, 0, ¨ ¨ ¨ , 0˘J P RNxNt and 
+
+Cα 
+
+> 0
+
+“
+
+»————–
+
+0 0 ¨ ¨ ¨ 0 α
+
+1 0 ¨ ¨ ¨ 0 00 1 ¨ ¨ ¨ 0 0... ... . . . ... ...0 0 ¨ ¨ ¨ 1 0
+
+fi ffi ffi ffi ffi fl P RNtˆNt . (2.4) We note that in (2.3) the all-at-once temporal matrix Cα 
+
+> 0
+
+differs from that obtained when the backward Euler (BE) scheme is used as the time integrator. Moreover, the temporal coupling structure is modified in the present formulation, which leads to a different space– time system compared to the classical BE-based formulation [13, 24, 20, 29, 22]. The 
+
+α-circulant matrix Cα 
+
+> 0
+
+is diagonalizable, as shown in [3], and can be expressed in the form 
+
+Cα 
+
+> 0
+
+“ PαD0P´1 
+
+> α
+
+, where Pα “ Γ´1 
+
+> α
+
+F˚, with Γ α “ diag `1, α 1{Nt , . . . , α pNt´1q{ Nt
+
+˘ and F “
+
+> 1?Nt
+
+”
+
+ωpl1´1qp l2 ´1q
+
+> 0
+
+ıNt
+
+> l1,l 2“1
+
+, where ω0 “ e2πi 
+
+> Nt
+
+. The diagonal entries of D0, denoted λ0,n , are ex-plicitly given by λ0,n “ α 1 
+
+> Nt
+
+e2pn´1qπi 
+
+> Nt
+
+, for n “ 1, 2, ¨ ¨ ¨ , N t. Using the diagonalizability of Cα 
+
+> 0
+
+,we factor the space-time system pIt b Ix ´ Cα 
+
+> 0
+
+b Aq as pPα b Ixq p It b Ix ´ D0 b Aq p P´1 
+
+> α
+
+b
+
+Ixq. Then the system (2.3) can be solved using the following three steps: Step-(1) S1 “ p F b Ixq p Γα b Ixq bk´1,
+
+Step-(2) S2,n “ p Ix ´ λ0,n Aq´1 S1,n , n “ 1, 2, . . . , N t,
+
+Step-(3) Uk “ `Γ´1 
+
+> α
+
+b Ix
+
+˘ pF˚ b Ixq S2.4 G. GARAI AND N. CHAMAKURI 
+
+The first and third steps involve only matrix-vector multiplications, which can be executed efficiently using fast Fourier transforms (FFTs). The most computationally intensive part is the second step; however, it is naturally parallelizable across the Nt time steps, making it well-suited for parallel implementation. The next section discusses the convergence behavior of the proposed method. 2.1. Convergence in a discrete setting. To observe the error contraction of the iterative procedure, we denote the fully discrete error ekn “ ukn ´ un. Then, we have the following error relations #
+
+ekn “ Aekn´1, for n “ 1, 2, ¨ ¨ ¨ , N t,
+
+ek 
+
+> 0
+
+“ αekNt ´ αek´1 
+
+> Nt
+
+. (2.5) Using (2.5) 1 in (2.5) 2 we obtain 
+
+ek 
+
+> 0
+
+“ ´αe T Lrd 
+
+> h
+
+1 ´ αe T Lrd 
+
+> h
+
+ek´10 . (2.6) As Lh is orthogonally diagonalizable, we have Lh “ VhDhV ´1 
+
+> h
+
+, where Dh “ diag pλ1, λ 2, ¨ ¨ ¨ , λ Nx q.The λj ’s for j “ 1, 2, ¨ ¨ ¨ , N x satisfies λj P r λmin , λ max s Ă p´8 , 0q, where λmin “ min 
+
+> 1ďjďNx
+
+λj
+
+and λmax “ max 
+
+> 1ďjďNx
+
+λj . Using diagonalizability of Lh, we have eT ∆h “ VheT D h V ´1 
+
+> h
+
+. Then from (2.6) and taking norms, we have 
+
+‖ Vhek 
+
+> 0
+
+‖ď max  
+
+> zPp´8 ,0q
+
+|ψpzq| ‖ Vhek´10 ‖, (2.7) where ψpzq “ αe z 
+
+> 1´αe z
+
+with z “ λT and λ P σpLhq ( here σpLhq denotes the spectrum of 
+
+Lh). So, the convergence of Exp-ParaDiag depends on the quantity max  
+
+> zPp´8 ,0q
+
+|ψpzq| . Clearly, 
+
+|ψpzq| ď |α|ez 
+
+> 1´| α|ez
+
+ď |α|eλmax T 
+
+> 1´| α|eλmax T
+
+. As Vh is orthogonal, (2.7) yields 
+
+‖ ek 
+
+> 0
+
+‖ď
+
+ˆ |α|eλmax T
+
+1 ´ | α|eλmax T
+
+˙
+
+‖ ek´10 ‖ . (2.8) The above discussion is summarized in the following theorem. 
+
+Theorem 2.1. The discrete error ekn of the Exp-ParaDiag method satisfies the following error contraction relation 
+
+max 
+
+> 1ďnďNt
+
+‖ ekn ‖ď
+
+ˆ |α|eλmax T
+
+1 ´ | α|eλmax T
+
+˙k
+
+‖ e00 ‖ . (2.9) 
+
+Proof. Taking norm in (2.5) 1, we get ‖ ekn ‖ď‖ A ‖‖ ekn´1 ‖ă‖ ekn´1 ‖ă‖ ek 
+
+> 0
+
+‖, as ‖ A ‖ă 1. Next, using (2.8) in the above inequality, we have the required result. 
+
+Remark 2.2. Theorem 2.1 clearly holds in higher dimensions for the Lh on a uniform grid, as the properties of eigenvalues remain the same in higher dimensions. PINT FOR EXPONENTIAL INTEGRATORS 5
+
+2.2. Optimization of the free parameter α. In practice, the free parameter α usually takes values close to zero, but there is no clearly defined optimal choice. Here, we present one approach to optimizing α by taking the Fourier transform in space of the error equation corresponding to (2.1). Letting pekptq “ puptq ´ pukptq, we obtain the following error relation in Fourier space: 
+
+pekp0q “ 
+
+˜
+
+´αe ´p aω 2`cqT
+
+1 ´ αe ´p aω 2 `cqT
+
+¸pek´1p0q, (2.10) where ω is the Fourier variable. So, to optimize α, we aim to solve the following min-max problem: 
+
+αopt :“ min 
+
+> αPp 0,1q
+
+max 
+
+> ωPr´ ωmax ,ω max s
+
+ˇˇˇˇˇ
+
+´αe ´p aω 2`cqT
+
+1 ´ αe ´p aω 2 `cqT
+
+ˇˇˇˇˇ , (2.11) where ωmax “ π 
+
+> h
+
+is the highest Fourier frequency in a numerical grid. We find αopt by solving the min-max problem (2.11) numerically using fminsearch . The formula for obtaining αopt 
+
+in higher dimensions is straightforward. 3. Preconditioner for Op∆tq Scheme 
+
+In this section, we present the procedure outlined in Section 2 as a preconditioned fixed-point Richardson iteration. By applying the first-order accurate exponential integrator described in (2.2) to the linear part of the model problem ut “ Lu, subject to homogeneous Dirichlet boundary conditions, we obtain the following all-at-once system: 
+
+Qu “ f, where Q :“ It b Ix ´ C0 b A, with A “ exp p∆tLhq, (3.1) where u “ p u1, u2, ¨ ¨ ¨ , uNt qJ P RNxNt , f “ p Au0, 0, ¨ ¨ ¨ , 0qJ, and C0 is Cα 
+
+> 0
+
+with α “ 0 in (2.4). The preconditioned iterative scheme for solving the all-at-once system (3.1) takes the following form: 
+
+uk`1 “ uk ` sk, Qαsk “ f ´ Quk, where Qα :“ It b Ix ´ Cα 
+
+> 0
+
+b A. (3.2) We now aim to solve the residual system Qαsk “ f ´Quk by PinT fashion, which described below: $’’&’’%
+
+Step-(a): Sa “ p F b Ixq rp Γα b Ixq `f ´ Quk ˘s,
+
+Step-(b): Sb,n “ p Ix ´ λ0,n Aq´1 Sa,n , n “ 1, 2, . . . , N t,
+
+Step-(c): sk “ `Γ´1 
+
+> α
+
+b Ix
+
+˘ pF˚ b Ixq Sb,n ,
+
+(3.3) where the definitions of the involved matrices were described earlier. Next, we analyze the error estimate of the fixed-point iteration procedure. 3.1. Eigenvalue estimate of the preconditioned system. Let us denote the error at 
+
+k-th iteration as ek :“ u ´ uk. Then we have the following error relation. 
+
+ek “ p Ixt ´ Q´1 
+
+> α
+
+Qqek´1, (3.4) where Ixt P RNxNtˆNxNt is the identity matrix. Denoting dk :“ uk`1 ´ uk as the difference between consecutive iterates, then we have dk “ p Ixt ´ Q´1 
+
+> α
+
+Qqdk´1. Letting rk :“ f ´ Quk
+
+as the residual, we obtain rk “ p Ixt ´ QQ ´1 
+
+> α
+
+qrk´1. But Ixt ´ QQ ´1 
+
+> α
+
+is similar to Ixt ´ Q´1 
+
+> α
+
+Q,6 G. GARAI AND N. CHAMAKURI 
+
+so must have same spectrum. Thus it is enough to study the spectral distribution of 
+
+Ixt ´ Q´1 
+
+> α
+
+Q. Now, using the diagonalizability of A, we have 
+
+Q “ p It b Vhq `It b Ix ´ C0 b e∆tD h
+
+˘looooooooooooomooooooooooooon 
+
+> sQ
+
+`It b V ´1
+
+> h
+
+˘ ,
+
+Qα “ p It b Vhq `It b Ix ´ Cα 
+
+> 0
+
+b e∆tD h
+
+˘looooooooooooomooooooooooooon 
+
+> sQα
+
+`It b V ´1
+
+> h
+
+˘ .
+
+Thus Q is similar to sQ, and Qα is similar to sQα. Hence, it is enough to study the spectrum of Ixt ´ sQ´1 
+
+> α
+
+sQ.
+
+Theorem 3.1. The spectrum of Ixt ´ sQ´1 
+
+> α
+
+sQ is bounded above by |α|eλmax T 
+
+> 1´| α|eλmax T
+
+.Proof. Observe that the term Ixt ´ sQ´1 
+
+> α
+
+sQ can be written as Ixt ´ `Ixt ` sQ´1p sQα ´ sQq˘´1.Then the inverse of block Toeplitz matrix sQ and the structure of low-rank matrix H :“
+
+sQα ´ sQ are given below: 
+
+sQ´1 “
+
+»————–
+
+Ix
+
+E Ix
+
+E2 E Ix
+
+... ... . . . . . .
+
+ENt´1 ENt´2 ¨ ¨ ¨ E Ix
+
+fi ffi ffi ffi ffi fl , H “
+
+»————–
+
+0 0 ¨ ¨ ¨ 0 ´αE 
+
+0 0 ¨ ¨ ¨ 0 00 0 ¨ ¨ ¨ 0 0
+
+... ... . . . ... ...
+
+0 0 ¨ ¨ ¨ 0 0
+
+fi ffi ffi ffi ffi fl ,
+
+where E “ e∆tD h . A straightforward calculation yields Ixt ` sQ´1H and `Ixt ` sQ´1H˘´1 as follows 
+
+Ixt ` sQ´1H “
+
+»————–
+
+Ix ´αE Ix ´αE 2
+
+Ix ´αE 3
+
+. . . ...
+
+Ix ´ αE Nt
+
+fi ffi ffi ffi ffi fl , `Ixt ` sQ´1H˘´1 “
+
+»—————–
+
+Ix αE 
+
+> Ix´αE Nt
+
+Ix αE 2
+
+> Ix´αE Nt
+
+Ix αE 3
+
+> Ix´αE Nt
+
+. . . ...
+
+> 1
+> Ix´αE Nt
+
+fi ffi ffi ffi ffi ffi fl 
+
+.
+
+(3.5) So the iteration matrix Ixt ´ sQ´1 
+
+> α
+
+sQ has the following form 
+
+Ixt ´ sQ´1 
+
+> α
+
+sQ “
+
+»—————–
+
+0 ´ αE 
+
+> Ix´αE Nt
+
+0 ´ αE 2
+
+> Ix´αE Nt
+
+0 ´ αE 3
+
+> Ix´αE Nt
+
+. . . ...
+
+Ix ´ 1
+
+> Ix´αE Nt
+
+fi ffi ffi ffi ffi ffi fl 
+
+. (3.6) Hence the non-zero spectrum of Ixt ´ sQ´1 
+
+> α
+
+sQ is σ
+
+´
+
+Ix ´ 1
+
+> Ix´αE Nt
+
+¯
+
+. Thus the spectral radius of Ixt ´ sQ´1 
+
+> α
+
+sQ is max  
+
+> λPσpLhq
+
+ˇˇ1 ´ 1
+
+> 1´αe λT
+
+ˇˇ ď |α|eλmax T 
+
+> 1´| α|eλmax T
+
+. Hence the theorem. 
+
+Remark 3.2. Theorem 3.1 extends naturally to higher spatial dimensions, and its validity remains unaffected by the increase in dimensionality. PINT FOR EXPONENTIAL INTEGRATORS 7
+
+3.2. Convergence Analysis in GMRES Setting. In this section, we examine the con-vergence behavior of the GMRES method when applied to the linear system (3.1), with the preconditioner Qα. Our primary objective is to understand how the choice of this precondi-tioner influences the performance and convergence properties of GMRES in the all-at-once solution framework. To this end, we begin by focusing on the case where the preconditioner has the structure of an identity-plus-low-rank matrix. This particular structure facilitates the convergence of the preconditioned system. 
+
+Theorem 3.3. The GMRES method applied to the preconditioned system Q´1 
+
+> α
+
+Qu “ Q´1 
+
+> α
+
+f
+
+converges in at most Nx ` 1 iterations. Proof. Following the steps in Theorem 3.1 it is easy to observe that the structure of Ixt ´
+
+Q´1 
+
+> α
+
+Q has the exact same form as in (3.6) with the new definition of E as E “ exp p∆tLhq.Clearly, the rank of Ixt ´ Q´1 
+
+> α
+
+Q is Nx (as the blocks in the last column are invertible). So, the preconditioned system is identity plus a low-rank matrix of rank Nx. Thus, GMRES will converge in at most Nx ` 1 iterations. 
+
+Even though Theorem 3.3 guarantees the convergence of the preconditioned GMRES method, it does not provide a sharp bound, as the number of iterations increases with 
+
+Nx. To address this, we consider an analysis that takes into account the clustering of eigenvalues and the diagonalizability of the preconditioned system. Specifically, we observe that the eigenvalues of the preconditioned matrix Q´1 
+
+> α
+
+Q are clustered around 1. This clustering is established in the following lemma. We denote the preconditioned residual as 
+
+rkg,α “ Q´1 
+
+> α
+
+f ´ Q´1 
+
+> α
+
+Quk after k-th iterations. 
+
+Lemma 3.4. The eigenvalues of the preconditioned system Q´1 
+
+> α
+
+Q are concentrated around 
+
+1 with radius α 
+
+> 1´α
+
+.Proof. Observe that σ pQ´1 
+
+> α
+
+Qq “ t 1u Y σ
+
+´ 1
+
+> Ix´αE Nt
+
+¯
+
+with E “ exp p∆tLhq. Then we have max 
+
+> λPσ
+
+pQ´1 
+
+> αQ
+
+q |λ ´ 1| “ max   
+
+> λPt 1uY σ
+> ´1
+> Ix ´αE Nt
+> ¯
+
+|λ ´ 1| ď max   
+
+> λPσ
+> ´1
+> Ix ´αE Nt
+> ¯
+
+|λ ´ 1| ď max  
+
+> λPσpLhq
+
+ˇˇˇ αe λT 
+
+> 1´αe λT
+
+ˇˇˇ ď α 
+
+> 1´α
+
+.Hence the Lemma. 
+
+Lemma 3.5. The preconditioned system Q´1 
+
+> α
+
+Q is diagonalizable. Proof. Using the diagonalizability of A, the system Q´1 
+
+> α
+
+Q can be written as Q´1 
+
+> α
+
+Q “pIt b Vhq sQ´1 
+
+> α
+
+sQ `It b V ´1
+
+> h
+
+˘ with sQ “ `It b Ix ´ C0 b e∆tD h
+
+˘ and sQα “ `It b Ix ´ Cα 
+
+> 0
+
+b e∆tD h
+
+˘.Now its easy to observe that the system sQ´1 
+
+> α
+
+sQ can be diagonalized as sQ´1 
+
+> α
+
+sQ “ sV sD sV ´1,where 
+
+sV “
+
+»————–
+
+Ix 1
+
+> ENt´1
+
+Ix 1
+
+> ENt´2
+
+. . . ...
+
+Ix 1
+
+> E
+
+Ix
+
+fi ffi ffi ffi ffi fl , sD “
+
+»————–
+
+Ix
+
+Ix
+
+. . .
+
+Ix 1
+
+> Ix´αE Nt
+
+fi ffi ffi ffi ffi fl .
+
+Here E “ e∆tD h , with Dh being the diagonal matrix corresponding to Lh. Therefore Q´1 
+
+> α
+
+Q
+
+is diagonalizable with Q´1 
+
+> α
+
+Q “ pV sD pV ´1, where pV “ p It b Vhq sV . 8 G. GARAI AND N. CHAMAKURI 
+
+Theorem 3.6. Let the GMRES method be applied to the preconditioned system Q´1 
+
+> α
+
+Qu “
+
+Q´1 
+
+> α
+
+f. Then the residuals satisfy the error estimate ‖ rkg,α ‖ď κp pV q ` α
+
+> 1´α
+
+˘k ‖ r0 
+
+> g,α
+
+‖ where 
+
+κp pV q “ ‖ pV ‖‖ pV ´1 ‖.Proof. By Lemma 3.5, we have the diagonalizability of the preconditioned system. Then, from the classical theory, we get ‖ rkg,α ‖ď κp pV q min  
+
+> pPPkp0q
+
+max 
+
+> 1ďiďNx
+
+|ppλiq| ‖ r0 
+
+> g,α
+
+‖ for the precon-ditioned GMRES residual, where Pk is the set of polynomials of degree k or less. Then, by using [27, Section 6.11] and Lemma 3.4, we obtain the required result. 
+
+Remark 3.7. We briefly examine the convergence behavior of preconditioned GMRES when the operator L includes an advection term, that is, L “ a∆u ´ b∇u ´ cu . Using pe-riodic boundary conditions and central difference discretizations for the involved operators, we obtain the discrete Lh, which is non-symmetric but diagonalizable. It is now evident from the proof of Theorem 3.3 that the argument remains valid even when the operator Lh
+
+includes the advection term, and thus Theorem 3.3 still holds. Similarly, Lemmas 3.4 and 3.5 can be proved in this case as well, and therefore Theorem 3.6 remains valid. 
+
+Although Theorem 3.6 provides convergence estimates, accurately estimating the condi-tion number κ remains challenging in practice. This leads to the consideration of an alter-native framework to establish convergence bounds for GMRES. In particular, we leverage the results of Elman [8]. Following this approach, we demonstrate that the convergence rate of the preconditioned GMRES method is independent of the mesh parameters, given that the parameter α is chosen sufficiently small. This mesh-independent convergence ensures the efficiency of the iterative solver even as the discretization is refined. Before proving the main results, we present a few auxiliary lemmas. 
+
+Lemma 3.8. The function gαpyq “ 4p1 ´ αy Nt qp 1 ´ y2q ´ α2py2 ´ y2Nt q is strictly positive for α P p 0, 2 
+
+> 1`?2
+
+q with y P p 0, 1q.Proof. Treating the function gα as a quadratic in α, we have gα “ ´ ξ1α2 ´ 4ξ2α ` 4ξ3 where 
+
+ξ1 “ p y2 ´ y2Nt q, ξ 2 “ yNt p1 ´ y2q and ξ3 “ p 1 ´ y2q. This is a concave-down quadratic in α. At α “ 0, gαp0q “ 4p1 ´ y2q ą 0, so for each fixed y, there are two real roots 
+
+α1pyq ă 0 ă α2pyq, and gαpyq ą 0 if and only if α P p α1pyq, α 2pyqq . Thus for positivity of gα for all y P p 0, 1q, we therefore need α ă inf  
+
+> yPp 0,1q
+
+α2pyq. A direct computation yields 
+
+α2pyq “ 2ξ3?ξ22 `ξ1ξ3`ξ2
+
+“ 2 
+
+> yNt`y
+> dNt´1ř
+> j“0
+> y2j
+
+. It is easy to observe that α2pyq is monotonically decreasing and inf  
+
+> yPp 0,1q
+
+α2pyq “ 2 
+
+> 1`?Nt
+
+. As Nt ě 2, we have the required result. 
+
+
+
+Let us define symmetric part of any square matrix Z as H pZq “ Z`Z˚ 
+
+> 2
+
+.
+
+Lemma 3.9. HpQ´1 
+
+> α
+
+Qq is positive definite for α P p 0, 2 
+
+> 1`?2
+
+q.PINT FOR EXPONENTIAL INTEGRATORS 9
+
+Proof. Observe that H pQ´1 
+
+> α
+
+Qq “ p It b Vhq Hp sQ´1 
+
+> α
+
+sQq `It b V ´1
+
+> h
+
+˘. Thus H pQ´1 
+
+> α
+
+Qq is similar to H p sQ´1 
+
+> α
+
+sQq, hence spectrum must be the same. H p sQ´1 
+
+> α
+
+sQq has the following form Hp sQ´1 
+
+> α
+
+sQq :“
+
+„ A BBJ D
+
+
+
+, (3.7) where A “
+
+»——–
+
+Ix
+
+Ix
+
+. . .
+
+Ix
+
+fi ffi ffi fl P RJˆJ , B “
+
+»————–    
+
+> αE
+> 2pIx´αE Ntq
+> αE 2
+> 2pIx´αE Ntq
+
+...  
+
+> αE Nt´1
+> 2pIx´αE Ntq
+
+fi ffi ffi ffi ffi fl P RJˆNx , and D “ 1
+
+Ix ´ αE Nt ,
+
+(3.8) where J “ p Nt ´ 1qNx. Our goal here is to show H p sQ´1 
+
+> α
+
+sQq positive definite. For that it is enough to show A ą 0 and the Schur complement H p sQ´1 
+
+> α
+
+sQq{ A :“ D ´ BJA´1B ą 0. Clearly, A ą 0. Next we show H p sQ´1 
+
+> α
+
+sQq{ A ą 0. Now D ´ BJA´1B “ 1 
+
+> Ix´αE Nt
+
+´ 
+
+> α2
+> 41
+> pIx´αE Ntq2
+
+´
+
+E2 ` E4 ` ¨ ¨ ¨ ` `ENt´1˘2¯
+
+. As right hand side of D ´ BJA´1B is diagonal, the eigen-structure has the form ζpλq “ 1 
+
+> 1´αe λT
+
+´ α2
+
+> 4
+
+´ 1´e2λT  
+
+> 1´e2λ∆t
+
+´ 1
+
+¯ 1  
+
+> p1´αe λT q2
+
+. Now ζpλq can be written as ζpλq “ gαpλq  
+
+> 4p1´αe λT q2p1´e2λ∆tq
+
+. So it is enough to show gαpλq ą 0, which is true using the Lemma 3.8 with the change of variable y “ eλ∆t. 
+
+Lemma 3.10. The matrices Em for m “ 1, 2, ¨ ¨ ¨ are positive definite, where E “ exp p∆tLhq.
+
+The proof of Lemma 3.10 is straightforward. 
+
+Lemma 3.11. For y P p 0, 1q, the functions α˘pyq :“ 1
+
+> 2
+
+´ αy  
+
+> 1´αy
+
+˘ aτ pyq
+
+¯
+
+, where τ pyq “ 
+
+> α2
+> p1´αy q2
+
+˜Nt´1ř
+
+> j“1
+
+y2j ` y2
+
+¸
+
+satisfies |α˘pyq| ă 1 for α P p 0, 2 
+
+> 3`?2
+
+q.Proof. Simplifying α˘pyq, we obtain α˘pyq “ α
+
+> 2p1´αy q
+
+´
+
+y ˘ aτ pyq
+
+¯
+
+. Clearly, aτ pyq ě y for all y P p 0, 1q. Therefore, we have y ` aτ pyq ě 0 and y ´ aτ pyq ď 0. Also, it is easy to observe that y ` aτ pyq is increasing in y, while y ´ aτ pyq is decreasing in y. Since α
+
+> 1´αy
+
+is strictly increasing in y and positive for α ą 0, it follows that α`pyq is monotonically increasing and α´pyq is monotonically decreasing. Thus sup 
+
+> yPp 0,1q
+
+α`pyq “ α 
+
+> 2p1´αq
+
+p1 ` ?Ntq
+
+and inf 
+
+> yPp 0,1q
+
+α´pyq “ α 
+
+> 2p1´αq
+
+p1 ´ ?Ntq. Then |α`pyq| ă 1 ðñ 0 ă α ă 2 
+
+> 3`?Nt
+
+, and 
+
+|α´pyq| ă 1 ðñ α ă 2 
+
+> 1`?Nt
+
+. Thus |α˘pyq| ă 1 ðñ 0 ă α ă 2 
+
+> 3`?Nt
+
+. As Nt ě 2 we have the required result. 
+
+Lemma 3.12. For α P p 0, 2 
+
+> 3`?2
+
+q, one has ‖ HpQ´1 
+
+> α
+
+Q ´ Ixt q ‖ă 1.Proof. As H pQ´1 
+
+> α
+
+Q ´ Ixt q is symmetric, spectrum estimation is sufficient. Now H pQ´1 
+
+> α
+
+Q ´
+
+Ixt q can be written as H pQ´1 
+
+> α
+
+Q ´ Ixt q “ PDP ´1, where D “ blkdiag p0, 0, ¨ ¨ ¨ , 0, G ´, G `q.10 G. GARAI AND N. CHAMAKURI 
+
+The blocks G˘ are given by G˘ “ 1
+
+> 2
+
+˜
+
+ΓNt ´ Ixt ˘
+
+dNt´1ř
+
+> j“1
+
+Γ2 
+
+> j
+
+` p Ixt ´ ΓNt q2
+
+¸
+
+, with the def-initions Γ j “ αE j 
+
+> Ixt ´αE Nt
+
+for j “ 1, 2, ¨ ¨ ¨ , N t ´ 1, and Γ Nt “ 1 
+
+> Ixt ´αE Nt
+
+. The matrix inside the square root is positive definite. This follows from the Neumann series expansion of the Γ j terms, which is valid since }αE Nt } ă 1 by Lemma 3.10. Furthermore, the positive definiteness of the powers of E, also established in Lemma 3.10, ensures that each Γ j con-tributes positively. Therefore, the square root is well-defined. Using the diagonalizability of E, it is easy to observe that G˘ is diagonalizable. So, the eigenvalue of G˘ has the form 
+
+α˘pyq :“ 1
+
+> 2
+
+´ 1 
+
+> 1´αy
+
+´ 1 ˘ aτ pyq
+
+¯
+
+with y “ eλ∆t, where τ pyq “ α2
+
+> p1´αy q2
+> Nt´1
+
+ř
+
+> j“1
+
+y2j `
+
+´ αy 
+
+> 1´αy
+
+¯2
+
+.Then, by applying Lemma 3.11, the desired result follows. 
+
+Lemma 3.13 (See [8], thm. 5.4, [7]) . Let Λ be a real square matrix with μpΛq ą 0, where 
+
+μpΛq denotes the leftmost eigenvalue of HpΛq. Then, when solving Λy “ c using GMRES, the residual rkg “ c ´ Λyk at k-th iteration satisfies ‖ rkg ‖ď
+
+´
+
+1 ´ μpΛq2
+
+> ‖Λ‖2
+
+¯k{2
+
+‖ r0 
+
+> g
+
+‖ .
+
+Theorem 3.14. Let GMRES applied to Q´1 
+
+> α
+
+Qu “ Q´1 
+
+> α
+
+f. Then the residual rkg,α “ Q´1 
+
+> α
+
+f ´
+
+Q´1 
+
+> α
+
+Quk after k iterations satisfies ‖ rkg,α ‖ď p 4αp1 ´ αqq k{2 ‖ r0 
+
+> g,α
+
+‖ for α P p 0, 2 
+
+> 3`?2
+
+q.Proof. We apply Lemma 3.13 for our preconditioned system. For that μpHpQ´1 
+
+> α
+
+Qqq must be positive, which is guaranteed by Lemma 3.9 for α P p 0, 2 
+
+> 1`?2
+
+q. Now one has to estimate 
+
+μpHpQ´1 
+
+> α
+
+Qqq 2 and ‖ Q ´1 
+
+> α
+
+Q ‖ 2. The term H pQ´1 
+
+> α
+
+Qq can be rewritten as Ixt `HpQ´1 
+
+> α
+
+Q´Ixt q.Using Lemma 3.12 we have ‖ HpQ´1 
+
+> α
+
+Qq ‖ě‖ Ixt ‖ ´ ‖ HpQ´1 
+
+> α
+
+Q ´ Ixt q ‖ě‖ Ixt ‖ ´ ‖Q´1 
+
+> α
+
+Q ´ Ixt ‖ě 1 ´ α 
+
+> 1´α
+
+“ 1´2α 
+
+> 1´α
+
+. So, μpHpQ´1 
+
+> α
+
+Qqq 2 ě ` 1´2α
+
+> 1´α
+
+˘2 for α P p 0, 2 
+
+> 3`?2
+
+q.We have Ixt ´Q´1 
+
+> α
+
+Q “ Lr, where Lr has the same structure as in (3.6) with E “ exp p∆t∆hq.Then ‖ Q ´1 
+
+> α
+
+Q ‖ “
+
+c
+
+ρ
+
+”
+
+pQ´1 
+
+> α
+
+Qq p Q´1 
+
+> α
+
+QqJı
+
+“ aρ pIxt ´ Lr ´ LJ 
+
+> r
+
+` LrLJ 
+
+> r
+
+q, which is further bounded above by 1 ` ρpLrq. Now σpLr q “ t 0u Y σ
+
+´
+
+Ix ´ 1
+
+> Ix´αE Nt
+
+¯
+
+. Thus ρpLr q is bounded above by α 
+
+> 1´α
+
+. So, we obtain ‖ Q ´1 
+
+> α
+
+Q ‖ ď 1 
+
+> 1´α
+
+. Thus the term 1 ´ μpHpQ´1   
+
+> αQqq 2
+> ‖Q ´1
+> αQ‖ 2
+
+ď 1 ´ p 1 ´
+
+2αq2 “ 4αp1 ´ αq. Hence the theorem. 
+
+4. Preconditioner for Opp ∆tq2q Scheme 
+
+In this section, we develop a preconditioner based on the second-order backward differ-entiation formula (BDF2) in time. The second-order accurate exponential integrator for the linear part of our model problem (1.1) is given by 
+
+un “ 4
+
+3 Aun´1 ´ 1
+
+3 Bun´2, where A “ exp p∆tLhq and B “ A2. (4.1) Using (4.1), we have the following space-time system 
+
+Rv “ f2, where R :“ It´1 b Ix ´ 4
+
+3 C0 b A ` 1
+
+3C1 b B, (4.2) PINT FOR EXPONENTIAL INTEGRATORS 11 
+
+where v “ p u2, u3, ¨ ¨ ¨ , uNt qJ P RNxpNt´1q, f2 “ p 4 
+
+> 3
+
+Au1 ´ 1 
+
+> 3
+
+Bu0, ´ 1 
+
+> 3
+
+Bu1, 0, ¨ ¨ ¨ , 0qJ and C1
+
+is given by 
+
+C1 “
+
+»——————–
+
+0 0 ¨ ¨ ¨ 0 0 00 0 ¨ ¨ ¨ 0 0 01 0 ¨ ¨ ¨ 0 0 00 1 ¨ ¨ ¨ 0 0 0... ... . . . ... ...0 0 ¨ ¨ ¨ 1 0 0
+
+fi ffi ffi ffi ffi ffi ffi fl 
+
+P RpNt´1qˆp Nt ´1q. (4.3) The preconditioned iterative system to solve (4.2) is given by 
+
+vk`1 “ vk ` sk, Rαsk “ f2 ´ Rvk, where Rα :“ It´1 b Ix ´ 4
+
+3Cα 
+
+> 0
+
+b A ` 1
+
+3 Cα 
+
+> 1
+
+b B. (4.4) The α-circulant matrix Cα 
+
+> 1
+
+is a modified version of C1, with the only differences being the entries C1p1, N t ´ 2q “ α and C1p2, N t ´ 1q “ α. Note that the structures of C0 and Cα
+
+> 0
+
+remain as before, but with a reduced size. The matrices Cα 
+
+> 0
+
+and Cα 
+
+> 1
+
+are simultaneously diagonalizable, with Cα 
+
+> 0
+
+“ PαD0P´1 
+
+> α
+
+and Cα 
+
+> 1
+
+“ PαD1P´1 
+
+> α
+
+, where the expressions for Pα and 
+
+D0 are discussed in Section 2, with the replacement of Nt by Nt ´ 1. The matrix D1 takes the form D1 “ diag pλ1,1, λ 1,2, . . . , λ 1,N t´1q, where λ1,n corresponds to the n-th eigenvalue associated with Cα 
+
+> 1
+
+and is given by λ1,n “ α 2 
+
+> Nt´1
+
+e4pn´1qπi 
+
+> Nt´1
+
+, for n “ 1, 2, ¨ ¨ ¨ , N t ´ 1. Next we want to solve the residual system Rαsk “ f2 ´ Rvk by PinT fashion, which described below: $’’’’&’’’’%
+
+Step-(a): Sp “ p F b Ixq rp Γα b Ixq `f2 ´ Rvk˘s,
+
+Step-(b): Sq,n “
+
+ˆ
+
+Ix ´ 4
+
+3 λ0,n A ` 1
+
+3 λ1,n B
+
+˙´1
+
+Sp,n , n “ 2, 3, . . . , N t,
+
+Step-(c): sk “ `Γ´1 
+
+> α
+
+b Ix
+
+˘ pF˚ b Ixq Sq,n ,
+
+(4.5) In Equation 4.5, Step-(a) and Step-(c) can be efficiently executed using the FFT, while Step-(b) remains highly parallelizable. We now proceed to establish the convergence esti-mates for the proposed method. 4.1. Eigenvalue estimate of the preconditioned system. Here, we discuss the con-vergence of the fixed point preconditioned Richardson scheme (4.4). Let us denote the error at k-th iteration as ek :“ v ´ vk. Then we have the following error relation 
+
+ek “ p Ixt ´1 ´ R´1 
+
+> α
+
+Rqek´1, (4.6) where Ixt ´1 P RNxpNt ´1qˆ NxpNt´1q is the identity matrix. Using the diagonalizability of spatial operator Lh we rewrite R and Rα as 
+
+R “ p It´1 b Vhq
+
+ˆ
+
+It´1 b Ix ´ 4
+
+3 C0 b e∆tD h ` 1
+
+3 C1 b e2∆ tD h
+
+˙loooooooooooooooooooooooooooomoooooooooooooooooooooooooooon 
+
+> sR
+
+`It´1 b V ´1
+
+> h
+
+˘ ,
+
+Rα “ p It´1 b Vhq
+
+ˆ
+
+It´1 b Ix ´ 4
+
+3 Cα 
+
+> 0
+
+b e∆tD h ` 1
+
+3 Cα 
+
+> 1
+
+b e2∆ tD h
+
+˙looooooooooooooooooooooooooooomooooooooooooooooooooooooooooon 
+
+> sRα
+
+`It´1 b V ´1
+
+> h
+
+˘ .12 G. GARAI AND N. CHAMAKURI 
+
+Thus, R is similar to sR, and Rα is similar to sRα. Hence, it is enough to study the spectrum of Ixt ´1 ´ sR´1 
+
+> α
+
+sR. Let z “ λ∆t for λ P σpDhq. Then we have 
+
+sR “
+
+ˆ
+
+It´1 ´ 4
+
+3 ez C0 ` 1
+
+3 e2z C1
+
+˙loooooooooooooooomoooooooooooooooon 
+
+> Tz
+
+bIx, sRα “
+
+ˆ
+
+It´1 ´ 4
+
+3 ez Cα 
+
+> 0
+
+` 1
+
+3 e2z Cα
+
+> 1
+
+˙loooooooooooooooomoooooooooooooooon 
+
+> Tz,α
+
+bIx.
+
+Therefore, we only need to study the spectral distribution of Mz “ It´1 ´ T ´1 
+
+> z,α
+
+Tz for the convergence of the method. 
+
+Theorem 4.1. The spectral bound of Mz satisfies the estimate ρpMzq ď α 
+
+> 1´α
+
+.Proof. Clearly, Mz “ It´1 ´ r It´1 ` T ´1 
+
+> z
+
+pTz,α ´ Tz qs ´1 “ It´1 ´ r It´1 ` T ´1 
+
+> z
+
+Hz,α s´1, where the explicit forms of Tz and Hz,α are given below: 
+
+Tz “
+
+»——————–
+
+a0 0 ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ 0
+
+a1 a0 ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ ¨ 0
+
+a2 a1 a0 ¨ ¨ ¨ ¨ ¨ ¨ 00 a2 a1 a0 ¨ ¨ ¨ 0... ... . . . . . . . . . ...0 0 ¨ ¨ ¨ a2 a1 a0
+
+fi ffi ffi ffi ffi ffi ffi fl 
+
+, Hz,α “ α
+
+> 3
+
+»————–
+
+0 0 ¨ ¨ ¨ e2z ´4ez
+
+0 0 ¨ ¨ ¨ 0 e2z
+
+0 0 ¨ ¨ ¨ 0 0... ... . . . ... ...0 0 ¨ ¨ ¨ 0 0
+
+fi ffi ffi ffi ffi fl ,
+
+where a0 “ 1, a 1 “ ´ 4 
+
+> 3
+
+ez and a2 “ 1 
+
+> 3
+
+e2z . So, σpMzq “ 1 ´ 1   
+
+> 1`σpT´1
+> zHz,α q
+
+. Thus to get a bound we need σpT ´1 
+
+> z
+
+Hz,α q. Following [21, p. 172] we have inverse of lower triangular Toeplitz matrix Tz as 
+
+Bz “
+
+»————–
+
+b0 0 ¨ ¨ ¨ ¨ ¨ ¨ 0
+
+b1 b0 ¨ ¨ ¨ ¨ ¨ ¨ 0
+
+b2 b1 b0 ¨ ¨ ¨ 0... ... . . . . . . ...
+
+bNt ´2 bNt ´3 ¨ ¨ ¨ b1 b0
+
+fi ffi ffi ffi ffi fl ,
+
+where b0 “ 1 and bm “ ´ m´1ř
+
+> l“0
+
+am´lbl for 1 ď m ď Nt ´ 2. Solving this difference equation yields the explicit expressions of bm as bm “ 3 
+
+> 2
+
+emz ´ 1 
+
+> 2
+> emz
+> 3m
+
+for 1 ď m ď Nt ´ 2. Now T ´1 
+
+> z
+
+Hz,α 
+
+has the following form: 
+
+T ´1 
+
+> z
+
+Hz,α “ α
+
+3
+
+»——–
+
+0 ¨ ¨ ¨ 0 b0e2z ´4b0ez
+
+0 ¨ ¨ ¨ 0 b1e2z ´4b1ez ` b0e2z
+
+... ... ... ... ...0 ¨ ¨ ¨ 0 bNt´2e2z ´4bNt´2ez ` bNt ´3e2z
+
+fi ffi ffi fl .
+
+Clearly, T ´1 
+
+> z
+
+Hz,α has Nt ´ 3 zero eigenvalues and two non-zero eigenvalue. The non-zero eigenvalue corresponds to the roots of the following equation det 
+
+„α 
+
+> 3
+
+bNt´3e2z ´ r α 
+
+> 3
+
+p´ 4bNt´3ez ` bNt´4e2z q 
+
+> α
+> 3
+
+bNt´2e2z α 
+
+> 3
+
+p´ 4bNt´2ez ` bNt´3e2z q ´ r
+
+
+
+“ 0.PINT FOR EXPONENTIAL INTEGRATORS 13 
+
+Solving the above system for r we obtain 
+
+r˘ “ α
+
+3
+
+!`bNt´3e2z ´ 2bNt´2ez ˘ ˘
+
+b
+
+4b2
+
+> Nt´2
+
+e2z ´ 4bNt´2bNt´3e3z ` bNt ´2bNt´4e4z
+
+)
+
+. (4.7) Putting the values of bm’s in (4.7) and simplifying the expression we get r` “ ´ α `ez
+
+> 3
+
+˘Nt´1
+
+and r´ “ ´ αe pNt´1qz . Thus σpMzq “ t 0, ¨ ¨ ¨ , 0uloooomoooon 
+
+> Nt´3
+
+Y
+
+! ´αe pNt´1qz
+
+> 1´αe pNt´1qz
+
+)
+
+Y
+
+" ´αpez 
+
+> 3
+
+qNt´1
+
+> 1´α
+
+p ez 
+
+> 3
+
+qNt´1
+
+*
+
+. As z P R
+
+and z ă 0, its clear from σpMz q that we have ρpMz q ď α 
+
+> 1´α
+
+. Hence the proof. 
+
+4.2. Analysis of the preconditioned system in GMRES setting. To analyze the convergence of the GMRES method of the preconditioned system R´1 
+
+> α
+
+R we rewrite R´1 
+
+> α
+
+R
+
+as R´1 
+
+> α
+
+R “ r Ixt ´1 ` R´1Lαs´1 where Lα :“ Rα ´ R. The inverse of the lower triangular block Toeplitz matrix is given as 
+
+R´1 “
+
+»————–
+
+R0 0 ¨ ¨ ¨ ¨ ¨ ¨ 0
+
+R1 R0 ¨ ¨ ¨ ¨ ¨ ¨ 0
+
+R2 R1 R0 ¨ ¨ ¨ 0... ... . . . . . . ...
+
+RNt´2 RNt´3 ¨ ¨ ¨ R1 R0
+
+fi ffi ffi ffi ffi fl ,
+
+where R0 “ Ix and Rm “ 4 
+
+> 3
+
+AR m´1 ´ 1 
+
+> 3
+
+BR m´2 for 1 ď m ď Nt ´ 2. Solving this difference equation we get the explicit expressions of Rm’s as Rm “ 3 
+
+> 2
+
+Am ´ 1
+
+> 2
+
+`A
+
+> 3
+
+˘m for 1 ď m ď Nt ´2. Now R´1Lα has the following form: 
+
+R´1Lα “ α
+
+3
+
+»——–
+
+0 ¨ ¨ ¨ 0 R0B ´4R0A
+
+0 ¨ ¨ ¨ 0 R1B ´4R1A ` R0B
+
+... ... ... ... ...0 ¨ ¨ ¨ 0 RNt´2B ´4RNt´2A ` RNt´3B
+
+fi ffi ffi fl “
+
+»——–
+
+0 ¨ ¨ ¨ 0 Ξ0 Σ0
+
+0 ¨ ¨ ¨ 0 Ξ1 Σ1
+
+... ... ... ... ...0 ¨ ¨ ¨ 0 ΞNt´2 ΣNt´2
+
+fi ffi ffi fl ,
+
+where Ξ j and Σ j have the obvious definition for j “ 1, 2, ¨ ¨ ¨ , N t ´ 2. Then the precondi-tioned system R´1 
+
+> α
+
+R has the following structure 
+
+R´1 
+
+> α
+
+R “
+
+»————————–
+
+Ix 0 ¨ ¨ ¨ 0 ´ Ξ0`Ξ0ΣNt´2´ΞNt´2Σ0 
+
+> S
+
+´ Σ0´Ξ0ΣNt´3`ΞNt´3Σ0
+
+> S
+
+0 Ix ¨ ¨ ¨ 0 ´ Ξ1`Ξ1ΣNt´2´ΞNt´2Σ1 
+
+> S
+
+´ Σ1´Ξ1ΣNt´3`ΞNt´3Σ1
+
+> S
+
+... ... ... ... ... ...0 0 ¨ ¨ ¨ Ix ´ ΞNt´4`ΞNt´4ΣNt´2´ΞNt´2ΣNt´4 
+
+> S
+
+´ ΣNt´4´ΞNt´4ΣNt´3`ΞNt´3ΣNt´4
+
+> S
+
+0 0 ¨ ¨ ¨ 0 Ix`ΣNt´2 
+
+> S
+
+´ ΣNt´3
+
+> S
+
+0 0 ¨ ¨ ¨ 0 ´ ΞNt´2
+
+> S
+> Ix`ΞNt´3
+> S
+
+fi ffi ffi ffi ffi ffi ffi ffi ffi fl 
+
+,
+
+where S “ Ix ` ΞNt´3 ` ΣNt´2 ` ΞNt´3ΣNt´2 ´ ΞNt´2ΣNt´3. Putting the values of Ξ j and Σj for j “ Nt ´ 2, N t ´ 3 and using the values of Rm’s in the expression of S we obtain 
+
+S “ Ix ` αA Nt´1 `´1 ` 1
+
+> 3Nt´1
+
+˘ ` α2A2pNt ´1q 1  
+
+> 3Nt´1
+
+. So the system R´1 
+
+> α
+
+R can be written as 14 G. GARAI AND N. CHAMAKURI 
+
+R´1 
+
+> α
+
+R “ Ixt ´1 ` Π, where Π is given by Π “
+
+»————————–
+
+0 0 ¨ ¨ ¨ 0 ´ Ξ0`Ξ0ΣNt´2´ΞNt´2Σ0 
+
+> S
+
+´ Σ0´Ξ0ΣNt´3`ΞNt´3Σ0
+
+> S
+
+0 0 ¨ ¨ ¨ 0 ´ Ξ1`Ξ1ΣNt´2´ΞNt´2Σ1 
+
+> S
+
+´ Σ1´Ξ1ΣNt´3`ΞNt´3Σ1
+
+> S
+
+... ... ... ... ... ...0 0 ¨ ¨ ¨ 0 ´ ΞNt´4`ΞNt´4ΣNt´2´ΞNt´2ΣNt´4 
+
+> S
+
+´ ΣNt´4´ΞNt´4ΣNt´3`ΞNt´3ΣNt´4
+
+> S
+
+0 0 ¨ ¨ ¨ 0 ´Ix ` Ix`ΣNt´2 
+
+> S
+
+´ ΣNt´3
+
+> S
+
+0 0 ¨ ¨ ¨ 0 ´ ΞNt´2 
+
+> S
+
+´Ix ` Ix`ΞNt´3
+
+> S
+
+fi ffi ffi ffi ffi ffi ffi ffi ffi fl 
+
+.
+
+Lemma 4.2. The blocks in the last two columns of Π are invertible. 
+
+Theorem 4.3. The GMRES takes at most 2Nx ` 1 iterations to converge. Proof. Clearly, the rank of Π is 2 Nx (as the blocks in the last two columns are invertible). So, the preconditioned system R´1 
+
+> α
+
+R is identity plus a low-rank matrix of rank 2 Nx. Thus, GMRES will converge in at most 2 Nx ` 1 iterations. 
+
+Next, we discuss the concentration of eigenvalues of the preconditioned system. Let 
+
+G “ `I2x b 1
+
+> S
+
+˘ pI2x ` Wq, where I2x “ diag pIx, I xq and W is given by 
+
+W “
+
+„ ΣNt ´2 ´ΣNt´3
+
+´ΞNt´2 ΞNt´3
+
+
+
+,
+
+where Σ Nt´2 “ α `´ 3 
+
+> 2
+
+` 1 
+
+> 21
+> 3Nt´1
+
+˘ ANt´1, ΣNt´3 “ α `´ 3 
+
+> 2
+
+` 1 
+
+> 21
+> 3Nt´2
+
+˘ ANt´2, ΞNt´2 “ α `1 
+
+> 2
+
+´ 1
+
+> 21
+> 3Nt´1
+
+˘ ANt ,and Ξ Nt´3 “ α ` 1 
+
+> 2
+
+´ 1
+
+> 21
+> 3Nt´2
+
+˘ ANt´1.
+
+Lemma 4.4. The eigenvalues of G are given by 1`s` 
+
+> 1`ν
+
+and 1`s´ 
+
+> 1`ν
+
+, where s`, s´, and ν are defined in the proof. Proof. As Lh is diagonalizable, the matrix G can be written as 
+
+G “
+
+„Vh 00 Vh
+
+ „ D´1 
+
+> S
+
+00 D´1
+
+> S
+
+
+
+pI2x ` DW q
+
+„V ´1 
+
+> h
+
+00 V ´1
+
+> h
+
+
+
+, where DW is given by 
+
+DW “
+
+„α `´ 3 
+
+> 2
+
+` 1
+
+> 21
+> 3Nt´1
+
+˘ ENt´1 ´α `´ 3 
+
+> 2
+
+` 1 
+
+> 21
+> 3Nt´2
+
+˘ ENt´2
+
+´α `1 
+
+> 2
+
+´ 1
+
+> 21
+> 3Nt´1
+
+˘ ENt α ` 1 
+
+> 2
+
+´ 1 
+
+> 21
+> 3Nt´2
+
+˘ ENt´1
+
+
+
+,
+
+and DS “ Ix ` αE Nt´1 `´1 ` 1
+
+> 3Nt´1
+
+˘ ` α2E2pNt´1q 1 
+
+> 3Nt´1
+
+. Next, for the permutation matrix 
+
+P P R2Nxˆ2Nx that rearranges the rows and columns, the matrix DW satisfies PJDW P “
+
+blkdiag pbd1 , b d2 , ¨ ¨ ¨ , b dNx q, where the blocks bdj are given by 
+
+bdj “
+
+„α `´ 3 
+
+> 2
+
+` 1
+
+> 21
+> 3Nt´1
+
+˘ eλj ∆tpNt´1q ´α `´ 3 
+
+> 2
+
+` 1
+
+> 21
+> 3Nt´2
+
+˘ eλj ∆tpNt´2q
+
+´α ` 1 
+
+> 2
+
+´ 1 
+
+> 21
+> 3Nt´1
+
+˘ eλj ∆tN t α ` 1 
+
+> 2
+
+´ 1 
+
+> 21
+> 3Nt´2
+
+˘ eλj ∆tpNt ´1q
+
+
+
+,
+
+where λj P σpLhq for j “ 1, 2, ¨ ¨ ¨ , N x. Under a permutation similarity transformation, the eigenvalues remain unchanged; thus, it suffices to study the eigenvalues of the blocks bdj .By solving the quadratic equation det pbdj ´ sI 2q “ 0 for s, we obtain the eigenvalues as 
+
+s` “ ´ αe λj ∆tpNt ´1q 1
+
+3Nt´1 , s ´ “ ´ αe λj ∆tpNt´1q.PINT FOR EXPONENTIAL INTEGRATORS 15 
+
+So the eigen-structure of G has the form 1`s` 
+
+> 1`ν
+
+and 1`s´ 
+
+> 1`ν
+
+, where ν “ α `´1 ` 1
+
+> 3Nt´1
+
+˘ eλj ∆tpNt´1q`
+
+α2 1 
+
+> 3Nt´1
+
+e2λj ∆tpNt´1q. So, the proof is complete. 
+
+For notational simplicity, we use s`, s ´, and ν with a generic λ, by replacing λj with λ
+
+in their definitions. 
+
+Lemma 4.5. The eigenvalues of the preconditioned system are concentrated around 1 with radius α`α2 
+
+> 1´α´α2
+
+.Proof. Its clear that σ pR´1 
+
+> α
+
+Rq “ t 1uY σ pGq. Then we have max 
+
+> λPσ
+
+pR´1 
+
+> αR
+
+q |λ´1| “ max  
+
+> λPt 1uY σpGq
+
+|λ´
+
+1| ď max  
+
+> λPσpLhq
+
+max ˇˇ s`´ν
+
+> 1`ν
+
+ˇˇ , ˇˇs´´ν
+
+> 1`ν
+
+ˇˇ(. Now we estimate ˇˇs`´ν
+
+> 1`ν
+
+ˇˇ and ˇˇs´´ν
+
+> 1`ν
+
+ˇˇ. Letting y “ eλ∆t the expression for ˇˇ s´´ν
+
+> 1`ν
+
+ˇˇ becomes 
+
+ˇˇˇˇ
+
+s´ ´ ν
+
+1 ` ν
+
+ˇˇˇˇ “
+
+ˇˇˇˇ
+
+α 1 
+
+> 3Nt´1
+
+yNt´1p1 ` αy Nt´1q
+
+1 ` ν
+
+ˇˇˇˇ . (4.8) As λ P R with λ ă 0 then y P p 0, 1q. So its clear that the numerator in (4.8) is bounded above by α  
+
+> 3Nt´1
+
+p1`αq. Now we rewrite 1 `ν “ 1´ν0, where ν0 “ αy Nt´1 `1 ´ 1 
+
+> 3Nt´1
+
+´ α 
+
+> 3Nt´1
+
+yNt´1˘.Next, we show |ν0| ă 1 for y ă 1. Using triangle inequality and y ă 1, we obtain 
+
+|ν0| ď αy Nt´1 `ˇ ˇ1 ´ 1
+
+> 3Nt´1
+
+ˇˇ ` α 
+
+> 3Nt´1
+
+yNt´1˘ ă α `1 ` p α ´ 1q 1
+
+> 3Nt´1
+
+˘ ă 1 for Nt ě 2 and α ď 1. Thus |1 ` ν| ě 1 ´ | ν0| ą 1 ´ α `1 ` α
+
+> 3Nt´1
+
+˘ ą 1 ´ α ´ α2. Thus from (4.8) we have 
+
+ˇˇˇˇ
+
+s´ ´ ν
+
+1 ` ν
+
+ˇˇˇˇ ď 
+
+> α
+> 3Nt´1
+
+p1 ` αq
+
+1 ´ α ´ α2 ă α ` α2
+
+1 ´ α ´ α2 :“ ǫ0. (4.9) For the term ˇˇs`´ν
+
+> 1`ν
+
+ˇˇ we have 
+
+ˇˇˇˇ
+
+s` ´ ν
+
+1 ` ν
+
+ˇˇˇˇ “
+
+ˇˇˇˇ
+
+αy Nt´1p´ 1 ` 2 
+
+> 3Nt´1
+
+` α  
+
+> 3Nt´1
+
+yNt´1q
+
+1 ` ν
+
+ˇˇˇˇ ď αp| ´ 1 ` 2  
+
+> 3Nt´1
+
+| ` | α  
+
+> 3Nt´1
+
+yNt´1|
+
+|1 ` ν| . (4.10) For Nt ě 2 one has | ´ 1 ` 2 
+
+> 3Nt´1
+
+| ď 1. Using this in the numerator in (4.10), we find the numerator is bounded above by αp1 ` α  
+
+> 3Nt´1
+
+q, which is further bounded by α ` α2. So, in this case, we also have the upper bound ǫ0 for (4.10). Hence, we have the result. 
+
+
+
+Lemma 4.6. The preconditioned system R´1 
+
+> α
+
+R is diagonalizable. Proof. To prove the statement, we assume that Nt is odd such that Nt ´ 1 is even (since 
+
+Nt can be chosen freely). Then R´1 
+
+> α
+
+R can be rewritten as R´1 
+
+> α
+
+R “ Ixt ´1 ` rΠ, where rΠ is regrouping of the blocks of Π, is given as 
+
+rΠ “
+
+»—————–
+
+0 0 ¨ ¨ ¨ 0 Θ1
+
+0 0 ¨ ¨ ¨ 0 Θ2
+
+... ... ... ... ...0 0 ¨ ¨ ¨ 0 Θ Nt´1 
+
+> 2´1
+
+0 0 ¨ ¨ ¨ 0 Θ Nt´1
+
+> 2
+
+fi ffi ffi ffi ffi ffi fl 
+
+,16 G. GARAI AND N. CHAMAKURI 
+
+where Θ j P R2Nxˆ2Nx for j “ 1, 2, ¨ ¨ ¨ Nt´1 
+
+> 2
+
+. The new blocks Θ j are formed by taking blocks of the last two columns of Π, each with two row blocks. We are particularly interested in Θ Nt´1
+
+> 2
+
+, which has the form Θ Nt´1
+
+> 2
+
+“ ´ I2x ` G. Using Lemma 4.4 and the analysis of Lemma 4.5 its clear that Θ Nt´1
+
+> 2
+
+is invertible. Then rΠ can be written as rΠ “ rV rD rV ´1 where 
+
+rV and rD are given as 
+
+rV “
+
+»——————–
+
+I2x Θ1Θ´1
+
+> Nt´1
+> 2
+
+I2x Θ2Θ´1
+
+> Nt´1
+> 2
+
+. . . ...
+
+I2x Θ Nt´1 
+
+> 2´1
+
+Θ´1
+
+> Nt´1
+> 2
+
+I2x
+
+fi ffi ffi ffi ffi ffi ffi fl 
+
+, rD “
+
+»—————–
+
+00. . .0Θ Nt´1
+
+> 2
+
+fi ffi ffi ffi ffi ffi fl 
+
+.
+
+Furthermore, Θ Nt´1
+
+> 2
+
+is diagonalizable as it has disctinct eigenvalues, so rD “ VθDθV ´1 
+
+> θ
+
+.Thus we obtain that the system R´1 
+
+> α
+
+R “ rV V θ pIxt ´1 ` Dθq V ´1 
+
+> θ
+
+rV ´1. Hence, the lemma. 
+
+We denote the preconditioned residual as rkg,α “ R´1 
+
+> α
+
+f2 ´ R´1 
+
+> α
+
+Rvk after k-th iterations. 
+
+Theorem 4.7. Let the GMRES method be applied to the preconditioned system R´1 
+
+> α
+
+Rv “
+
+R´1 
+
+> α
+
+f2. Then the residual satisfies the error estimate ‖ rkg,α ‖ď κ0
+
+´ α`α2
+
+> 1´α´α2
+
+¯k
+
+‖ r0 
+
+> g,α
+
+‖, where 
+
+κ0 “‖ rV V θ ‖‖ p rV V θq´1 ‖.Proof. By Lemma 4.6, we have the diagonalizability of the preconditioned system. Then one has ‖ rkg,α ‖ď κ0 min 
+
+> pPPkp0q
+
+max 
+
+> 1ďiďNx
+
+|ppλiq| ‖ r0 
+
+> g,α
+
+‖ for the preconditioned GMRES residual, where Pk is the set of polynomials of degree k or less. Then by using [27, Section 6.11] and Lemma 4.5 we obtain the required result. 
+
+In this case as well, a convergence result analogous to the first-order case can be es-tablished by leveraging Elman’s estimate. However, due to the complexity of the matrix expressions involved in the second-order formulation, we state the result as a conjecture rather than providing a complete proof. 
+
+Theorem 4.8. Let GMRES applied to R´1 
+
+> α
+
+Ru “ R´1 
+
+> α
+
+f2. Then the residual rkg,α “ R´1 
+
+> α
+
+f2 ´
+
+R´1 
+
+> α
+
+Ruk after k iterations satisfies ‖ rkg,α ‖ď p 4pα ` α2qp 1 ´ α ´ α2qq k{2 ‖ r0 
+
+> g,α
+
+‖ .
+
+5. Exp-ParaDiag Formulation for Opp ∆tqsq Scheme for 3 ď s ď 6We extend the Exp-ParaDiag formulation to BDF schemes [28] up to order six and study the convergence of preconditioned GMRES numerically. While GMRES convergence can, in principle, follow earlier analysis, it becomes increasingly involved. However, fixed-point convergence follows similar lines as in Theorem 4.1. First, we define several identity matrices It´j P RNt´jˆNt´j for j “ 2, 3, 4, 5. Additionally, we define circulant matrices PINT FOR EXPONENTIAL INTEGRATORS 17 
+
+C2, C 3, C 4, and C5, each generated from the following first column vectors: 
+
+C2 : r0, 0, 0, 1, 0, . . . , 0sJ,C3 : r0, 0, 0, 0, 1, 0, . . . , 0sJ,C4 : r0, 0, 0, 0, 0, 1, 0, . . . , 0sJ,C5 : r0, 0, 0, 0, 0, 0, 1, 0, . . . , 0sJ.
+
+Their corresponding α-criculant matrices, denoted by Cαj , are based on the circulant ma-trices Cj ’s for j “ 2, 3, 4, 5, with modifications to Cj ’s as C2p1, N t ´ 4q “ C2p2, N t ´ 3q “ 
+
+C2p3, N t ´ 2q “ α, C3p1, N t ´ 6q “ C3p2, N t ´ 5q “ C3p3, N t ´ 4q “ C3p4, N t ´ 3q “ α,
+
+C3p1, N t ´ 8q “ C3p2, N t ´ 7q “ C3p3, N t ´ 6q “ C3p4, N t ´ 5q “ C3p5, N t ´ 4q “ α
+
+and C4p1, N t ´ 10 q “ C4p2, N t ´ 9q “ C4p3, N t ´ 8q “ C4p4, N t ´ 7q “ C4p5, N t ´ 6q “ 
+
+C4p6, N t ´ 5q “ α. We begin by presenting the Exp-ParaDiag formulation as a GMRES preconditioner using the BDF3 method. The third-order accurate EI for (1.1) is given by 
+
+un “ 18 
+
+11 Aun´1 ´ 9
+
+11 A2un´2 ` 2
+
+11 A3un´3, for n ě 3. (5.1) Using (5.1), we have the following space-time system 
+
+R3v3 “ f3, where R3 :“ It´2 b Ix ´ 18 
+
+11 C0 b A ` 9
+
+11 C1 b A2 ´ 2
+
+11 C2 b A3, (5.2) where v3 “ p u3, u4, ¨ ¨ ¨ , uNt qJ P RNxpNt´2q, f3 “ p 18  
+
+> 11
+
+Au2 ´ 9 
+
+> 11
+
+A2u1 ` 2 
+
+> 11
+
+A3u0, ´ 9 
+
+> 11
+
+A2u2 ` 
+
+> 2
+> 11
+
+A3u1, 2 
+
+> 11
+
+A3u2, 0, ¨ ¨ ¨ , 0qJ. The preconditioner to solve (5.2) by GMRES is given by Rα 
+
+> 3
+
+:“
+
+It´2 b Ix ´ 18  
+
+> 11
+
+Cα 
+
+> 0
+
+b A ` 9 
+
+> 11
+
+Cα 
+
+> 1
+
+b A2 ´ 2 
+
+> 11
+
+Cα 
+
+> 2
+
+b A3. The fourth-order accurate EI for (1.1) is given by 
+
+un “ 48 
+
+25 Aun´1 ´ 36 
+
+25 A2un´2 ` 16 
+
+25 A3un´3 ´ 3
+
+25 A4un´4, for n ě 4. (5.3) Using (5.3), we have the following space-time system 
+
+R4v4 “ f4, where R4 :“ It´3 b Ix ´ 48 
+
+25 C0 b A ` 36 
+
+25 C1 b A2 ´ 16 
+
+25 C2 b A3 ` 3
+
+25 C3 b A4, (5.4) where v4 “ p u4, u5, ¨ ¨ ¨ , uNt qJ P RNxpNt´3q, f4 “ p 48  
+
+> 25
+
+Au3´ 36  
+
+> 25
+
+A2u2` 16  
+
+> 25
+
+A3u1´ 3 
+
+> 25
+
+A4u0, ´ 36  
+
+> 25
+
+A2u3` 
+
+> 16
+> 25
+
+A3u2 ´ 3 
+
+> 25
+
+A4u1, 16  
+
+> 25
+
+A3u3 ´ 3 
+
+> 25
+
+A4u2, ´ 3 
+
+> 25
+
+A4u3, 0, ¨ ¨ ¨ , 0qJ. The preconditioner to solve (5.4) by GMRES is given by Rα 
+
+> 4
+
+:“ It´3 b Ix ´ 48  
+
+> 25
+
+Cα 
+
+> 0
+
+b A ` 36  
+
+> 25
+
+Cα 
+
+> 1
+
+b A2 ´ 16  
+
+> 25
+
+Cα 
+
+> 2
+
+b A3 ` 3 
+
+> 25
+
+Cα 
+
+> 3
+
+b A4.The fifth-order accurate EI for (1.1) is given by 
+
+un “ 300 
+
+137 Aun´1 ´ 300 
+
+137 A2un´2 ` 200 
+
+137 A3un´3 ´ 75 
+
+137 A4un´4 ` 12 
+
+137 A5un´5, for n ě 5. (5.5) Using (5.5), we have the following space-time system 
+
+R5v5 “ f5, where R5 :“ It´4 b Ix ´ 300 
+
+137 C0 b A ` 300 
+
+137 C1 b A2 ´ 200 
+
+137 C2 b A3
+
+` 75 
+
+137 C3 b A4 ´ 12 
+
+137 C4 b A5, (5.6) where v5 “ p u5, u6, ¨ ¨ ¨ , uNt qJ P RNxpNt ´4q, f5 “ p 300  
+
+> 137
+
+Au4 ´ 300  
+
+> 137
+
+A2u3 ` 200  
+
+> 137
+
+A3u2 ´ 75  
+
+> 137
+
+A4u1 ` 
+
+> 12
+> 137
+
+A5u0, ´ 300  
+
+> 137
+
+A2u4` 200  
+
+> 137
+
+A3u3´ 75  
+
+> 137
+
+A4u2` 12  
+
+> 137
+
+A5u1, 200  
+
+> 137
+
+A3u4´ 75  
+
+> 137
+
+A4u3` 12  
+
+> 137
+
+A5u2, ´ 75  
+
+> 137
+
+A4u4`18 G. GARAI AND N. CHAMAKURI 12  
+
+> 137
+
+A5u3, 12  
+
+> 137
+
+A5u4, 0, ¨ ¨ ¨ , 0qJ. The preconditioner to solve (5.6) by GMRES is given by 
+
+Rα 
+
+> 5
+
+:“ It´4 b Ix ´ 300  
+
+> 137
+
+Cα 
+
+> 0
+
+b A ` 300  
+
+> 137
+
+Cα 
+
+> 1
+
+b A2 ´ 200  
+
+> 137
+
+Cα 
+
+> 2
+
+b A3 ` 75  
+
+> 137
+
+Cα 
+
+> 3
+
+b A4 ´ 12  
+
+> 137
+
+Cα 
+
+> 4
+
+b A5. The sixth-order accurate EI for (1.1) is given by 
+
+un “ 360 
+
+147 Aun´1´ 450 
+
+147 A2un´2` 400 
+
+147 A3un´3´ 225 
+
+147 A4un´4` 72 
+
+147 A5un´5´ 10 
+
+147 A6un´6, for n ě 6.
+
+(5.7) Using (5.7), we have the following space-time system 
+
+R6v6 “ f6, where R6 :“ It´5 b Ix ´ 360 
+
+147 C0 b A ` 450 
+
+147 C1 b A2 ´ 400 
+
+147 C2 b A3
+
+` 225 
+
+147 C3 b A4 ´ 72 
+
+147 C4 b A5 ` 10 
+
+147 C5 b A6, (5.8) where v6 “ p u6, u7, ¨ ¨ ¨ , uNt qJ P RNxpNt ´5q, f6 “ p 360  
+
+> 147
+
+Au5 ´ 450  
+
+> 147
+
+A2u4 ` 400  
+
+> 147
+
+A3u3 ´ 225  
+
+> 147
+
+A4u2 ` 
+
+> 72
+> 147
+
+A5u1 ´ 10  
+
+> 147
+
+A6u0, ´ 450  
+
+> 147
+
+A2u5 ` 400  
+
+> 147
+
+A3u4 ´ 225  
+
+> 147
+
+A4u3 ` 72  
+
+> 147
+
+A5u2 ´ 10  
+
+> 147
+
+A6u1, 400  
+
+> 147
+
+A3u5 ´ 225  
+
+> 147
+
+A4u4 ` 
+
+> 72
+> 147
+
+A5u3 ´ 10  
+
+> 147
+
+A6u2, ´ 225  
+
+> 147
+
+A4u5` 72  
+
+> 147
+
+A5u4 ´ 10  
+
+> 147
+
+A6u3, 72  
+
+> 147
+
+A5u5´ 10  
+
+> 147
+
+A6u4, ´ 10  
+
+> 147
+
+A6u5, 0, ¨ ¨ ¨ , 0qJ.The preconditioner to solve (5.8) by GMRES is given by Rα 
+
+> 6
+
+:“ It´5 b Ix ´ 360  
+
+> 147
+
+Cα 
+
+> 0
+
+b A ` 
+
+> 450
+> 147
+
+Cα 
+
+> 1
+
+b A2 ´ 400  
+
+> 147
+
+Cα 
+
+> 2
+
+b A3 ` 225  
+
+> 147
+
+Cα 
+
+> 3
+
+b A4 ´ 72  
+
+> 147
+
+Cα 
+
+> 4
+
+b A5 ` 10  
+
+> 147
+
+Cα 
+
+> 5
+
+b A6.6. Formulation and Convergence in the Nonlinear Setting 
+
+We now extend the Exp-ParaDiag framework to handle nonlinear problems. To this end, we employ IF techniques for temporal discretization (one can use an ETD-based approach) and build our method upon these discretization techniques. A first order accurate in time EI based on the IF approach for (1.1) is given by 
+
+un “ e∆tLh un´1 ` ∆tN punq. (6.1) The corresponding Exp-ParaDiag formulation is: 
+
+#
+
+ukn “ e∆tLh ukn´1 ` ∆tN puknq , n “ 1, 2, ¨ ¨ ¨ , N t,
+
+uk 
+
+> 0
+
+“ αukNt ´ αuk´1 
+
+> Nt
+
+` u0. (6.2) Now we formulate the usual three-step solution procedure for (6.2). Gathering all the space-time points, we have the following space-time nonlinear equation in Uk for (6.2) Ψ1pUkq “ p It b IxqUk ´ p Cα 
+
+> 0
+
+b AqUk ´ ∆tN0pUkq ´ bk´1, (6.3) where N0pUkq :“ `N puk
+
+> 1
+
+q, N puk
+
+> 2
+
+q, ¨ ¨ ¨ , N puknq˘J is the nonlinear space-time vector. The inexact Newton to solve (6.3) is given by: for m “ 1, 2, ¨ ¨ ¨ compute the following Ψ1
+
+> 1
+
+pUkmqUkm`1 “ ´ ∆t blkdiag `N 1puk 
+
+> 1
+
+q, ¨ ¨ ¨ , N 1puknq˘ Ukm ` ∆tN0pUkmq ` bk´1 :“ res m, (6.4) where bk´1 is defined earlier and the inexact Jacobian approximation is taken as sN pUkq :“
+
+It b
+
+´ 1
+
+> Nt
+
+řNt 
+
+> n“1
+
+N 1puknq
+
+¯
+
+[11, 13] to build Ψ 1
+
+> 1
+
+pUkmq “ p It b Ixq ´ p Cα 
+
+> 0
+
+b Aq ´ ∆t sN pUkmq. Then PINT FOR EXPONENTIAL INTEGRATORS 19 
+
+we have the following three steps to solve (6.4), which described below: 
+
+$’’&’’%
+
+Step-(a): Sp “ p F b Ixq rp Γα b Ixq res ms,
+
+Step-(b): Sq,n “ `Ix ´ λ0,n A ´ ∆t sN pUkmq˘´1 Sp,n , n “ 1, 2, 3, . . . , N t,
+
+Step-(c): sk “ `Γ´1 
+
+> α
+
+b Ix
+
+˘ pF˚ b Ixq Sq,n .
+
+(6.5) In the context of approximating the space-time Jacobian, we propose the approximation of the space-time nonlinear terms as sN pUkmq :“ It b diag pN 1pu0qq in (6.5). We show the corresponding numerical experiments for that in Section 7. We now demonstrate the convergence properties of the PinT method (6.2). Let ekn :“
+
+ukn ´ un denote the error at each iteration of the PinT method. 
+
+Lemma 6.1. For x, y P Rd, we have xe∆tLh x, yy ď ‖ e∆tLh ‖ xx, yy ă x x, yy.
+
+Theorem 6.2. The error ekn at k-th iteration corresponding to (6.2) satisfies the estimate 
+
+max 
+
+> 1ďnďNt
+
+‖ ekn ‖ď
+
+˜
+
+|α|e´ 2T M 
+
+> 1`2∆ tM
+
+1 ´ | α|e´ 2T M 
+
+> 1`2∆ tM
+
+¸k
+
+‖ e00 ‖ . (6.6) 
+
+Proof. The error equation for the first order accurate scheme (6.1) takes the form 
+
+ekn “ e∆tLh ekn´1 ` ∆t `N puknq ´ N puq˘ . (6.7) Taking inner-product of ekn with (6.1) and applying the one-sided Lipschitz condition (1.3) and using Lemma 6.1 we obtain 
+
+xekn, ekny ď x ekn´1, ekny ´ ∆tM ‖ ekn ‖2 . (6.8) From (6.1) we have 
+
+xekn ´ ekn´1, ekny ď ´ ∆tM ‖ ekn ‖2 . (6.9) Using the identity pa ´ bqa ě a2 
+
+> 2
+
+´ b2 
+
+> 2
+
+in (6.9) we get 
+
+‖ ekn ‖2 ´ ‖ ekn´1 ‖2
+
+2 ď ´ ∆tM ‖ ekn ‖2 . (6.10) Equation (6.10) yields 
+
+‖ ekn ‖2ď 1
+
+1 ` 2∆ tM ‖ ekn´1 ‖2ď
+
+´
+
+e´ 2∆ tM 
+
+> 1`2∆ tM
+
+¯Nt
+
+‖ ek 
+
+> 0
+
+‖2“ e´ 2T M  
+
+> 1`2∆ tM
+
+‖ ek 
+
+> 0
+
+‖2 . (6.11) From the error equation corresponding to (6.2) 2 and using (6.11) we obtain 
+
+‖ ek 
+
+> 0
+
+‖ď | α| ‖ ekNt ‖ `| α| ‖ ek´1 
+
+> Nt
+
+‖ď | α|e´ 2T M  
+
+> 1`2∆ tM
+
+‖ ek 
+
+> 0
+
+‖ `| α|e´ 2T M  
+
+> 1`2∆ tM
+
+‖ ek´10 ‖, (6.12) which yields 
+
+‖ ek 
+
+> 0
+
+‖ď |α|e´ 2T M 
+
+> 1`2∆ tM
+
+1 ´ | α|e´ 2T M 
+
+> 1`2∆ tM
+
+‖ ek´10 ‖ . (6.13) Now using (6.13) in (6.11), we have the required estimate in (6.6). 20 G. GARAI AND N. CHAMAKURI 
+
+7. Numerical Illustration 
+
+This section presents the numerical results for the proposed Exp-ParaDiag methods, applied to both linear and nonlinear time-dependent PDEs. The PinT iterations are ini-tialized with zeros and proceed until the error measured in the L8p0, T ; L2pΩqq norm between the reference corresponding sequential solution u and the Exp-ParaDiag solution 
+
+uk at iteration k—is reduced below a tolerance of 10 ´10 . The presented numerical results were obtained on a desktop PC equipped with a 4.2 GHz processor and 64 GB of RAM, with the code implemented in MATLAB 2025. 7.1. Experiment in Linear Settings. We begin by discussing the selection of the free parameter α based on the min-max problem in (2.11). The optimal values, αopt , corre-sponding to different combinations of a, c, and T are presented in Table 1. It can be 
+
+Table 1. Optimal values of α according to (2.11) 
+
+pNx, T q αopt : the optimized α
+
+pa, c q “ p 1, 0q pa, c q “ p 10 ´3, 0q pa, c q “ p 10 ´3, 0.1q pa, c q “ p 10 ´5, 2q
+
+(32, 0.5) 0.0001953125 0.0001953125 0.0001953125 0.0001953125 (64, 2) 0.0001953125 0.0001953125 0.0001953125 0.0001953125 (128, 8) 0.0001953125 0.0001953125 0.0001953125 0.0001953125 (256, 20) 0.0001953125 0.0001953125 0.0001953125 0.0001953125 
+
+observed that αopt is independent of the parameters a, c, Nx, and T . The values of αopt in Table 1 support the preference for smaller α, consistent with the choices commonly made by researchers in this field. For the 1D computation, we consider the initial condition 
+
+u0pxq “ e´30 x2
+
+on the domain Ω “ p´ 1, 1q. For the 2D computation, the initial condi-tion is given by u0px, y q “ e´20 rp x´1{2q2 `p y´1{2q2 s on the domain Ω “ p 0, 1q ˆ p 0, 1q. Unless otherwise stated, both the domain and the initial condition remain fixed throughout. 7.1.1. Experiment of Exp-ParaDiag with Op∆tq Scheme. In the first two plots of Figure 1, we show a comparison between the theoretical and numerical error contraction, as predicted by Theorem 2.1, with T “ 1, ∆ t “ h “ 1{128, and αopt “ 0.0001953125. The results indicate that the discrete error bound is sharp. Next, we present an experiment using the             
+
+> 0123
+> 10 -10
+> 10 -5
+> 0123
+> 10 -10
+> 10 -5
+> 0123
+> 10 -10
+> 10 -5
+> 10 0
+> 0123
+> 10 -10
+> 10 0
+
+Figure 1. First: error comparison for pa, c q “ p 0.1, 0q ; Second: error comparison for pa, c q “ p 10 ´5, 1q; Third: 2nd order accurate Pad´ e approximation; Fourth: 3rd order accurate Pad´ e approximation. PINT FOR EXPONENTIAL INTEGRATORS 21 
+
+Pad´ e approximation of A in Exp-ParaDiag, with exact A used in the reference solution. To approximate the matrix exponential A “ exp p∆tLhq, we employ Pad´ e approximations, which provide rational approximations with favorable stability and accuracy properties. Specifically, we consider the Pad´ e approximations given by exp p∆tLhq « `I ` 1 
+
+> 2
+
+∆tLh
+
+˘ ` I ´ 1 
+
+> 2
+
+∆tLh
+
+˘´1 ` Opp ∆tLhq3q,
+
+which achieves second-order accuracy, and the approximation of the form, exp p∆tLhq « `I ` 2 
+
+> 3
+
+∆tLh ` 1 
+
+> 6
+
+p∆tLhq2˘ ` I ´ 1 
+
+> 3
+
+∆tLh
+
+˘´1 ` Opp ∆tLhq4q,
+
+which is third-order accurate. In the last two plots of Figure 1, we illustrate the convergence behavior of Exp-ParaDiag using second- and third-order accurate Pad´ e approximations of 
+
+A, for varying diffusion coefficients a, with c “ 0 in (1.2), and fixed parameters T “
+
+2, ∆ t “ h “ 1{128, and α “ αopt . As the parameter a decreases, the norm }∆tLh}
+
+becomes smaller, leading to more accurate convergence. Furthermore, higher-order Pad´ eapproximations yield improved convergence, especially for larger values of a. In the first               
+
+> 0123
+> 10 -10
+> 10 0
+> 0123
+> 10
+> -10
+> 10
+> 0
+> 00.5 11.5 2
+> 10 -10
+> 10 -5
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 -5
+> 10 0
+
+Figure 2. First: Mesh refinement for pa, c q “ p 0.01 , 0.1q and T “ 4; Second: Mesh refinement for pa, c q “ p 0.00001 , 0.1q and T “ 4; Third: Long-time simula-tion for pa, c q “ p 0.1, 0.1q; Fourth: Long-time simulation for pa, c q “ p 0.00001 , 0.1q.
+
+two plots of Figure 2, we demonstrate the mesh independence of the proposed method. The initial grid is set to h “ ∆t “ 1{32 and α “ αopt . The results show that the Exp-ParaDiag method remains insensitive to grid refinement across different diffusion coefficients and time window lengths. In the last two plots of Figure 2, we display the convergence behavior of the Exp-ParaDiag method for large time windows and different diffusion coefficients, using ∆ t “ h “ 1{128 and α “ αopt . The results show that the method converges rapidly. Observe that, in the case of T “ 64, we are solving for 1 , 048 , 576 unknowns and converging in one iteration. In the first two plots of Figure 3, we present the convergence behavior for different initial guesses, including polynomial functions, low- and high-frequency sine modes, and exponential functions, using ∆ t “ h “ 1{128 , α “ αopt and T “ 4. The method performs well for all choices of initial guess and across various diffusion coefficients. In the last two plots of Figure 3, we display the spectrum of Q´1 
+
+> α
+
+Q alongside the theoretical bounds provided by Theorem 3.1 and Lemma 3.4, for various diffusion coefficients with 
+
+Nx “ 63, Nt “ 30, α “ αopt , and T “ 0.3. The results show that the theoretical bounds closely capture the spectrum. In the first two plots of Figure 4, we plot the convergence of the preconditioned GMRES for different time window lengths and varying values of a,with h “ 1{128, ∆ t “ 0.01, and α “ αopt . The results show rapid convergence, with the method effectively acting as a direct solver. In the last two plots of Figure 4, we 22 G. GARAI AND N. CHAMAKURI           
+
+> 0123
+> 10 -10
+> 10 -5
+> 10 0
+> 0123
+> 10 -10
+> 10 -5
+> 10 0
+> 0.9998 0.9999 11.0001 1.0002
+> -1.5 -1 -0.5 00.5 11.5
+> 10 -4
+> 0.9998 0.9999 11.0001 1.0002
+> -1.5 -1 -0.5 00.5 11.5
+> 10 -4
+
+Figure 3. First: convergence for pa, c q “ p 0.1, 0.1q; Second: convergence for 
+
+pa, c q “ p 0.00001 , 0.1q; Third: Spectrum of Q´1 
+
+> α
+
+Q and its bound for pa, c q “ p0.1, 0.1q; Fourth: Spectrum of Q´1 
+
+> α
+
+Q and its bound for pa, c q “ p 0.00001 , 0.1q.               
+
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 22.5
+> 10 -10
+> 10 0
+> 0510
+> 10 -10
+> 10 0
+
+Figure 4. First: convergence for various T with pa, c q “ p 0.1, 0.1q; Second: con-vergence for various T with pa, c q “ p 0.00001 , 0.1q; Third: convergence for var-ious α with pa, c q “ p 0.1, 0.1q; Fourth: convergence for various α with pa, c q “ p0.00001 , 0q.
+
+show the convergence of the preconditioned GMRES method for different values of α,with varying diffusion coefficient a and reaction term c, using h “ 1{128, ∆ t “ 0.01, and 
+
+T “ 4. It is evident that α “ αopt provides the most effective choice for the free parameter 
+
+α. In contrast, setting α “ 1 in the purely diffusive case leads to significantly slower convergence. The first and second plots of Figure 5 illustrate the mesh-independence of              
+
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.2 0.4 0.6 0.8 1
+> 10 -10
+> 10 0
+
+Figure 5. First: mesh independence with pa, c q “ p 0.1, 0.1q; Second: mesh inde-pendence with pa, c q “ p 0.00001 , 0.1q; Third: convergence for different T ; Fourth: real part of the solution to the SE. 
+
+the preconditioned GMRES method for different values of a, with T “ 4 and α “ αopt .Starting from a coarse mesh with ph, ∆tq “ p 1{32 , 1{32 q, we observe that the number of PINT FOR EXPONENTIAL INTEGRATORS 23 
+
+iterations remains unchanged under successive mesh refinements, confirming the robustness of the method with respect to discretization parameters. Next, we consider the linear Schr¨ odinger equation (SE) by setting a “ i and c “ 2i in (1.2), where i “ ?´1. We study the convergence behavior of the proposed method in this purely oscillatory, complex-valued setting with the initial condition u0 “ sin pπx q. In the third plot of Figure 5, we present the convergence of the preconditioned GMRES applied to the SE for different time window lengths, using h “ 1{128, ∆ t “ 0.01, and α “ αopt . The results show that the proposed method converges in just one iteration. In the rightmost plot, we show the real part of the solution to the SE for h “ 1{128, ∆ t “ 0.01, T “ 2, and 
+
+α “ αopt .7.1.2. Experiment for Opp ∆tq2q Scheme. In this section, we investigate the convergence behavior of the Exp-ParaDiag method constructed using the BDF2 scheme, both as a fixed-point iteration and as a preconditioner for GMRES. The leftmost plot in Figure 6 displays error curves for various values of the free parameter α for h “ 1 
+
+> 128
+
+, ∆ t “ 0.01, and T “ 2, including the optimal choice α “ αopt . It is evident that smaller values of 
+
+α lead to improved convergence of the Exp-ParaDiag method when used as a fixed-point iteration. In the second plot, we show the convergence of the Exp-ParaDiag method as a fixed-point iteration for different time window sizes with h “ 1 
+
+> 128
+
+, ∆ t “ 0.01, and α “ αopt .We observe that the convergence is independent of the time window size. In the third and           
+
+> 0123
+> 10 -10
+> 10 -5
+> 10 0
+> 0123
+> 10 -10
+> 10 -5
+> 10 0
+> 0.9998 11.0002
+> -1 01
+> 10 -4
+> 0.9998 11.0002
+> -1 01
+> 10 -4
+
+Figure 6. First: convergence for different α with pa, c q “ p 0.00001 , 0q; Second: convergence for different T with pa, c q “ p 0.00001 , 0q; Third: Spectrum of Q´1 
+
+> α
+
+Q
+
+and its bound for pa, c q “ p 0.1, 0.1q; Fourth: Spectrum of Q´1 
+
+> α
+
+Q and its bound for 
+
+pa, c q “ p 0.00001 , 0.1q.
+
+fourth plots of Figure 6, we display the spectrum of the preconditioned system, validating Theorem 4.1 and Lemma 4.5. In the first two plots of Figure 7, we show the convergence of preconditioned GMRES with h “ 1 
+
+> 128
+
+, ∆ t “ 0.01, and α “ αopt . The results indicate that the convergence is very fast and independent of the time window size. In the last two plots of Figure 7, we demonstrate the mesh independence of the preconditioned GMRES by setting T “ 4 and α “ αopt . The grid is initialized with ph, ∆tq “ p 1{32 , 1{32 q. It is clear that the convergence is independent of the mesh parameters. In the first two plots of Figure 8, we show the GMRES residuals of the preconditioned GMRES method for different values of α, with ∆ t “ h “ 1 
+
+> 128
+
+and T “ 4. The results show that convergence is fast, and becomes even faster as α decreases. Next, we consider the biharmonic heat equation ut “ ´ 10 ´5∆2u with boundary conditions 
+
+u “ 0 and ∆ u “ 0, and initial condition u0 “ sin p2πx qe´15 x2
+
+. We apply the Exp-ParaDiag 24 G. GARAI AND N. CHAMAKURI                 
+
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+
+Figure 7. First: convergence for different T with pa, c q “ p 0.1, 0.1q; Second: convergence for different T with pa, c q “ p 0.00001 , 0.1q; Third: mesh independence for pa, c q “ p 0.1, 0.1q; Fourth: mesh independence for pa, c q “ p 0.00001 , 0.1q.         
+
+> 0123
+> 10 -10
+> 10 0
+> 0123
+> 10 -10
+> 10 0
+> 0123
+> 10 -10
+> 10 0
+
+Figure 8. First: convergence for different α with pa, c q “ p 0.1, 0.1q; Second: convergence for different α with pa, c q “ p 0.00001 , 0.1q; Third: convergence for different T ; Fourth: solution profile up-to T “ 4. 
+
+method based on BDF2 to solve this equation. In the third plot of Figure 8, we show the convergence of the proposed method for different values of T , using h “ 1 
+
+> 128
+
+, ∆ t “ 0.05, and α “ αopt . The results indicate that convergence is fast and independent of the time window size. In the rightmost plot, we display the solution profile of the biharmonic heat equation with h “ ∆t “ 1 
+
+> 128
+
+, α “ αopt , and T “ 4. 7.1.3. Experiment in 2D. In this section, we present numerical experiments for the Exp-ParaDiag method, used both as a fixed-point iteration and as a preconditioner in GMRES, for first-order and second-order time-stepping schemes in 2D. In the first two plots of Figure 9, we display the error curves of the Exp-ParaDiag method used as a fixed-point iteration for different values of T , by varying a, with h “ 1 
+
+> 40
+
+, ∆ t “ 0.05, and α “ αopt .It can be observed that convergence is rapid and independent of the time window size. As observed in the 1D case, the method also converges faster in 2D for higher diffusion coefficients. Therefore, we present results for lower diffusion to illustrate the method’s performance. In the third plot, we show the convergence behavior of the Exp-ParaDiag method for different choices of α, with h “ 1 
+
+> 40
+
+, ∆ t “ 0.05, and T “ 4. It can be observed that smaller values of α lead to faster convergence. In particular, values of α close to αopt 
+
+yield the best convergence in terms of iteration count. In the rightmost plot of Figure 9, we present the convergence behavior of the Exp-ParaDiag method under mesh refinement. We start with a very coarse mesh, ph, ∆tq “ p 1{10 , 1{10 q, with T “ 4 and α “ αopt . The results indicate that convergence is independent of grid refinement. PINT FOR EXPONENTIAL INTEGRATORS 25                  
+
+> 00.5 1
+> 10 -10
+> 10 -5
+> 10 0
+> 00.5 11.5 22.5
+> 10 -10
+> 10 -5
+> 10 0
+> 012345
+> 10 -10
+> 10 -5
+> 10 0
+> 00.5 11.5 22.5
+> 10 -10
+> 10 -5
+> 10 0
+
+Figure 9. First: convergence of Exp-ParaDiag with pa, c q “ p 0.1, 0.1q; Second: convergence of Exp-ParaDiag with pa, c q “ p 0.00001 , 0q; Third: convergence for different α with pa, c q “ p 0.00001 , 0.1q; Fourth: mesh independence with pa, c q “ p0.00001 , 0.1q.
+
+Next, we present the convergence of preconditioned GMRES for a first-order accurate scheme. In the first two plots of Figure 10, we display the error curves for different values of T and varying a, using h “ 1 
+
+> 40
+
+, ∆ t “ 0.5, and α “ αopt . It can be observed that the convergence is rapid and independent of the time window size. In the third plot, we display          
+
+> 00.5 1
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 0123
+> 10 -10
+> 10 0
+
+Figure 10. convergence of preconditioned GMRES; First: for different T with 
+
+pa, c q “ p 0.1, 0.1q; Second: for different T with pa, c q “ p 0.00001 , 0q; Third: for different α with pa, c q “ p 0.00001 , 0.1q.
+
+the convergence behavior under different choices of α, with h “ 1 
+
+> 40
+
+, ∆ t “ 0.05, and T “ 4. We observe a similar pattern to that seen in the fixed-point case. We now examine the convergence behavior of the preconditioned GMRES method based on the BDF2 scheme. The first two plots in Figure 11 show error curves for various time horizons T and different values of a, with parameters set to h “ 1 
+
+> 40
+
+, ∆ t “ 0.5, and α “ αopt .The results demonstrate that the convergence remains unaffected by the length of the time window. The third plot illustrates the convergence behavior for various values of α, with 
+
+h “ 1 
+
+> 40
+
+, ∆ t “ 0.05, and T “ 4. We observe that smaller values of α generally lead to faster convergence. In particular, the best performance is achieved when α is chosen close to the optimal value αopt .We now turn our attention to the Schr¨ odinger equation (SE), which we formulate by setting 
+
+a “ i and c “ 200i in (1.2). To evaluate the convergence properties of the preconditioned GMRES method based on the BDF2 scheme, we apply it to the SE with the initial condition 
+
+u0px, y q “ exp 
+
+´
+
+´ px´0.5q2`p y´0.5q2
+
+> 2μ2
+
+¯
+
+exp p´ 5i px ´ 0.5qq , where μ “ 0.05. We fix h “ 1 
+
+> 40
+
+and ∆t “ 0.05. In the first plot of Figure 12, we present the convergence behavior of the 26 G. GARAI AND N. CHAMAKURI           
+
+> 00.5 1
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 01234
+> 10 -10
+> 10 0
+
+Figure 11. convergence of preconditioned GMRES; First: for different T with 
+
+pa, c q “ p 0.1, 0.1q; Second: for different T with pa, c q “ p 0.00001 , 0q; Third: for different α with pa, c q “ p 0.00001 , 0.1q.                  
+
+> 0123
+> 10 -10
+> 10 0
+> 012345
+> 10 -10
+> 10 0
+> 00.2 0.4 0.6 0.8 1
+> X
+> 00.2 0.4 0.6 0.8 1
+> Y
+> -0.05 00.05 0.1 0.15 0.2 0.25
+> 00.2 0.4 0.6 0.8 1
+> X
+> 00.2 0.4 0.6 0.8 1
+> Y
+> -0.15 -0.1 -0.05 00.05 0.1 0.15 0.2
+
+Figure 12. convergence of preconditioned GMRES; First: for different T ; Sec-ond: for different α; Third: solution of SE at T “ 1; Fourth: solution of SE at 
+
+T “ 4. 
+
+method for various time window lengths using α “ αopt . The results show that the method consistently converges in just three iterations, regardless of the window size. In the second plot, we examine the effect of different values of α on convergence. As in previous cases, smaller values of α lead to faster convergence. In the third and fourth plots of Figure 12, we display the real part of the solution to the SE for T “ 1 and T “ 4, respectively, using 
+
+α “ αopt .In Table 2, we report the CPU time (in seconds) for the preconditioned GMRES and BiCGStab methods applied to the purely diffusive equation, built on first and second order schemes with α “ αopt and ∆ t “ 0.01. BiCGStab exhibits similar convergence behavior to GMRES, as the spectrum of the preconditioned system is clustered around one, an ideal scenario for BiCGStab. Since both methods achieve comparable accuracy, we focus on comparing computational time, where BiCGStab demonstrates a clear advantage by requiring less time to converge. 7.1.4. Experiment for Advection-Diffusion Equation. In this section, we investigate the convergence behavior of the advection-diffusion equation (ADE) with dominant advection under periodic boundary conditions, specifically considering the equation ut “ a∆u ´ 2∇u. 
+
+In the first two plots of Figure 13, we present the convergence behavior of the Exp-ParaDiag method applied to the ADE, using h “ ∆t “ 1{128 and α “ αopt , for varying time window sizes. The tests transition from moderate to low diffusion, i.e., an advection-dominated regime. We observe that the method exhibits rapid convergence even when advection is PINT FOR EXPONENTIAL INTEGRATORS 27 
+
+Table 2. CPU time comparison for preconditioned GMRES with BDF1 and BDF2 (in bracket CPU time for preconditioned BiCGStab) 
+
+Nx Nt DoF BDF1 BDF2 
+
+a “ 10 ´1 a “ 10 ´5 a “ 10 ´1 a “ 10 ´5
+
+361 400 144400 0.78(0.55) 0.77(0.55) 0.83(0.59) 0.85(0.58) 800 288800 0.90(0.51) 1.32(0.91) 1.01(0.54) 1.43(0.96) 1600 577600 1.61(0.86) 2.37(1.63) 1.76(0.91) 2.59(1.71) 3200 1155200 3.02(1.52) 4.47(3.03) 3.24(1.66) 4.96(3.22) 6400 2310400 5.82(2.96) 8.69(5.86) 6.29(3.32) 9.65(6.34) 12800 4620800 11.41(5.87) 23.19(17.37) 12.92(7.09) 26.06(20.35) 
+
+1521 400 608400 30.01(18.96) 30.06(20.24) 32.58(20.31) 32.80(24.41) 800 1216800 40.31(20.61) 61.73(40.01) 42.85(22.36) 67.18(44.13) 1600 2433600 86.53(40.00) 130.30(84.65) 88.57(42.74) 141.52(90.69) 3200 4867200 173.74(88.67) 266.68(175.75) 182.89(89.77) 279.31(187.02) 6400 9734400 352.91(173.26) 534.92(357.87) 369.05(184.30) 563.47(377.44) 12800 19468800 706.38(352.36) 1428.76(1054.26) 747.21(374.03) 1510.21(1126.19)         
+
+> 0123
+> 10 -10
+> 10 0
+> 0123
+> 10 -10
+> 10 0
+> 0.9998 11.0002
+> -1 01
+> 10 -4
+
+Figure 13. First: convergence Exp-ParaDiag with a “ 0.1; Second: convergence of Exp-ParaDiag with a “ 0.00001; Third: Solution of ADE with a “ 0.00001 , h “
+
+∆t “ 1{128 and T “ 3; Fourth: spectrum of the preconditioned system with 
+
+a “ 0.1. 
+
+strongly dominant. In the third plot, we display the solution profile of the ADE up to 
+
+T “ 3, computed using the Exp-ParaDiag method with α “ αopt . In the rightmost plot of Figure 13 and the leftmost plot of Figure 14, we display the spectrum of Q´1 
+
+> α
+
+Q for various diffusion coefficients under periodic boundary conditions, using Nt “ 30, Nx “ 65, and 
+
+α “ αopt . As noted in Remark 3.7, the quantity α 
+
+> 1´α
+
+clearly acts as an upper bound for the spectral distribution. In the second and third plots of Figure 14, we display the convergence behavior of the preconditioned GMRES method for varying time window sizes and diffusion coefficients with h “ 1{128 , ∆t “ 0.01 and α “ αopt . The results show that convergence is fast and remains independent of the time window size. This behavior is consistent with the spectral analysis in Figure 13, where the spectrum of the preconditioned system Q´1 
+
+> α
+
+Q is tightly bounded by α 
+
+> 1´α
+
+, as noted in Remark 3.7. The clustering of eigenvalues within this bound explains the rapid and robust convergence of GMRES across different parameter 28 G. GARAI AND N. CHAMAKURI          
+
+> 0.9998 11.0002
+> -1 01
+> 10 -4
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 0123
+> 10 -10
+> 10 0
+
+Figure 14. First: spectrum of the preconditioned system with a “ 0.00001; Second: convergence of Exp-ParaDiag with a “ 0.1; Third: convergence of Exp-ParaDiag with a “ 0.00001. 
+
+settings. Similar convergence behavior was observed for the Exp-ParaDiag method with BDF schemes of orders two to six; the details are omitted for brevity. 7.1.5. Experiment for Opp ∆tqsq Scheme for 3 ď s ď 6. In this section, we present numerical experiments for the Exp-ParaDiag method based on BDF schemes of orders three to six, as developed in Section 5, applied to the purely diffusive case ( c “ 0) of (1.2) in one spatial dimension. For all experiments, we fix ∆ t “ 0.05, h “ 1{128, and α “ αopt . We examine the method’s performance over various time window lengths and diffusion coefficients. The first two plots of Figure 15 display the convergence behavior of Exp-ParaDiag based on the BDF3 scheme, while the last two plots depict the convergence for the BDF4 scheme. In all cases, the method exhibits rapid convergence. The first two plots of Figure 16 display                 
+
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+
+Figure 15. First: Exp-ParaDiag for BDF3 with a “ 0.1; Second: Exp-ParaDiag for BDF3 with a “ 0.00001; Third: Exp-ParaDiag for BDF4 with a “ 0.1; Fourth: Exp-ParaDiag for BDF4 with a “ 0.00001. 
+
+the convergence trends of the Exp-ParaDiag method implemented with the BDF5 scheme, while the last two plots correspond to the results obtained using the BDF6 scheme. In all scenarios, the method converges efficiently and rapidly. The proposed Exp-ParaDiag method using higher-order BDF schemes exhibits mesh-independent behavior. Similar convergence patterns are observed in 2D, so we omit the details here (as the convergence graph is similar). 7.2. Experiment in Non-linear Settings. In this section, we show some numerical results for the Exp-ParaDiag method applied to a few nonlinear PDEs. We start with the PINT FOR EXPONENTIAL INTEGRATORS 29                 
+
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+> 00.5 11.5 2
+> 10 -10
+> 10 0
+
+Figure 16. First: Exp-ParaDiag for BDF5 with a “ 0.1; Second: Exp-ParaDiag for BDF5 with a “ 0.00001; Third: Exp-ParaDiag for BDF6 with a “ 0.1; Fourth: Exp-ParaDiag for BDF6 with a “ 0.00001. 
+
+Allen-Cahn equation, where we choose a source term sf px, t q so that the exact solution is 
+
+upx, t q “ 0.5e´t cos p2πx q. The equation looks like this: 
+
+#
+
+ut “ ǫ2∆u ´ p u3 ´ uq ` sf px, t q, in Ω “ p 0, 1q, and ǫ “ 0.01 , 
+
+> Bu
+> Bn
+
+“ 0, on BΩ, and upx, 0q “ 0.5 cos p2πx q for x P Ω. (7.1) In Figure 17, we plot the exact solution, the Exp-ParaDiag solution, and the pointwise error at T “ 0.1 after the first iteration using (6.5). The rightmost plot shows the pointwise error after the second iteration, computed using sN pUkq :“ It bdiag pN 1pu0qq in (6.5). Next, 
+
+Figure 17. Solution and error comparision at T “ 0.1 with h “ 1{128 , α “ 0.005 and Nt “ 100. First: exact solution; Second: Exp-ParaDiag solution; Third: pointwise error after 1st iteration; Fourth: pointwise error after 2nd iteration for 
+
+sN pUkq :“ It b diag pN 1pu0qq in (6.5). 
+
+we consider the following nonlinear reaction-diffusion equation: 
+
+#
+
+ut “ ∆u ´ up, in Ω “ p 0, 1q, and p ą 1, 
+
+> Bu
+> Bn
+
+“ 0, on BΩ, and upx, 0q “ 0.1 cos p2πx q for x P Ω. (7.2) The first two plots in Figure 18 show the convergence of Exp-ParaDiag under different Jacobian approximations and varying levels of nonlinearity. We observe that convergence improves as p increases, primarily because for u0 P p´ 1, 1q, the contribution of the non-linear terms diminishes with larger p. Additionally, Exp-ParaDiag demonstrates good convergence even when the Jacobian is approximated using the initial solution. Next, we propose an alternative way to build an Exp-ParaDiag for the nonlinear scheme (6.1) by treating the nonlinear term evaluated at earlier iterations. The exact procedure 30 G. GARAI AND N. CHAMAKURI                               
+
+> 00.5 11.5 2
+> iteration
+> 10 -10
+> 10 -8
+> 10 -6
+> 10 -4
+> 10 -2
+> 10 0
+> error
+> 00.5 11.5 2
+> iteration
+> 10 -10
+> 10 -8
+> 10 -6
+> 10 -4
+> 10 -2
+> 10 0
+> error
+> 00.5 11.5 2
+> iteration
+> 10 -10
+> 10 -8
+> 10 -6
+> 10 -4
+> 10 -2
+> 10 0
+> error
+
+Figure 18. Convergence of Exp-ParaDiag for (7.2) with h “ 1{128, Nt “ 500, 
+
+α “ 0.005, and T “ 0.5. Left: scheme (6.5); Middle: Jacobian approximation at initial solution, i.e., sN pUkq :“ It b diag pN 1pu0qq in (6.5); Right: scheme (7.3). 
+
+is given as: #
+
+ukn “ e∆tLh ukn´1 ` ∆tN puk´1 
+
+> n
+
+q , n “ 1, 2, ¨ ¨ ¨ , N t,
+
+uk 
+
+> 0
+
+“ αukNt ´ αuk´1 
+
+> Nt
+
+` u0. (7.3) In this case, the all-at-once system takes the form 
+
+pIt b IxqUk ´ p Cα 
+
+> 0
+
+b AqUk “ prk´1 :“ ∆t diag `N puk´11 q, N puk´12 q, ¨ ¨ ¨ , N puk´1 
+
+> n
+
+q˘ ` bk´1.
+
+(7.4) Then we can apply the usual three steps to solve (7.4), which is obvious at this point, so we skip those details here. The convergence of this procedure applied to (7.2) is shown in the rightmost plot of Figure 18. Next we take N puq “ ´ exp puq and L “ a∆ in (1.1) with boundary and initial condition specified in (7.2). Based on that consideration, we proceed with the application of procedure (7.3). In the leftmost plot of Figure 19, we                     
+
+> 0510 15
+> 10 -10
+> 10 -5
+> 10 0
+> 0246810
+> 10 -10
+> 10 -5
+> 10 0
+> 0510 15
+> 10 -10
+> 10 -5
+> 10 0
+
+Figure 19. Convergence of Exp-ParaDiag with h “ 1{256 and ∆ t “ 10 ´3. Left: different T ; Middle: different diffusion coefficient a; Right: different α.
+
+show the convergence of Exp-ParaDiag (7.4) for different time window sizes with a “ 1and α “ 0.00005. We observe that the convergence is robust. The middle plot displays error curves for different diffusion coefficients with T “ 1 and α “ 0.00005, showing that the convergence is independent of the choice of a. In the rightmost plot, we illustrate the convergence for various values of the free parameter α, with T “ 1 and a “ 0.01. It can be seen that the convergence remains consistent. Next we consider the Fisher equation with N puq “ u ´ u2 and L “ a∆ in (1.1) with homogeneous Dirichlet boundary and initial condition upx, 0q “ sech 2p10 xq in Ω “ p´ 1, 1q.Figure 20 shows the solution using the Newton method, the Exp-ParaDiag approximation, PINT FOR EXPONENTIAL INTEGRATORS 31 
+
+Figure 20. Solution and error comparision at T “ 0.1 with h “ 1{128 , α “
+
+0.0005 , a “ 0.1 and Nt “ 100. First: Newton solution; Second: Exp-ParaDiag solution; Third: error after first iteration; Fourth: error after second iteration for 
+
+sN pUkq :“ It b diag pN 1pu0qq in (6.5). 
+
+and the pointwise error at T “ 0.1 after the second iteration of (6.5). The rightmost panel displays the pointwise error after the first iteration, computed using sN pUkq :“ It b
+
+diag pN 1pu0qq in (6.5). We now apply (7.3) to the Fisher equation. Figure 21 shows the convergence of Exp-ParaDiag (7.4) under various settings. The left plot demonstrates robust convergence across different time window sizes with a “ 0.01, and α “ 0.0005. The middle plot confirms convergence is unaffected by changes in a for T “ 1, Nt “ 1000, and α “ 0.0005. The right plot shows consistent behavior across different α values for 
+
+T “ 1, N t “ 1000, and a “ 0.1.         
+
+> 0510 15 20
+> 10 -10
+> 10 -5
+> 10 0
+> 0510
+> 10 -10
+> 10 -5
+> 10 0
+> 0510
+> 10 -10
+> 10 -5
+> 10 0
+
+Figure 21. Convergence of Exp-ParaDiag with h “ 1{128 and ∆ t “ 10 ´3. Left: different T ; Middle: different diffusion coefficient a; Right: different α.
+
+7.2.1. Experiments in 2D. In two dimensions, we consider the Allen–Cahn equation in the unit square with homogeneous Dirichlet boundary conditions and an initial condition given by u0 “ 0.1 sin p2πx q sin p2πy q. The first three plots of Figure 22 present a comparison between the Newton solution and the Exp-ParaDiag solution using (7.4), along with their error at time T “ 0.5, for parameters ǫ “ 0.01 and α “ 0.005. In the rightmost plot, we show the convergence of the Exp-ParaDiag method using (7.4) for different values of ǫ,with T “ 0.5 and α “ 0.005. 8. Conclusion 
+
+In this work, we have introduced the Exponential-ParaDiag (Exp-ParaDiag) method, a novel time-parallel integration framework that combines the efficiency of exponential inte-grators with the ParaDiag paradigm. By incorporating exponential time discretization into 32 G. GARAI AND N. CHAMAKURI      
+
+> 012345
+> 10 -5
+> 10 0
+
+Figure 22. Convergence of Exp-ParaDiag with h “ 1{30 and ∆ t “ 10 ´3 at T “
+
+0.5. First: Newton solution; Second: Exp-ParaDiag solution; Third: Pointwise error; Fourth: Convergence for different ǫ.
+
+the ParaDiag structure, the proposed approach provides a scalable and computationally efficient solver for both stiff and non-stiff PDEs. The Exp-ParaDiag algorithm has been analyzed from two complementary viewpoints: as a fixed-point iteration and as a preconditioner for the GMRES method. This dual inter-pretation offers a comprehensive understanding of its convergence properties and computa-tional characteristics. Moreover, we have extended the formulation to achieve sixth-order temporal accuracy through higher-order exponential integrators. The method has also been generalized to nonlinear problems, for which convergence has been established under suitable assumptions. Extensive numerical experiments confirm the theoretical analysis and demonstrate the robustness, scalability, and efficiency of the proposed method. Future research will focus on improving the computational efficiency of the method through low-rank and rational Krylov approximations of the matrix exponential, implemen-tation of a distributed parallel computing framework, and extending this work to include linear problems with time-dependent coefficients, wave equations, and spatial fractional settings. 
+
+Acknowledgment 
+
+The authors would like to thank the School of Mathematics at IISER Thiruvanantha-puram for the excellent research environment. NC acknowledges SERB, Department of Science and Technology, India (CRG/2022/006421), for their support. 
+
+References            
+
+> [1] J. A. Acebron, J. R. Herrero, and J. Monteiro ,A highly parallel algorithm for computing the action of a matrix exponential on a vector based on a multilevel monte carlo method , Computers & Mathematics with Applications, 79 (2020), pp. 3495–3515. [2] A. H. Al-Mohy and N. J. Higham ,Computing the action of the matrix exponential, with an application to exponential integrators , SIAM journal on scientific computing, 33 (2011), pp. 488–511. [3] D. A. Bini, G. Latouche, and B. Meini ,Numerical methods for structured Markov chains , Oxford University Press, USA, 2005. [4] J. P. Boyd ,Chebyshev and Fourier spectral methods , Courier Corporation, 2001. [5] C. Canuto, M. Y. Hussaini, A. Quarteroni, A. Thomas Jr, et al. ,Spectral methods in fluid dynamics ,Springer Science & Business Media, 2012. PINT FOR EXPONENTIAL INTEGRATORS 33
+
+[6] V. Dimitrov, V. Ariyarathna, D. F. Coelho, L. Rakai, A. Madanayake, and R. J. Cintra , A parallel method for the computation of matrix exponential based on truncated neumann series , in 2017 IEEE 24th Symposium on Computer Arithmetic (ARITH), IEEE, 2017, pp. 35–42. [7] S. C. Eisenstat, H. C. Elman, and M. H. Schultz , Variational iterative methods for nonsymmetric systems of linear equations , SIAM Journal on Numerical Analysis, 20 (1983), pp. 345–357. [8] H. C. Elman , Iterative methods for large, sparse, nonsymmetric systems of linear equations , Yale University, 1982. [9] B. Fornberg and T. A. Driscoll , A fast spectral algorithm for nonlinear wave equations with linear dis-persion , Journal of Computational Physics, 155 (1999), pp. 456–467. [10] M. J. Gander , 50 years of time parallel time integration , in Multiple Shooting and Time Domain Decompo-sition Methods: MuS-TDD, Heidelberg, May 6-8, 2013, Springer, 2015, pp. 69–113. [11] M. J. Gander and L. Halpern , Time parallelization for nonlinear problems based on diagonalization , in Domain decomposition methods in science and engineering XXIII, Springer, 2017, pp. 163–170. [12] M. J. Gander and T. Lunet , Time Parallel Time Integration , Society for Industrial and Applied Mathe-matics, 2024. [13] M. J. Gander and S.-L. Wu , Convergence analysis of a periodic-like waveform relaxation method for initial-value problems via the diagonalization technique , Numerische Mathematik, 143 (2019), pp. 489–527. [14] G. Garai and B. C. Mandal , Diagonalization based parallel-in-time method for a class of fourth order time dependent pdes , Mathematics and Computers in Simulation, 215 (2024), pp. 21–42. [15] , Integrating factor-based time integrators for the cahn–hilliard equation , Mathematical Methods in the Applied Sciences, (2024). [16] S. Gaudreault and J. A. Pudykiewicz , An efficient exponential time integration method for the numerical solution of the shallow water equations on the sphere , Journal of Computational Physics, 322 (2016), pp. 827– 848. [17] M. Hochbruck and C. Lubich , On krylov subspace approximations to the matrix exponential operator , SIAM Journal on Numerical Analysis, 34 (1997), pp. 1911–1925. [18] L. Ju, X. Li, and Z. Qiao , Generalized sav-exponential integrator schemes for allen–cahn type gradient flows ,SIAM journal on numerical analysis, 60 (2022), pp. 1905–1931. [19] S.-J. Li, L.-S. Luo, Z. J. Wang, and L. Ju , An exponential time-integrator scheme for steady and unsteady inviscid flows , Journal of Computational Physics, 365 (2018), pp. 206–225. [20] X.-l. Lin and M. Ng , An all-at-once preconditioner for evolutionary partial differential equations , SIAM Journal on Scientific Computing, 43 (2021), pp. A2766–A2784. [21] P. Linz , Analytical and numerical methods for Volterra equations , SIAM, 1985. [22] J. Liu and S.-L. Wu , A fast block α-circulant preconditoner for all-at-once systems from wave equations ,SIAM Journal on Matrix Analysis and Applications, 41 (2020), pp. 1912–1943. [23] Y. Maday and E. M. Rønquist , Parallelization in time through tensor-product space–time solvers , Comptes Rendus. Math´ ematique, 346 (2008), pp. 113–118. [24] E. McDonald, J. Pestana, and A. Wathen , Preconditioning and iterative solution of all-at-once systems for evolutionary partial differential equations , SIAM Journal on Scientific Computing, 40 (2018), pp. A1012– A1033. [25] C. Moler and C. Van Loan , Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later , SIAM review, 45 (2003), pp. 3–49. [26] Y. Saad , Analysis of some krylov subspace approximations to the matrix exponential operator , SIAM Journal on Numerical Analysis, 29 (1992), pp. 209–228. [27] , Iterative methods for sparse linear systems , SIAM, 2003. [28] E. S¨ uli and D. F. Mayers , An introduction to numerical analysis , Cambridge university press, 2003. [29] S.-L. Wu and T. Zhou , Parallel implementation for the two-stage sdirk methods via diagonalization , Journal of Computational Physics, 428 (2021), p. 110076. 
+
+Institute of Mathematics, Czech Academy of Sciences, Prague, Czech Republic 
+
+Email address : garai@math.cas.cz 
+
+School of Mathematics, Indian Institute of Science Education and Research Thiruvananthapu-ram, India 
+
+Email address : nagaiah.chamakuri@iisertvm.ac.in

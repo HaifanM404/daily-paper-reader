@@ -1,0 +1,453 @@
+Title: Data-Driven Integration Kernels for Interpretable Nonlocal Operator Learning
+
+URL Source: https://arxiv.org/pdf/2603.10305v1
+
+Published Time: Thu, 12 Mar 2026 00:25:43 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+Environmental Data Science (2026), xx :xx 1–14 
+
+METHODS PAPER 
+
+# Data-Driven Integration Kernels for Interpretable Nonlocal Operator Learning 
+
+Savannah L. Ferretti 1, Jerry Lin 2, Sara Shamekh 3, Jane W. Baldwin 1,4 , Michael S. Pritchard 5 and Tom Beucler 6,7 
+
+> 1
+
+Department of Earth System Science, University of California, Irvine, Irvine, CA, USA. E-mail: savannah.ferretti@uci.edu. 
+
+> 2
+
+Department of Computing and Data Science, Boston University, Boston, MA, USA. 
+
+> 3
+
+The Center for Atmosphere Ocean Science, New York University, New York, NY, USA. 
+
+> 4
+
+Lamont-Doherty Earth Observatory, Palisades, NY, USA. 
+
+> 5
+
+NVIDIA Corporation, Santa Clara, CA, USA. 
+
+> 6
+
+Faculty of Geosciences and Environment, University of Lausanne, Lausanne, VD, CH. 
+
+> 7
+
+Expertise Center for Climate Extremes, University of Lausanne, Lausanne, VD, CH. 
+
+Keywords: nonlocal operator learning, interpretable machine learning, kernel integration 
+
+Abstract 
+
+Machine learning models can represent climate processes that are nonlocal in horizontal space, height, and time, often by combining information across these dimensions in highly nonlinear ways. While this can improve pre-dictive skill, it makes learned relationships difficult to interpret and prone to overfitting as the extent of nonlocal information grows. We address this challenge by introducing data-driven integration kernels, a framework that adds structure to nonlocal operator learning by explicitly separating nonlocal information aggregation from local nonlinear prediction. Each spatiotemporal predictor field is first integrated using learnable kernels (defined as con-tinuous weighting functions over horizontal space, height, and/or time), after which a local nonlinear mapping is applied only to the resulting kernel-integrated features and any optional local inputs. This design confines nonlin-ear interactions to a small set of integrated features and makes each kernel directly interpretable as a weighting pattern that reveals which horizontal locations, vertical levels, and past timesteps contribute most to the predic-tion. We demonstrate the framework for South Asian monsoon precipitation using a hierarchy of neural network models with increasing structure, including baseline, nonparametric kernel, and parametric kernel models. Across this hierarchy, kernel-based models achieve near-baseline performance with far fewer trainable parameters, show-ing that much of the relevant nonlocal information can be captured through a small set of interpretable integrations when appropriate structural constraints are imposed. 
+
+Impact Statement 
+
+Many geophysical processes depend on nonlocal structure in horizontal space, height, and time, yet most data-driven models encode these dependencies implicitly, limiting interpretability and robustness. This work introduces data-driven integration kernels, which make nonlocal influence explicit by separating how information is aggregated from how local predictions are made. Because kernels define physically interpretable weighting patterns, they allow nonlocal structure to be analyzed and compared alongside predictive performance, revealing whether different modeling choices rely on similar forms of nonlo-cal dependence. The resulting kernel-integrated features provide a direct pathway for informing and constraining physically interpretable parameterizations derived from data-driven models. 
+
+> arXiv:2603.10305v1 [cs.LG] 11 Mar 2026
+
+2 Ferretti et al. 
+
+1. Introduction 
+
+Geophysical processes are inherently nonlocal, with local outcomes depending on conditions across neighboring horizontal locations, the vertical column, and past timesteps. A growing body of machine learning research addresses this structure by learning operators (Kovachki et al 2023) that map entire, high-dimensional input fields to local outputs. Such models have been used to learn nonlocal processes in weather and climate, and have achieved strong predictive performance across a range of applications (Bonev et al 2025; Pathak et al 2022; Watt-Meyer et al 2025). These operator-learning approaches can flexibly combine information across horizontal space, height, and time, but nonlocal contributions are typically encoded implicitly within large parameter sets, making it difficult to identify which spatial scales, vertical levels, or memory timescales are most influential. As a result, adding broader nonlocal context can increase model complexity without providing clearer insight into how nonlocal information is actually used. A range of strategies have been proposed to manage this complexity. Dimensionality-reduction approaches such as principal-component analysis and encoder–decoder architectures (including autoen-coders) compress high-dimensional fields into lower-dimensional latent representations, but these representations often reflect architectural or statistical choices rather than physically meaningful struc-ture (Monahan et al 2009; Wani 2025). Post-hoc explainability methods aim to attribute predictions to influential regions or features, but their results depend on both the trained model and the attribution technique (O’Loughlin et al 2025; Silva and Keller 2024). Because such interpretations are produced by fitting additional explanatory models after training, they can compound modeling uncertainty, reinforce prior expectations, and fail to provide stable or physically interpretable summaries of nonlocal influence. Together, these limitations point to the need for approaches that represent nonlocal structure explicitly within the learned operator, while retaining the expressive power required to model complex geo-physical systems. Such approaches should reduce dimensionality, make nonlocal influence directly inspectable, and support systematic comparison across models and data settings, without relying on post-hoc interpretation or latent variables whose meaning depends on model-specific choices. We introduce integration kernel learning , which addresses these requirements by representing a model’s nonlocal behavior through learned kernels that weight information across horizontal space, height, and/or time prior to prediction. By explicitly separating nonlocal integration from local nonlin-ear mapping, the framework constrains the operator class while preserving flexibility in local response. The learned kernels yield continuous, coordinate-aware summaries of nonlocal influence, embedding interpretability directly into the operator without sacrificing predictive skill. 
+
+Key contributions of this work include: 
+
+• We introduce integration kernel learning as an interpretable framework for representing nonlocal operators using continuous weighting functions over horizontal space, height, and time. • We show that separating nonlocal integration from local nonlinear mapping regularizes the operator class and yields interpretable kernels. • We develop a hierarchy of models, from unconstrained neural networks to nonparametric and parametric kernel models, to quantify trade-offs between skill, complexity, and interpretability. • We apply the framework to South Asian monsoon precipitation as a case study, showing that kernel models retain most of the predictive skill of full-field models while revealing key dependencies. 
+
+2. Methodology 
+
+We represent nonlocal dependencies in continuous geophysical data using a two-step procedure. First, predictor fields are integrated over horizontal space, height, and/or time using learnable kernels to Environmental Data Science 3form lower-dimensional features. Second, these kernel-integrated features are passed to a local non-linear mapping to predict the target variable. We use a spatiotemporal coordinate system standard in atmospheric applications, but the formulation is readily generalized to other nonlocal processes and coordinate systems. 
+
+2.1. Nonlocal Operators via Integration Kernels 
+
+Let x denote horizontal location, 𝑝 denote pressure, and 𝑡 denote time. We aim to predict a target variable (e.g., precipitation) 𝑦 (x0, 𝑡 0) at location x0 and time 𝑡 0 using predictor fields (e.g., temperature and humidity) {𝜑 𝑖 (x, 𝑝, 𝑡 )} 𝑁 𝜑 
+
+> 𝑖 =1
+
+, where 𝑁 𝜑 is the number of predictor variables. Predictor fields are defined over horizontal space, pressure, and time, while the target variable is defined only over horizontal space and time. We view the mapping from predictor fields to the target as a nonlocal operator L and approximate: 
+
+𝑦 (x0, 𝑡 0) ≈ L [{𝜑 𝑖 }] (x0, 𝑡 0), (2.1) where {𝜑 𝑖 } denotes the collection of all predictor fields. A purely local model would restrict 𝑦 (x0, 𝑡 0) to depend only on 𝜑 𝑖 (x0, 𝑝 0, 𝑡 0), where 𝑝 0 denotes the vertical level nearest the surface, which is insufficient for quantities such as precipitation that depend on nonlocal structure (Emanuel et al 1994). We therefore allow L to depend on a surrounding neighborhood in horizontal space, height, and time. To parameterize this neighborhood dependence, we use integration kernels . For each predictor field 𝜑 𝑖 , integration kernels define linear operators that aggregate the field over specified domains in horizontal space, height, and/or time relative to the prediction point. Each operator produces a kernel-integrated feature, and multiple kernels for the same predictor may differ in their domains or weighting patterns, yielding distinct aggregated summaries of 𝜑 𝑖 . The collection of these features provides a low-dimensional representation of the nonlocal information used in the subsequent prediction step. Formally, the ℓth kernel-integrated feature associated with predictor 𝜑 𝑖 is defined as: ̂
+
+𝜑 (ℓ ) 
+
+> 𝑖
+
+(x0, 𝑡 0) =
+
+π 𝑡 0  
+
+> 𝑡 0−𝜏 max
+
+π 𝑝 𝑠 
+
+> 0
+
+π
+
+> D
+
+𝑘 (ℓ ) 
+
+> 𝑖
+
+(x, 𝑝, 𝑡 ; x0, 𝑡 0) 𝜑 𝑖 (x, 𝑝, 𝑡 ) dx d𝑝 d𝑡, (2.2) where D denotes a neighborhood of horizontal locations around x0, 𝑝 ∈ [ 0, 𝑝 𝑠 ] is the pressure coor-dinate with 𝑝 = 0 hPa at the top of the atmosphere and 𝑝 = 𝑝 𝑠 at the surface, and 𝜏 max > 0 sets the temporal memory. The temporal integral is restricted to 𝑡 ≤ 𝑡 0 to prevent leakage of future information. The kernel 𝑘 (ℓ ) 
+
+> 𝑖
+
+(x, 𝑝, 𝑡 ; x0, 𝑡 0) assigns weights to 𝜑 𝑖 at (x, 𝑝, 𝑡 ) relative to the prediction point (x0, 𝑡 0).
+
+2.2. Approximating the Nonlocal Operator with Kernel-Integrated Features 
+
+Equation 2.2 defines kernel-integrated features ̂ 𝜑 (ℓ ) 
+
+> 𝑖
+
+(x0, 𝑡 0) that summarize nonlocal information in each predictor field 𝜑 𝑖 . In addition to these features, we allow optional local inputs 𝝍 (x0, 𝑡 0) (e.g., surface fluxes or land properties) evaluated directly at the prediction point. We can model the target variable as a function of both: 
+
+𝑦 (x0, 𝑡 0) ≈ 𝐹 
+
+({̂ 𝜑 (ℓ ) 
+
+> 𝑖
+
+(x0, 𝑡 0)} 
+
+> 𝑖,ℓ
+
+, 𝝍 (x0, 𝑡 0)
+
+)︸ ︷︷ ︸ 
+
+> local in ̂𝜑
+
+≈ 𝐹 
+
+({K (ℓ ) 
+
+> 𝑖
+
+[𝜑 𝑖 ] ( x0, 𝑡 0)} 
+
+> 𝑖,ℓ
+
+, 𝝍 (x0, 𝑡 0)
+
+)︸ ︷︷ ︸     
+
+> (local operator 𝐹 ) ◦ ( nonlocal integrations K(ℓ)
+> 𝑖 )
+
+. (2.3) Here, K (ℓ ) 
+
+> 𝑖
+
+denotes the nonlocal integration operator defined by the kernel 𝑘 (ℓ ) 
+
+> 𝑖
+
+in Equation 2.2. Each operator K (ℓ ) 
+
+> 𝑖
+
+acts on a single predictor field 𝜑 𝑖 , while nonlinear interactions among predictors are 4 Ferretti et al. 
+
+learned by 𝐹 , which we implement using neural networks. The original operator acting on full spa-tiotemporal fields (x, 𝑝, 𝑡 ) is thus approximated by the composition 𝐹 ◦ K , with 𝐹 operating only on the kernel-integrated feature space at (x0, 𝑡 0).This factorization confines nonlocal aggregation to the kernel stage and restricts interactions across predictors to the finite set of kernel-integrated features, reducing the effective dimensionality of the mapping and enabling direct interpretation of the learned kernels as weighting functions over horizontal space, height, and/or time. 
+
+2.3. Discrete Kernel Operators and Learning from Data 
+
+To learn the integration kernels from discrete data, we sample each predictor field 𝜑 𝑖 (x, 𝑝, 𝑡 ) on a horizontal grid {x𝑛 }𝑁 x 
+
+> 𝑛 =1
+
+⊂ D, a pressure grid {𝑝 𝑚 }𝑁 𝑝  
+
+> 𝑚 =1
+
+⊂ [0, 𝑝 𝑠 ], and past timesteps {𝑡 𝑟 }𝑁 𝑡  
+
+> 𝑟 =1
+
+⊂[𝑡 0 − 𝜏 max , 𝑡 0]. Quadrature weights Δ𝐴 𝑛,𝑚,𝑟 , Δ𝑝 𝑛,𝑚,𝑟 , and Δ𝑡 𝑛,𝑚,𝑟 represent horizontal area, pres-sure, and temporal integration elements and allow for irregular grids or custom integration schemes, though they do not, in general, guarantee mesh-invariant representations. With this discretization, the kernel-integrated feature in Equation 2.2 is approximated by the weighted sum: ̂
+
+𝜑 (ℓ ) 
+
+> 𝑖
+
+(x0, 𝑡 0) ≈ 
+
+> 𝑁 𝑡
+
+’
+
+> 𝑟 =1
+> 𝑁 𝑝
+
+’
+
+> 𝑚 =1
+> 𝑁 x
+
+’
+
+> 𝑛 =1
+
+𝑘 (ℓ ) 
+
+> 𝑖,𝑛,𝑚,𝑟
+
+(x0, 𝑡 0) 𝜑 𝑖 (x𝑛 , 𝑝 𝑚 , 𝑡 𝑟 ) Δ𝐴 𝑛,𝑚,𝑟 Δ𝑝 𝑛,𝑚,𝑟 Δ𝑡 𝑛,𝑚,𝑟 , (2.4) where 𝑘 (ℓ ) 
+
+> 𝑖,𝑛,𝑚,𝑟
+
+are the discretized kernel weights. For each predictor field 𝜑 𝑖 , the kernel weights {𝑘 (ℓ ) 
+
+> 𝑖,𝑛,𝑚,𝑟
+
+} form a tensor K𝑖 ∈ R𝐿 𝑖 × 𝑁 x × 𝑁 𝑝 × 𝑁 𝑡 , with one kernel per feature index ℓ. Each kernel is normalized after discretization so that it integrates to one over the chosen horizontal space–height–time domain, and thus acts as a weighting pattern when forming features. Kernel weights are not required to be positive, allowing kernels to emphasize, suppress, or contrast contributions from different regions. In practice, values of 𝜑 𝑖 that are undefined at a given location (i.e., at pressure levels exceeding the local surface pressure) are excluded from the summation in Equation 2.4 via a binary validity mask. Masked values are set to zero in standardized space (corresponding to the training set mean) and omitted from the quadrature sum, ensuring they do not bias kernel-integrated features. In such cases, the effec-tive kernel integral over the valid vertical domain may be less than one, particularly at high-elevation locations where surface pressure is lower. Rather than renormalizing kernels locally, we provide the validity mask to the downstream mapping, allowing it to learn and account for variations in effective column depth during training. Depending on the application, kernels may be defined over all three dimensions or restricted to a sub-set, corresponding to limiting the integration domain in Equation 2.2 and constraining the structure of 
+
+K𝑖 . After computing all kernel-integrated features, they are concatenated with any local inputs 𝝍 (x0, 𝑡 0)
+
+to form the feature vector used for prediction. Once the integration domains are specified, the most gen-eral kernel representation is nonparametric, with all weights 𝑘 (ℓ ) 
+
+> 𝑖,𝑛,𝑚,𝑟
+
+learned directly. Because kernels are shared across all samples, they encode a consistent description of how each predictor field con-tributes nonlocally to the prediction. However, strong correlations in the data can render such kernels underdetermined and prone to overfitting. We therefore also consider parametric kernel families that restrict the integration stage to simple func-tional shapes. These include kernels that emphasize a preferred coordinate value (Gaussian), limited multimodal structure (mixture-of-Gaussians), uniform averaging over an interval (top-hat), and mono-tonic decay away from a boundary or reference point (exponential). By constraining the form of the nonlocal aggregation, parametric kernels reduce the number of learnable parameters even further while yielding more interpretable summaries of nonlocal influence. In practice, these kernel families may be Environmental Data Science 5applied uniformly across predictors or combined in predictor-specific mixtures. The explicit functional forms used in this study are provided in Appendix A. 
+
+3. Example Implementation 
+
+3.1. Motivation 
+
+Parameterizing South Asian monsoon rainfall as a function of thermodynamic input variables provides a stringent, practically relevant testbed for methods that learn nonlocal relationships in atmospheric data. Monsoon precipitation has strong societal and hydrological impacts (Gadgil and Gadgil 2006), yet global climate models continue to struggle with its intensity, spatial organization, and variability (IPCC 2021), in part due to uncertainty in how to represent the precipitation formation process as a function of local and nonlocal thermodynamic structure. These challenges make the monsoon a reasonably representative setting for assessing whether integration kernels can identify how atmospheric structure across pressure levels, spatial neighborhoods, and past timesteps contributes to precipitation. 
+
+3.2. Implementation Framework 
+
+We apply integration kernel learning to predict precipitation over the South Asian monsoon region (5–25 ◦N, 60–90 ◦E) during June–August of 2000–2020. Predictions are made using multiple thermo-dynamic predictor fields together with a small set of local inputs. The thermodynamic predictor fields are relative humidity (RH), equivalent potential temperature (𝜃 𝑒 ), and saturated equivalent potential temperature ( 𝜃 ∗
+
+> 𝑒
+
+), which are relevant for South Asian monsoon rainfall variability (Anonymous 2025). Local inputs (evaluated only at the prediction point) are sensi-ble heat flux, latent heat flux, and land fraction. ERA5 reanalysis (Hersbach, Bell, Berrisford, Biavati et al 2023a, 2023b) provides physically consistent, well-resolved vertical profiles over the South Asian monsoon region, particularly for lower-tropospheric temperature and moisture (Hersbach, Bell, Berris-ford, Hirahara et al 2020; Johnston et al 2021). Accordingly, all predictor fields and local inputs are extracted from hourly ERA5 data on its native 0.25 ◦ × 0.25 ◦ grid. Thermodynamic predictors are con-structed from surface pressure and from temperature and specific humidity on pressure levels between 1,000 and 500 hPa. Precipitation targets are taken from half-hourly IMERG V06 (Huffman et al 2019) on its native 0.1◦ × 0.1◦ grid, and are aggregated to hourly using centered hourly means. Prior to model training, both datasets are conservatively regridded to a common 1.0◦ × 1.0◦ grid, consistent with the horizontal scales at which precipitation is typically parameterized in large-scale atmospheric models. To evaluate the role of nonlocal information, we prescribe in advance the extent of spatial, vertical, and temporal context available to the model when predicting precipitation at a location (x0, 𝑡 0). A model is considered nonlocal along a given dimension if it is allowed to depend on predictor values within a fixed domain around (x0, 𝑡 0) along that dimension. Horizontal nonlocality corresponds to a 3 × 3
+
+neighborhood of adjacent grid cells centered on x0 (9 grid cells total), vertical nonlocality corresponds to pressure levels between 1,000 and 500 hPa (16 levels total), and temporal nonlocality corresponds to access to the current timestep together with the six preceding timesteps (7 hours total). Models that are local along a given dimension depend only on predictor values within the current grid cell, at the current timestep, and at the lowest pressure level above the local surface. All models are trained and evaluated on an identical set of horizontal locations and timesteps for which the full required nonlocal context is available. Prediction locations lacking the necessary horizontal, vertical, or temporal domains, due to proximity to domain boundaries or insufficient temporal coverage, are excluded from all experiments. We use a chronological split with data from 2000–2014 for training, 2015–2017 for validation, and 2018–2020 for testing. All variables except land fraction (since it is time-invariant and bounded in [0, 1])are standardized using training set means and standard deviations, with precipitation transformed using 
+
+log (1 + 𝑦 ) prior to standardization to reduce the influence of extremes and improve training stability. 6 Ferretti et al. 
+
+Figure 1 provides a schematic overview of the kernel-based modeling framework implemented in this study. 
+
+Figure 1. Schematic of integration kernel learning. Learned kernels summarize predictor fields across horizontal space, height, and/or time into features, which are combined with local inputs and passed to a downstream nonlinear model to predict the local output. 
+
+3.3. Model Hierarchy 
+
+To isolate the role of nonlocal structure and to assess the value of integration kernels, we construct a three-level model hierarchy in which the representation of nonlocal information is varied while all other components are held fixed. Across all models, the same downstream neural network is used (see Appendix B) to map inputs to precipitation, ensuring that differences in performance arise solely from how nonlocal information is encoded. At the first level, we train baseline models that ingest predictor-field values from the prescribed hor-izontal space–height–time domain. For each predictor 𝜑 𝑖 , values within this fixed domain are flattened and concatenated with the local inputs before being passed to the neural network. In these models, non-local aggregation and nonlinear interactions are learned jointly within the network weights, providing maximal flexibility but limited interpretability. At the second level, we train nonparametric kernel models that explicitly separate nonlocal aggre-gation from local nonlinear prediction. Each predictor field is summarized by a set of learned kernel-integrated features, which are concatenated with the local inputs and passed to the same neural network used in the baseline models. This structure reduces the effective number of trainable parameters and confines nonlinear interactions to a reduced feature space. At the third level, we train parametric kernel models that further constrain the aggregation stage by restricting kernels to simple functional families (e.g., Gaussian, mixture-of-Gaussians, top-hat, or exponential; see Appendix A). As in the nonparametric case, predictor fields are integrated using kernels and mapped to precipitation through the same downstream network. We consider both models that apply a single kernel family across all predictors and models that allow predictor-specific choices of parametric families. 
+
+4. Results 
+
+We evaluate the integration kernel approach by (1) examining how predictive performance depends on the representation of nonlocal structure and (2) analyzing the vertical kernel structure recovered by the kernel models. All results are reported on the test set and evaluated at the common set of prediction points described in Section 3.2. Environmental Data Science 7
+
+Figure 2. Test set 𝑅 2 for baseline (blue), nonparametric kernel (yellow), and parametric kernel (red) models. Values are computed in the standardized, log-transformed space. Model labels indicate the dimensions treated nonlocally, with a subscript 0 denoting locality. Superscript k denotes nonparametric kernels, while TH, EXP, G, and MG denote parametric kernel families (top-hat, exponential, Gaussian, and mixture-of-Gaussians; see Appendix A). The MIX kernel uses mixture-of-Gaussians kernels for RH and 𝜃 ∗ 
+
+> 𝑒
+
+and an exponential kernel for 𝜃 𝑒 .
+
+Figure 2 summarizes predictive performance across the model hierarchy introduced in Section 3.3. The fully local and fully nonlocal baselines provide lower and upper bounds on skill for the prescribed nonlocal domain, while intermediate baseline models that introduce nonlocality along one dimension at a time form an ablation study of horizontal, vertical, and temporal contributions. Among these, the vertically nonlocal model lies closest to the fully nonlocal upper bound, whereas models that are non-local only in space or only in time remain closer to the local lower bound. This ordering is consistent with the dominant role of vertical thermodynamic structure in controlling convective precipitation, with horizontal and temporal context playing a secondary role at the scales considered here (Arakawa and Schubert 1974). That the model hierarchy reflects this expected behavior provides reassurance that the learned representations are capturing physically meaningful sources of predictive skill, motivating our focus on kernel analyses in the vertical dimension. Test set R2 values and variability across random seeds are reported for all models in Table A1 (Appendix C). Relative to the fully local baseline ( R2 ≈ 0.41 ), introducing vertical nonlocality increases R2 to ∼0.53 (a gain of ∼0.12). Relative to this vertically nonlocal baseline, the nonparametric kernel model recov-ers approximately 75% of this gain, while the best parametric kernel model recovers approximately 
+
+67% . Differences among parametric families are modest (approximately 7 × 10 −3 in R2; Table A1 in Appendix C), indicating that predictive skill is insensitive to the parametric form once vertical nonlo-cality is enforced. Kernel-based models therefore achieve performance close to the vertically nonlocal baseline despite operating on substantially reduced input representations, with the remaining loss of skill in the parametric case reflecting the stronger functional constraints imposed on the integration stage. Figure 3 shows that the learned vertical kernels exhibit distinct, predictor-specific structure across the lower troposphere, consistent with known physical controls on South Asian monsoon convection (Ahmed and Neelin 2021; Anonymous 2025; Gayatri et al 2024; Menon et al 2018; Parker et al 2016). For RH, the nonparametric kernels emphasize both near-surface levels (approximately 900–1,000 hPa) and the lower free troposphere (roughly 650–500 hPa), reflecting the combined roles of boundary-layer moisture supply and free-tropospheric humidity in regulating convective intensity and precipitation effi-ciency. The 𝜃 𝑒 kernels exhibit broadly positive weighting through the lower troposphere together with a localized negative contribution near ∼600 hPa, indicating sensitivity to the contrast between boundary-layer parcel energy and lower free-tropospheric conditions, rather than to 𝜃 𝑒 at any single level. The 8 Ferretti et al. 
+
+𝜃 ∗ 
+
+> 𝑒
+
+kernels show alternating positive and negative contributions in the lower free troposphere, indicat-ing sensitivity to the vertical distribution of stability and entrainment-driven dilution that determines whether boundary-layer buoyancy can be maintained during ascent. Parametric kernel models retain these dominant vertical sensitivities while imposing substantially stronger structural constraints. In our best parametric model, RH and 𝜃 ∗ 
+
+> 𝑒
+
+are represented using mixture-of-Gaussians kernels, while 𝜃 𝑒 is represented using an exponential kernel; choices motivated by the qualitative structure of the nonparametric kernels described above. Together, these parameterizations express vertical dependence using a small number of broad modes that capture the primary boundary layer and lower free-tropospheric contrasts while suppressing fine-scale variability. As a result, higher-order oscillations present in the nonparametric kernels are smoothed or omitted, yet the remaining structure preserves the physically relevant vertical controls identified above. Kernels for all predictors and kernel variants are shown in Figure A1 (Appendix C). 
+
+Figure 3. Learned vertical kernels for each predictor field from the two best-performing kernel-based models from Figure 2. Columns correspond to predictor variables. The top row shows nonparametric kernels and the bottom row shows kernels from the best parametric model, with row labels following the notation introduced in Figure 2. Solid lines indicate the mean kernel weight across training seeds (n = 3), with shading denoting ±1 standard deviation. Larger absolute normalized kernel magnitude indicates greater contribution of a given pressure level, with sign indicating positive or negative influence. For predictors where mixture-of-Gaussians kernels were used, the dashed blue lines depict the individual components and the solid red line depicts their sum. 
+
+5. Conclusion 
+
+We introduced data-driven integration kernels as an interpretable framework for learning nonlocal oper-ators by separating nonlocal linear aggregation from local nonlinear prediction. This structure constrains Environmental Data Science 9model complexity, reduces dimensionality, and yields kernels that are directly interpretable as weight-ing patterns over horizontal space, height, and/or time. When this method is applied to South Asian monsoon precipitation, we find that most of the predictive skill gained from nonlocal information arises from vertical structure. This is consistent with established understanding that vertical thermodynamic profiles exert primary control on the generation of deep convective rainfall at the scales considered here, and it provides reassurance that the framework captures physically meaningful sources of pre-dictive skill. At the same time, a key methodological result is that kernel-based models that restrict aggregation to this dimension retain performance close to the strongest baselines while using substan-tially fewer input features, with parametric kernels providing additional regularization, albeit with some loss in skill. Beyond prediction, kernel-integrated features provide compact summaries of nonlocal influence that are well suited for symbolic regression, enabling systematic comparison across mod-els and datasets and supporting the development of analytic, physically interpretable relationships from data-driven operators. 10 Ferretti et al. 
+
+A. Parametric Kernel Families 
+
+The parametric kernel families used to construct the nonlocal integration operators in Section 2.3 are defined below. As with nonparametric kernels, they are evaluated on discrete grids along one or more integration coordinates and then normalized using the quadrature-based procedure described therein. All integration coordinates are internally rescaled to [− 1, 1] for numerical stability and consistent parameterization across dimensions. For horizontal neighborhoods centered at the prediction location, 
+
+−1 and +1 correspond to the edges of the local spatial domain. In the vertical dimension, −1 corresponds to the top of the column (500 hPa) and +1 to the bottom (1,000 hPa), while in time −1 corresponds to the earliest point in the integration window and +1 to the prediction time. Kernel parameters are learned in this normalized coordinate space and mapped back to physical coordinates for interpretation. Each integration kernel is defined as a function of a generic coordinate 𝑠 ∈ Ω𝑠 , where 𝑠 represents horizontal location ( 𝑠 = x), pressure ( 𝑠 = 𝑝 ), or time ( 𝑠 = 𝑡 ). The domain Ω𝑠 is one-dimensional for 𝑠 ∈ { 𝑝, 𝑡 } and two-dimensional for 𝑠 = x, with discretization inherited from the underlying data grid. When kernels act along multiple coordinates, separable kernels are formed as products of the corresponding one- or two-dimensional components. 
+
+Gaussian Kernel . A Gaussian kernel localizes integration around a preferred coordinate value: 
+
+𝑘 (G) (𝑠 ) = exp 
+
+(
+
+− ∥𝑠 − 𝜇 ∥2
+
+2𝜎 2
+
+)
+
+, (A.1) where 𝜇 is the kernel center, 𝜎 > 0 controls the width, and ∥ · ∥ denotes the Euclidean norm when 𝑠 = x.
+
+Mixture-of-Gaussians Kernel. To allow limited multimodal or opposing structure, we consider mixtures of Gaussian kernels. Using the Gaussian form above, a two-component mixture is defined as: 
+
+𝑘 (MG ) (𝑠 ) = 𝑤 1 exp 
+
+(
+
+− ∥𝑠 − 𝜇 1 ∥2
+
+2𝜎 21
+
+)
+
++ 𝑤 2 exp 
+
+(
+
+− ∥𝑠 − 𝜇 2 ∥2
+
+2𝜎 22
+
+)
+
+. (A.2) where 𝜇 1, 𝜇 2 are component centers, 𝜎 1, 𝜎 2 > 0 are component widths, ∥ · ∥ denotes the Euclidean norm when 𝑠 = x, and 𝑤 1, 𝑤 2 are learned scalar weights that may be positive or negative. 
+
+Top-Hat Kernel. The top-hat kernel represents uniform averaging over a bounded interval of the integration domain and is implemented using a smooth approximation for differentiability: 
+
+𝑘 (TH ) (𝑠 ) =
+
+(
+
+1 + 𝑒 − ( 𝑠 −𝑎 )/ 𝜖 ) −1 (
+
+1 + 𝑒 − ( 𝑏 −𝑠 )/ 𝜖 ) −1
+
+, (A.3) where 𝑎 and 𝑏 are learned bounds, and 𝜖 > 0 controls the sharpness of the transition. In the limit 𝜖 → 0,this recovers uniform averaging over [min (𝑎, 𝑏 ), max (𝑎, 𝑏 )] .
+
+Exponential Kernel. The exponential kernel represents influence that decays away from a reference (anchor) location with a single learned scale: 
+
+𝑘 (EXP ) (𝑠 ) = exp 
+
+(
+
+− ℓ(𝑠 )
+
+𝜏 0
+
+)
+
+, (A.4) where 𝜏 0 > 0 is a learned decay scale, and ℓ(𝑠 ) ≥ 0 measures distance to the anchor. For 𝑠 = x, distance is Euclidean, ℓ(x𝑛 ) = ∥x𝑛 −x0 ∥, where x0 is the prediction location and x𝑛 is a location in the horizontal neighborhood. For 𝑠 = 𝑝 , distance is defined on the discrete pressure grid. Let 𝑗 ∈ { 0, . . . , 𝑁 𝑝 − 1}
+
+index pressure levels from top ( 𝑗 = 0, 500 hPa) to bottom ( 𝑗 = 𝑁 𝑝 − 1, 1,000 hPa), and define ℓ( 𝑝 𝑗 ) =
+
+(1−𝛼 ) 𝑗 +𝛼 (𝑁 𝑝 −1− 𝑗 ), where 𝛼 ∈ ( 0, 1) is a learned parameter controlling whether decay is anchored near the top of the column ( 𝛼 ≈ 0) or near the surface ( 𝛼 ≈ 1). For 𝑠 = 𝑡 , distance is defined on the discrete time grid. Let 𝑗 ∈ { 0, . . . , 𝑁 𝑡 − 1} index timesteps from the start of the window ( 𝑗 = 0 at Environmental Data Science 11 
+
+𝑡 0 − 𝜏 max ) to the prediction time ( 𝑗 = 𝑁 𝑡 − 1 at 𝑡 0), and define ℓ(𝑡 𝑗 ) = (𝑁 𝑡 − 1) − 𝑗 , so influence decays exponentially backward into the past. For numerical stability during optimization, small epsilon values ( 10 −8) are added to top-hat and mixture-of-Gaussians kernels to prevent exact zeros, and exponential decay scales 𝜏 0 are clamped to the range [10 −4, 100 ].Different parametric kernel families may be assigned to different predictor fields within the same model, allowing the nonlocal aggregation stage to reflect predictor-specific structure while preserving a shared downstream mapping and a common set of kernel families. 
+
+B. Neural Network Architecture and Training Configuration 
+
+All models in the hierarchy share an identical downstream neural network that maps either flattened pre-dictor fields (baseline models) or kernel-integrated features (kernel-based models), together with local inputs, to precipitation. This ensures that differences in predictive performance across models reflect only differences in how nonlocal information is represented, not differences in network architecture or optimization. The downstream network is a fully connected feedforward model with four hidden layers of widths 256, 128, 64, and 32. Each hidden layer is followed by a GELU activation and dropout with probability 0.1. The output layer consists of a single linear neuron and predicts precipitation in standardized, log-transformed space. Models are trained with a batch size of 500 using the Adam optimizer and an initial learning rate of 
+
+5 × 10 −4. The learning rate is reduced by a factor of 0.5 after two consecutive epochs without validation improvement, with a minimum learning rate of 10 −6. Training proceeds for up to 20 epochs with early stopping based on validation loss, terminating after four consecutive non-improving epochs. The loss function is mean squared error in this standardized, log-transformed space, and all experiments use fixed random seeds (42, 72, 102) to ensure reproducibility. 
+
+C. Additional Results Model R2 ± 1𝜎 
+
+(x, p, t) 0.5765 ± 0.0017 
+
+(x0, p, t0) 0.5250 ± 0.0012 
+
+(x0, pk, t0) 0.4970 ± 0.0002 
+
+(x0, pMIX , t0) 0.4885 ± 0.0010 
+
+(x0, pMG , t0) 0.4884 ± 0.0003 
+
+(x0, pG, t0) 0.4848 ± 0.0014 
+
+(x0, pEXP , t0) 0.4827 ± 0.0011 
+
+(x0, pTH , t0) 0.4820 ± 0.0013 
+
+(x, p0, t0) 0.4397 ± 0.0027 
+
+(x0, p0, t) 0.4334 ± 0.0004 
+
+(x0, p0, t0) 0.4134 ± 0.0006 
+
+Table A1. Mean test set 𝑅 2 ± 1 standard deviation across training seeds (n = 3) for all models shown in Figure 2. Values are computed in the standardized, log-transformed space. 12 Ferretti et al. 
+
+Figure A1. Learned vertical kernels for all kernel-based models shown in Figure 2, extending the results in Figure 3. 
+
+Acknowledgments. We thank Fiaz Ahmed and Eric Wengrowski for their input during the early stages of this work, and Jared Sexton for helpful comments on the manuscript prior to submission. 
+
+Funding Statement. We gratefully acknowledge support from various funding sources. S.L.F. was supported by the National Science Foundation (NSF) Science and Technology Center (STC) Learning the Earth with Artificial Intelligence and Physics (LEAP) (2019625-STC) and the U.S. Department of Energy (DOE) Advanced Scientific Computing Research (ASCR) program (DE-SC0022255). J.L. was supported in part by the Program for Climate Model Diagnosis and Intercomparison (PCMDI), an Earth System Model Evaluation Project supported by the Earth and Environmental Systems Modeling (EESM) program in the DOE Office of Science (OS). S.S. was supported by the DOE Office of Biological and Environmental Research (BER) (DE-SC0025456). M.S.P. acknowledges support from NVIDIA Corporation. J.W.B. was supported by the National Aeronautics and Space Administration (NASA) New Investigator Program in Earth Science (NIP) (80NSSC21K1735). T.B. was supported by the Swiss State Secretariat for Education, Research, and Innovation (SERI) under the Horizon Europe AI4PEX Project (Grant Agreement ID 101137682; SERI No. 23.00546). Computational resources were provided by Perlmutter at the National Energy Research Scientific Computing Center (NERSC), a DOE User Facility (Project m4334). 
+
+Competing Interests. The authors declare no competing interests. 
+
+Data Availability Statement. ERA5 (Hersbach, Bell, Berrisford, Biavati et al 2023a, 2023b) and IMERG V06 (Huff-man et al 2019) data used in this study are publicly available in analysis-ready, cloud-optimized formats via the LEAP Data Catalog (https://catalog.leap.columbia.edu/feedstock/arco-era5) and the Microsoft Planetary Computer Data Catalog (https://planetarycomputer.microsoft.com/dataset/gpm-imerg-hhr), respectively. All code used for data retrieval and processing, model training and inference, and visualization is publicly available at (https://github.com/savannah-ferretti/monsoon-kernels). 
+
+Ethical Standards. The research meets all ethical guidelines, including adherence to the legal requirements of the study country. 
+
+Author Contributions. T.B. developed the initial research concept and provided supervision throughout the project. S.L.F. con-ducted the investigation, including data curation, software development, formal analysis, validation, and visualization, while methodology was developed by T.B. with technical support from S.L.F. and J.L. Funding acquisition and project administra-tion were led by T.B. and M.S.P., with additional administrative support from J.W.B. and resources provided by M.S.P. The REFERENCES 13 
+
+manuscript was drafted by S.L.F. and T.B., and refined through critical review and editing by J.L., S.S., J.W.B., and M.S.P. All authors approved the final submitted draft. 
+
+References 
+
+Ahmed F and Neelin JD (2021) A process-oriented diagnostic to assess precipitation-thermodynamic relations and application to CMIP6 models. Geophysical Research Letters 48 , e2021GL094108. doi: 10.1029/2021GL094108. 
+
+Anonymous (2025), Reference anonymized for double-blind review. Full citation will be included in the camera-ready version upon acceptance. 
+
+Arakawa A and Schubert WH (1974) Interaction of a cumulus cloud ensemble with the large-scale environment, Part I. Journal of Atmospheric Sciences 31 , 674–701. doi: 10.1175/1520-0469(1974)031<0674:IOACCE>2.0.CO;2. 
+
+Bonev B, Kurth T, Mahesh A, Bisson M, Kossaifi J, Kashinath K, Anandkumar A, Collins WD, Pritchard MS and Keller A (2025) FourCastNet 3: A geometric approach to probabilistic machine-learning weather forecasting at scale . arXiv: 2507. 12144 [cs.LG] . Available at https://arxiv.org/abs/2507.12144. 
+
+Emanuel KA, Neelin JD and Bretherton CS (1994) On large-scale circulations in convecting atmospheres. Quarterly Journal of the Royal Meteorological Society 120 , 1111–1143. doi: 10.1002/qj.49712051902. 
+
+Gadgil S and Gadgil S (2006) The Indian monsoon, GDP and agriculture. Economic and Political Weekly 41 (47), 4887–4895. http://www.jstor.org/stable/4418949. 
+
+Gayatri K, Malap N, Murugavel P, Karipot A and Prabhakaran T (2024) Precursor boundary layer conditions for shallow and deep convection: Inferences from CAIPEEX field measurements over the Indian Peninsula. Environmental Research Communications 6, 095025. doi: 10.1088/2515-7620/ad78b9. 
+
+Hersbach H, Bell B, Berrisford P, Biavati G, Horányi A, Muñoz Sabater J, Nicolas J, Peubey C, Radu R, Rozum I, Schepers D, Simmons A, Soci C, Dee D and Thépaut JN (2023a) ERA5 hourly data on pressure levels from 1940 to present [Dataset] .doi: 10.24381/cds.bd0915c6. 
+
+Hersbach H, Bell B, Berrisford P, Biavati G, Horányi A, Muñoz Sabater J, Nicolas J, Peubey C, Radu R, Rozum I, Schepers D, Simmons A, Soci C, Dee D and Thépaut JN (2023b) ERA5 hourly data on single levels from 1940 to present [Dataset] .doi: 10.24381/cds.adbb2d47. 
+
+Hersbach H, Bell B, Berrisford P, Hirahara S, Horányi A, Muñoz Sabater J, Nicolas J, Peubey C, Radu R, Schepers D, Simmons A, Soci C, Abdalla S, Abellan X, Balsamo G, Bechtold P, Biavati G, Bidlot J, Bonavita M, Chiara G, Dahlgren P, Dee D, Diamantakis M, Dragani R, Flemming J, Forbes R, Fuentes M, Geer A, Haimberger L, Healy S, Hogan RJ, Hólm E, Janisková M, Keeley S, Laloyaux P, Lopez P, Lupu C, Radnoti G, Rosnay P, Rozum I, Vamborg F, Villaume S and Thépaut JN (2020) The ERA5 global reanalysis. Quarterly Journal of the Royal Meteorological Society 146 , 1999– 2049. doi: 10.1002/qj.3803. 
+
+Huffman GJ, Stocker EF, Bolvin DT, Nelkin EJ and Tan J (2019) GPM IMERG Final Precipitation L3 Half Hourly 0.1 degree x 0.1 degree V06 [Dataset] . doi: 10.5067/GPM/IMERG/3B-HH/06. 
+
+IPCC (2021) Climate Change 2021: The Physical Science Basis . Contribution of Working Group I to the Sixth Assessment Report of the Intergovernmental Panel on Climate Change. Cambridge, United Kingdom and New York, NY, USA: Cambridge University Press. doi: 10.1017/9781009157896. 
+
+Johnston BR, Randel WJ and Sjoberg JP (2021) Evaluation of tropospheric moisture characteristics among COSMIC-2, ERA5 and MERRA-2 in the tropics and subtropics. Remote Sensing 13 , 880. doi: 10.3390/rs13050880. 
+
+Kovachki N, Li Z, Liu B, Azizzadenesheli K, Bhattacharya K, Stuart A and Anandkumar A (2023) Neural operator: learning maps between function spaces with applications to PDEs. The Journal of Machine Learning Research 24 , 4061–4157. doi: 10.5555/3648699.3648788. 
+
+Menon A, Turner AG, Martin GM and MacLachlan C (2018) Modelling the moistening of the free troposphere during the northwestward progression of Indian monsoon onset. Quarterly Journal of the Royal Meteorological Society 144 , 1152–1168. doi: 10.1002/qj.3281. 
+
+Monahan AH, Fyfe JC, Ambaum MHP, Stephenson DB and North GR (2009) Empirical orthogonal functions: The medium is the message. Journal of Climate 22 , 6501–6514. doi: 10.1175/2009JCLI3062.1. 
+
+O’Loughlin RJ, Li D, Neale R and O’Brien TA (2025) Moving beyond post hoc explainable artificial intelligence: A perspective paper on lessons learned from dynamical climate modeling. Geoscientific Model Development 18 , 787–802. doi: 10.5194/ gmd-18-787-2025. 
+
+Parker DJ, Willetts P, Birch C, Turner AG, Marsham JH, Taylor CM, Kolusu S and Martin GM (2016) The interaction of moist convection and mid-level dry air in the advance of the onset of the Indian monsoon. Quarterly Journal of the Royal Meteorological Society 142 , 2256–2272. doi: 10.1002/qj.2815. 
+
+Pathak J, Subramanian S, Harrington P, Raja S, Chattopadhyay A, Mardani M, Kurth T, Hall D, Li Z, Azizzadenesheli K, Hassanzadeh P, Kashinath K and Anandkumar A (2022) FourCastNet: A global data-driven high-resolution weather model using adaptive fourier neural operators . arXiv: 2202.11214 [physics.ao-ph] . Available at https://arxiv.org/abs/ 2202.11214. 14 REFERENCES 
+
+Silva SJ and Keller CA (2024) Limitations of XAI methods for process-level understanding in the atmospheric sciences. Artificial Intelligence for the Earth Systems 3, e230045. doi: 10.1175/AIES-D-23-0045.1. 
+
+Wani AA (2025) Comprehensive review of dimensionality reduction algorithms: challenges, limitations, and innovative solutions. 
+
+PeerJ Computer Science 11 , e3025. doi: 10.7717/peerj-cs.3025. 
+
+Watt-Meyer O, Henn B, McGibbon J, Clark SK, Kwa A, Perkins WA, Wu E, Harris L and Bretherton CS (2025) ACE2: Accurately learning subseasonal to decadal atmospheric variability and forced responses. npj Climate and Atmospheric Science 8, 205. doi: 10.1038/s41612-025-01090-0.

@@ -1,0 +1,2266 @@
+Title: Kernel Methods for Some Transport Equations with Application to Learning Kernels for the Approximation of Koopman Eigenfunctions: A Unified Approach via Variational Methods, Green's Functions and the Method of Characteristics
+
+URL Source: https://arxiv.org/pdf/2603.06872v1
+
+Published Time: Tue, 10 Mar 2026 00:13:05 GMT
+
+Number of Pages: 59
+
+Markdown Content:
+# Kernel Methods for Some Transport Equations with Application to Learning Kernels for the Approximation of Koopman Eigenfunctions: A Unified Approach via Variational Methods, Green’s Functions and the Method of Characteristics 
+
+Boumediene Hamzi 1,2 , Houman Owhadi 1, and Umesh Vaidya 31Department of Computing and Mathematical Sciences, Caltech, Pasadena, CA, USA 
+
+> 2
+
+The Alan Turing Institute, London, UK 
+
+> 3
+
+Department of Mechanical Engineering, Clemson University, Clemson, SC, USA 
+
+Abstract 
+
+We present a unified theoretical and computational framework for construct-ing reproducing kernels tailored to transport equations and adapted to Koop-man eigenfunctions of nonlinear dynamical systems. These eigenfunctions sat-isfy a transport-type partial differential equation (PDE) that we invert using three analytically grounded methods: (i) A Lions-type variational principle in a reproducing kernel Hilbert space (RKHS), (ii) convolution with a Green’s func-tion, and (iii) a resolvent operator constructed via Laplace transforms along characteristic flows. We prove that these three constructions yield identical kernels under mild smoothness and causality assumptions. We further show that the associated kernel eigenfunctions (Mercer modes) converge in L2 to true Koopman eigenfunctions when the latter lie in the RKHS. Our approach is numerically realized through a mesh-free, convex optimization framework, enhanced with boundary regularization to handle eigenfunction blow-up. Amultiple-kernel learning (MKL) scheme selects kernels automatically via resid-ual minimization. Finally, we demonstrate that the same framework applies verbatim to a broader class of linear transport PDEs, including the advection, continuity, and Liouville equations. The unification of variational principles, Green’s functions, and the method of characteristics enables the development of novel schemes for approximating eigenfunctions of transport equations, including those of the Koopman oper-ator, and introduces a data-driven approach for learning kernels tailored to these approximations. Numerical experiments confirm the practical utility and robustness of the method. 
+
+1
+
+> arXiv:2603.06872v1 [math.NA] 6 Mar 2026
+
+# Contents 
+
+1 Introduction 32 Mathematical Foundations 7
+
+2.1 Lions’s Variational Approach and RKHS . . . . . . . . . . . . . . . . 72.2 Lions’s Variational Approach for Transport PDEs . . . . . . . . . . . 9
+
+3 A Unified Framework for Kernel Construction: From Koopman PDEs to RKHS Representations 11 
+
+3.1 Recovery of Eigenfunctions and Kernel Construction via Green’s Function and Characteristics . . . . . . . . . . . . . . . . . . . . . . 11 3.2 Spectral Decomposition of the Kernel and Koopman Modes . . . . . 15 3.3 Connection to Lions’s Variational Framework . . . . . . . . . . . . . 18 3.4 Equivalence of the Different Approaches . . . . . . . . . . . . . . . . 19 
+
+4 Variational Approximation of Koopman Eigenfunctions 20 
+
+4.1 Lions-Based Variational Optimization . . . . . . . . . . . . . . . . . 20 4.2 Role of Kernel Choice and RKHS Geometry . . . . . . . . . . . . . . 26 4.3 Variational Kernel Learning for Koopman Eigenfunctions via Lions’s Variational Approach . . . . . . . . . . . . . . . . . . . . . . . . . . . 28 4.4 Kernel Choice based on The Method of Characteristics . . . . . . . . 33 
+
+5 Extensions to Other Transport Equations 41 
+
+5.1 Linear Advection Equation . . . . . . . . . . . . . . . . . . . . . . . 42 5.2 Continuity Equation . . . . . . . . . . . . . . . . . . . . . . . . . . . 43 5.3 Liouville Equation . . . . . . . . . . . . . . . . . . . . . . . . . . . . 44 5.4 Transport Equation with Decay . . . . . . . . . . . . . . . . . . . . . 45 
+
+Appendix 46 A Reproducing Kernel Hilbert Spaces (RKHS) 46 B Koopman Operator & Eigenfunctions 48 
+
+B.1 Koopman Operator and its Spectrum . . . . . . . . . . . . . . . . . 48 B.2 Decomposition of Koopman Eigenfunctions . . . . . . . . . . . . . . 49 
+
+C Green’s Function and Characteristics 50 D Proof of Theorem 3.7 51 
+
+21 Introduction 
+
+The theory of reproducing kernel Hilbert spaces (RKHSs) has long served as a pow-erful framework for both the analysis and numerical approximation of solutions to partial differential equations (PDEs). In pioneering work, Jacques-Louis Lions [1,2] demonstrated that one can “invert” an elliptic operator via a variational formulation in a suitably chosen Hilbert space-typically a Sobolev space where point evaluations are continuous-to obtain a reproducing kernel. Specifically, Lions showed that every function in such a space can be recovered via the inner product with a unique kernel, which, under favorable conditions, admits a spectral expansion of the form: 
+
+K(x, y ) = 
+
+> ∞
+
+X
+
+> j=0
+
+ψj (x) ψj (y). (1) Building on these ideas, Engliˇ s, Lukkassen, Peetre, and Persson [3] generalized this variational framework to a broader class of elliptic operators and boundary value problems. Their derivations often expressed the reproducing kernel in terms of classical Green’s or Poisson kernels, thereby highlighting how the kernel encapsu-lates both the geometric structure of the domain and the analytic properties of the differential operator. In parallel, Auchmuty [4] developed an alternative approach by constructing Hilbert spaces of harmonic functions via spectral (Steklov) expansions. His method characterizes the function space in terms of boundary trace spaces and represents the reproducing kernel explicitly as an expansion in the Steklov eigenfunc-tions. This not only recovers the reproducing property but also provides a concrete formula for the kernel, reinforcing the variational principles initially introduced by Lions. On another side, time series data, ubiquitous across scientific disciplines, have motivated a broad range of forecasting methods grounded in statistical and machine learning approaches [5–22]. Dynamical systems theory provides tools to understand the governing rules underlying such data. Originating with the foundational work of Koopman [23], Koopman operator theory offers a linear lens through which to study nonlinear dynamics. More recently, the study of dynamical systems has increasingly focused on the Koopman operator-a linear, infinite-dimensional operator that governs the evolution of observables along trajectories of nonlinear dynamical systems [24]. A central goal in Koopman analysis is to extract the eigenfunctions of this operator, as they reveal the intrinsic modal structure of the system. The techniques pioneered by Lions and refined by Engliˇ s et al. and Auchmuty provide a natural bridge from classical variational principles to the spectral theory of reproducing kernels. Just as harmonic functions can be recovered via kernel-based variational formulations, we construct reproducing kernels whose Mercer eigenfunc-tions approximate Koopman eigenfunctions. Our approach not only unifies these perspectives but also yields a practical numerical scheme: a strictly convex opti-3mization problem in a reproducing kernel Hilbert space whose minimizers capture the desired eigenfunctions with stability and regularization. As a linear operator, the Koopman operator’s spectral decomposition encodes rich information crucial for analysis and synthesis. Principal eigenfunctions, for instance, reveal the geometry of the state space; their joint zero-level sets characterize stable and unstable manifolds of equilibrium points [24]. These eigenfunctions are associated with the limit set or stationary dynamics such as an equilibrium point or limit cycle of the dynamical sys-tems. For example, with the equilibrium dynamics the principal eigenfunctions will have eigenvalues same as that of the linearization of the system at that equilibrium point. In [25–27], these eigenfunctions are used to identify the stability boundary and domain of attraction of an equilibrium. Additionally, they play a key role in optimal control synthesis, as shown in [28,29]. A path-integral formulation for com-puting Koopman eigenfunctions was introduced in [30]. However, challenges remain: the Koopman operator often has both discrete and continuous spectra [24], and ap-proximating an infinite-dimensional operator via finite-dimensional projections can lead to ”spectral pollution” [31]. In this paper, we propose a numerical method for computing principal Koopman eigenfunctions directly, sidestepping the need to construct the Koopman operator explicitly. In particular, we propose an approach for computing the principal eigen-functions of the Koopman operator associated with the equilibrium dynamics. Our method builds on a decomposition principle introduced in [30], wherein the princi-pal eigenfunctions associated with an equilibrium point are partially determined by the linearization of the vector field at the equilibrium. Our work is also inspired by the broader literature on data-driven Koopman learning, such as extended dynamic mode decomposition (EDMD) [32], which approximates the Koopman operator us-ing actions on a space of pre-selected basis functions. From this point of view, our work proposes a method to learn the basis functions from data inspired by Li-ons’s variational approach to contstruct kernels. Recent advances have combined kernel methods with Koopman operator theory [33–38], leveraging the RKHS frame-work [39] to improve regularization, convergence, and interpretability [40,41]. Kernel methods now play a central role in dynamical systems analysis [7, 33, 42–46, 46–62], as well as in surrogate modeling [63]. We use the fact that the principal eigenfunctions have associated eigenvalues same as that of the linearization of the system at an equilibrium point to reduce the spectrum computation problem to the solution of linear advection-type PDE. To that end, we adapt classical ideas from Lions to the setting of transport-type (or advection) eigenvalue problems: 
+
+f (x) · ∇ φ(x) = λ φ (x), or equivalently Lφ (x) := f (x) · ∇ φ(x) − λ φ (x) = 0 . (2) Our goal is to construct a reproducing kernel K(x, y ) for the space of solutions in a unified and numerically tractable way. We pursue two direct approaches: 1. The Green’s function method, which constructs K(x, y ) by symmetrizing a 4causal Green’s function G(x, ξ ) solving the PDE LxG(x, ξ ) = δ(x − ξ). 2. The method of characteristics. This approach leverages the structure of the flow generated by the vector field f (x) to solve the PDE by integrating along characteristic curves. By expressing the solution operator as a semigroup act-ing via pullback along the flow, and taking its Laplace transform, one obtains a resolvent kernel that serves as a reproducing kernel for the solution space. This construction is particularly natural when the flow map is explicitly known or can be efficiently simulated, and is deeply connected to Koopman operator theory. The resulting kernel is not only consistent with Lions’s variational solution and the Green’s function convolution, but also provides a geometric and dynamically-informed representation of the solution space. Under suitable assumptions, these constructions-together with the variational framework-yield equivalent reproducing kernels . That is, the kernel obtained via Green’s function coincides with that derived from the variational or characteristic methods. This also allows to propose a new approach to learn kernels that ap-proximate Koopman’s eigenfunctions from data. This is illustrated in the following diagram Green’s Function Lions’s Variational Approach Reproducing Kernel Method of Characteristics (3) Finally, while our primary interest lies in constructing Koopman eigenfunctions, our methods are general enough to apply to a range of transport-type equations, including the linear advection equation, continuity equation, Liouville equation, and decay transport equations. This unification of classical reproducing kernel theory with modern dynamical systems analysis, via variational methods, provides a rigorous and flexible framework for the data-driven study of nonlinear dynamics. It enables the development of novel schemes for approximating eigenfunctions of transport equations, including those of the Koopman operator, and introduces a data-driven approach for learning kernels tailored to these approximations. 
+
+Our contributions. 
+
+5• Kernel unification theorem. We prove that the reproducing kernel ob-tained via (i) Lions’s variational inversion, (ii) causal Green’s function sym-metrization, and (iii) the Laplace resolvent of the characteristic flow are math-ematically identical under mild smoothness and causality assumptions. 
+
+• Spectral convergence of kernel modes. We prove that the Mercer eigen-functions of the constructed kernels converge (in L2) to Koopman eigenfunc-tions when the latter lie in the RKHS. This bridges kernel-based and spectral methods and provides theoretical support for data-driven kernel approxima-tions. 
+
+• Variational solver for principal Koopman eigenfunctions. We recast the Koopman eigenvalue PDE as a convex optimization problem in an RKHS, yielding a mesh-free, regularized algorithm that remains well-posed even when eigenfunctions exhibit boundary blow-up. 
+
+• Handling blowing eigenfunctions. For systems in which Koopman eigen-functions diverge near the boundary (e.g. the 1D cubic example), we introduce boundary–trace and boundary-layer penalties that confine the optimisation to an interior subdomain and guarantee existence, uniqueness, and numerical stability. 
+
+• Numerical strategies for singular eigenfunctions. We implement bound-ary trace and boundary layer penalties to stably recover Koopman eigenfunc-tions that exhibit boundary divergence. These techniques enable consistent numerical recovery even when eigenfunctions are not square-integrable on the full domain. 
+
+• Dynamics-informed kernels. All kernels in our framework are derived by solving the transport-type PDE ( f · ∇ − λ)ϕ = 0 through three ana-lytically grounded constructions-Green’s functions, variational inversion, and flow-based resolvents-ensuring that the RKHS structure encodes transport ge-ometry and Koopman spectral features. 
+
+• Path-integral kernel construction. We propose a kernel construction method inspired by path-integral formulations to compute Koopman eigen-functions. 
+
+• Unsupervised kernel learning. A multiple-kernel-learning (MKL) scheme tunes kernel weights by minimizing the Koopman residual itself, automatically balancing expressivity and smoothness without manual parameter tuning. 
+
+• Extensibility and validation. Our framework applies verbatim to other linear transport equations-including advection, continuity, Liouville, and decay models-demonstrating its broad scope and practical utility. This extensibility is supported by analytical equivalence and illustrated in Section 5. 6• Koopman-spectral kernel consistency. When a kernel is constructed from exact Koopman eigenfunctions, its Mercer decomposition recovers those modes exactly. This provides a theoretical justification for kernel-based spec-tral learning. 
+
+• Spectral convergence theorem. Under mild assumptions, the Mercer modes of the unified kernel converge in L2 to Koopman eigenfunctions when-ever the latter lie in the RKHS. 
+
+# 2 Mathematical Foundations 
+
+2.1 Lions’s Variational Approach and RKHS 
+
+Lions’s seminal work laid the foundation for constructing reproducing kernels for solution spaces of partial differential equations through a variational framework. In his original setting, Lions considered spaces of harmonic functions defined on a domain with a smooth boundary, where the functions’ boundary values lie in a suitable Sobolev space. His approach can be summarized by the following key ideas: 
+
+• Variational Formulation and the Representer Theorem: Lions showed that if one chooses a Hilbert space H (for example, a Sobolev space) in which the point evaluation functional 
+
+δx : H → R, δx(u) = u(x), (4) is continuous, then by the Riesz representation theorem there exists a unique function K(x, ·) ∈ H (called the reproducing kernel 1) satisfying 
+
+u(x) = ⟨u, K (x, ·)⟩H for all u ∈ H. (5) This result is typically obtained by solving a minimization problem min  
+
+> u∈H, u (x)=1
+
+∥u∥2 
+
+> H
+
+, (6) so that the minimizer is proportional to K(x, ·). 
+
+• Spectral Expansion via Mercer’s Theorem: Under suitable assumptions-such as smoothness of the domain, proper boundary regularity, and the con-tinuity of point evaluations-the reproducing kernel K(x, y ) is continuous and positive–definite. Mercer’s theorem then guarantees that K(x, y ) admits an orthonormal expansion 
+
+K(x, y ) = 
+
+> ∞
+
+X
+
+> j=0
+
+ψj (x)ψj (y), (7) 
+
+> 1For a brief review of RKHSs, see Appendix A
+
+7where {ψj } is an orthonormal basis of H. Thus, Lions’s variational formulation naturally leads to a spectral representation of the kernel. 
+
+• Green’s Function as an Explicit Inversion Mechanism: In Lions’s work the variational inversion of the operator is made explicit by using its Green’s function. That is, if one can construct a Green’s function G(x, ξ ) satisfying 
+
+Lx G(x, ξ ) = δ(x − ξ) (8) (with appropriate causal or boundary conditions), then one may represent the reproducing kernel by an explicit integral formula, 
+
+K(x, y ) = 
+
+Z
+
+> Ω
+
+G(x, ξ ) G(y, ξ ) w(ξ) dξ, (9) for a suitable weight function w(ξ) > 0. In this way, the Green’s function method is a concrete realization of the abstract variational inversion and leads to the same kernel when the associated spectral expansion is performed. 
+
+• Assumptions and Applicability: The success of Lions’s method relies on several key assumptions: 
+
+– The domain Ω is assumed to be sufficiently smooth so that the classical Green’s function exists and point evaluations are continuous in H.
+
+– The boundary of Ω must be regular (often at least C1 or Lipschitz, with even higher regularity required for certain expansions). 
+
+– The inner product on H is chosen such that the evaluation functional δx
+
+is bounded, making H a reproducing kernel Hilbert space. Under these conditions, the variational problem is well-posed, and the repro-ducing kernel is both unique and expressible in terms of a spectral expansion. 
+
+• Connection to Other Approaches: Although Lions’s approach was orig-inally developed for elliptic (harmonic) problems, its core ideas extend nat-urally to more general settings. In later sections we show that the Green’s function method and the method of characteristics-despite originating from different starting points-yield reproducing kernels that are equivalent to the one obtained via Lions’s variational formulation. This equivalence underscores the robustness of the approach: whether the kernel is recovered via a varia-tional principle, through an explicit integral inversion using Green’s functions, or by analyzing the evolution along characteristics (and applying a Laplace transform), the resulting kernel satisfies 
+
+u(x) = ⟨u, K (x, ·)⟩H , (10) for all u ∈ H, and thus fully encapsulates the structure of the solution space. 8In summary, Lions’s approach provides both an abstract variational framework and an explicit method-via Green’s functions-for constructing a reproducing kernel. When adapted to the Koopman eigenfunction problem, 
+
+f (x) · ∇ φ(x) = λ φ (x), (11) ˙x = f (x) (12) 
+
+∂ψ ∂t = f · ∇ ψ = Aψ (13) 
+
+Aφ = λφ (14) ˙x = f (x) + σξ (15) 
+
+∂ψ ∂t = f · ∇ ψ + σ2∇2ψ (16) even though the operator L is first order (and not elliptic in the classical sense), the same underlying principle applies. By defining an appropriate Hilbert space of solutions, the variational method guarantees the existence of a reproducing kernel with a Mercer expansion. Later sections will demonstrate that the reproducing kernel obtained via the Green’s function method and the method of characteristics is equivalent to the one derived by Lions’s variational approach, thus providing a unified framework for these different methodologies. 
+
+2.2 Lions’s Variational Approach for Transport PDEs 
+
+Transport equations are used to model the propagation of quantities under a given velocity field and are characterized by having only first–order derivatives. Such equations arise in various fields including fluid dynamics, statistical mechanics, and dynamical systems. In many contexts (for example in Koopman operator theory 2)one is interested in eigenfunction equations of the form 
+
+f (x) · ∇ φλ(x) = λ φ λ(x), x ∈ Ω ⊂ Rd, (17) where f : Ω → Rd is a smooth vector field and λ is a spectral parameter. Equation (17) is called a transport equation because: 1. It involves only first–order derivatives. 
+
+> 2For a brief review of Koopman operator theory, see Appendix B.
+
+92. The term f (x) · ∇ φλ(x) represents the directional derivative along the flow defined by the differential equation ˙st(x) = f (st(x)) , s0(x) = x. (18) 3. There are no second–order smoothing terms, so the solution is simply advected along the characteristics. 4. In Koopman analysis the evolution is given by [Utφλ]( x) = φλ(st(x)) = eλt φλ(x), (19) and differentiating with respect to t at t = 0 recovers (17). Our goal is to derive a reproducing kernel K(x, y ) associated with the operator 
+
+Lφ (x) := f (x) · ∇ φ(x) − λ φ (x), (20) by two complementary methods: 1. The Green’s Function Approach : We obtain the retarded Green’s function 
+
+G(x, ξ ) by solving 
+
+Lx G(x, ξ ) = δ(x − ξ) (21) (where Lx indicates that the operator acts on the variable x) and then form a symmetric kernel via a convolution: 
+
+K(x, y ) = 
+
+Z
+
+> Ω
+
+G(x, ξ ) G(y, ξ ) w(ξ) dξ, (22) with w(ξ) > 0 a weight function. 2. The Method of Characteristics (Resolvent Kernel) : We write the solu-tion of (17) along characteristics as 
+
+φλ(x) = exp  λ T (x)g(s−T (x)(x)) , (23) where T (x) is the time needed for the characteristic through x to hit a pre-scribed initial hypersurface. This yields the Koopman semigroup [Ttg]( x) = g s−t(x), (24) whose Laplace transform (resolvent) defines the kernel 
+
+Kα(x, y ) = 
+
+Z ∞
+
+> 0
+
+e−αt δ y − st(x)dt, α > Re λ. (25) In the last section of the paper, we also illustrate these methods for several famous transport equations: the linear advection equation, the continuity equation, and the Liouville equation. We then show that both approaches yield the same reproducing kernel and explain the significance of this equivalence. 10 3 A Unified Framework for Kernel Construction: From Koopman PDEs to RKHS Representations 
+
+In this section, we present a unified framework for recovering Koopman eigenfunc-tions and constructing reproducing kernels associated with transport-type partial differential equations. We demonstrate that the eigenfunctions can be recovered equivalently via Green’s functions or characteristic flows, and that both methods yield the same reproducing kernel through a variational formulation in the spirit of Lions. We derive explicit kernel representations, establish their spectral decompo-sitions, and prove the equivalence of Green’s function, semigroup, and variational approaches. 
+
+3.1 Recovery of Eigenfunctions and Kernel Construction via Green’s Function and Characteristics 
+
+Green’s Function Method Consider the operator 
+
+Lφ (x) = f (x) · ∇ φ(x) − λφ (x), (26) and define its Green’s function G(x, ξ ) solving 
+
+LxG(x, ξ ) = δ(x − ξ). (27) Following Lions’s approach, the eigenfunction can be recovered by propagating ini-tial or boundary data g from a hypersurface Σ: 
+
+φλ(x) = 
+
+Z
+
+> Σ
+
+G(x, ξ ) g(ξ) dS (ξ). (28) See Theorem C.1 for a proof of this formula. 
+
+Method of Characteristics. Along the characteristic flow st(x) defined by ˙st(x) = f (st(x)) , s0(x) = x, (29) the eigenfunction satisfies 
+
+φλ(st(x)) = eλt φλ(x). (30) Given initial data g on Σ, the eigenfunction is recovered by transporting along backward characteristics: 
+
+φλ(x) = eλT (x)g s−T (x)(x), (31) where T (x) is the time to reach Σ along the flow. See Theorem C.2 for a proof of this formula. 11 Both approaches based on the Green’s function and the method of Characteris-tics yield equivalent recovery formulas, as detailed further in Appendix C. Given the Green’s function, we construct the reproducing kernel by convolution: 
+
+K(x, y ) = 
+
+Z
+
+> Ω
+
+G(x, ξ )G(y, ξ )w(ξ) dξ, (32) where w(ξ) is a positive weight function. Alternatively, using the semigroup Tt defined by [Ttg]( x) = g(s−t(x)) , (33) we define the resolvent kernel by Laplace transform: 
+
+Kα(x, y ) = 
+
+Z ∞
+
+> 0
+
+e−αt δ y − st(x) dt, (34) for α > Re λ.Both kernels are symmetric, positive-definite, and encode the causal dynamics of the transport operator L.
+
+Theorem 3.1 (Existence and Regularity of Green’s Function Kernel) . Let Ω ⊂ Rd
+
+be a bounded domain with C1,α boundary, and let f ∈ C1(Ω; Rd) generate a complete flow st. Fix λ ∈ C and define the transport operator 
+
+L := f · ∇ − λ. (35) 
+
+Assume the following: 1. The flow st is smooth and invertible on Ω.2. There exists a transversal hypersurface Σ ⊂ Ω such that every point x ∈ Ω lies on a unique flow line that intersects Σ in finite time. 3. The weight function w ∈ C(Ω) satisfies w > 0.Then the retarded Green’s function G(x, ξ ) solving 
+
+LxG(x, ξ ) = δ(x − ξ), (36) 
+
+with causality imposed by the flow from Σ, exists and is smooth off the diagonal 
+
+x = ξ. Moreover, the kernel 
+
+K(x, y ) := 
+
+Z
+
+> Ω
+
+G(x, ξ )G(y, ξ )w(ξ) dξ (37) 
+
+is continuous, symmetric, positive-definite, and defines a reproducing kernel Hilbert space HK ⊂ L2(Ω , w ) ∩ C0(Ω) .
+
+12 Proof. Step 1: Construction of the Green’s Function via Characteristics. 
+
+Let L := f · ∇ − λ. The retarded Green’s function G(x, ξ ) solves the inhomogeneous PDE 
+
+f (x) · ∇ xG(x, ξ ) − λG (x, ξ ) = δ(x − ξ). (38) Let st denote the flow generated by f , and define the characteristic curve through 
+
+ξ ∈ Ω by st(ξ). Then the formal solution for G can be written using the method of characteristics: 
+
+G(x, ξ ) = H(t(x, ξ )) exp 
+
+Z t(x,ξ )0
+
+λ ds 
+
+!
+
+δ(st(x,ξ )(ξ) − x), (39) where t(x, ξ ) is the time it takes for the trajectory starting at ξ to reach x, and H
+
+is the Heaviside function enforcing causality. Under the stated assumptions, t(x, ξ )is well-defined and smooth for x̸ = ξ.
+
+Step 2: Properties of G(x, ξ ).
+
+For fixed ξ, the map x 7 → G(x, ξ ) is smooth on Ω \ { ξ}, with a singularity at x = ξ
+
+corresponding to the delta function. Since the flow st is smooth and H enforces time-directionality, G(x, ξ ) ∈ L2loc (Ω × Ω). 
+
+Step 3: Definition and Symmetry of the Kernel K(x, y ).
+
+Define the symmetric kernel 
+
+K(x, y ) = 
+
+Z
+
+> Ω
+
+G(x, ξ )G(y, ξ )w(ξ) dξ. (40) The integrand G(x, ξ )G(y, ξ ) is symmetric in x ↔ y, so K(x, y ) = K(y, x ). 
+
+Step 4: Continuity and Positivity. 
+
+For each x, y ∈ Ω, the functions G(x, ·), G (y, ·) ∈ L2(Ω , w ) due to compactness and smoothness of f and w. Then by Cauchy-Schwarz and dominated convergence, 
+
+K(x, y ) is continuous on Ω × Ω. For any u ∈ L2(Ω , w ), define 
+
+⟨u, Ku ⟩ =
+
+Z
+
+> Ω
+
+Z
+
+> Ω
+
+u(x)K(x, y )u(y) dx dy =
+
+Z
+
+> Ω
+
+Z 
+
+> Ω
+
+u(x)G(x, ξ ) dx 
+
+2
+
+w(ξ) dξ ≥ 0.
+
+(41) Thus K is symmetric and positive-definite. 
+
+Step 5: RKHS Structure. 
+
+Let HK be the Hilbert space induced by K. Since K is symmetric, continuous, and positive-definite, the Moore-Aronszajn theorem ensures that HK ⊂ C0(Ω) ∩L2(Ω , w )is a reproducing kernel Hilbert space with reproducing kernel K.13 Theorem 3.2 (Resolvent Kernel) . Let f ∈ C1(Ω; Rd) generate a complete flow st
+
+on Ω, and let λ ∈ C, α ∈ R with α > ℜ(λ). Define the kernel 
+
+Kα(x, y ) := 
+
+Z ∞
+
+> 0
+
+e−αt δy(st(x)) dt. (42) 
+
+Then for each fixed y ∈ Ω, the function x 7 → Kα(x, y ) satisfies 
+
+(α − Lx)Kα(x, y ) = δy(x) in the distributional sense , (43) 
+
+where Lx := f (x) · ∇ x, and Kα(·, y ) ∈ L2(Ω) if the flow remains in a compact subset of Ω.Proof. Let ψ ∈ C∞ 
+
+> c
+
+(Ω) be a test function. We define the action of ( α − Lx)Kα(x, y )in the distributional sense via duality: 
+
+Z
+
+> Ω
+
+Kα(x, y )( α − Lx)∗ψ(x) dx =
+
+Z
+
+> Ω
+
+Z ∞
+
+> 0
+
+e−αt δy(st(x)) dt 
+
+
+
+(α − Lx)∗ψ(x) dx. (44) By Fubini’s theorem (justified by the boundedness of the flow and exponential decay of the integrand), we exchange the order of integration: =
+
+Z ∞
+
+> 0
+
+e−αt 
+
+Z 
+
+> Ω
+
+δy(st(x))( α − Lx)∗ψ(x) dx 
+
+
+
+dt. (45) Change variables using the diffeomorphism x 7 → st(x). Since st preserves orien-tation and volume under smoothness assumptions, we obtain: =
+
+Z ∞
+
+> 0
+
+e−αt (α − ddt )ψ(s−1 
+
+> t
+
+(y)) dt. (46) Now observe that for a fixed x, the function t 7 → ψ(st(x)) satisfies: 
+
+ddt ψ(st(x)) = ( f · ∇ ψ)( st(x)) = ( Lψ )( st(x)) . (47) Therefore, 
+
+ddt 
+
+ e−αt ψ(st(x))  = −αe −αt ψ(st(x)) + e−αt Lψ (st(x)) = −e−αt (α − L)ψ(st(x)) .
+
+(48) Integrating over t ∈ [0 , ∞), and evaluating at x = x0, we obtain: 
+
+Z ∞
+
+> 0
+
+e−αt (α − L)ψ(st(x0)) dt = ψ(x0), (49) because the integrand is the negative total derivative of e−αt ψ(st(x0)), and the function decays to zero as t → ∞ .14 Thus, for any test function ψ,
+
+⟨(α − Lx)Kα(x, y ), ψ (x)⟩ = ψ(y), (50) which means ( α − Lx)Kα(x, y ) = δ(x − y) in the distributional sense. Finally, since the flow is smooth and remains in a compact region of Ω, and e−αt 
+
+decays exponentially, we have: 
+
+∥Kα(·, y )∥2 
+
+> L2(Ω)
+
+≤
+
+Z ∞
+
+> 0
+
+Z
+
+> Ω
+
+e−2αt δy(st(x)) dx dt =
+
+Z ∞
+
+> 0
+
+e−2αt Jt(y) dt, (51) where Jt(y) denotes the Jacobian determinant of the inverse flow. Since the flow is bounded and Jt is bounded on compact Ω, the integral is finite. Hence Kα(·, y ) ∈
+
+L2(Ω), and in fact lies in the RKHS associated with the kernel under appropriate weighting. 
+
+3.2 Spectral Decomposition of the Kernel and Koopman Modes 
+
+A fundamental property of reproducing kernels is that they admit a spectral de-composition. Under appropriate compactness and continuity assumptions, Mercer’s theorem guarantees: 
+
+K(x, y ) = 
+
+> ∞
+
+X
+
+> n=1
+
+μn ψn(x) ψn(y), (52) where {ψn} form an orthonormal basis for the associated RKHS and μn > 0 are the eigenvalues of the integral operator [TK f ]( x) = 
+
+Z
+
+> Ω
+
+K(x, y )f (y) dy. (53) When the kernel is constructed directly from Koopman eigenfunctions {φλ}, the Mercer eigenfunctions coincide with the dynamical modes: 
+
+K(x, y ) = X
+
+> λ∈Λ
+
+φλ(x) φλ(y). (54) 
+
+Lemma 3.3 (Mercer Eigenfunctions Equal Koopman Modes) . Let {φλj }mj=1 be or-thonormal Koopman eigenfunctions in L2(Ω , ρ ), and define the kernel 
+
+K(x, y ) = 
+
+> m
+
+X
+
+> j=1
+
+φλj (x)φλj (y). (55) 
+
+Then the integral operator TK on L2(ρ) has rank m, eigenvalue 1, and its eigen-functions are precisely {φλj }mj=1 .
+
+15 Proof. For each i, we compute 
+
+TK φλi (x) = 
+
+Z
+
+> Ω
+
+K(x, y )φλi (y) dρ (y) = 
+
+> m
+
+X
+
+> j=1
+
+φλj (x)
+
+Z
+
+> Ω
+
+φλj (y)φλi (y) dρ (y) = φλi (x),
+
+(56) using orthonormality of {φλj }. Since K is constructed from m linearly independent eigenfunctions, its associated operator has rank m, and the non-zero spectrum is spanned by {φλj }.Thus, the spectral decomposition of K reveals the principal Koopman eigenfunc-tions, offering both theoretical insight and practical computational pathways. 
+
+Theorem 3.4 (Spectral Convergence of Mercer Modes to Koopman Eigenfunc-tions) . Let Ω ⊂ Rd be a compact domain, and suppose the Koopman eigenfunctions 
+
+{ϕλ} ⊂ C0(Ω) ∩ L2(Ω , μ ) satisfy the transport PDE 
+
+f (x) · ∇ ϕλ(x) = λϕ λ(x), (57) 
+
+for a vector field f ∈ C1(Ω; Rd) and a probability measure μ with full support on Ω.Let K(x, y ) be a reproducing kernel constructed via any of the equivalent methods: Green’s function convolution, Lions’s variational principle, or the Laplace resolvent of the flow. Then the Mercer decomposition 
+
+K(x, y ) = 
+
+> ∞
+
+X
+
+> n=1
+
+μnψn(x)ψn(y), (58) 
+
+where μn > 0 and {ψn} are orthonormal in L2(Ω , μ ), satisfies the following: If ϕλ ∈ H K , then there exists a sequence {ckψnk } with scalars ck ∈ R such that 
+
+lim  
+
+> k→∞
+
+∥ckψnk − ϕλ∥L2(Ω ,μ ) = 0 . (59) 
+
+Moreover, the span of {ψn} asymptotically captures the Koopman eigenspace under mild spectral separation conditions. Proof. Since K is a continuous, symmetric, and positive-definite kernel on the com-pact domain Ω, the Mercer theorem applies. It guarantees the existence of a com-plete orthonormal basis {ψn} ⊂ L2(Ω , μ ) consisting of eigenfunctions of the integral operator (TK ϕ)( x) := 
+
+Z
+
+> Ω
+
+K(x, y )ϕ(y) dμ (y), (60) with eigenvalues μn > 0 such that 
+
+TK ψn = μnψn, and K(x, y ) = 
+
+> ∞
+
+X
+
+> n=1
+
+μnψn(x)ψn(y), (61) 16 with convergence in L2(Ω × Ω, μ ⊗ μ). Now let ϕλ ∈ H K . Since HK is a reproducing kernel Hilbert space embedded in 
+
+L2(Ω , μ ), and {ψn} is an orthonormal basis for the closure of HK in L2(μ), we can expand ϕλ in this basis: 
+
+ϕλ =
+
+> ∞
+
+X
+
+> n=1
+
+anψn, with an = ⟨ϕλ, ψ n⟩L2(μ). (62) Define the partial sums 
+
+ϕ(N ) := 
+
+> N
+
+X
+
+> n=1
+
+anψn. (63) Then, by Parseval’s identity, 
+
+∥ϕλ − ϕ(N )∥2 
+
+> L2(μ)
+
+=
+
+> ∞
+
+X 
+
+> n=N+1
+
+|an|2 → 0 as N → ∞ . (64) Therefore, the sequence ϕ(N ) converges to ϕλ in L2(Ω , μ ). In particular, there exists a subsequence {nk} such that for each k,
+
+∥ϕλ − ank ψnk ∥L2(μ) ≤ ∥ ϕλ − ϕ(k)∥L2(μ) + ∥ϕ(k) − ank ψnk ∥L2(μ) → 0, (65) by choosing ank ψnk as the dominant term in ϕ(k) and observing that all other terms vanish in norm as k → ∞ .Thus, the claim follows: for ck := ank , we have lim  
+
+> k→∞
+
+∥ckψnk − ϕλ∥L2(μ) = 0 . (66) The final statement about the Koopman eigenspace follows from the fact that if the Koopman eigenspace is one-dimensional and spanned by ϕλ ∈ H K , then any approximation sequence in the RKHS must converge to a scalar multiple of ϕλ.
+
+Theorem 3.5 (Spectral Expansion and Koopman Eigenfunctions) . Let K : Ω ×Ω →
+
+C be the kernel 
+
+K(x, y ) = 
+
+Z ∞
+
+> 0
+
+e−λt δy=s−t(x) dt. (67) 
+
+Then any Koopman eigenfunction ϕ satisfies 
+
+Kϕ = 12Re λ ϕ. (68) 
+
+Proof. We compute: (Kϕ )( x) = 
+
+Z ∞
+
+> 0
+
+e−λt ϕ(s−t(x)) dt. (69) 17 By the characteristic evolution, 
+
+ϕ(s−t(x)) = e−λt ϕ(x), (70) thus (Kϕ )( x) = ϕ(x)
+
+Z ∞
+
+> 0
+
+e−2Re λt dt = 12Re λ ϕ(x), (71) where convergence follows from Re λ > 0. We also note that local Koopman eigenfunctions admit linear approximations near hyperbolic equilibria: 
+
+Theorem 3.6 (Koopman Linearization Near Hyperbolic Fixed Points) . Let ˙x =
+
+f (x) have a hyperbolic equilibrium at x = 0 with Jacobian E = Df (0) . Then each eigenvalue λ of E is an eigenvalue of the Koopman generator acting on C1 func-tions supported in a local stable–unstable neighborhood. The corresponding Koopman eigenfunction admits the decomposition 
+
+φλ(x) = w⊤x + h(x), (72) 
+
+where w is a left eigenvector of E and h solves the homological equation 
+
+∂h ∂x · f (x) − λh (x) + w⊤(f (x) − Ex ) = 0 . (73) 
+
+Proof sketch. By the Hartman–Grobman theorem, there exists a smooth conjugacy 
+
+χ such that χ◦st = eEt ◦χ near the fixed point. Let φλ = w⊤χ; then differentiability of χ implies Lφ λ = λφ λ. Decomposing φλ(x) = w⊤x + h(x) yields the stated PDE for h(x), which can be solved by variation of constants in the hyperbolic case. 
+
+3.3 Connection to Lions’s Variational Framework 
+
+The construction above is inspired by the variational principles developed by Jacques-Louis Lions. In his seminal work, Lions showed that variational formula-tions of differential equations yield reproducing kernels in associated Hilbert spaces. Specifically, if H is a Hilbert space where point evaluations are continuous, then by the Riesz representation theorem there exists a unique reproducing kernel K(x, y )satisfying 
+
+u(x) = ⟨u, K (x, ·)⟩H for all u ∈ H. (74) In our setting, define 
+
+H = C∞(Ω) ∥·∥ H , ∥u∥2 
+
+> H
+
+= ∥u∥2 
+
+> L2
+
++ ∥Lu ∥2 
+
+> L2
+
+, (75) where L = f · ∇ − λ.The Green’s function G(x, ξ ) acts as the inverse of L, and the kernel constructed from G via convolution reproduces the eigenfunctions exactly, aligning with Lions’s variational perspective. Thus, solving the PDE variationally, constructing kernels from Green’s functions, and propagating via characteristics are all manifestations of the same underlying reproducing kernel framework. 18 3.4 Equivalence of the Different Approaches 
+
+In this section, we establish the equivalence between the three kernel constructions introduced earlier-Green’s function symmetrization, Lions’s variational inversion, and the resolvent-based approach using characteristic flows. Having developed distinct approaches for constructing reproducing kernels-via Green’s functions, spectral decompositions, and Lions’s variational framework-we now address a fundamental question: to what extent are these formulations equiva-lent? In this section, we show that under appropriate assumptions, these seemingly disparate constructions yield the same reproducing kernel. This equivalence not only underscores the robustness of the kernel representation but also provides the-oretical justification for choosing the most computationally convenient approach in applications. 
+
+Theorem 3.7 (Kernel-Unification) . Let Ω ⊂ Rd be a bounded C1,α domain, and let 
+
+f ∈ C1(Ω , Rd) generate a complete flow st. Fix λ ∈ C and define 
+
+L = f · ∇ − λ. (76) 
+
+Let H be defined as above. Construct three kernels: 
+
+Kvar (x, y ) := Riesz representer of evaluation in H,KG(x, y ) := 
+
+Z
+
+> Ω
+
+G(x, ξ ) G(y, ξ ) dξ, Kres  
+
+> α
+
+(x, y ) := 
+
+Z ∞
+
+> 0
+
+e−αt δ(y − st(x)) dt, α > Re λ, 
+
+(77) 
+
+where G(x, ξ ) solves LxG(x, ξ ) = δ(x − ξ).Then: 
+
+Kvar ≡ KG ≡ Kres  
+
+> α
+
+. (78) Check Appendix D for proof. Thus, variational, Green’s function, and characteristic-based constructions of the kernel are mathematically equivalent. Each method provides complementary perspectives on the same underlying structure: the transport dynamics encoded within a reproducing kernel Hilbert space. To conclude this section, the three constructions-variational (Lions), Green’s function, and characteristic-resolvent-yield one and the same reproducing kernel. In 19 a nutshell, the following diagram Green’s Function Lions’s Variational Approach Kernel with Mercer Expansion Method of Characteristics (79) highlights that whether one inverts the operator via variational methods, symmetrize its causal Green’s function, or take the Laplace transform along characteristics, one ends up with one unified kernel. 
+
+# 4 Variational Approximation of Koopman Eigenfunc-tions 
+
+4.1 Lions-Based Variational Optimization 
+
+Koopman eigenfunctions ϕ encode intrinsic linear structures within nonlinear dy-namical systems by satisfying the linear partial differential equation (PDE) 
+
+f (x) · ∇ ϕ(x) = λϕ (x), (80) where f (x) is the vector field and λ is the associated Koopman eigenvalue. Tra-ditional approaches, such as Dynamic Mode Decomposition (DMD) and Extended DMD (EDMD), seek finite-dimensional approximations of the Koopman operator using data and fixed basis functions. However, these methods are limited in expres-sivity, generalization, and their ability to exploit the PDE structure of the Koopman generator. The methods presented in this paper-Green’s function formulation, Lions’s vari-ational principle, and the method of characteristics-recast the Koopman PDE as a flexible operator problem, opening new avenues for both theory and computation. 
+
+Lions’s Variational Principle. Inspired by Lions’s weak solution framework for PDEs, the Koopman equation is interpreted variationally as: min  
+
+> ϕ∈H
+
+∥f (x) · ∇ ϕ(x) − λϕ (x)∥2
+
+> H
+
+, (81) where H is a reproducing kernel Hilbert space (RKHS). This leads to kernel-based methods that are data-driven, regularized, and mesh-free, and generalize EDMD by 20 adapting both the function space and the optimization problem. Koopman eigen-functions are recovered by minimizing a PDE residual in a smooth, flexible function space. 
+
+Green’s Function Method. This method recasts the Koopman generator equa-tion as an integral equation involving a Green’s function G(x, ξ ): 
+
+ϕ(x) = 
+
+Z
+
+G(x, ξ )ϕ(ξ) dξ, (82) where G satisfies LxG(x, ξ ) = δ(x − ξ) for the differential operator L = f (x) · ∇ − 
+
+λI . This formulation enables the use of kernel methods to approximate G(x, ξ )and convert the Koopman PDE into a solvable Fredholm integral equation. The resulting numerical schemes resemble kernel integral operator approaches but are now grounded in resolvent theory. 
+
+Method of Characteristics. This classical technique is used to solve first-order PDEs by integrating along trajectories of the vector field. For the Koopman PDE, the eigenfunction evolves along the flow Φ t(x) as: 
+
+ϕ(Φ t(x)) = eλt ϕ(x), (83) which enables a direct computation of ϕ(x) via trajectory data. This method is geometric and intrinsic to the Koopman perspective, requiring no explicit basis and minimal modeling assumptions. 
+
+Why This Matters. Together, these methods provide a rich toolkit for recovering Koopman eigenfunctions: 
+
+• The Green’s function method connects spectral theory to kernel learning. 
+
+• The variational principle leads to robust, data-adaptive solvers that generalize EDMD and integrate regularization and geometry. 
+
+• The method of characteristics aligns perfectly with Koopman’s operator dy-namics, allowing computation from trajectory-level information alone. These approaches make it possible to construct Koopman eigenfunctions in settings with limited data, irregular domains, or complex geometries-beyond the reach of traditional modal decompositions. 
+
+Theorem 4.1. Let f ∈ C∞(Ω , Rd) be a smooth vector field defined on an open, bounded domain Ω ⊂ Rd, and let λ ∈ R be such that the Jacobian matrix E := Df (0) 
+
+has no eigenvalues on the imaginary axis. Suppose that: 
+
+21 1. The reproducing kernel Hilbert space Hk ⊂ C1(Ω) ∩ L2(Ω) contains differen-tiable, square-integrable functions. 2. The domain Ω is chosen so that all eigenfunctions corresponding to λ are in 
+
+Hk, i.e., they are well-defined and bounded on Ω.3. The regularization parameter satisfies η > 0.Then the Lions variational problem 
+
+min 
+
+> ϕ∈H k
+
+∥f (x) · ∇ ϕ(x) − λϕ (x)∥2 
+
+> L2(Ω)
+
++ η∥ϕ∥2 
+
+> Hk
+
+(84) 
+
+admits a unique minimizer ϕ⋆ ∈ H k.
+
+The proof strategy consists of three steps: 
+
+Step 1: Coercivity from Imaginary Spectrum Exclusion If the operator 
+
+L = f · ∇ − λI has no spectrum on the imaginary axis, then the associated bilinear form is coercive on a subspace of the RKHS H. This implies that the Koopman PDE residual norm ∥Lϕ ∥2 := ∥f · ∇ ϕ − λϕ ∥2 defines a positive definite quadratic form on H (modulo nullspace, if any). 
+
+Step 2: Add Regularization The regularization term η∥ϕ∥2 
+
+> H
+
+ensures strict convexity of the objective functional. Therefore, the full variational objective 
+
+J(ϕ) := ∥f · ∇ ϕ − λϕ ∥2 + η∥ϕ∥2 
+
+> H
+
+is strictly convex over H. By standard results from Hilbert space theory, any coercive and strictly convex functional admits a unique minimizer. 
+
+Step 3: Variational Problem is Well-Posed Since H ⊂ C1(Ω) and f is smooth, it follows that f · ∇ ϕ ∈ L2(Ω) for all ϕ ∈ H . This guarantees that the functional J(ϕ) is finite and Fr´ echet differentiable on H.Hence, under the spectral assumption that the Koopman generator has no eigen-values on the imaginary axis, the Lions variational problem is well-posed and admits a unique solution in the RKHS H.
+
+Proof. Let A : Hk → L2(Ω) be defined by Aϕ(x) := f (x) · ∇ ϕ(x). Since f ∈ C∞(Ω) and Hk ⊂ C1(Ω), the composition f · ∇ ϕ is in L2(Ω) for all ϕ ∈ H k.Define the functional 
+
+L(ϕ) := ∥A ϕ − λϕ ∥2 
+
+> L2(Ω)
+
++ η∥ϕ∥2 
+
+> Hk
+
+. (85) The regularization term η∥ϕ∥2 
+
+> Hk
+
+ensures strict convexity. The first term ∥A ϕ−λϕ ∥2
+
+> L2
+
+is convex because it is a squared norm of a bounded linear operator. To prove uniqueness, assume ϕ1, ϕ 2 ∈ H k are two minimizers. Then the strict convexity implies ϕ1 = ϕ2. Hence, the minimizer is unique. 22 To prove existence, observe that L(ϕ) ≥ η∥ϕ∥2 
+
+> Hk
+
+shows coercivity. Therefore, any minimizing sequence is bounded in Hk, and by the reflexivity of Hilbert spaces, has a weakly convergent subsequence. Since L is weakly lower semicontinuous, the limit is a minimizer. Finally, under the hypothesis that E = Df (0) has no eigenvalues on the imagi-nary axis, the Koopman operator has no spectrum on the imaginary axis, and hence no nontrivial nullspace in Hk. This guarantees the strict positivity of ∥A ϕ − λϕ ∥2
+
+> L2
+
+unless ϕ = 0, confirming the uniqueness. When η = 0, we can prove existence but not uniqueness. 
+
+Proposition 4.2. Let f ∈ C1(Ω) d, and let H ⊂ C1(Ω) be an RKHS. Then the unregularized variational problem 
+
+min  
+
+> ϕ∈H
+
+∥f (x) · ∇ ϕ(x) − λϕ (x)∥2 
+
+> L2(Ω)
+
+(86) 
+
+admits a minimizer ϕ⋆ ∈ H . If the null space of the Koopman generator f · ∇ − λ
+
+in H is nontrivial, then the minimizer is not unique. Proof. The functional is convex and continuous. Although not strictly convex (since 
+
+η = 0), coercivity is lost. Nevertheless, boundedness of minimizing sequences is preserved by the square-integrability of the Koopman residual. Weak compactness in the Hilbert space H yields a minimizer. However, uniqueness fails if the nullspace of the Koopman generator is nontrivial. 
+
+Remark. [Domain Selection and Eigenfunction Behavior] In certain dynamical systems, Koopman eigenfunctions may not be globally square-integrable. A repre-sentative example is the one-dimensional system ˙x = x − x3, (87) whose principal eigenfunction associated with the eigenvalue λ = 1 is 
+
+ϕ(x) = x
+
+√1 − x2 , (88) which diverges as x → ± 1. In this case, ϕ / ∈ L2(−1, 1), and any variational for-mulation involving a squared residual over the full interval ( −1, 1) is ill-posed. To apply Lions’s variational principle in such cases, one must restrict the domain to an interior subinterval Ω ⊂ (−1, 1) that excludes the singularities at the boundary. Additionally, the RKHS Hk ⊂ C1(Ω) ∩ L2(Ω) must be chosen to accommodate the eigenfunction, ensuring that ϕ ∈ H k.To handle these challenges more systematically, one may incorporate additional regularization terms into the variational formulation. Two particularly effective strategies are: 23 1. Boundary trace penalty: This approach penalizes the magnitude of the eigenfunction on the boundary directly: 
+
+μ
+
+Z
+
+> ∂Ω
+
+|ϕ(x)|2 dS (x), (89) where μ > 0 is a penalty parameter and dS (x) denotes the boundary measure. This term discourages the eigenfunction from diverging near ∂Ω and is easy to implement numerically by assigning higher weights to grid points near the boundary. 2. Boundary layer penalty: This approach penalizes the eigenfunction within a thin layer near the boundary: 
+
+μ
+
+Z
+
+> Ω\Ω′
+
+|ϕ(x)|2 dx, (90) where Ω ′ ⊂ Ω is a compact interior subdomain. The integrand is evaluated only in the region Ω \ Ω′, thus reducing the eigenfunction’s magnitude near the boundary without requiring explicit knowledge of boundary values. These regularizations are especially valuable when the singular behavior of the eigenfunctions is not known in advance, or when the domain cannot be easily re-stricted. They offer practical, flexible methods for improving the stability and fi-delity of Koopman eigenfunction approximation in problematic regions of the state space. ■
+
+Theorem 4.3 (Existence of Minimizer with Boundary Regularization) . Let f ∈
+
+C∞(Ω , Rd) be a smooth vector field on a bounded domain Ω ⊂ Rd, and let λ ∈ R
+
+be such that the Jacobian matrix E := Df (0) has no eigenvalues on the imaginary axis. Suppose the following conditions hold: 1. The RKHS Hk ⊂ C1(Ω) ∩ L2(Ω) consists of differentiable, square-integrable functions. 2. The domain Ω is chosen so that all eigenfunctions associated with λ lie in Hk
+
+(i.e., are bounded and differentiable on Ω). 3. The regularization parameter satisfies η > 0, and the boundary penalty coeffi-cient satisfies μ ≥ 0.Let the extended variational functional be defined by 
+
+J (ϕ) := ∥f (x) · ∇ ϕ(x) − λϕ (x)∥2 
+
+> L2(Ω)
+
++ η∥ϕ∥2 
+
+> Hk
+
++ μ R (ϕ), (91) 
+
+where R(ϕ) is one of the following: 
+
+24 • Boundary trace penalty: R(ϕ) = R 
+
+> ∂Ω
+
+|ϕ(x)|2 dS (x),
+
+• Boundary layer penalty: R(ϕ) = R 
+
+> Ω\Ω′
+
+|ϕ(x)|2 dx , with Ω′ ⋐ Ω.Then the minimization problem 
+
+min 
+
+> ϕ∈H k
+
+J (ϕ) (92) 
+
+admits a unique minimizer ϕ⋆ ∈ H k.Sketch of Proof. (1) Coercivity. The regularization term η∥ϕ∥2 
+
+> Hk
+
+ensures coerciv-ity for η > 0. Since all other terms are non-negative, the functional J (ϕ) → ∞ as 
+
+∥ϕ∥Hk → ∞ .
+
+(2) Strict Convexity. The regularization term is strictly convex, and the residual and penalty terms are convex. Thus, the functional is strictly convex and admits at most one minimizer. 
+
+(3) Weak Lower Semicontinuity. All terms in J (ϕ) are weakly lower semi-continuous in Hk. By the direct method in the calculus of variations, a minimizer 
+
+ϕ⋆ ∈ H k exists. This establishes both existence and uniqueness. 
+
+Numerical Experiment: Analytic Singular Kernel 
+
+For the example above, we use a singular kernel whose reproducing kernel Hilbert space (RKHS) explicitly accommodates the boundary divergence structure. Specif-ically, we define the kernel 
+
+k(x, y ) := xy 
+
+p(1 − x2)(1 − y2) , (93) which is symmetric and positive semi-definite on the open interval ( −1, 1). This kernel naturally spans functions exhibiting the singularity of the true Koopman eigenfunction and effectively embeds the known analytical behavior into the func-tional ansatz. We also use the Gaussian (RBF) kernel: 
+
+krbf (x, y ) = exp 
+
+
+
+− (x − y)2
+
+2ℓ2
+
+
+
+, (94) with ℓ = 0 .3. Both kernels are used within the same variational framework: 
+
+• Enforce PDE residual f (x)φ′(x) = λφ (x), 
+
+• Enforce φ′(0) = 1, 25 • Apply boundary trace and boundary layer penalties. 3
+
+Letting K denote the resulting Gram matrix on a discretized grid {xi}Ni=1 ⊂
+
+(−1, 1), we seek coefficients α ∈ RN such that 
+
+φ(x) ≈
+
+> N
+
+X
+
+> i=1
+
+αik(x, x i). (97) We enforce the PDE constraint f (x)φ′(x) = λφ (x) via a least-squares residual min-imization, incorporating a strong constraint on the normalization φ′(0) = 1. 
+
+• Singular kernel: RMSE = 1.39e-04 , φ′(0) = 0 .6169 
+
+• RBF kernel: RMSE = 1.37e+00 , φ′(0) = 1 .0000 As shown in Figure 1, although both kernels satisfy the normalization constraint and include boundary penalties, the RBF kernel fails to resolve the singular structure of the true solution, yielding high approximation error. In contrast, the singular kernel achieves a much lower RMSE, despite minor deviation from the normalization target. This example demonstrates that accurate Koopman eigenfunction recovery re-quires a kernel that embeds prior knowledge of the expected singular behavior. Boundary penalties alone are insufficient when the RKHS does not contain the tar-get solution. The Impact of Kernel Choice is further discussed in the next section. 
+
+4.2 Role of Kernel Choice and RKHS Geometry 
+
+We investigate the impact of kernel choice on the numerical approximation of Koop-man eigenfunctions by solving the Koopman eigenvalue partial differential equation (PDE) using Lions’s variational framework in a reproducing kernel Hilbert space                                 
+
+> 3In the implementation, the boundary trace penalty enforces decay of the eigenfunction values at the endpoints by adding a term
+> μtrace · φ(xleft )2+φ(xright )2,(95) where xleft ≈ − 0.99 and xright ≈0.99 are the outermost grid points. This ensures that φdoes not diverge at the domain boundaries. The boundary layer penalty complements this by suppressing the function over a small band near the boundary, typically |x|>0.9. It adds the term
+> μlayer ·1
+> |B|
+> X
+> xi∈B
+> φ(xi)2,(96) where B={xi| | xi|>0.9}is the boundary layer. Together, these penalties regularize the behavior of φnear the edges without overly constraining its behavior in the interior.
+
+26 Figure 1: Comparison of Koopman eigenfunction approximations using singular vs. RBF kernels, both with boundary penalties. (RKHS). The goal is to accurately recover the principal eigenfunction associated with the nonlinear system ˙x =
+
+−2λ2x2(x21 − x2 − 2x1x22 + x42) + λ1(x1 + 4 x21x2 − x22 − 8x1x32 + 4 x52)2λ1(x1 − x22)2 − λ2(x21 − x2 − 2x1x22 + x42)
+
+
+
+, (98) with eigenvalues of the linearization at the origin λ1 = −1, λ2 = 3, and known Koopman eigenfunctions: 
+
+ϕλ1 (x) = x1 − x22,ϕλ2 (x) = −x21 + x2 + 2 x1x22 − x42.
+
+The approximation of the eigenfunction ϕ is represented in RKHS as a linear combination of kernel sections: 
+
+ϕ(x) = 
+
+> N
+
+X
+
+> j=1
+
+αj K(x, x j ), (99) where {xj }Nj=1 are training points and K(·, ·) is a positive-definite kernel. The gradient ∇ϕ(x) is evaluated analytically using the reproducing derivative property of the RKHS: 
+
+∂ϕ ∂x (x) = 
+
+> N
+
+X
+
+> j=1
+
+αj
+
+∂∂x K(x, x j ), (100) thereby enabling accurate PDE residual computation. We solve the following penalized variational problem: min  
+
+> α
+
+L(α) := 
+
+> N
+
+X
+
+> i=1
+
+(f (xi) · ∇ ϕ(xi) − λϕ (xi)) 2 + η∥α∥2, (101) 27 with a regularization parameter η > 0. To avoid trivial solutions with vanishing gradients, we also impose a constraint that the gradient of ϕ at the origin matches the left eigenvector of the Jacobian of the system evaluated at the origin. This constraint is implemented as a penalty term in the loss: 
+
+C(α) := ∇ϕ(0) − v⊤ 2
+
+, (102) where v⊤ is the left eigenvector associated with λ1.We evaluate four widely-used kernels: RBF : K(x, y ) = exp( −γ∥x − y∥2); Poly-nomial : K(x, y ) = ( x⊤y + coef0) degree ; Laplacian : K(x, y ) = exp( −γ∥x − y∥); 
+
+Sigmoid : K(x, y ) = tanh( γx ⊤y + coef0). We perform a simple grid search over 10 values of the kernel parameters (e.g., 
+
+γ, coef0 , degree ) for each kernel. For every configuration, we compute: 1. The residual norm of the Koopman PDE. 2. The approximation error after rescaling ϕ to best align with ϕλ1 , i.e.: ˜ϕ = ⟨ϕ, ϕ λ1 ⟩⟨ϕ, ϕ ⟩ · ϕ, (103) 3. The rescaled root-mean-square error (RMSE) between ˜ϕ and ϕλ1 .
+
+Kernel Best Parameters Residual Norm Rescaled RMSE 
+
+Polynomial degree = 2 , coef0 = 0 .5 1.108 × 10 0 1.668 × 10 −7
+
+Polynomial degree = 3 , coef0 = 0 .5 1.108 × 10 0 7.406 × 10 −7
+
+Polynomial degree = 4 , coef0 = 1 .5 1.108 × 10 0 5.983 × 10 −6
+
+RBF γ = 1 .0 4.959 × 10 0 3.092 × 10 −4
+
+RBF γ = 0 .775 5.492 × 10 0 3.319 × 10 −4
+
+RBF γ = 0 .1 1.863 × 10 1 6.491 × 10 −4
+
+Table 1: Kernel-dependent performance in recovering the Koopman eigenfunction 
+
+ϕλ1 .The results show that polynomial kernels yield consistently smaller residuals and near-zero RMSE after rescaling, indicating that they capture the Koopman eigenfunction structure more accurately than the RBF kernel. This highlights the critical role of kernel selection in variational PDE solvers and motivates the kernel learning approaches we develop next. 
+
+4.3 Variational Kernel Learning for Koopman Eigenfunctions via Lions’s Variational Approach 
+
+In Lions’s variational formulation of the Koopman eigenvalue problem, the eigen-function ϕ is represented in a reproducing kernel Hilbert space (RKHS) Hk as-sociated with a kernel k(x, y ). The eigenfunction is obtained by minimizing the 28 Koopman PDE residual in this space: min 
+
+> ϕ∈H k
+
+Lk(ϕ) := ∥f (x) · ∇ ϕ(x) − λϕ (x)∥2 + η∥ϕ∥2 
+
+> Hk
+
+. (104) Here, η > 0 is a regularization parameter. The performance of this method de-pends heavily on the choice of the kernel k, which defines both the smoothness and expressivity of the space Hk.Rather than selecting k manually from a predefined family, we propose to learn the kernel adaptively by minimizing the Koopman residual loss over a parameterized kernel space. Specifically, we adopt a multiple kernel learning (MKL) framework in which the kernel is expressed as a convex combination of L base kernels {k1, . . . , k L}:
+
+k(x, y ) = 
+
+> L
+
+X
+
+> ℓ=1
+
+βℓkℓ(x, y ), βℓ ≥ 0,
+
+> L
+
+X
+
+> ℓ=1
+
+βℓ = 1 . (105) For a given kernel k, we express the eigenfunction as ϕ(x) = P 
+
+> j
+
+αj k(x, x j ), and compute the PDE residual at training points {xi} using the reproducing derivative property to evaluate ∇ϕ(xi). The loss function becomes 
+
+L(β) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+(f (xi) · ∇ ϕ(xi) − λϕ (xi)) 2 , (106) where ϕ is parameterized implicitly via the mixed kernel kβ . To prevent the trivial solution ϕ ≡ 0, we impose a constraint on the gradient of ϕ at the origin. Specifically, we enforce that 
+
+∇ϕ(0) = eL, (107) where eL is a left eigenvector of the Jacobian of the vector field at the origin corre-sponding to the eigenvalue λ. This ensures identifiability and avoids degeneration to zero. The overall optimization problem is thus modified to include this constraint as a penalty term: min  
+
+> ϕ∈H k, β ∈∆L
+
+L(ϕ, β ) := ∥f (x) · ∇ ϕ(x) − λϕ (x)∥2 + η∥ϕ∥2 
+
+> Hk
+
++ γc∥∇ ϕ(0) − eL∥2, (108) where γc ≫ 1 is a large coefficient that enforces the constraint softly. This results in a single-stage, fully unsupervised kernel learning procedure that simultaneously enforces the Koopman PDE and identifies the appropriate function space via kernel weights β. We optimize the coefficients β = ( β1, . . . , β L) by solving the constrained minimization problem min β∈∆L L(β), where ∆ L denotes the L-simplex. This opti-mization problem is solved using gradient-based methods in JAX with automatic differentiation. Importantly, the true Koopman eigenfunction is not required during training. The kernel is selected solely by minimizing the residual of the Koopman PDE, 29 making this a fully unsupervised, operator-theoretic approach to kernel selection. Once the optimal kernel weights β are found, the resulting kernel k(x, y ) defines a data-driven function space Hk in which the Koopman eigenfunction approximation is well-adapted to the underlying dynamics. This procedure not only removes the burden of manual kernel tuning but also integrates the PDE structure directly into the learning of the representation. Our experiments show that this method consistently selects kernels that yield low resid-uals and recover the true eigenfunctions with high accuracy. We apply the proposed variational kernel learning framework to a two-dimensional nonlinear system whose Koopman eigenfunction ϕ(x) = x1 − x22 and eigenvalue λ = −1 are known analytically. Our goal is to approximate ϕ in an RKHS constructed from a convex combination of 11 base kernels: Gaussian, Exponential, Cauchy, Triangular, Sigmoid, Inverse Quadratic, Polynomial kernels with degrees 2 through 6. Figure 2 displays several visualizations related to the learned Koopman eigen-function: 
+
+• Initial ϕ: the eigenfunction before any learning, using the initial random weights and uniform kernel weights; 
+
+• Learned ϕ: the output after learning both the kernel combination and the function coefficients; 
+
+• Rescaled ϕ: the learned ϕ rescaled by a factor c∗ to minimize its distance from the true eigenfunction, with 
+
+c∗ = ⟨ϕlearned , ϕ true ⟩∥ϕlearned ∥2 ; (109) 
+
+• True ϕ: the known analytic solution ϕ(x) = x1 − x22;
+
+• Rescaled Error : the pointwise absolute error between the rescaled learned 
+
+ϕ and the true ϕ.To account for the scaling ambiguity inherent to eigenfunctions, we compute the rescaled root mean squared error (RMSE) between ϕlearned and ϕtrue as: Rescaled RMSE = ∥c∗ϕlearned − ϕtrue ∥L2 . (110) In our experiment, we obtained: Rescaled RMSE = 1 .63 × 10 −1.The learned kernel weights reflect the contribution of each base kernel to the final representation space. The following table summarizes the result: In the experiment for the second eigenfunction, we obtained Rescaled RMSE = 7.69 × 10 −2. The learned kernel weights βℓ reflect the contribution of each base 30 Figure 2: Approximation of Koopman eigenfunction ϕ using MKL. Top row: initial, learned, and rescaled ϕ. Bottom row: true ϕ, pointwise rescaled error. 
+
+Kernel Learned Weight 
+
+Gaussian 0.0909 Exponential 0.0909 Cauchy 0.0909 Triangular 0.0909 Sigmoid 0.0909 InvQuad 0.0909 Polynomial (d=2) 0.0909 Polynomial (d=3) 0.0910 Polynomial (d=4) 0.0910 Polynomial (d=5) 0.0909 Polynomial (d=6) 0.0907 Table 2: Learned weights βℓ of base kernels. The polynomial kernels (combined) dominate with a total weight of approximately 45.5%. kernel to the final RKHS used for approximation. The following table summarizes the weights obtained from the multiple kernel learning optimization: This result highlights that while all kernels contribute approximately equally, the group of polynomial kernels collectively accounts for a significant portion of the representation, suggesting their relevance in approximating the nonlinear Koopman eigenfunction in this system. 31 Figure 3: Approximation of second Koopman eigenfunction ϕλ2 (x) using MKL. Top row: initial, learned, and rescaled ϕ. Bottom row: true ϕ, pointwise rescaled error. 
+
+Kernel Learned Weight 
+
+Gaussian 0.0910 Exponential 0.0909 Cauchy 0.0910 Triangular 0.0911 Sigmoid 0.0910 Inverse Quadratic 0.0910 Polynomial (d=2) 0.0910 Polynomial (d=3) 0.0910 Polynomial (d=4) 0.0911 Polynomial (d=5) 0.0910 Polynomial (d=6) 0.0901 Table 3: Learned weights βℓ of base kernels for approximating ϕλ2 .
+
+Sparsification of KML To obtain a more interpretable and parsimonious kernel combination, we augment the MKL loss with an ℓ1 penalty on the mixture weights 32 βℓ. We optimize the augmented MKL objective min 
+
+> w,β ℓ
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ f (xi) · ∇ ϕ(xi) − λ ϕ (xi)2
+
+| {z }
+
+> LPDE
+
++ η
+
+> N
+
+X
+
+> j=1
+
+w2
+
+> j
+
+| {z }
+
+> ℓ2-penalty
+
++ γc ∇ϕ(0) − eℓ 2
+
+| {z }
+
+> anchoring constraint
+
++ λL1
+
+> L
+
+X
+
+> ℓ=1
+
+βℓ
+
+| {z }
+
+> ℓ1-penalty
+
+.
+
+(111) where the last term is an ℓ1 penalty on the kernel weights β. We consider the same example and, after solving this via L-BFGS, we apply a hard threshold of τ = 0 .1 to each βℓ, zeroing out any coefficient below τ = 0 .1 and renormalizing the remainder. In our experiments this yields the following pruned models for λ1 = −1: 
+
+• For λL1 = 0 .1, one finds β∗ 
+
+> ℓ
+
+= 1 /L ≈ 0.091 < τ for all ℓ, hence ϕpruned ≡ 0, implying that the sparsification penalty is not strong enough. To guarantee max ℓ β∗ 
+
+> ℓ
+
+≥ τ (i.e. a nontrivial pruned model), λL1 must be increased until at least one β∗ 
+
+> ℓ
+
+exceeds τ .
+
+• λL1 = 1.0 −→ kept kernels {Poly 2, Poly 3, Poly 4} with weights 
+
+{0.331 , 0.378 , 0.291 }, pruned RMSE = 6 .70 × 10 −2.
+
+• λL1 = 10 .0 −→ kept kernels {Sigmoid , Poly 2, Poly 5, Poly 6} with weights 
+
+{0.342 , 0.219 , 0.156 , 0.283 }, pruned RMSE = 1 .42 × 10 −1.
+
+• λL1 = 100 .0 −→ kept kernels {Poly 3, Poly 4, Poly 6} with weights 
+
+{0.465 , 0.198 , 0.338 }, pruned RMSE = 7 .56 × 10 −1.
+
+4.4 Kernel Choice based on The Method of Characteristics 
+
+We adapt classical ideas from Lions to the setting of transport-type (or advec-tion) eigenvalue problems by employing the method of characteristics. This method leverages the geometry of the characteristic flow to derive kernel functions that are inherently aligned with the Koopman eigenfunctions. While Lions’s variational framework provides a principled method for approx-imating Koopman eigenfunctions, the resulting kernel depends sensitively on the underlying Reproducing Kernel Hilbert Space (RKHS). An alternative, more geo-metrically intuitive route is to derive the kernel using the method of characteristics for the associated transport PDEs. In this section, we develop a kernel construction method based on this idea. By leveraging the characteristic flow of the dynamical system and integrating over trajectories, we construct kernels that align naturally with the structure of the Koopman eigenfunctions. This approach complements the 33 variational perspective and offers practical advantages in settings where the flow is explicitly known. Let st(x) denote the flow of the ODE 
+
+ddt st(x) = F st(x), s0(x) = x. (112) We assume that x = 0 is the equilibrium point of the system. In [64], a path integral formula was proposed for the computation of Koopman principal eigenfunc-tion. In particular, for λ > 0 one has the forward-time path-integral is used to define the principal eigenfunction using 
+
+ϕPathIntegral  
+
+> λ
+
+(x) = w⊤ 
+
+> λ
+
+x +
+
+Z ∞
+
+> 0
+
+e−λt w⊤ 
+
+> λ
+
+f st(x) dt. (113) where, f(x) = F(x) − ∂F 
+
+> ∂x
+
+(0) x is the purely nonlinear part of the vector field. We define the following functions by truncating the improper integral Z ±∞ 
+
+> 0
+
+e−λt w⊤f(st(x)) dt to a finite horizon T > 0, choosing the time-interval so that e−λt decays: 1. Unstable mode (λ+ > 0): forward integration 
+
+ξ+(x) = w⊤
+
+> +
+
+x +
+
+Z T
+
+> 0
+
+e−λ+ t w⊤
+
+> +
+
+f st(x) dt. (114) Here t runs from 0 to + T , and since λ+ > 0, the weight e−λ+t decays. 2. Stable mode (λ− < 0): backward integration 
+
+ξ−(x) = w⊤−x +
+
+Z −T
+
+> 0
+
+e−λ− t w⊤−f st(x) dt. (115) Here t runs from 0 down to −T , so that −λ− t > 0 and e−λ−t decays. These expressions are then used to construct a kernel 
+
+K(x, y ) = ξ(x) ξ(y), (116) We can prove the following theorem when T → ∞ 
+
+Theorem 4.4 (Characteristic Coordinate Kernel from Laplace Pullbacks) . Let f ∈
+
+C1(Ω; Rd) generate a complete backward-time flow φ(s; x) on a compact domain Ω,and let λ ∈ C with ℜ(λ) > 0. For a fixed w ∈ Rd, define 
+
+ξ(x) := w⊤x +
+
+Z 0
+
+> −∞
+
+e−λ(−s)w⊤f(φ(s; x)) ds. (117) 34 Then the kernel 
+
+K(x, y ) := ξ(x) · ξ(y) (118) 
+
+is symmetric, continuous, and positive semi-definite. It defines a reproducing kernel Hilbert space HK ⊂ C0(Ω) , whose elements are scalar multiples of ξ, and formally satisfy the Koopman eigenvalue equation 
+
+f(x) · ∇ ϕ(x) = λϕ (x) (119) 
+
+along flow trajectories. Proof. Step 1: Regularity and well-definedness of ξ(x). Let φ(s; x) denote the flow map generated by the ODE ˙ x = F(x). Since F ∈ C1(Ω) and Ω is compact, 
+
+F is globally Lipschitz and the flow φ(s; x) is smooth in both s and x. In particular, 
+
+φ(s; x) ∈ C∞ in x for each fixed s ∈ R.The integrand in 
+
+ξ(x) = w⊤x +
+
+Z 0
+
+> −∞
+
+e−λ(−s)w⊤f(φ(s; x)) ds (120) is a composition of smooth functions, and since ℜ(λ) > 0, the exponential factor 
+
+eλs decays as s → −∞ . Because f and φ(s; x) are bounded on Ω, the integrand is bounded by an integrable envelope. Therefore, the integral converges absolutely and defines a continuous function ξ : Ω → R.
+
+Step 2: Continuity of ξ(x) and the kernel K(x, y ). Let xn → x in Ω. Then for all s ≤ 0, we have φ(s; xn) → φ(s; x) uniformly on compact subintervals by con-tinuity of the flow. Since f is continuous and bounded, the dominated convergence theorem ensures 
+
+Z 0
+
+> −∞
+
+eλs w⊤f(φ(s; xn)) ds →
+
+Z 0
+
+> −∞
+
+eλs w⊤f(φ(s; x)) ds. (121) Hence ξ(xn) → ξ(x), and ξ ∈ C0(Ω). As K(x, y ) = ξ(x)ξ(y), this implies K ∈
+
+C0(Ω × Ω). 
+
+Step 3: Symmetry and positive semi-definiteness. Symmetry is immedi-ate from the product form: K(x, y ) = ξ(x)ξ(y) = ξ(y)ξ(x). For positive semi-definiteness, take any finite set {xi}ni=1 ⊂ Ω and scalars {ci}ni=1 .Then nX
+
+> i,j =1
+
+cicj K(xi, x j ) = 
+
+> n
+
+X
+
+> i,j =1
+
+cicj ξ(xi)ξ(xj ) = 
+
+> n
+
+X
+
+> i=1
+
+ciξ(xi)
+
+!2
+
+≥ 0. (122) So K is positive semi-definite. 35 Step 4: RKHS structure. As K(x, y ) = ξ(x)ξ(y), it defines a rank-one kernel. The RKHS HK consists of functions of the form ϕ(x) = cξ (x), with inner product 
+
+⟨ϕ, ϕ ⟩HK = c2
+
+∥ξ∥2
+
+> L2(Ω)
+
+. (123) This RKHS is isometrically isomorphic to R, and functions in HK are multiples of 
+
+ξ ∈ C0(Ω). 
+
+Step 5: Verification that ξ solves the Koopman PDE. Let us compute the total derivative of eλs ξ(φ(s; x)) with respect to s, where x ∈ Ω is fixed: 
+
+dds 
+
+
+
+eλs ξ(φ(s; x)) 
+
+
+
+= eλs 
+
+λξ (φ(s; x)) + ∇ξ(φ(s; x)) ⊤f(φ(s; x)) 
+
+
+
+. (124) This formula holds by the chain rule and smoothness of ξ and φ. But now consider the function ˜ξ(x) := 
+
+Z 0
+
+> −∞
+
+eλs w⊤f(φ(s; x)) ds, (125) so that ξ(x) = w⊤x + ˜ξ(x). We now compute f(x) · ∇ ξ(x). Using the chain rule and differentiating under the integral (justified by dominated convergence and smooth-ness), 
+
+∇ ˜ξ(x)⊤f(x) = ddt t=0 
+
+˜ξ(φ(t; x)) = ddt t=0 
+
+Z 0
+
+> −∞
+
+eλs w⊤f(φ(s; φ(t; x))) ds. (126) By flow composition φ(s; φ(t; x)) = φ(s + t; x), we get ˜ξ(φ(t; x)) = 
+
+Z 0
+
+> −∞
+
+eλs w⊤f(φ(s + t; x)) ds =
+
+Z t
+
+> −∞
+
+eλ(s−t)w⊤f(φ(s; x)) ds. (127) Change variables u = s − t in the integral to get: ˜ξ(φ(t; x)) = e−λt 
+
+Z t
+
+> −∞
+
+eλs w⊤f(φ(s; x)) ds. (128) Differentiating with respect to t gives: 
+
+ddt ˜ξ(φ(t; x)) t=0 
+
+= −λ ˜ξ(x) + w⊤f(x). (129) Hence: 
+
+f(x) · ∇ ξ(x) = w⊤f(x) + f(x) · ∇ ˜ξ(x) = w⊤f(x) − λ ˜ξ(x) + w⊤f(x). (130) Now recall ξ(x) = w⊤x + ˜ξ(x), so: 
+
+f(x) · ∇ ξ(x) = λξ (x). (131) 
+
+Conclusion: The function ξ satisfies the Koopman PDE f · ∇ ξ = λξ , and 
+
+K(x, y ) = ξ(x)ξ(y) defines a symmetric, continuous, positive semi-definite repro-ducing kernel with RKHS HK = span {ξ} ⊂ C0(Ω). 36 When T is finite, the kernel K(x, y ) = ξT (x)ξT (y) remains continuous, since the integrand defining ξT (x) is smooth and bounded. The kernel is symmetric and positive semi-definite by construction, and it defines a one-dimensional reproduc-ing kernel Hilbert space spanned by ξT ∈ C0(Ω), where ξT (x) is the finite-time approximation of the characteristic coordinate: 
+
+ξ(x) = w⊤x +
+
+Z 0
+
+> −∞
+
+eλs w⊤f(φ(s; x)) ds. (132) This truncated coordinate approximates the true Koopman eigenfunction when the system flow remains inside Ω for s ∈ [−T, 0], with approximation error decaying exponentially in T as T → ∞ . The resulting kernel retains its structural alignment with the Koopman dynamics up to an exponentially small residual. 
+
+Theorem 4.5 (Truncated Flow Kernel with Approximate Koopman Behavior) .
+
+Let f ∈ C1(Ω; Rd) generate a complete flow φ(s; x) on a compact domain Ω, and fix T > 0, λ ∈ C with ℜ(λ) > 0, and w ∈ Rd. Define the truncated characteristic coordinate: 
+
+ξT (x) := w⊤x +
+
+Z 0
+
+> −T
+
+e−λ(−s)w⊤f(φ(s; x)) ds. (133) 
+
+Then the kernel 
+
+KT (x, y ) := ξT (x) · ξT (y) (134) 
+
+is continuous, symmetric, and positive semi-definite. It defines a one-dimensional reproducing kernel Hilbert space HK = span {ξT } ⊂ C0(Ω) . Furthermore, ξT ap-proximately satisfies the Koopman eigenvalue equation: 
+
+f(x) · ∇ ξT (x) = λξ T (x) + RT (x), where RT (x) = −e−λT w⊤f(φ(−T ; x)) . (135) 
+
+As T → ∞ , the residual term RT (x) → 0 uniformly, and ξT (x) → ξ(x), recovering the exact solution to f · ∇ ξ = λξ .Proof. Step 1: Regularity of ξT (x). Since f ∈ C1(Ω) and Ω is compact, the flow 
+
+φ(s; x) is smooth in both s and x, and bounded over s ∈ [−T, 0]. The integrand 
+
+eλs w⊤f(φ(s; x)) (136) is smooth and bounded for each x ∈ Ω, and the integral over a finite interval [ −T, 0] is uniformly convergent. Therefore, ξT (x) ∈ C0(Ω), and KT (x, y ) = ξT (x) · ξT (y) ∈
+
+C0(Ω × Ω). 
+
+Step 2: Symmetry and positive semi-definiteness. The kernel is clearly symmetric since KT (x, y ) = ξT (x) · ξT (y) = KT (y, x ). To verify positive semi-definiteness, take any finite set {xi}ni=1 ⊂ Ω and coeffi-cients {ci} ⊂ R. Then: 
+
+> n
+
+X
+
+> i,j =1
+
+cicj KT (xi, x j ) = 
+
+> n
+
+X
+
+> i,j =1
+
+cicj ξT (xi)ξT (xj ) = 
+
+> n
+
+X
+
+> i=1
+
+ciξT (xi)
+
+!2
+
+≥ 0. (137) 37 Step 3: RKHS structure. As with the infinite-time kernel, the kernel KT is rank-one. The corresponding RKHS is: 
+
+HKT = {ϕ : ϕ(x) = cξ T (x), c ∈ R} , (138) with inner product defined by: 
+
+⟨ϕ1, ϕ 2⟩KT = c1c2
+
+∥ξT ∥2
+
+> L2(Ω)
+
+. (139) 
+
+Step 4: Approximate Koopman property. We compute f(x) · ∇ ξT (x). Define: ˜ξT (x) := 
+
+Z 0
+
+> −T
+
+eλs w⊤f(φ(s; x)) ds, so that ξT (x) = w⊤x + ˜ξT (x). (140) To compute the directional derivative along f , we consider: 
+
+f(x) · ∇ ˜ξT (x) = ddt t=0 
+
+˜ξT (φ(t; x)) . (141) By the flow composition property φ(s; φ(t; x)) = φ(s + t; x), we get: ˜ξT (φ(t; x)) = 
+
+Z 0
+
+> −T
+
+eλs w⊤f(φ(s + t; x)) ds =
+
+Z t 
+
+> −T+t
+
+eλ(r−t)w⊤f(φ(r; x)) dr, (142) where we changed variables r = s + t.Thus, ˜ξT (φ(t; x)) = e−λt 
+
+Z t 
+
+> −T+t
+
+eλr w⊤f(φ(r; x)) dr. (143) Differentiating with respect to t at t = 0, we obtain: 
+
+ddt ˜ξT (φ(t; x)) t=0 
+
+= −λ ˜ξT (x) + w⊤f(x) − e−λT w⊤f(φ(−T ; x)) . (144) Therefore: 
+
+f(x) · ∇ ξT (x) = w⊤f(x) + f(x) · ∇ ˜ξT (x) = λ ˜ξT (x) + w⊤f(x) − e−λT w⊤f(φ(−T ; x)) .
+
+(145) Using ξT (x) = w⊤x + ˜ξT (x), we obtain: 
+
+f(x) · ∇ ξT (x) = λξ T (x) + RT (x), (146) where the residual is: 
+
+RT (x) := −e−λT w⊤f(φ(−T ; x)) . (147) 38 Step 5: Convergence of the residual. Since f is continuous and Ω compact, 
+
+w⊤f(φ(−T ; x)) is uniformly bounded for x ∈ Ω, say by M > 0. Thus: 
+
+|RT (x)| ≤ M e −ℜ (λ)T → 0 uniformly as T → ∞ . (148) Hence, as T → ∞ , ξT (x) → ξ(x) uniformly, and the Koopman residual vanishes uniformly. This completes the proof. 
+
+Remark. For stable Koopman eigenfunctions ( ℜ(λ) < 0), an explicit path-integral formula expresses the eigenfunction as a backward flow integral: 
+
+ϕλs (x) = w⊤ 
+
+> λs
+
+x +
+
+Z 0
+
+> −∞
+
+e−λst w⊤ 
+
+> λs
+
+f(st(x)) dt, (149) or equivalently, using forward integration along the backward flow: 
+
+ϕλs (x) = w⊤ 
+
+> λs
+
+x −
+
+Z ∞
+
+> 0
+
+eλst w⊤ 
+
+> λs
+
+f(s−t(x)) dt. (150) These formulas are consistent with the Laplace-based resolvent kernels of Theo-rems 4.5 and 4.6, but emphasize the geometric structure of stable manifolds near equilibria. ■
+
+In practice, we will use the following kernels 
+
+• For the unstable mode, we define K+(x, y ) = ξ+(x)ξ+(y). 
+
+• For the stable mode, we define K−(x, y ) = ξ−(x)ξ−(y). 
+
+• In the simulations below, we use K(x, y ) = 
+
+ K+(x, y ) for λ = λ+
+
+K−(x, y ) for λ = λ−
+
+We can also combine K+(x, y ) and K−(x, y ) in different ways K(x, y ) = 
+
+ ξ+(x)
+
+ξ−(x)
+
+
+
+or K(x, y ) = ξ+(x)ξ+(x) + ξ−(x)ξ−(x) or K(x, y ) = ξ+(x)ξ−(y). These serve as the reproducing kernel for the space in which we approximate the global eigenfunction. Specifically, we seek Φ( x) = 
+
+> N
+
+X
+
+> j=1
+
+αj K(x, x j ) = 
+
+> N
+
+X
+
+> j=1
+
+αj ξ(x)ξ(xj ) = ξ(x)
+
+> N
+
+X
+
+> j=1
+
+αj ξ(xj ). (151) where xj are collocation points. Substituting into the Koopman-PDE 
+
+∇Φ( x) · f(x) − λ Φ( x) = 0 (152) and evaluating at each xi gives the linear system 
+
+> N
+
+X
+
+> j=1
+
+αj
+
+h
+
+∇xK(xi, x j ) · f(xi) − λ K (xi, x j )
+
+i
+
+= 0 , i = 1 , . . . , N, (153) 39 which is then augmented by the constraint 
+
+∇Φ(0) = w, (154) So that the zero solution is excluded, and Φ is uniquely normalized to agree with the chosen left-eigenvector w at first order. So we really have Φ( x) = c ξ (x), (155) where PNj=1 αj ξ(xj )=: c and ∇Φ(0) = w simply fixes the constant c.The coefficients {αj } are determined by minimizing the penalized least-squares functional 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ NX
+
+> j=1
+
+αj
+
+∇xK(xi, x j )·f(xi)−λK (xi, x j )2
+
++ μgrad ∇Φ(0) −w 2 + μreg ∥α∥2.
+
+(156) 
+
+Practical Considerations to Compute ξ(x) Since the “path-integral” formula 
+
+ξ(x) = w⊤−x +
+
+Z 0
+
+> −∞
+
+e−λ− s w⊤− f φ(s; x) ds (157) involves x both as the endpoint of the flow φ(s; x) and inside the integral, one implements it in practice via the following steps: i. Truncate the time horizon. Choose a finite T > 0 so that 
+
+Z 0
+
+> −∞
+
+(· · · ) ds ≈
+
+Z 0
+
+> −T
+
+(· · · ) ds. (158) ii. Compute the backward trajectory. For each desired point x, solve the ODE backward in time: 
+
+dds φ(s; x) = F φ(s; x), φ(0; x) = x, s ∈ [−T, 0] . (159) (E.g. via solve ivp on [0 , −T ].) iii. Evaluate the weighted integral. Sample a grid sj on [ −T, 0], evaluate 
+
+w⊤−f(φ(sj ; x)) e−λ−sj , and approximate R 0 
+
+> −T
+
+(· · · ) ds by a quadrature rule 4.
+
+> 4
+
+In our implementation we break the semi-infinite interval [ −T, 0] into M small steps of size ∆t = T /M and sum: x0 = x, xk+1 = xk + ∆ t f(xk ), sk = − k ∆t,
+
+ξ(x) ≈ w⊤x + 
+
+> M−1
+
+X
+
+> k=0
+
+e−λ (sk + ∆t  
+
+> 2)
+
+w⊤f
+
+ xk +xk+1 
+
+> 2
+
+
+
+∆t. (160) For M = 1 (so T = ∆ ) this reduces to the one-step formula: ξ(x) ≈ w⊤x +∆t e −λ ∆t 
+
+> 2
+
+w⊤f
+
+ x+s∆t(x)2
+
+
+
+, s∆t(x) = x + ∆ t f(x).
+
+40 iv. Form the pointwise value. Combine the two terms to obtain 
+
+ξ(x) ≈ w⊤−x + X
+
+> j
+
+w⊤−f φ(sj ; x) e−λ−sj ∆sj . (161) v. (Optional) Global surrogate. If one needs ξ(·) everywhere, choose sam-ple points xi, compute ξ(xi) via the above, and fit ξ(x) ≈ X
+
+> i
+
+αiK(x, x i) by enforcing the PDE ∇ξ · f = λξ (and normalization) in least-squares. 
+
+Numerical Experiment (The Duffing oscillator) We consider the Duffing oscillator ˙x1 = x2, ˙x2 = −δx 2 − x1(β + αx 21), (162) with parameters δ = 0 .5, β = −1.0, and α = 1 .0. Linearizing at the origin gives the Jacobian 
+
+A =
+
+ 0 1
+
+−β −δ
+
+
+
+, (163) with eigenvalues λ+ > 0 and λ− < 0. The next figures illustrate the learned eigenfunction on the grid: 
+
+Figure 4: Surface and heatmap visualizations of the Koopman eigenfunction ϕλ+(x). 
+
+# 5 Extensions to Other Transport Equations 
+
+In the preceding sections, we developed a unified framework for constructing re-producing kernels tailored to transport-type partial differential equations (PDEs), with a particular focus on Koopman eigenfunction approximation. Central to this framework are three complementary methods-Lions’s variational principle, Green’s function inversion, and the method of characteristics-each shown to yield equivalent kernels under suitable assumptions. 41 In this section, we extend these methods beyond Koopman-related PDEs to a broader class of linear transport equations commonly arising in mathematical physics and dynamical systems. These include the linear advection equation, conti-nuity equation, Liouville equation, and transport equations with decay. While dif-fering in their specific formulations, these PDEs all share a characteristic first-order transport structure, making them amenable to the kernel constructions previously discussed. For each equation, we demonstrate how both the Green’s function and the resol-vent kernel (characteristic flow) approaches can be systematically applied to derive reproducing kernels for their solution spaces. These examples illustrate the flexi-bility and extensibility of our framework, showing that the theoretical insights and computational tools developed for Koopman analysis generalize naturally to other important settings in transport theory. 
+
+5.1 Linear Advection Equation 
+
+The linear advection equation is one of the simplest models of transport: 
+
+∂u ∂t + c ∂u ∂x = 0 , (164) where c is a constant advection speed. For the associated eigenvalue problem, con-sider an operator of the form 
+
+Lφ (x) = c dφ dx − λ φ (x). (165) 
+
+Green’s Function Approach: We seek a causal (retarded) Green’s function 
+
+G(x, ξ ) satisfying 
+
+Lx G(x, ξ ) = δ(x − ξ). (166) A formal solution is given by 
+
+G(x, ξ ) = H(x − ξ) exp 
+
+
+
+− λc (x − ξ)
+
+
+
+, (167) where H is the Heaviside function enforcing causality (i.e., G(x, ξ ) = 0 for x < ξ ). The reproducing kernel is then constructed by symmetrization: 
+
+K(x, y ) = 
+
+Z
+
+> R
+
+G(x, ξ ) G(y, ξ ) w(ξ) dξ, (168) with w(ξ) > 0 chosen appropriately (often as the Lebesgue measure). 42 Method of Characteristics: The characteristics for the linear advection equa-tion are straight lines given by 
+
+st(x) = x + c t. (169) Along these characteristics, a solution to the eigenvalue problem takes the form 
+
+φ(x) = e λc (x−x0) g(x0), (170) where x0 is the foot of the characteristic on a prescribed initial surface. The resolvent kernel is defined by taking the Laplace transform of the flow-induced semigroup: 
+
+Kα(x, y ) = 
+
+Z ∞
+
+> 0
+
+e−αt δ y − st(x) dt. (171) An appropriate choice of α and normalization then yields a reproducing kernel that is equivalent to the one obtained via the Green’s function method. 
+
+5.2 Continuity Equation 
+
+The continuity equation, which expresses conservation of a physical quantity such as mass, is given by ∂ρ ∂t + ∇ · (ρ f (x)) = 0 . (172) Considering a steady velocity field f (x), one can formulate an eigenvalue problem for an operator of the form 
+
+Lφ (x) = f (x) · ∇ φ(x) − λ φ (x). (173) 
+
+Green’s Function Approach: A retarded Green’s function G(x, ξ ) is determined by solving 
+
+Lx G(x, ξ ) = δ(x − ξ), (174) with suitable boundary or initial conditions imposed on a hypersurface. The repro-ducing kernel is then 
+
+K(x, y ) = 
+
+Z
+
+> Ω
+
+G(x, ξ ) G(y, ξ ) w(ξ) dξ. (175) 
+
+Method of Characteristics: The characteristics describe the trajectories along which the conserved quantity is advected. Writing a solution as 
+
+φ(x) = exp  λ T (x)g s−T (x)(x), (176) 43 where T (x) denotes the time taken for the backward characteristic to reach the initial surface, one takes the Laplace transform of the corresponding semigroup to obtain 
+
+Kα(x, y ) = 
+
+Z ∞
+
+> 0
+
+e−αt δ y − st(x) dt. (177) Under the proper choice of parameters, this resolvent kernel coincides with the one derived by the Green’s function method. 
+
+5.3 Liouville Equation 
+
+In Hamiltonian dynamics, the Liouville equation governs the evolution of a phase space density: ∂ρ ∂t + {ρ, H } = 0 , (178) where {· , ·} is the Poisson bracket and H is the Hamiltonian. Rewriting this as a transport equation in phase space results in an operator of the form 
+
+Lφ (x, p ) = f (x, p ) · ∇ x,p φ(x, p ) − λ φ (x, p ). (179) 
+
+Green’s Function Approach: One constructs a retarded Green’s function 
+
+G(( x, p ), (ξ, π )) by solving 
+
+L(x,p ) G (x, p ), (ξ, π ) = δ (x, p ) − (ξ, π ), (180) subject to causality, and then forms the reproducing kernel 
+
+K (x, p ), (y, q ) =
+
+Z
+
+> Ω
+
+G (x, p ), (ξ, π ) G (y, q ), (ξ, π ) w(ξ, π ) dξ dπ. (181) 
+
+Method of Characteristics: The phase-space trajectories serve as characteris-tics along which the solution is propagated: 
+
+φ(x, p ) = exp  λ T (x, p )g s−T (x,p )(x, p ). (182) Taking the Laplace transform of the semigroup defined by these characteristics, the resolvent kernel is given by 
+
+Kα
+
+ (x, p ), (y, q ) =
+
+Z ∞
+
+> 0
+
+e−αt δ (y, q ) − st(x, p ) dt. (183) Again, with appropriate choices, this kernel matches that obtained from the Green’s function approach. 44 5.4 Transport Equation with Decay 
+
+A transport equation that includes a decay (or damping) term is written as 
+
+∂u ∂t + f (x) · ∇ u = −λ u. (184) Here, the presence of the decay term modifies the operator to 
+
+Lφ (x) = f (x) · ∇ φ(x) − λ φ (x). (185) 
+
+Green’s Function Approach: The retarded Green’s function for this operator satisfies 
+
+Lx G(x, ξ ) = δ(x − ξ), (186) and the reproducing kernel is constructed as 
+
+K(x, y ) = 
+
+Z
+
+> Ω
+
+G(x, ξ ) G(y, ξ ) w(ξ) dξ. (187) 
+
+Method of Characteristics: By following the characteristic curves, a solution can be expressed as 
+
+φ(x) = eλT (x) g s−T (x)(x), (188) and the Laplace transform of the associated semigroup yields the resolvent kernel 
+
+Kα(x, y ) = 
+
+Z ∞
+
+> 0
+
+e−αt δ y − st(x) dt. (189) With suitable parameter choices, this reproducing kernel is equivalent to that ob-tained via the Green’s function method. 
+
+Summary: For each of the above transport equations-the linear advection equa-tion, the continuity equation, the Liouville equation, and the transport equation with decay-the same two methodologies yield a reproducing kernel for the solution space. In the Green’s function approach, one inverts the operator (with appropriate causal conditions) to obtain a Green’s function and then forms the kernel by sym-metrization. In the method of characteristics, the solution is propagated along the flow and the Laplace transform of the resulting semigroup produces the resolvent kernel. Under proper conditions, both methods provide equivalent reproducing ker-nels, ensuring that the essential features and the causal dynamics of the transport process are captured uniformly. This unified treatment demonstrates that the inversion ideas originally devel-oped by Lions-and extended via variational and Green’s function methods-are robust enough to apply to a broad class of transport equations. The resulting reproducing kernels not only permit the reconstruction of eigenfunctions via a representer the-orem but also provide a powerful bridge between classical analysis and data-driven approaches for transport phenomena. 45 Conclusion. We have introduced a rigorous and extensible framework for con-structing reproducing kernels aligned with the Koopman eigenvalue problem, based on three equivalent analytic formulations. The resulting kernels induce RKHSs whose Mercer eigenfunctions approximate true Koopman modes, and enable robust variational solvers that remain stable even in the presence of boundary singularities. Our framework is enriched with a data-adaptive kernel learning scheme and extends naturally to other first-order transport PDEs. Together, these components form a coherent, mesh-free approach to learning, representing, and computing spectral features of transport-driven systems. 
+
+# Appendix A Reproducing Kernel Hilbert Spaces (RKHS) 
+
+We give a brief overview of reproducing kernel Hilbert spaces as used in statistical learning theory [39]. Early work developing the theory of RKHS was undertaken by N. Aronszajn [65]. 
+
+Definition A.1. Let H be a Hilbert space of functions on a set X . Denote by 
+
+⟨f, g ⟩ the inner product on H and let ∥f ∥ = ⟨f, f ⟩1/2 be the norm in H, for f and 
+
+g ∈ H . We say that H is a reproducing kernel Hilbert space (RKHS) if there exists a function K : X × X → R such that i. Kx := K(x, ·) ∈ H for all x ∈ H .ii. K spans H: H = span {Kx | x ∈ X } .iii. K has the reproducing property : ∀f ∈ H , f (x) = ⟨f, K x⟩.
+
+k will be called a reproducing kernel of H. HK will denote the RKHS H with reproducing kernel K where it is convenient to explicitly note this dependence. 
+
+The important properties of reproducing kernels are summarized in the following proposition. 
+
+Proposition A.2. [65] If K is a reproducing kernel of a Hilbert space H, then i. K(x, y ) is unique. ii. ∀x, y ∈ X , K(x, y ) = K(y, x ) (symmetry). iii. Pqi,j =1 αiαj K(xi, x j ) ≥ 0 for αi ∈ R, xi ∈ X and q ∈ N+ (positive definite-ness). iv. ⟨K(x, ·), K (y, ·)⟩ = K(x, y ).
+
+46 Common examples of reproducing kernels defined on a compact domain X ⊂ Rn
+
+are the (1) constant kernel: K(x, y ) = m > 0 (2) linear kernel: K(x, y ) = x · y (3) polynomial kernel: K(x, y ) = (1 + x · y)d for d ∈ N+ (4) Laplace kernel: K(x, y ) = 
+
+e−|| x−y|| 2/σ 2
+
+, with σ > 0 (5) Gaussian kernel: K(x, y ) = e−|| x−y|| 22/σ 2
+
+, with σ > 0 (6) triangular kernel: K(x, y ) = max {0, 1 − || x−y|| 22 
+
+> σ
+
+}, with σ > 0. (7) locally periodic kernel: K(x, y ) = σ2e−2 sin 2(π|| x−y|| 2/p ) 
+
+> ℓ2
+
+e− || x−y|| 222ℓ2 , with σ, ℓ, p > 0. 
+
+Theorem A.3. [65] Let K : X × X → R be a symmetric and positive definite function. Then there exists a Hilbert space of functions H defined on X admitting K
+
+as a reproducing Kernel. Conversely, let H be a Hilbert space of functions f : X → R
+
+satisfying ∀x ∈ X , ∃κx > 0, such that |f (x)| ≤ κx∥f ∥H, ∀f ∈ H . Then H has a reproducing kernel K.
+
+Theorem A.4. [65] Let K(x, y ) be a positive definite kernel on a compact domain or a manifold X. Then there exists a Hilbert space F and a function Φ : X → F 
+
+such that 
+
+K(x, y ) = ⟨Φ( x), Φ( y)⟩F for x, y ∈ X. 
+
+Φ is called a feature map, and F a feature space 5.
+
+One of the main advantages of kernel methods is that they supply analytical 
+
+uncertainty estimates for predictions-either in the Bayesian framework (Gaussian processes) or via frequentist concentration bounds in the RKHS norm. 
+
+Bayesian predictive variance. Assume we observe noisy data y = ( y1, . . . , y n)⊤
+
+with yi = f (xi) + εi, ε i ∼ N (0 , σ 2), and place a Gaussian-process prior f ∼GP  0, K (·, ·). Let Knn = [ K(xi, x j )] ni,j =1 and kx := ( K(x, x 1), . . . , K (x, x n)) ⊤.Then the posterior at a test point x is 
+
+mn(x) = k⊤
+
+> x
+
+ Knn + σ2In
+
+−1y, s2
+
+> n
+
+(x) = K(x, x ) − k⊤
+
+> x
+
+ Knn + σ2In
+
+−1kx,
+
+(190) 
+
+where mn(x) is the predictive mean and s2
+
+> n
+
+(x) is a closed-form posterior variance quantifying epistemic uncertainty. Notice that s2
+
+> n
+
+(x) ↓ 0 as more data are taken near x, providing an explicit guide for active-learning or Bayesian-optimisation schemes. 
+
+Frequentist error bounds. For kernel-ridge regression with tuning parameter 
+
+λ > 0, the estimator ˆf λ ∈ H K satisfies the pointwise inequality 
+
+|f (x) − ˆf λ(x)| ≤ f − ˆf λ HK
+
+pK(x, x ), (191) 
+
+> 5The dimension of the feature space can be infinite, for example in the case of the Gaussian kernel.
+
+47 so that pK(x, x ) acts as a local sensitivity coefficient . Coupled with standard oracle or concentration bounds on ∥f − ˆf λ∥HK , (191) yields asymptotically valid frequentist confidence regions without any resampling. 
+
+# B Koopman Operator & Eigenfunctions 
+
+B.1 Koopman Operator and its Spectrum 
+
+In this section, we provide a brief overview of the spectral theory of the Koopman operator. We refer the reader to [66, 67] for more details. Consider the dynamical system ˙x = f (x), (192) defined on a state space Z ⊆ Rn. The vector field, f , is assumed to be smooth function. Let C0 denote the space of continuous functions from Z to C and let 
+
+F ⊆ C0 be the function space of observable ψ : Z → C. We have following definitions for the Koopman operator and its spectrum. 
+
+Definition B.1 (Koopman Operator) . The family of Koopman operators Ut : F → F corresponding to (192) is defined as 
+
+[Utψ]( x) = ψ(st(x)) . (193) 
+
+where st(x) is the solution of the dynamical system (192). If in addition ψ is con-tinuously differentiable, then φ(x, t ) := [ Utψ]( x) satisfies a partial differential equa-tion [68] 
+
+∂φ ∂t = ∂φ ∂x f =: Kf φ (194) 
+
+with the initial condition φ(x, 0) = ψ(x). The operator Kf is the infinitesimal gen-erator of Ut i.e., 
+
+Kf ψ = lim 
+
+> t→0
+
+(Ut − I)ψt . (195) It is easy to check that each Ut is a linear operator on the space of functions, F.
+
+Definition B.2. [Eigenvalues and Eigenfunctions of Koopman] A function ψλ(x),assumed to be at least C1, is said to be an eigenfunction of the Koopman operator associated with eigenvalue λ if 
+
+[Utψλ]( x) = eλt ψλ(x). (196) 
+
+Using the Koopman generator, the (196) can be written as 
+
+∂ψ λ
+
+∂x f = λψ λ. (197) 48 The principal eigenfunctions of the Koopman operator are eigenfunctions with asscoiated eigenvalues matches with the eigenvalues of the linearization of the non-linear system at the equilibrium point. With the hyperbolicity assumption on the equilibrium point of the system (192), this part of the spectrum is well-defined. Equations (196) and (197) provide a general definition of the Koopman spectrum. However, the spectrum can be defined over finite time or over a subset of the state space. The spectrum of interest to us in this paper could be well-defined over the subset of the state space. 
+
+Definition B.3 (Open Eigenfunction [66]) . Let ψλ : C → C, where C ⊂ Z is not an invariant set. Let τ −(x) and τ +(x) be the greatest lower and least upper bounds of the time interval on which the solution x ∈ C exists, and τ ∈ (τ −(x), τ +(x)) = Ix
+
+be a connected open interval such that τ (x) ∈ C for all times τ ∈ Ix. If 
+
+[Uτ ψλ]( x) = ψλ(sτ (x)) = eλτ ψλ(x), ∀τ ∈ Ix. (198) 
+
+Then ψλ(x) is called the open eigenfunction of the Koopman operator family Ut, for 
+
+t ∈ R with eigenvalue λ.
+
+If C is a proper invariant subset of Z in which case Ix = R for every x ∈ C,then ψλ is called the subdomain eigenfunction. If C = Z then ψλ will be the ordinary eigenfunction associated with eigenvalue λ as defined in (196). The open eigenfunctions as defined above can be extended from C to a larger reachable set when C is open based on the construction procedure outlined in [66, Definition 5.2, Lemma 5.1]. Let P be that larger domain. The eigenvalues of the linearization of the system dynamics at the origin, i.e., E := ∂f ∂x (0), will form the eigenvalues of the Koopman operator [66, Proposition 5.8]. Our interest will be in constructing the corresponding eigenfunctions called as principal eigenfunctions, defined over the domain P. The principal eigenfunctions can be used as a change of coordinates in the linear representation of a nonlinear system and draw a connection to the famous Hartman-Grobman theorem on linearization and Poincare normal form [69]. The principal eigenfunctions will be defined over a proper subset P of the state space Z
+
+(called subdomain eigenfunctions) or over the entire Z [66, Lemma 5.1, Corollary 5.1, 5.2, and 5.8]. 
+
+B.2 Decomposition of Koopman Eigenfunctions 
+
+Following [30], we decompose principal eigenfunctions into linear and nonlinear parts. Specifically, consider the decomposition of the nonlinear system into linear and nonlinear parts as ˙x = f (x) = Ex + ( f (x) − Ex ) =: Ex + f (x). (199) where E = ∂f ∂x (0) with Ex the linear part and f (x) := f (x)−Ex the purely nonlinear part. For the simplicity of presentation and continuity of notations, we present 49 approximation results for eigenfunctions with simple real eigenvalues; the extension to the complex case is deferred to future work. Let λ be the eigenvalues of the Koopman generator and also of E. The eigenfunction corresponding to eigenvalue 
+
+λ admits the decomposition into linear and nonlinear parts. 
+
+ϕλ(x) = w⊤x + h(x), (200) where w⊤x and h(x) are the eigenfunction’s linear and purely nonlinear parts, re-spectively. Substituting (200) in following general expression of Koopman eigen-function i.e., 
+
+∂ϕ λ
+
+∂x (x) · f (x) = λϕ λ(x) (201) and using (199), we obtain following equations to be satisfied by w and h(x)
+
+w⊤E = λw ⊤, ∂h ∂x (x) · f (x) − λh (x) + w⊤f (x) = 0 . (202) So, the linear part of the eigenfunction can be found as the left eigenvector with eigenvalue λ of the matrix E, and the nonlinear term satisfies the linear partial differential equation. 
+
+# C Green’s Function and Characteristics 
+
+Theorem C.1. Let f ∈ C1(Ω , Rd) generate a complete flow st, and let λ ∈ C with 
+
+Re λ > 0. Suppose ϕ : Ω → C solves the Koopman eigenfunction PDE 
+
+f (x) · ∇ ϕ(x) = λϕ (x). (203) 
+
+Then 
+
+ϕ(x) = 
+
+Z ∞
+
+> 0
+
+e−λt g(s−t(x)) dt, (204) 
+
+where g is an auxiliary source function (e.g., boundary or initial data). Proof. Along trajectories t 7 → st(x), the chain rule gives 
+
+ddt ϕ(st(x)) = f (st(x)) · ∇ ϕ(st(x)) = λϕ (st(x)) . (205) Solving this ODE yields 
+
+ϕ(st(x)) = eλt ϕ(x). (206) Rearranging, 
+
+ϕ(x) = e−λt ϕ(st(x)) . (207) Multiplying by g(s−t(x)) and integrating over t ∈ [0 , ∞) weighted by e−λt gives the stated formula. Convergence follows from Re λ > 0. 50 Theorem C.2. Under the same assumptions, the solution satisfies along charac-teristics 
+
+ϕ(st(x)) = eλt ϕ(x), or equivalently ϕ(x) = e−λt ϕ(st(x)) . (208) 
+
+Proof. The method of characteristics reduces the PDE to the ODE 
+
+ddt ϕ(st(x)) = λϕ (st(x)) , (209) which integrates to 
+
+ϕ(st(x)) = eλt ϕ(x). (210) Rearranging yields the desired form. 
+
+Theorem C.3 (Equivalence of Green’s and Characteristics Solutions) . The Green’s function solution and the method of characteristics solution agree. Proof. Both constructions involve tracing the backward flow s−t(x) and weighting by e−λt . Integrating the characteristic solution over t exactly produces the Green’s function representation. 
+
+# D Proof of Theorem 3.7 
+
+Theorem D.1. Let Kvar , KG, and Kres  
+
+> α
+
+denote the variational, Green’s function, and resolvent kernels respectively, associated with the transport operator 
+
+Lϕ (x) = f (x) · ∇ ϕ(x) − λϕ (x), (211) 
+
+where f is a smooth vector field generating a complete flow. Then, under suitable regularity conditions on f and boundedness of Ω, we have: 
+
+Kvar (x, y ) = KG(x, y ) = Kres  
+
+> α
+
+(x, y ), for all α > Re( λ). (212) 
+
+Proof. We proceed in two steps. 
+
+Step 1: Kvar = KG. Define the Hilbert space H with graph norm: 
+
+∥u∥2 
+
+> H
+
+= ∥u∥2 
+
+> L2(Ω)
+
++ ∥Lu ∥2
+
+> L2(Ω)
+
+. (213) Since f is smooth and Ω is bounded, the transport operator L is well-defined and continuous on suitable dense subspaces like C∞(Ω). Pointwise evaluation functionals may not be bounded a priori, but by construc-tion of H, we can define generalized evaluation via duality with test functions. 51 Therefore, by the Riesz representation theorem (under bounded evaluation assump-tion or suitably mollified test functions), for each x ∈ Ω there exists a unique 
+
+Kvar (x, ·) ∈ H satisfying: 
+
+⟨Kvar (x, ·), v ⟩H = v(x), ∀v ∈ H . (214) Now, define the Green’s function G(x, ξ ) as the solution of: 
+
+LxG(x, ξ ) = δ(x − ξ) (215) in the distributional sense. For v ∈ C∞ 
+
+> c
+
+(Ω): 
+
+v(x) = 
+
+Z
+
+> Ω
+
+G(x, ξ )( Lv )( ξ) dξ, (216) by Green’s formula for hyperbolic transport equations. Define the symmetric kernel: 
+
+KG(x, y ) = 
+
+Z
+
+> Ω
+
+G(x, ξ )G(y, ξ ) dξ. (217) Then for v ∈ H :
+
+Z
+
+> Ω
+
+KG(x, y )v(y) dy =
+
+Z
+
+> Ω
+
+G(x, ξ )
+
+Z 
+
+> Ω
+
+G(y, ξ )v(y) dy 
+
+
+
+dξ. (218) Since G acts as an inverse of L, this reproduces v(x). Thus, by uniqueness of the Riesz representer: 
+
+Kvar (x, y ) = KG(x, y ). (219) 
+
+Step 2: KG = Kres  
+
+> α
+
+. Using the method of characteristics, the Green’s function admits the integral representation: 
+
+G(x, ξ ) = 
+
+Z ∞
+
+> 0
+
+e−λt δ(ξ − st(x)) dt, (220) where st denotes the flow generated by f .Thus: 
+
+KG(x, y ) = 
+
+Z Z ∞
+
+> 0
+
+e−λ(t1+t2)δ(st1 (x) − st2 (y)) dt 1dt 2. (221) Changing variables to τ = t2 − t1 and simplifying (using invariance of the flow), we find: 
+
+KG(x, y ) = 
+
+Z ∞
+
+> 0
+
+e−λτ 
+
+Z ∞
+
+> 0
+
+e−2λt δ(sτ (x) − y) dt 
+
+
+
+dτ. (222) The integral over t gives a factor of 1 /(2 λ) under exponential decay, leading to: 
+
+KG(x, y ) ∝
+
+Z ∞
+
+> 0
+
+e−λτ δ(sτ (x) − y) dτ, (223) 52 which matches the definition of the resolvent kernel: 
+
+Kres  
+
+> α
+
+(x, y ) = 
+
+Z ∞
+
+> 0
+
+e−αt δ(y − st(x)) dt, (224) for a suitable choice of α close to λ (specifically, α > Re( λ) ensures convergence). Thus: 
+
+KG(x, y ) = Kres  
+
+> α
+
+(x, y ). (225) 
+
+Spectral and Operator Properties. Since K is symmetric, positive semi-definite, and by construction square-integrable ( K ∈ L2(Ω × Ω) under regularity as-sumptions on f and boundedness of Ω), the integral operator TK is Hilbert–Schmidt and thus compact. If K(x, x ) is integrable, it is trace-class and admits a Mercer expansion: 
+
+K(x, y ) = 
+
+> ∞
+
+X
+
+> j=1
+
+λj ϕj (x)ϕj (y) (226) with convergence in the associated RKHS norm. 
+
+Conclusion. Thus, we have proven: 
+
+Kvar (x, y ) = KG(x, y ) = Kres  
+
+> α
+
+(x, y ). (227) 
+
+# References 
+
+[1] J.-L. Lions, “Noyau reproduisant et syst` eme d’optimalit´ e,” in Aspects of Math-ematics and its Applications , A. Barroso, Ed. Elsevier Science Publishers B.V., 1986, pp. 573–582. [2] ——, “Some remarks on reproducing kernels,” Rendiconti del Seminario Matematico e Fisico di Milano , vol. 58, pp. 209–230, 1988. [3] M. Engliˇ s, D. Lukkassen, J. Peetre, and L.-E. Persson, “On the formula of jacques-louis lions for reproducing kernels of harmonic and other functions,” 
+
+Journal f¨ ur die reine und angewandte Mathematik , vol. 2004, no. 570, pp. 89–129, 2004. [Online]. Available: https://doi.org/10.1515/crll.2004.035 [4] G. Auchmuty, “Reproducing kernels for hilbert spaces of real harmonic functions,” SIAM Journal on Mathematical Analysis , vol. 41, no. 6, pp. 1994–2020, 2009. [Online]. Available: https://epubs.siam.org/doi/abs/10. 1137/080739628 53 [5] H. Kantz and T. Schreiber, Nonlinear Time Series Analysis . USA: Cambridge University Press, 1997. [6] M. Casdagli, “Nonlinear prediction of chaotic time series,” Physica D: Nonlinear Phenomena , vol. 35, no. 3, pp. 335 – 356, 1989. [Online]. Available: http://www.sciencedirect.com/science/article/pii/0167278989900742 [7] J. L. Hudson, M. Kube, R. A. Adomaitis, I. G. Kevrekidis, A. S. Lapedes, and R. Farber, “Nonlinear signal processing and system identification: Applications to time series from electrochemical reactions,” Chemical Engineering Science , vol. 45, no. 8, pp. 2075–2081, 1990. [Online]. Available: https://www.sciencedirect.com/science/article/pii/000925099080079T [8] R. Rico-Martinez, K. Krischer, I. Kevrekidis, M. Kube, and J. Hudson, “Discrete-vs. continuous-time nonlinear signal processing of cu electrodissolu-tion data,” Chemical Engineering Communications , vol. 118, no. 1, pp. 25–48, 1992. [9] O. Grandstrand, “Nonlinear system identification using neural networks: dy-namics and instabilities,” in Neural Networks for Chemical Engineers , A. B. Bulsari, Ed. Elsevier: Elsevier, 1995, ch. 16, pp. 409–442. [10] R. Gonz´ alez-Garc´ ıa, R. Rico-Mart´ ınez, and I. Kevrekidis, “Identification of distributed parameter systems: A neural net based approach,” Computers and Chemical Engineering , vol. 22, pp. S965–S968, 1998, european Symposium on Computer Aided Process Engineering-8. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S0098135498001914 [11] A. Chattopadhyay, P. Hassanzadeh, K. V. Palem, and D. Subramanian, “Data-driven prediction of a multi-scale lorenz 96 chaotic system using a hierarchy of deep learning methods: Reservoir computing, ann, and RNN-LSTM,” CoRR , vol. abs/1906.08829, 2019. [Online]. Available: http://arxiv.org/abs/1906.08829 [12] S. L. Brunton, J. L. Proctor, and J. N. Kutz, “Discovering governing equations from data by sparse identification of nonlinear dynamical systems,” Proceedings of the National Academy of Sciences , vol. 113, no. 15, pp. 3932–3937, 2016. [Online]. Available: https://www.pnas.org/content/113/15/3932 [13] J. Pathak, Z. Lu, B. R. Hunt, M. Girvan, and E. Ott, “Using machine learning to replicate chaotic attractors and calculate lyapunov exponents from data,” 
+
+Chaos: An Interdisciplinary Journal of Nonlinear Science , vol. 27, no. 12, p. 121102, 2017. [Online]. Available: https://doi.org/10.1063/1.5010300 [14] A. Nielsen, Practical Time Series Analysis: Prediction with Statistics and Ma-chine Learning . O’Reilly Media, 2019. 54 [15] H. Abarbanel, Analysis of Observed Chaotic Data , ser. Institute for Nonlinear Science. Springer New York, 2012. [16] G. Pillonetto, M. H. Quang, and A. Chiuso, “A New Kernel-Based Approach for NonlinearSystem Identification,” IEEE Transactions on Automatic Control ,vol. 56, no. 12, pp. 2825–2840, Dec. 2011. [17] W.-X. Wang, R. Yang, Y.-C. Lai, V. Kovanis, and C. Grebogi, “Predicting Catastrophes in Nonlinear Dynamical Systems by Compressive Sensing,” Phys-ical Review Letters , vol. 106, no. 15, p. 154101, Apr. 2011. [18] S. L. Brunton, J. L. Proctor, and J. N. Kutz, “Discovering governing equations from data by sparse identification of nonlinear dynamical systems,” Proceedings of the National Academy of Sciences , vol. 113, no. 15, pp. 3932–3937, 2016. [19] B. Lusch, J. N. Kutz, and S. L. Brunton, “Deep learning for universal linear embeddings of nonlinear dynamics,” Nature Communications , vol. 9, no. 1, p. 4950, Dec. 2018. [20] J. L. Callaham, J. V. Koch, B. W. Brunton, J. N. Kutz, and S. L. Brunton, “Learning dominant physical processes with data-driven balance models,” Na-ture Communications , vol. 12, no. 1, p. 1016, Dec. 2021. [21] A. A. Kaptanoglu, K. D. Morgan, C. J. Hansen, and S. L. Brunton, “Physics-constrained, low-dimensional models for magnetohydrodynamics: First-principles and data-driven approaches,” Physical Review E , vol. 104, no. 1, p. 015206, Jul. 2021. [22] J. N. Kutz and S. L. Brunton, “Parsimony as the ultimate regularizer for physics-informed machine learning,” Nonlinear Dynamics , Jan. 2022. [23] B. O. Koopman and J. v. Neumann, “Dynamical systems of continuous spec-tra,” Proceedings of the National Academy of Sciences , vol. 18, no. 3, pp. 255– 263, 1932. [24] I. Mezi´ c, “Spectral properties of dynamical systems, model reduction and de-compositions,” Nonlinear Dynamics , vol. 41, no. 1, pp. 309–325, 2005. [25] A. Mauroy and I. Mezi´ c, “Global stability analysis using the eigenfunctions of the koopman operator,” IEEE Transactions on Automatic Control , vol. 61, no. 11, pp. 3356–3369, 2016. [26] B. Umathe and U. Vaidya, “Spectral koopman method for identifying stability boundary,” IEEE Control Systems Letters , 2023. [27] A. R. Matavalam, B. Hou, H. Choi, S. Bose, and U. Vaidya, “Data-driven transient stability analysis using the koopman operator,” International Journal of Electrical Power & Energy Systems , vol. 162, p. 110307, 2024. 55 [28] U. Vaidya, “Spectral analysis of koopman operator and nonlinear optimal con-trol,” in 2022 IEEE 61st Conference on Decision and Control (CDC) . IEEE, 2022, pp. 3853–3858. [29] ——, “When Koopman meets Hamilton and Jacobi,” In preprint , 2024. [30] S. A. Deka, S. S. Narayanan, and U. Vaidya, “Path-integral formula for com-puting koopman eigenfunctions,” in 2023 62nd IEEE Conference on Decision and Control (CDC) . IEEE, 2023, pp. 6641–6646. [31] M. Colbrook, “The foundations of infinite-dimensional spectral computations,” Ph.D. dissertation, 2020. [32] M. O. Williams, I. G. Kevrekidis, and C. W. Rowley, “A data–driven approx-imation of the koopman operator: Extending dynamic mode decomposition,” 
+
+Journal of Nonlinear Science , vol. 25, no. 6, pp. 1307–1346, 2015. [33] S. Klus, F. N¨ uske, S. Peitz, J.-H. Niemann, C. Clementi, and C. Sch¨ utte, “Data-driven approximation of the Koopman generator: Model reduction, system identification, and control,” Physica D: Nonlinear Phenomena , vol. 406, p. 132416, 2020. [34] B. Peherstorfer, S. L. Brunton, and J. N. Kutz, “Data-driven koopman op-erators for model reduction and control of systems with symmetries,” SIAM Journal on Applied Dynamical Systems , vol. 19, no. 3, pp. 1894–1920, 2020. [35] S. Klus, F. N¨ uske, P. Koltai, I. G. Kevrekidis, C. Sch¨ utte, and C. Clementi, “Kernel-based dynamic mode decomposition,” Journal of Computational Dy-namics , vol. 2, no. 2, pp. 247–265, 2015. [36] S. Das and D. Giannakis, “Koopman spectra in reproducing kernel hilbert spaces,” Applied and Computational Harmonic Analysis , vol. 49, no. 2, pp. 573–607, 2020. [Online]. Available: https://www.sciencedirect.com/science/ article/pii/S1063520320300427 [37] B. Hou, S. Sanjari, N. Dahlin, S. Bose, and U. Vaidya, “Sparse learning of dynamical systems in RKHS: An operator-theoretic approach,” in International Conference on Machine Learning . PMLR, 2023, pp. 13 325–13 352. [38] I. Ishikawa, Y. Hashimoto, M. Ikeda, and Y. Kawahara, “Koopman operators with intrinsic observables in rigged reproducing kernel hilbert spaces,” 2024. [Online]. Available: https://arxiv.org/abs/2403.02524 [39] F. Cucker and S. Smale, “On the mathematical foundations of learning,” Bul-letin of the American mathematical society , vol. 39, no. 1, pp. 1–49, 2002. 56 [40] Y. Chen, B. Hosseini, H. Owhadi, and A. M. Stuart, “Solving and learning nonlinear pdes with gaussian processes,” Journal of Computational Physics ,vol. 447, 2021. [41] H. Owhadi, “Computational Graph Completion,” Research in the Mathematical Sciences , vol. 9(2), no. 27, 2021. [Online]. Available: https://arxiv.org/abs/ 2110.10323 [42] J. Lee, B. Hamzi, B. Hou, H. Owhadi, G. Santin, and U. Vaidya, “Kernel methods for the approximation of the eigenfunctions of the koopman operator,” 
+
+Physica D: Nonlinear Phenomena , vol. 476, p. 134662, 2025, available online 17 April 2025, Version of Record 18 April 2025. [43] B. Hamzi, C. Kuehn, and S. Mohamed, “A note on kernel methods for multi-scale systems with critical transitions,” Mathematical Methods in the Applied Sciences , vol. 42, no. 5, pp. 1535–1544, 2018. [44] J. Bouvrie and B. Hamzi, “Balanced reduction of nonlinear control systems in reproducing kernel hilbert space,” in Proceedings of the 48th Annual Allerton Conference on Communication, Control, and Computing . IEEE, 2010, pp. 998–1005. [45] ——, “Empirical estimators for stochastically forced nonlinear systems: Ob-servability, controllability and the invariant measure,” in Proceedings of the 2012 American Control Conference (ACC) . IEEE, 2012, pp. 4142–4148. [46] B. Hamzi and F. Colonius, “Kernel methods for the approximation of discrete-time linear autonomous and control systems,” SN Applied Sciences , vol. 1, no. 7, pp. 1–12, 2019. [47] B. Haasdonk, B. Hamzi, G. Santin, and D. Wittwar, “Greedy kernel methods for center manifold approximation,” Proc. of ICOSAHOM 2018, International Conference on Spectral and High Order Methods , vol. 427, no. 1, 2018, https: //arxiv.org/abs/1810.11329. [48] ——, “Kernel methods for center manifold approximation and a weak data-based version of the center manifold theorems,” Physica D , 2021. [49] P. Giesl, B. Hamzi, M. Rasmussen, and K. Webster, “Approximation of Lya-punov functions from noisy data,” Journal of Computational Dynamics , vol. 7, pp. 57–81, 2019, https://arxiv.org/abs/1601.01568. [50] B. Hamzi and H. Owhadi, “Learning dynamical systems from data: Asimple cross-validation perspective, Part I: Parametric Kernel Flows,” Physica D: Nonlinear Phenomena , vol. 421, p. 132817, 2021. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S0167278920308186 57 [51] S. Klus, F. Nuske, and B. Hamzi, “Kernel-based approximation of the Koopman generator and Schr¨ odinger operator,” Entropy , vol. 22, 2020, https://www. mdpi.com/1099-4300/22/7/722. [52] R. Alexander and D. Giannakis, “Operator-theoretic framework for forecasting nonlinear time series with kernel analog techniques,” Physica D: Nonlinear Phenomena , vol. 409, p. 132520, 2020. [Online]. Available: http://www.sciencedirect.com/science/article/pii/S016727891930377X [53] A. B. S. K. B. H. P. Koltai, and C. Schutte, “Dimensionality reduction of complex metastable systems via kernel embeddings of transition manifold,” 
+
+Journal of Nonlinear Science , vol. 31(3), 2019. [54] J. Bouvrie and B. Hamzi, “Empirical estimators for stochastically forced nonlinear systems: Observability, controllability and the invariant measure,” 
+
+Proc. of the 2012 American Control Conference , pp. 294–301, 2012, https: //arxiv.org/abs/1204.0563v1. [55] ——, “Kernel methods for the approximation of nonlinear systems,” SIAM J. Control and Optimization , 2017, https://arxiv.org/abs/1108.2903. [56] ——, “Kernel methods for the approximation of some key quantities of non-linear systems,” Journal of Computational Dynamics , vol. 1, 2017, http: //arxiv.org/abs/1204.0563. [57] B. Hamzi, C. Kuehn, and S. Mohamed, “A note on kernel methods for multiscale systems with critical transitions,” Mathematical Methods in the Applied Sciences , vol. 42, no. 3, pp. 907–917, 2019. [Online]. Available: https://onlinelibrary.wiley.com/doi/abs/10.1002/mma.5394 [58] L. Yang, X. Sun, B. Hamzi, H. Owhadi, and N. Xie, “Learning dynamical systems from data: A simple cross-validation perspective, Part V: Sparse Kernel Flows for 132 chaotic dynamical systems,” Physica D , vol. 460, 2022. [59] L. Yang, B. Hamzi, Y. Kevrekidis, H. Owhadi, X. Sun, and N. Xie, “Learning dynamical systems from data: A simple cross-validation perspective, Part VI: Hausdorff-metric based Kernel Flows to learn Attractors and Invariant Sets,” 
+
+Physica D , 2023. [60] B. Hou, A. R. R. Matavalam, S. Bose, and U. Vaidya, “Propagating uncer-tainty through system dynamics in reproducing kernel hilbert space,” Physica D: Nonlinear Phenomena , p. 134168, 2024. [61] J. Lee, B. Hamzi, Y. Kevrekidis, and H. Owhadi, “Gaussian processes simplify differential equations,” September 2024. [Online]. Available: https://www.researchgate.net/publication/383680496 Gaussian Processes Simplify Differential Equations 58 [62] D. Lengyel, B. Hamzi, H. Owhadi, and P. Parpas, “Kernel sum of squares for data adapted kernel learning of dynamical systems from data: A global optimization approach,” arXiv preprint arXiv:2408.06465 , 2024. [Online]. Available: https://www.arxiv.org/pdf/2408.06465 [63] G. Santin and B. Haasdonk, “Kernel methods for surrogate modeling,” System and Data-Driven Methods and Algorithms , 2019, https://arxiv.org/abs/1907. 105566. [64] S. A. Deka, S. S. K. S. Narayanan, and U. Vaidya, “Path-integral formula for computing koopman eigenfunctions,” 2023. [Online]. Available: https://arxiv.org/abs/2307.06805 [65] N. Aronszajn, “Theory of reproducing kernels,” Transactions of the American Mathematical Society , vol. 68, no. 3, pp. 337–404, 1950. [Online]. Available: http://dx.doi.org/10.2307/1990404 [66] I. Mezi´ c, “Spectrum of the koopman operator, spectral expansions in functional spaces, and state-space geometry,” Journal of Nonlinear Science , vol. 30, no. 5, pp. 2091–2145, 2020. [67] ——, “Koopman operator, geometry, and learning of dynamical systems,” Not. Am. Math. Soc. , vol. 68, no. 7, pp. 1087–1105, 2021. [68] A. Lasota and M. C. Mackey, Chaos, Fractals, and Noise: Stochastic Aspects of Dynamics . New York: Springer-Verlag, 1994. [69] V. Arnold, Geometrical Methods in the Theory of Ordinary Differential Equa-tions . Springer Verlag, 2012. 59
