@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.09268v1/fig-001.webp",
+      "caption": "Figure 1: Conceptual framework and training pipeline of Logos. a, Logos combines the chemical accuracy of specialized models (bottom lright) with the reasoning of general LLMs (top left), addressing both interpretability and structural validity. b, Three-stage pipeline: Cycle 1 (self-data distillation) builds chain-of-thought (CoT) data with a teacher model; Cycle 2 (supervised finetuning) trains on molecular design; Cycle 3 (molecule-focused GRPO) uses reinforcement learning with chemical rewards. c, Validity scores on ChEBI-20 and PCdes; Logos-1.5b (final) and Logos-4b approach ∼99.9%, outperforming larger baselines. d, Logos enables interactive molecular design through three paradigms",
+      "page": 4,
+      "index": 1,
+      "width": 967,
+      "height": 914
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09268v1/fig-002.webp",
+      "caption": "Figure 2: Benchmarking across Logos-1.5b versions (v1 to final), Logos-4b and general LLMs (e.g., DeepSeek-14b, GPT-5) on ChEBI-20 and PCdes. Logos-1.5b final reaches exact match 0.3406 (ChEBI-20) and validity ∼1.0. Structural similarity (MACCS, RDKit, Morgan) improves across versions; FCD decreases to 0.4795, indicating that generated molecules lie closer to real drug-like chemistry.",
+      "page": 7,
+      "index": 2,
+      "width": 837,
+      "height": 1016
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09268v1/fig-003.webp",
+      "caption": "Figure 3: Evolutionary training and output format. a, Pipeline: teacher (LLM-14B) generates CoT for description–structure pairs (Cycle 1); student (LLM-1.5B) is fine-tuned on CoT data to become Logos-0 (Cycle 2); M-GRPO with chemical rewards yields Logos (Cycle 3). b, Ablations: full M-GRPO (solid blue) reaches EM > 0.35; removing self-data distillation (w.o. SDD) lowers performance; M-GRPO stabilizes generation length. c, Output format: system prompt plus JSON; the model outputs reasoning in <think> then the molecule in JSON, e.g. for a trisaccharide task.",
+      "page": 9,
+      "index": 3,
+      "width": 918,
+      "height": 1147
+    },
+    {
+      "url": "assets/figures/arxiv/2603.09268v1/fig-004.webp",
+      "caption": "Figure 4: Interactive Application to Multi-Objective Molecular Optimization. a, Three exemplary paradigms for rational molecule design: (1) Translation, where the model converts a detailed textual description into an exact molecular representation through step-by-step structural assembly; (2) Optimization, which performs local edits on a given backbone to satisfy specific physicochemical property constraints (e.g., logD7.4 and solubility); and (3) Distillation, an iterative multi-turn process that refines candidate molecules from a fuzzy conceptual query, gradually converging on the desired molecule. b. Analysis of Logos’ performance in real-world cases of multi-objectice optimization from [37].",
+      "page": 10,
+      "index": 4,
+      "width": 978,
+      "height": 922
+    }
+  ]
+}

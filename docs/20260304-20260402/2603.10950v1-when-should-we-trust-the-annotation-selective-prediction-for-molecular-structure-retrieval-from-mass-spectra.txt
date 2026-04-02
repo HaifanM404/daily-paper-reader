@@ -1,0 +1,1051 @@
+Title: When should we trust the annotation? Selective prediction for molecular structure retrieval from mass spectra
+
+URL Source: https://arxiv.org/pdf/2603.10950v1
+
+Published Time: Thu, 12 Mar 2026 01:16:27 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+# When should we trust the annotation? Selective prediction for molecular structure retrieval from mass spectra 
+
+## Mira J¨ urgens 1* , Gaetan De Waele 2, Morteza Rakhshaninejad 1, Willem Waegeman 1
+
+1* Department of Data Analysis and Mathematical Modeling, Ghent University, Coupure Links 653, Ghent, 9000, Belgium. 
+
+2Department of Computer Science, University of Antwerp, Middelheimlaan 1, Antwerp, 2020, Belgium. *Corresponding author(s). E-mail(s): mira.juergens@ugent.be; Contributing authors: gaetan.dewaele@uantwerpen.be; morteza.rakhshaninejad@ugent.be; willem.waegeman@ugent.be; 
+
+Abstract 
+
+Machine learning methods for identifying molecular structures from tandem mass spectra (MS/MS) have advanced rapidly, yet current approaches still exhibit significant error rates. In high-stakes appli-cations such as clinical metabolomics and environmental screening, incorrect annotations can have serious consequences, making it essential to determine when a prediction can be trusted. We intro-duce a selective prediction framework for molecular structure retrieval from MS/MS spectra, enabling models to abstain from predictions when uncertainty is too high. We formulate the problem within the risk-coverage tradeoff framework and comprehensively evaluate uncertainty quantification strate-gies at two levels of granularity: fingerprint-level uncertainty over predicted molecular fingerprint bits, and retrieval-level uncertainty over candidate rankings. We compare scoring functions including first-order confidence measures, aleatoric and epistemic uncertainty estimates from second-order dis-tributions, as well as distance-based measures in the latent space. All experiments are conducted on the MassSpecGym benchmark. Our analysis reveals that while fingerprint-level uncertainty scores are poor proxies for retrieval success, computationally inexpensive first-order confidence measures and retrieval-level aleatoric uncertainty achieve strong risk-coverage tradeoffs across evaluation settings. We demonstrate that by applying distribution-free risk control via generalization bounds, practition-ers can specify a tolerable error rate and obtain a subset of annotations satisfying that constraint with high probability. 
+
+Scientific contribution : This work provides the first systematic evaluation of selective prediction for molecular structure retrieval from mass spectra. We demonstrate that computationally inex-pensive retrieval-level confidence measures outperform Bayesian epistemic uncertainty estimates for identifying reliable annotations, and that distribution-free risk control yields provable guarantees on annotation quality, transforming molecular identification into an uncertainty-aware decision process. 
+
+Keywords: metabolomics, molecular retrieval, uncertainty quantification, selective prediction, risk control 
+
+1
+
+> arXiv:2603.10950v1 [cs.LG] 11 Mar 2026
+
+# 1 Introduction 
+
+Untargeted metabolomics generates vast num-bers of tandem mass spectra (MS/MS), yet only approximately 10% of detected features can be annotated with molecular structures [1, 2], adeficit also known as dark matter of metabolomics [3, 4]. This difficulty stems from different sources, including a fundamental mismatch between the vast chemical space and the limited coverage of spectral reference libraries, the inherent complex-ity of molecular fragmentation, and the variability of spectra across instrument settings and ioniza-tion conditions. The correct identification of the molecular structure from a mass spectrum is hence considered a very challenging task, while being of fundamental importance with applications in drug discovery [5–7], environmental biochemistry [8, 9] and clinical diagnostics [10]. A growing body of literature uses machine learning methods to tackle this problem, where two main paradigms are formed by molecular retrieval [11–14] and de novo structure elucidation [15–18]. The retrieval paradigm, which is the focus of this work, pre-dicts a molecular representation from the query spectrum and ranks candidate structures from a molecular database via a similarity function. The classical approach within this paradigm is molecular fingerprint prediction [11–13], where a model learns to map spectra to binary finger-print vectors encoding the presence or absence of molecular substructures [19, 20]. More recently, joint embedding approaches avoid explicit finger-print prediction and instead learn a shared latent space in which spectra and molecules can be compared directly via cosine similarity [14, 21]. The pace of progress in retrieval-based identi-fication has been substantial. CSI:FingerID [11] trains an array of support vector machines, one per molecular property, using multiple kernel learning over fragmentation tree similarities to predict molecular fingerprints from MS/MS spectra. It was the first method to substantially outperform in silico fragmentation tools such as MetFrag [22] and CFM-ID [23], and became the core of the widely adopted SIRIUS frame-work [24]. MIST [13] subsequently introduced a transformer architecture that encodes MS/MS 
+
+> Preprint. Under review.
+
+peaks as chemical formula vectors rather than binned m/z values, thereby implicitly featuriz-ing pairwise neutral losses between fragments. The introduction of the MassSpecGym bench-mark [25], comprising 231,104 labeled spectra with structure-disjoint evaluation splits based on molecular similarity, provided a standardized basis for comparing retrieval methods. Joint embedding approaches, which embed molecules and spectra in a shared latent space and rank candidates by cosine similarity rather than by comparing explicit fingerprint reconstructions, have since demonstrated substantial improve-ments. JESTR [14] treats molecules and their spectra as two views of the same underlying object and trains molecular and spectral encoders jointly using contrastive multiview coding [26]. GMLR [27] initializes the molecular encoder from ChemFormer [28] and jointly finetunes it during contrastive training. Despite this rapid progress, a significant error rate at the current state of the art remains conse-quential for downstream applications. In clinical metabolomics, incorrect identifications can delay or misdirect diagnosis of inborn errors of the metabolism [10]. In environmental nontarget screening, annotations directly inform regula-tory decisions on chemical contamination [9]. These examples illustrate that predictive accu-racy alone, without a mechanism to express the reliability of individual predictions, is insufficient for trustworthy metabolomics. To avoid mak-ing unreliable predictions, correct uncertainty quantification can help to build a trustworthy deployment of machine learning pipelines. Selec-tive prediction [29–31] provides a powerful tool to reduce the error rate by abstaining from making a prediction when the uncertainty is too high. A selective classifier augments a prediction func-tion with a selection function that determines, for each input, whether to predict or to abstain, thereby trading off coverage , i.e. the fraction of inputs on which the model commits, for lower 
+
+risk on accepted predictions [31, 32]. The effec-tiveness of selective prediction depends on the scoring function that decides which predictions to trust. A natural source of such scores is predic-tive uncertainty, which can be decomposed into 
+
+aleatoric uncertainty, arising from irreducible noise or ambiguity in the data, and epistemic 
+
+2Con fi dence Fraction of accepted spectra Select threshold at desired error rate Error rate Random selection Selection threshold Fig. 1 : Overview of the selective prediction framework for molecular structure retrieval from tandem mass spectra. (a) Fingerprint-based molecular retrieval. A tandem mass spectrum x is mapped by a model f to a vector of bitwise probabilities θ ∈ [0 , 1] 4096 . Each candidate fingerprint cj in the instance-specific candidate set Ci is scored by cosine similarity sj = sim( θ, cj ), and candidates are ranked by descending score. (b) Sources of uncertainty in the learned representation space. Aleatoric uncertainty is due to inherent noise and ambiguity in the data, and can arise for structurally similar molecules. Epistemic uncertainty reflects a general lack of knowledge, and arises in regions of the representation space that are far from training data. (c) Selective prediction. Left: test spectra are sorted by confidence in descending order. A threshold τ partitions spectra into accepted and rejected predictions. Right: sweeping the threshold τ over its full range traces the risk-coverage curve, where different points on the curve correspond to different risk-coverage trade-offs. uncertainty, reflecting the model’s lack of knowl-edge due to limited training data [33, 34]. In mass spectrometry, aleatoric uncertainty is inherent to the measurement process: structural isomers can produce nearly indistinguishable fragmentation patterns [35], and spectra of the same compound vary with collision energy, instrument type, and acquisition conditions. Epistemic uncertainty on the other hand reflects limitations of the learned model, arising from finite training data, model misspecification, and distributional shift between train and test data. Until now, no empirical con-sensus exists for which of these uncertainty types is most informative for selective prediction. We therefore analyze both components separately 3throughout this work. In this work, we introduce a systematic selec-tive prediction framework for molecular structure retrieval from MS/MS spectra (Figure 1). We formulate the retrieval problem within the risk-coverage tradeoff framework and conduct a com-prehensive evaluation of uncertainty quantifica-tion strategies at two levels of granularity: bitwise 
+
+uncertainty over predicted molecular fingerprint bits, and retrieval-level uncertainty over candidate rankings. We compare a broad range of selection criteria, including first-order confidence measures, epistemic uncertainty estimates from Bayesian approximations, and distance-based measures in the learned representation space. To provide finite-sample guarantees, we apply distribution-free risk control via the SGR algorithm [32], yielding provable bounds on the risk among accepted annotations. Our analysis reveals that while standard epistemic uncertainty estimates fail to improve selective prediction performance in this setting, computationally inexpensive first-order confidence measures based on retrieval pro-vide effective selection functions. We demonstrate that selective prediction enables practitioners to specify a tolerable error rate and obtain a sub-set of annotations satisfying that constraint with high probability, transforming molecular identi-fication into an uncertainty-aware decision pro-cess. Section 2 introduces the main framework, uncertainty estimation and evaluation methods, Section 3 presents the experimental evaluation and discussion, and Section 4 concludes with implications and limitations. 
+
+# 2 Methods 
+
+## 2.1 Fingerprint-based molecular retrieval 
+
+Let X denote the input space of tandem mass spectra and let Y ⊆ { 0, 1}D denote the output space of molecular fingerprints, where D ∈ N is the fingerprint dimensionality. Each fingerprint is a binary vector encoding the presence or absence of predefined molecular substructures. We assume access to a dataset D = {(xi, yi, Ci)}Ni=1 of N
+
+labeled instances, where xi ∈ X is a tandem mass spectrum, yi ∈ Y the molecular fingerprint of the true molecule, and Ci = {ci, 1, . . . , ci,M i } ⊂ Y an instance-specific candidate set of Mi molecular fin-gerprints retrieved from a chemical database. By construction, the true fingerprint satisfies yi ∈ C i.Molecular identification proceeds in two stages. First, a model f : X → Θ ⊆ [0 , 1] D predicts a vector of bitwise probabilities θ = ( θ1, . . . , θ D)T ,where each component θd estimates the probabil-ity of the d-th substructure being present. Second, a similarity function sim : [0 , 1] D × { 0, 1}D → R
+
+is used to score each candidate c ∈ C i against the prediction. In this work we use the cosine similarity: For j = 1 , . . . , M i,
+
+sj (x) = sim( θ, cj ) = θ⊤cj
+
+∥θ∥2 ∥cj ∥2
+
+. (1) Candidates are ranked by descending score, and the top-K set SK (x) ⊂ Ci consists of the K
+
+highest-scoring candidates. Retrieval performance is measured by the hit rate at K,Hit@ K(x, y) = I[y ∈ S K (x)] , (2) where I[·] denotes the indicator function, which equals one if the condition is satisfied and zero otherwise. This metric captures the practical util-ity of the retrieval pipeline, as it directly reflects the probability of the true molecule being among the top-K candidates. We evaluate K ∈ { 1, 5, 20 }
+
+throughout this work. Two properties of this setting are particularly relevant for uncertainty quantification. First, the candidate set size Mi
+
+varies across instances, since it is determined by external database queries based on precur-sor mass or molecular formula. Second, the task exhibits a two-stage structure in which retrieval quality directly depends on the quality of the pre-dicted fingerprint. Whether uncertainty at the bit level transfers to the retrieval level is analyzed in Section 3. 
+
+## 2.2 Selective prediction 
+
+In many applications, making no prediction is preferable to making an incorrect one [30, 31]. Selective prediction formalizes this idea by aug-menting a predictor f with a selection function 
+
+g : X → {0, 1} that decides, for each input, whether to commit to the prediction or to abstain. 4The resulting selective classifier ( f, g ) operates as (f, g )( x) = 
+
+(
+
+f (x), if g(x) = 1 ,
+
+abstain , if g(x) = 0 . (3) In practice, the selection function is defined via a 
+
+scoring function κ : X → R that quantifies the model’s confidence in its prediction, together with a threshold τ ∈ R:
+
+gτ (x) = I[κ(x) ≥ τ ] . (4) Instances for which the confidence falls below τ
+
+are rejected. Different choices of κ are compared in Section 2.3. The quality of a selective classifier is characterized by two quantities. The coverage 
+
+measures the fraction of instances on which the model commits to a prediction, 
+
+φ(f, g ) = E[g(x)] ,
+
+and the selective risk measures the expected loss restricted to accepted instances, 
+
+R(f, g ) = E[ℓ(f (x), y) · g(x)] 
+
+φ(f, g ) , (5) where ℓ : Θ × Y → R denotes a task-specific loss function. For the retrieval task, we define 
+
+ℓK (f (x), y) = 1 − Hit@ K(x, y), so that R(f, g )represents the miss rate among accepted predic-tions. The central trade-off in selective predic-tion is between risk and coverage: a more strin-gent threshold τ reduces the risk among selected instances but also lowers coverage. This trade-off is visualized through risk-coverage curves , which show the selective risk as a function of coverage for varying τ .
+
+## 2.3 Scoring functions 
+
+The effectiveness of selective prediction depends critically on the scoring function κ : X → R
+
+that drives the selection function in Eqn. (4). A well-chosen κ assigns high values to inputs where the expected risk is low, enabling a favorable risk-coverage trade-off. Since the fingerprint-based retrieval pipeline operates in two stages, uncer-tainty can arise at different levels, and it is a priori unclear which characterization yields the most informative selection criterion. We therefore investigate scoring functions from three comple-mentary families, distinguished by the level on which uncertainty is measured: fingerprint-level 
+
+scores derived from the predicted bit probabili-ties, retrieval-level scores operating on the induced candidate ranking, and distance-based scores that measure proximity to the training distribution in representation space. Within the first two fam-ilies, we further distinguish between first-order 
+
+scores that can be computed from a single model prediction, and second-order scores that require an approximate posterior distribution over model parameters. All κ are oriented so that higher val-ues indicate greater confidence. Formal definitions of all scoring functions are given in Appendix A. 
+
+Candidate probabilities. Several scoring functions operate not on the raw similarity scores sj (x) but on a probability distribution over candidates. We obtain this by applying a temperature-scaled softmax, 
+
+pj (x) = exp sj (x)/T PMi 
+
+> k=1
+
+exp sk(x)/T  , (6) for j = 1, . . . , M i and temperature parameter 
+
+T > 0. The resulting distribution converts raw similarity scores into a categorical distribution over candidates, which serves as the basis for both the first-order and the uncertainty-decomposition-based scoring functions below. 
+
+First-order uncertainty scores. The sim-plest scoring functions require only a single pre-dicted candidate distribution and no access to an ensemble or posterior approximation. The confi-dence κconf = max j pj (x) equals the probability assigned to the top-ranked candidate, following the maximum softmax probability baseline [36] widely used for misclassification detection. The 
+
+score gap κgap = s(1) (x) − s(2) (x) measures the difference between the two highest pre-softmax similarity scores, indicating how separated the top candidate is from its nearest competitor. Both scores capture how peaked the candidate dis-tribution is. Because they require no repeated inference, they are computationally inexpensive and applicable to any retrieval model. 
+
+Second-order uncertainty scores. A richer family of scoring functions decomposes predictive 5Table 1 : Overview of scoring functions κ investigated in this work. All scores are oriented so that higher values indicate greater confidence. “Order” indicates whether the score requires a single prediction (1st) or multiple posterior samples (2nd). Formal definitions are given in Appendix A. Score Level Order Description 
+
+κconf Retrieval 1st Max. candidate probability 
+
+κgap Retrieval 1st Difference between top-two similarity scores 
+
+κtot bit Fingerprint 2nd Total predictive entropy (fingerprint) 
+
+κal bit Fingerprint 2nd Aleatoric uncertainty (fingerprint) 
+
+κep bit Fingerprint 2nd Epistemic uncertainty (fingerprint) 
+
+κtot ret Retrieval 2nd Total predictive entropy (candidate ranking) 
+
+κal ret Retrieval 2nd Aleatoric uncertainty (candidate ranking) 
+
+κep ret Retrieval 2nd Epistemic uncertainty (candidate ranking) 
+
+κrank Retrieval 2nd Rank variance of top-K set across samples 
+
+κknn Input 1st Deep k-nearest-neighbor distance 
+
+κmah Input 1st Mahalanobis distance uncertainty into aleatoric and epistemic compo-nents. This decomposition requires not a single prediction, but a distribution over predictions, obtained by placing a second-order distribution 
+
+q(θ|x) over the model’s predicted fingerprint probabilities [37]. In practice, this distribution is intractable and is approximated by drawing S
+
+samples, e.g. from independently trained ensem-ble members or stochastic forward passes. Given these samples, the information-theoretic decom-position [38] then decomposes the entropy of the averaged prediction (total uncertainty) into the mean entropy of individual sample predictions (aleatoric uncertainty) and their mutual infor-mation with the model parameters (epistemic uncertainty). The decomposition can be applied at two lev-els. At the fingerprint level , each predicted bit probability θd is treated as a Bernoulli parameter, and the decomposition is applied independently to each of the D bits and then aggregated [39], yield-ing scores κtot bit , κal bit , and κep bit . At the retrieval level ,the decomposition is instead applied to the can-didate probability distributions induced by each posterior sample, yielding retrieval-level scores 
+
+κtot ret , κal ret , and κep ret . These scores capture uncer-tainty about which candidate is correct rather than about individual fingerprint bits. Which level provides the more informative selection criterion is an empirical question addressed in Section 3. As an additional second-order measure, we con-sider the rank variance κrank , which quantifies the stability of the top-K candidate set across poste-rior samples. For each input, the top-K candidates are identified under the mean prediction and re-ranked under every posterior sample, and the rank variance is the average variance of these ranks across samples. The motivation is structural: for 
+
+K = 1, retrieval success reduces to identifying the top candidate, which confidence directly captures. For K > 1, it becomes a set-membership question, and the relevant uncertainty concerns the stabil-ity of the predicted set’s composition. Because it captures both closely spaced similarity scores and model disagreement, rank variance acts as an implicit measure of total predictive uncertainty at the ranking level [40]. 
+
+Distance-based scores. The measures above quantify uncertainty via the model’s predictions. An orthogonal approach assesses whether the input itself lies in a region of the learned represen-tation space that is well covered by the training data [41]. We consider the deep k-nearest-neighbor distance κknn [42], which measures the average Euclidean distance of the input’s penultimate-layer representation to its k nearest training neigh-bors, and the Mahalanobis distance κmah [43], which accounts for the covariance structure of the training representations. The rationale is that spectra far from the training distribution are more likely to be poorly predicted. 62.4 Risk control with statistical guarantees 
+
+The scoring functions of Section 2.3 rank inputs by confidence, but do not prescribe a specific threshold τ . In practice, a practitioner requires a concrete decision rule: Given a tolerable tar-get risk rate r∗, which predictions should be accepted? Setting the threshold on a held-out set to match the target risk empirically does not account for finite-sample variability and can lead to violations of the target risk on new data [44]. We therefore adopt the selection with guaranteed risk (SGR) algorithm [32], a distribution-free pro-cedure that chooses τ with provable guarantees on the selective risk. SGR finds a threshold τ ∗ such that 
+
+P R(f, g τ ∗ ) > r ∗ < δ , (7) for user-specified target risk r∗ > 0 and confi-dence level 0 < δ < 1. Using a held-out calibration set, the algorithm computes exact binomial tail bounds on the true selective risk at each candidate threshold and applies a union bound to preserve the overall confidence level δ. Among all thresh-olds satisfying the bound, SGR selects the one that maximizes coverage. Full algorithmic details are given in Appendix B. In our experiments, we randomly split the MassSpecGym test set into equally sized calibration and evaluation halves and set δ = 0 .001. The threshold τ ∗ is selected on the calibration half, while the reported coverages and empirical risks are measured on the evaluation half. 
+
+## 2.5 Evaluation 
+
+We evaluate the quality of different scoring func-tions for selective prediction twofold: by eval-uating the area under the risk-coverage curve, and assessing the coverage of the risk-controlled selective classifier. 
+
+Risk-coverage curves. For a given scoring function κ which defines the selector gτ , the 
+
+risk-coverage curve is the parametric curve τ 7 → φ(f, g τ ), R(f, g τ ) obtained by varying the threshold τ over its full range. As τ increases, coverage decreases and, for a well-chosen κ, the selective risk decreases with it. The curve thus visualizes the trade-off between committing to more predictions and controlling the error rate among them. Its quality is summarized by the area under the risk-coverage curve ,AURC( κ) = 
+
+Z 10
+
+R(φ) d φ , (8) where R(φ) denotes the selective risk at coverage level φ, i.e. the value of R(f, g τ ) at the unique threshold τ satisfying φ(f, g τ ) = φ. Lower values indicate a more favourable risk-coverage trade-off. In practice, the integral is approximated by sort-ing the test instances by descending value of the scoring function, computing the empirical selec-tive risk at each coverage level, and applying the trapezoidal rule. The AURC of a scoring function is determined by two factors: the base error rate of the model and the ranking quality of the scor-ing function κ. A model with high overall error will have high AURC even if κ perfectly sepa-rates correct from incorrect predictions. Since this paper is concerned with the quality of the scor-ing function rather than the absolute performance of the underlying model, we need a metric that isolates the contribution of it from the base error rate. To this end, we compare against two refer-ence values. The oracle AURC oracle is obtained by sorting instances by decreasing loss, thereby rejecting all incorrect predictions first. It repre-sents the lowest achievable AURC for the given model and loss. The random baseline AURC random 
+
+rejects instances in arbitrary order, yielding a con-stant risk equal to the overall error rate at every coverage level. We report the relative AURC ,relAURC( κ) = AURC( κ) − AURC oracle 
+
+AURC random − AURC oracle 
+
+, (9) which normalizes the excess over the oracle by the achievable range of improvement, giving relAURC = 0 for a perfect scoring function and relAURC = 1 for random rejection. 
+
+Coverage at target risk. For the risk-controlled setting, we report the coverage at target risk : given a target risk rate r∗ and a confidence parameter δ > 0, the SGR algorithm returns an optimal threshold τ ∗ used for deciding whether to accept or reject each prediction, guaranteeing that the true selective risk is bounded by r∗ with probability at least 1 − δ. We report the empiri-cal selective risk at this threshold on the held-out 7evaluation data, and the corresponding coverage 
+
+φ(f, g τ ∗ ) = E[gτ ∗ (x)] = P[κ(x) ≥ τ ∗] ,
+
+whose empirical estimate is the fraction of instances for which the model commits to a pre-diction while satisfying the risk constraint. Higher coverage at the same target risk indicates a more informative scoring function. We evaluate this metric over a range of target risks r∗, while also verifying that the empirical risk on the evaluation data respects the desired bound. 
+
+## 2.6 Experimental setup 
+
+Dataset. We use the MassSpecGym bench-mark [25], which consists of 231 104 spectra-molecule pairs covering 28 929 unique molecules. The data is split into training, validation and test sets by clustering on maximum common edge subgraph (MCES) distance [45], ensuring that no molecular structure appears in more than one split. This yields 194 119, 19 429, and 17 556 spec-tra covering 22 746, 3 185, and 2 998 molecules, respectively. Each molecule is represented by a 4096-dimensional Morgan fingerprint [19] com-puted with radius 2. For each spectrum, a candi-date set Ci is constructed by iteratively filtering molecules with matching molecular formula from three chemical databases of increasing size, until the cap of |C i| ≤ 256 is reached [25]. The result-ing candidate set sizes vary considerably across instances and directly affect task difficulty. This variation is analyzed further in Section 3.3 and Appendix C.1. 
+
+Model and training procedure. As base model we adopt the fingerprint predictor and training procedure of De Waele et al. [46]. 1 The input spectrum is binned and mapped by athree-layer fully-connected neural network to fin-gerprint probabilities θ = σ(f (x)) ∈ [0 , 1] 4096 .Architectural details are given in Appendix C.2. While more expressive architectures exist [13], the multi-layer perceptron (MLP) achieves competi-tive retrieval performance on MassSpecGym [46], and its standard feedforward structure permits      
+
+> 1Our implementation is available at https://github.com/ mkjuergens/Selective-MSMS.
+
+clean application of established posterior approx-imation methods without architectural modifica-tions. The model is trained with a contrastive ranking loss that directly optimizes retrieval per-formance. For each training instance ( xi, yi, Ci), the loss is the negative log-likelihood of the true candidate yi under the temperature-scaled soft-max over the candidate set, 
+
+ℓrank (xi, yi) = − log exp syi (xi)/T PMi 
+
+> j=1
+
+exp sj (xi)/T  , (10) where sj (x) denotes the cosine similarity between the predicted probability vector as defined in Eqn. (1), and T is a temperature hyperparameter. We additionally train models with focal loss [47] on individual bits for the analysis of fingerprint-level uncertainty. In this setting, the predicted fingerprint retains its interpretation as a vector of per-bit probabilities rather than serving primarily as a retrieval embedding. 
+
+Uncertainty estimation. The fingerprint- and retrieval-level scoring functions described in Section 2.3 require a second-order distribution 
+
+q(θ|x), which allows for the disentanglement of uncertainty estimates into aleatoric and epistemic components. Our primary second-order method, whose results are shown throughout the main text, is a Deep Ensemble [48] consisting of S = 5 copies of the full model, trained independently with dif-ferent random initializations and data-loader shuf-fles. We additionally evaluate MC Dropout [49] using S = 50 stochastic forward passes, and the last-layer Laplace approximation [50] with S =50 weight samples. For the distance-based scores 
+
+κknn and κmah , we extract the 1024-dimensional penultimate-layer representations from a single ensemble member for all training and test spectra. Representations are ℓ2-normalized before distance computation. For κknn , we use k = 100 neighbors. 
+
+Evaluation losses. All primary analyses use the retrieval loss ℓK = 1 − Hit@ K for K ∈{1, 5, 20 }. To test whether the alignment between scoring function and task loss extends bidirection-ally, we additionally evaluate with fingerprint-level similarity losses ℓsim = 1 − sim(ˆ y, y) using Tan-imoto, cosine, and Hamming loss as similarity measures. The results are given in Appendix D.1. 8Hit@1 Hit@5 Hit@20 
+
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> Hit Rate
+> 11.8%
+> 25.7%
+> 45.8%
+> 13.1%
+> 27.3%
+> 47.6%
+> 13.2%
+> 27.1%
+> 47.6%
+> 13.1%
+> 26.9%
+> 46.7%
+> Members (1 5)
+> Score Agg.
+> Fingerprint Agg.
+> Probability Agg.
+
+Fig. 2 : Average Hit@ K rate for K ∈ { 1, 5, 20 } for samples from the second-order distribution (grey) and their aggregate (blue, green, purple). Results are shown for a Deep Ensemble of S = 5 members and the experimental setup as described in Section 2.6, evaluated on the test set of MassSpecGym with candidates filtered by molecular formula. The aggregate is computed using the different aggregation strategies described in Section 2.6. 
+
+Prediction aggregation. Given S posterior samples θ1, . . . , θS from the second-order distri-bution q(θ|x), a single retrieval prediction must be produced. Aggregation on three different levels is possible: 1. Aggregation on the level of the fingerprints, where ¯θ = 1
+
+> S
+
+PSs=1 θs is used for calculating similarity scores and ranking. 2. Aggregation on the level of similarity, where ¯sj = 1
+
+> S
+
+PSs=1 sj (x, θs) is used for ranking. 3. Aggregation on the level of candidate probabil-ities, where ¯ pj = 1
+
+> S
+
+PSs=1 pj (x, θs) is used for ranking. The three strategies of aggregation yield overall comparable retrieval performance. In the follow-ing, we adopt score-level aggregation when ana-lyzing retrieval performance, and fingerprint-level aggregation when analyzing fingerprint similarity. 
+
+# 3 Results and discussion 
+
+All experiments are conducted on the MassSpec-Gym test set using the evaluation metrics and experimental setup as defined in Section 2.5. We first briefly analyze the baseline retrieval per-formance of the different uncertainty estimation methods and the effect of prediction aggregation. We then compare the effect of different scoring functions via a risk-coverage analysis, and sub-sequently examine how the candidate set size influences selective prediction quality. Finally, we assess the coverage attainable under risk guaran-tees for different target risks. 
+
+## 3.1 Baseline retrieval performance 
+
+Table 2 reports the retrieval performance of the aggregate of the three different uncertainty esti-mation methods as well as a single-model baseline on the MassSpecGym test set. For both train-ing objectives, aggregating over multiple posterior samples consistently improves hit rates relative to the single model, with the Deep Ensemble lead-ing to the biggest improvement. Across the three second-order methods, the aggregate of the Deep Ensemble trained with ranking loss leads to the highest hit rates. Figure 2 illustrates the per-member variability and the effect of aggregation. Individual members exhibit considerable variance in hit rate, and their predictions disagree on a substantial fraction of test instances. 
+
+## 3.2 Risk-coverage curves 
+
+To evaluate how effectively each scoring function reduces the selective risk, we use the metrics described in Section 2.5, with the retrieval loss 
+
+ℓK = 1 − Hit@ K, for K ∈ { 1, 5, 20 }. Figure 3 shows the obtained risk-coverage curves and the corresponding AURC values for the Deep Ensem-ble model trained with ranking loss. Table 3reports the corresponding relative AURC values across all three second-order methods. Interest-ingly, the best scoring function depends on the size of the selected set SK for which the hit rate 9Table 2 : Retrieval performance on the MassSpecGym test set for the MLP architecture discussed in Section 2.6 trained with ranking loss, and different second-order uncertainty estimation methods. Hit@ K
+
+(%) denotes the fraction of test spectra for which the correct molecule appears among the top-K retrieved candidates. S denotes the number of posterior samples (ensemble members or stochastic forward passes). Aggregate: prediction obtained by averaging the S predicted scores before ranking. Avg. sample: mean Hit@ K across the S individual predictions. Aggregate Avg. sample Training loss Method Hit@1 Hit@5 Hit@20 Hit@1 Hit@5 Hit@20 Focal Single model 10.70 22.66 40.65 —
+
+Deep Ensemble (S = 5) 11.43 23.80 42.36 10.71 22.67 40.70 MC Dropout ( S = 50) 11.13 22.78 40.75 10.33 22.10 40.15 Laplace ( S = 50) 11.22 22.62 41.39 11.01 22.65 41.38 Ranking Single model 11.85 25.66 45.84 —
+
+Deep Ensemble (S = 5) 13.12 27.29 47.57 11.83 25.66 45.83 MC Dropout ( S = 50) 11.83 25.91 45.56 11.49 25.32 44.67 Laplace ( S = 50) 12.21 26.83 47.25 12.11 26.35 46.81 is evaluated. For K = 1, the score gap achieves the lowest relative AURC for the Deep Ensemble. This is intuitive: the hit rate at K = 1 directly corresponds to the zero-one loss on the top can-didate, and the score gap measures precisely how well separated that candidate is from its near-est competitor in pre-softmax similarity space. Confidence and aleatoric uncertainty, which both measure how peaked the candidate distribution is, perform comparably to each other but are less effective than the score gap. An analysis of the correlation between the different scores can be found in Appendix D. As K increases, the rank variance becomes more meaningful. The reason is that the hit rate for K > 1 is no longer a question about the candidate with highest probability alone, but about set membership, i.e. whether the correct candidate falls within the top-K set. The candidate set size shows a similar trend and correlates strongly with rank variance (see Appendix D.2), however, the rank variance remains the stronger criterion. Across all values of K, the retrieval-level epistemic uncer-tainty score is consistently inferior to all other retrieval-level scores. This finding is consistent with the theoretical analysis of Hofman et al. [51], who prove that for selective prediction with a given task loss, the optimal rejection criterion is the total predictive uncertainty instantiated with it, and hence not its epistemic component alone. Intuitively, for deciding whether to trust a particular prediction, what matters is the overall expected loss of that prediction, which conflates both aleatoric difficulty and epistemic ignorance. The epistemic component alone discards the aleatoric contribution and therefore provides a strictly less informative ranking. All bitwise uncertainty scores achieve relative AURC values at or above 0 .9, making them barely distinguishable from random rejection. This is expected: retrieval success depends not on the absolute quality of the predicted fingerprint but on the relative similarity between the predicted fingerprint and the correct candidate versus its competitors. A spectrum whose fingerprint is con-fidently predicted may still fail at retrieval if multiple candidates share similar substructures, while a noisier prediction can succeed when the correct candidate is structurally distinct from all alternatives. The fingerprint-level uncertainty thus quantifies a necessary but insufficient condi-tion for retrieval success, making it a poor proxy for the actual task loss. Conversely, when the eval-uation loss is a fingerprint-level similarity, bitwise total uncertainty becomes the strongest scoring function. See Appendix D.1 for the corresponding risk-coverage analysis with similarity losses. This confirms that the alignment between the scor-ing function and the level at which the task loss operates is the primary determinant of selective prediction quality. The distance-based scores κknn 
+
+10 0.2 0.4 0.6 0.8 
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Error Rate
+
+Hit@1 
+
+> 0.2 0.4 0.6 0.8
+
+Hit@5 
+
+> 0.2 0.4 0.6 0.8
+
+Hit@20    
+
+> 0.00 0.30 0.60 0.90
+
+AURC    
+
+> Oracle
+> gap
+> (1) rank
+> (5) rank
+> (20) rank
+> conf
+> tot ret
+> al ret
+> | |
+> ep ret
+> tot bit
+> ep bit
+> Random
+> 0.602
+> 0.720
+> 0.729
+> 0.736
+> 0.743
+> 0.744
+> 0.748
+> 0.748
+> 0.750
+> 0.827
+> 0.850
+> 0.864
+> 0.872
+> 0.00 0.25 0.50 0.75
+
+AURC    
+
+> Oracle
+> (5) rank
+> (20) rank
+> conf
+> (1) rank
+> tot ret
+> al ret
+> | |
+> gap
+> ep ret
+> tot bit
+> ep bit
+> Random
+> 0.373
+> 0.506
+> 0.520
+> 0.526
+> 0.529
+> 0.533
+> 0.534
+> 0.536
+> 0.580
+> 0.662
+> 0.709
+> 0.725
+> 0.733
+> 0.00 0.20 0.40 0.60
+
+AURC 
+
+> Oracle
+> (5) rank
+> (20) rank
+> conf
+> tot ret
+> al ret
+> | |
+> (1) rank
+> gap
+> ep ret
+> tot bit
+> ep bit
+> Random
+> 0.171
+> 0.285
+> 0.286
+> 0.298
+> 0.305
+> 0.306
+> 0.309
+> 0.337
+> 0.418
+> 0.465
+> 0.496
+> 0.514
+> 0.526
+> Oracle
+> Random
+> tot bit
+> ep bit
+> ep ret
+> al ret
+> tot ret
+> conf
+> gap
+> (1) rank
+> (5) rank
+> (20) rank
+> | |
+
+Fig. 3 : Risk-coverage analysis for different scoring functions κ based on different uncertainty estimates as described in Section 2.3. The selective risk is calculated using ℓK = 1 − Hit@ K for K ∈ { 1, 5, 20 }. Results are shown for a Deep Ensemble of S = 5 members and the experimental setup as described in Section 2.6, evaluated on the test set of MassSpecGym with candidates filtered by molecular formula. Colors encode the uncertainty component: blue tones indicate total uncertainty, purple indicates aleatoric uncertainty, and red tones indicate epistemic uncertainty. Darker shades correspond to retrieval-level scores, lighter shades to fingerprint-level scores. (a) Risk-coverage curves. (b) AURC values. and κmah exhibit the same near-random behav-ior (Table 3). These measures assess whether a test spectrum lies in a well-covered region of the learned representation space. However, this space is shaped entirely by the training objective and has no reason to organize spectra by retrieval diffi-culty [52]. Th relative ordering of scoring functions is preserved across all three second-order uncer-tainty estimation methods. The absolute values differ across methods, reflecting differences in the quality of the posterior approximation, but the qualitative conclusions are unchanged. 
+
+## 3.3 Candidate set size analysis 
+
+A distinguishing feature of the retrieval setting is that the task difficulty varies across instances through the candidate set size |C| , which ranges from one to the benchmark cap of 256 and is deter-mined by external database queries. Figure 4(a) confirms the expected effect: hit rates decrease 11 Table 3 : Selective prediction quality for different scoring functions, evaluated by relAURC (Eqn. 9). Lower is better. Results are shown for different second-order uncertainty estimation methods and the experimental setup described in Section 2.6, evaluated on the test set of MassSpecGym with candidates filtered by molecular formula. The selective risk is evaluated using hit rate, ℓK = 1 −Hit@ K, K = 1 , 5, 20. relAURC = 0 corresponds to perfect (oracle) rejection, relAURC = 1 corresponds to random rejection. Deep Ensemble MC Dropout Laplace 
+
+κ ℓ1 ℓ5 ℓ20 ℓ1 ℓ5 ℓ20 ℓ1 ℓ5 ℓ20 
+
+Retrieval-level 
+
+κconf confidence 0.525 0.426 0.359 0.402 0.440 0.524 0.515 0.410 0.350 
+
+κgap score gap 0.439 0.576 0.696 0.469 0.593 0.705 0.465 0.627 0.733 
+
+κal ret aleatoric 0.541 0.447 0.381 0.376 0.367 0.405 0.528 0.426 0.364 
+
+κep ret epistemic 0.836 0.805 0.829 0.468 0.508 0.514 0.886 0.904 0.901 
+
+κrank K = 1 0.472 0.434 0.468 0.505 0.480 0.520 0.713 0.686 0.729 
+
+κrank K = 5 0.498 0.372 0.321 0.497 0.381 0.332 0.533 0.418 0.428 
+
+κrank K = 20 0.524 0.410 0.324 0.499 0.395 0.327 0.528 0.404 0.345 
+
+Fingerprint-level 
+
+κtot bit total 0.920 0.934 0.915 0.900 0.906 0.900 0.945 0.940 0.928 
+
+κal bit aleatoric 0.957 0.945 0.915 0.946 0.946 0.925 0.965 0.961 0.937 
+
+κep bit epistemic 0.973 0.978 0.968 0.972 0.947 0.934 0.980 0.993 0.971 
+
+Input-level †
+
+κknn k-NN distance 0.985 0.915 0.929 — — — — — —
+
+κmah Mahalanobis 0.977 0.928 0.893 — — — — — —
+
+Other 
+
+|C| num. candidates 0.548 0.453 0.390 0.511 0.420 0.369 0.531 0.432 0.373 
+
+> †Distance-based scores depend only on the encoder representation, not the posterior approximation method. Values shown are for one Deep Ensemble member. See Appendix A.3.
+
+almost monotonically with |C| . To analyze the effect of candidate set size as a selection criterion, we stratify the test set into instances with varying number of candidates ( |C| < 256) and instances with maximum number of candidates ( |C| = 256). When candidate sets vary in size, the gap between oracle and random rejection is wide and the scor-ing functions recover a substantial fraction of the achievable improvement, as can be seen in Figure 4 (b). At the cap, this gap shrinks and all scoring functions compress toward the random baseline, reflecting the increased difficulty, see Figure 4 (c). The candidate set size itself, which is an effective rejection criterion when it varies, becomes uninfor-mative once it is constant. This illustration shows the role of the rank variance κrank as a selection criterion. Because it correlates strongly with the number of candidates, its good performance in the overall analysis is partly explained by this sensi-tivity: larger sets produce more candidates with similar scores near the decision boundary, thereby inflating the rank variance. However, the stratified view reveals that rank variance is not merely a proxy for the number of candidates: for the subset of instances with maximum number of candidates, rank variance still achieves AURC values compa-rable to confidence and clearly below the random baseline. This suggests that it captures both the task difficulty given by the number of candidates, and ranking instability in general. 
+
+## 3.4 Coverage under risk control 
+
+The previous sections evaluated scoring functions by their ability to rank predictions, asking which ones correlate best with retrieval success. We now turn to the question that matters most in practice: given a tolerable error rate, how many spectra can be annotated with a formal correctness guarantee? Figure 5 (top row) shows the coverage obtained by applying the SGR algorithm across a range of 12 1   
+
+> 2 9
+> 10 49
+> 50 99
+> 100 199
+> 200 255
+> 256
+> | |
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Hit Rate
+> Hit@1
+> Hit@5
+> Hit@20
+> 0.00 0.25 0.50 0.75
+> AURC
+> Oracle
+> gap
+> (1) rank
+> conf
+> al ret
+> | |
+> ep ret
+> Random
+> 0.506
+> 0.618
+> 0.646
+> 0.665
+> 0.666
+> 0.667
+> 0.767
+> 0.813
+
+| | < 256    
+
+> 0.00 0.30 0.60 0.90
+> AURC
+> Oracle
+> conf
+> (1) rank
+> gap
+> ep ret
+> al ret
+> Random
+> | |
+> 0.744
+> 0.863
+> 0.864
+> 0.867
+> 0.923
+> 0.923
+> 0.930
+> 0.936
+
+| | = 256 Fig. 4 : Effect of the candidate set size on the retrieval performance and selective prediction quality. Results are shown for a Deep Ensemble of S = 5 members and the experimental setup as described in Section 2.6, evaluated on the test set of MassSpecGym with candidates filtered by molecular formula. 
+
+Left : Average hit rate on subsets with binned candidate set size |C| . Middle , Right : AURC values for 
+
+ℓ1 = 1 − Hit@1 and different scoring functions, on subsets of data with |C| < 256 vs. |C| = 256. target risk levels. We see that the practical util-ity of risk-controlled selection depends strongly on the task difficulty and the chosen risk level. For controlling the hit rate at K = 20, where the base error rate is moderate, SGR retains up to 87% of test spectra at a target risk of r∗ =0.5. For K = 1, however, the base error rate is high and the algorithm can only guarantee risk control on a small subset of the data. This is not a limitation of the scoring functions but of the task itself: when the majority of predic-tions are incorrect, any procedure with valid risk guarantees must reject most instances. In prac-tice, this means that exact-match identification requires either stronger base models or an accep-tance of lower coverage, whereas candidate-list settings already offer a practical operating regime for automated annotation. Among scoring func-tions, confidence and score gap together with rank variance achieve the highest coverage across all settings, consistent with the results in Section 3.2. Figure 5 (bottom row) validates the statistical guarantee, showing that the empirical risk on the held-out evaluation half closely tracks the target without systematic violation, confirming that the bound transfers beyond the calibration data. 
+
+# 4 Conclusion 
+
+We introduced a selective prediction framework for molecular structure retrieval from tandem mass spectra and conducted a systematic evalu-ation of uncertainty quantification strategies on the MassSpecGym benchmark. By formulating retrieval as a selective classification problem with task-specific losses, we evaluated scoring functions from three complementary families, acting on the level of the molecular fingerprints, the retrieval candidates, and the model’s internal representa-tion space. We assessed their performance in terms of risk-coverage trade-offs, and showcased how generalization bounds can be used to obtain sub-sets of predictions with global risk guarantees. Our analysis reveals that the effectiveness of a scoring function depends critically on the level at which it operates relative to the task loss. Over-all, retrieval-level scoring functions provide the most effective selection criteria when the task loss is hit rate. The optimal criterion shifts with the retrieval granularity: for exact-match retrieval, the first-order confidence score performs comparably to the second-order aleatoric uncertainty estimate, while for relaxed retrieval, the second-order rank variance becomes the strongest criterion. What unites all effective scoring functions is that they operate at the retrieval level and reflect total predictive uncertainty rather than isolating the epistemic component alone. This loss dependence extends to the granularity of uncertainty esti-mation itself. Fingerprint-level uncertainty, which quantifies how well the model predicts individual molecular substructures, is naturally aligned with 13 0%                     
+
+> 2%
+> 4%
+> 6%
+> 8%
+> 10%
+> Coverage
+> 8.0%
+> Hit@1
+> 0%
+> 10%
+> 20%
+> 30%
+> 40% 34.1%
+> Hit@5
+> 0%
+> 20%
+> 40%
+> 60%
+> 80%
+> 100% 87.0%
+> Hit@20
+> 0.1 0.2 0.3 0.4 0.5
+> Target risk r*
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> Empirical risk
+> 0.1 0.2 0.3 0.4 0.5
+> Target risk r*
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.1 0.2 0.3 0.4 0.5
+> Target risk r*
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> conf
+> gap
+> (5) rank
+> (1) rank
+> ep ret
+
+Fig. 5 : Risk-controlled annotation with the SGR algorithm with δ = 0 .001 and different target risks r∗.Results are shown for a Deep Ensemble of S = 5 members and the experimental setup as described in Section 2.6, evaluated on the test set of MassSpecGym with candidates filtered by molecular formula. The scoring functions used for selection are the ones with the strongest risk-coverage trade-offs from Section 3.2. The threshold τ ∗ is calibrated on one half of the test set, coverage and empirical risk are evaluated on the held-out other half. Top : coverage attained at each target risk level r∗ for K ∈ { 1, 5, 20 }.Note the independent vertical scales. Bottom : empirical risk versus target risk. All points lie below the diagonal, confirming the finite-sample guarantee. fingerprint reconstruction quality but proves apoor proxy for retrieval success, where what mat-ters is the relative similarity between the predicted fingerprint and the correct candidate versus its competitors. A spectrum whose fingerprint is con-fidently predicted may still fail at retrieval when structurally similar candidates are present, and conversely, a noisier prediction can succeed when the correct candidate is well separated. Epistemic uncertainty, whether at the fingerprint or retrieval level, is consistently outperformed by its total or aleatoric counterpart, consistent with the theoret-ical result of Hofman et al. [51] that for selective prediction the optimal scoring function is the total predictive uncertainty instantiated with the task loss. Distance-based scores, intended to flag inputs far from the training distribution, likewise provide limited selective prediction value, suggesting that the notion of epistemic uncertainty they capture is not the primary driver of retrieval failure. Apply-ing the SGR algorithm, we demonstrated that practitioners can specify a tolerable risk rate and obtain subsets of annotations satisfying the con-straint with high probability, with the empirical risk on held-out data remaining below the target across all evaluated settings. Several limitations suggest directions for future research. Our exper-iments use a single base architecture, as the focus of this work is on analyzing uncertainty estimates for selective prediction rather than maximizing retrieval performance. Evaluating the framework on more expressive models, including transformer-based fingerprint predictors, would test whether the relative ordering of scoring functions transfers across accuracy regimes. On the methodological side, uncertainty estimation methods that account for the extreme sparsity of molecular fingerprints, or that assess epistemic uncertainty directly in the input space of spectra rather than in learned 14 representations shaped by the training objective, may yield more informative estimates than the standard decompositions evaluated here. Beyond selective prediction, false discovery rate control via the conformalized Benjamini–Hochberg proce-dure [53] offers a more stringent error criterion, providing bounds on the proportion of incorrect annotations rather than the average selective risk. Conformal prediction methods that output cali-brated prediction sets [54] provide an alternative paradigm entirely. 
+
+Acknowledgements. M.J. and W.W. received funding from the Flemish Government under the “Onderzoeksprogramma Artifici¨ ele Intelligen-tie (AI) Vlaanderen” programme. 
+
+# References 
+
+[1] B¨ ocker, S., D¨ uhrkop, K.: Fragmentation trees reloaded. Journal of cheminformatics 8(1), 5 (2016) [2] H¨ ahnke, V.D., Kim, S., Bolton, E.E.: Pub-chem chemical structure standardization. Journal of cheminformatics 10 (1), 36 (2018) [3] Silva, R.R., Dorrestein, P.C., Quinn, R.A.: Illuminating the dark matter in metabolomics. Proceedings of the National Academy of Sciences 112 (41), 12549–12550 (2015) [4] Bittremieux, W., Wang, M., Dorrestein, P.C.: The critical role that spectral libraries play in capturing the metabolomics community knowledge. Metabolomics 18 (12), 94 (2022) [5] Aebersold, R., Mann, M.: Mass spectrometry-based proteomics. Nature 
+
+422 (6928), 198–207 (2003) [6] Meissner, F., Geddes-McAlister, J., Mann, M., Bantscheff, M.: The emerging role of mass spectrometry-based proteomics in drug discovery. Nature Reviews Drug Discovery 
+
+21 (9), 637–654 (2022) [7] Skinnider, M.A., Wang, F., Pasin, D., Greiner, R., Foster, L.J., Dalsgaard, P.W., Wishart, D.S.: A deep generative model enables automated structure elucidation of novel psychoactive substances. Nature Machine Intelligence 3(11), 973–984 (2021) [8] Pic´ o, Y., Barcel´ o, D.: Pyrolysis gas chromatography-mass spectrometry in envi-ronmental analysis: Focus on organic matter and microplastics. TrAC Trends in Analytical Chemistry 130 , 115964 (2020) [9] Hollender, J., Schymanski, E., Singer, H., Ferguson, P.: Nontarget screening with high resolution mass spectrometry in the environ-ment: Ready to go? Environmental science & technology (2017) [10] Miller, M.J., Kennedy, A.D., Eckhart, A.D., Burrage, L.C., Wulff, J.E., Miller, L.A., Mil-burn, M.V., Ryals, J.A., Beaudet, A.L., Sun, Q., et al. : Untargeted metabolomic analysis for the clinical screening of inborn errors of metabolism. Journal of inherited metabolic disease 38 (6), 1029–1039 (2015) [11] D¨ uhrkop, K., Shen, H., Meusel, M., Rousu, J., B¨ ocker, S.: Searching molecular structure databases with tandem mass spectra using csi: Fingerid. Proceedings of the National Academy of Sciences 112 (41), 12580–12585 (2015) [12] Wei, J.N., Belanger, D., Adams, R.P., Sculley, D.: Rapid prediction of electron–ionization mass spectrometry using neural networks. ACS central science 5(4), 700–708 (2019) [13] Goldman, S., Wohlwend, J., Straˇ zar, M., Haroush, G., Xavier, R.J., Coley, C.W.: Annotating metabolite mass spectra with domain-inspired chemical formula transform-ers. Nature Machine Intelligence 5(9), 965– 979 (2023) [14] Kalia, A., Zhou Chen, Y., Krishnan, D., Has-soun, S.: Jestr: J oint e mbedding s pace t echnique for r anking candidate molecules for the annotation of untargeted metabolomics data. Bioinformatics, 354 (2025) [15] Stravs, M.A., D¨ uhrkop, K., B¨ ocker, S., Zam-boni, N.: Msnovelist: de novo structure gen-eration from mass spectra. Nature Methods 
+
+19 (7), 865–870 (2022) 15 [16] Butler, T., Frandsen, A., Lightheart, R., Bargh, B., Taylor, J., Bollerman, T., Kerby, T., West, K., Voronov, G., Moon, K., et al.: Ms2mol: A transformer model for illuminat-ing dark chemical space from mass spectra (2023) [17] Bohde, M., Manjrekar, M., Wang, R., Ji, S., Coley, C.W.: Diffms: Diffusion generation of molecules conditioned on mass spectra. In: Forty-second International Conference on Machine Learning [18] Han, Y., Wang, P., Yu, K., Chen, L., et al.: Ms-bart: Unified modeling of mass spec-tra and molecules for structure elucidation. In: The Thirty-ninth Annual Conference on Neural Information Processing Systems [19] Rogers, D., Hahn, M.: Extended-connectivity fingerprints. Journal of chemical information and modeling 50 (5), 742–754 (2010) [20] Bajusz, D., R´ acz, A., H´ eberger, K.: Why is tanimoto index an appropriate choice for fingerprint-based similarity calculations? Journal of cheminformatics 7(1), 20 (2015) [21] Xie, T., Zhang, H., Yang, Q., Sun, J., Wang, Y., Long, J., Zhang, Z., Lu, H.: Csu-ms2: A contrastive learning framework for cross-modal compound identification from ms/ms spectra to molecular structures. Analytical Chemistry (2025) [22] Ruttkies, C., Schymanski, E.L., Wolf, S., Hol-lender, J., Neumann, S.: Metfrag relaunched: incorporating strategies beyond in silico frag-mentation. Journal of cheminformatics 8(1), 3 (2016) [23] Allen, F., Pon, A., Wilson, M., Greiner, R., Wishart, D.: Cfm-id: a web server for annotation, spectrum prediction and metabo-lite identification from tandem mass spectra. Nucleic acids research 42 (W1), 94–99 (2014) [24] D¨ uhrkop, K., Fleischauer, M., Ludwig, M., Aksenov, A.A., Melnik, A.V., Meusel, M., Dorrestein, P.C., Rousu, J., B¨ ocker, S.: Sirius 4: a rapid tool for turning tandem mass spec-tra into metabolite structure information. Nature methods 16 (4), 299–302 (2019) [25] Bushuiev, R., Bushuiev, A., Jonge, N., Young, A., Kretschmer, F., Samusevich, R., Heirman, J., Wang, F., Zhang, L., D¨ uhrkop, K., et al. : Massspecgym: A benchmark for the discovery and identification of molecules. Advances in Neural Information Processing Systems 37 , 110010–110027 (2024) [26] Tian, Y., Krishnan, D., Isola, P.: Contrastive multiview coding. In: European Conference on Computer Vision, pp. 776–794 (2020). Springer [27] Zhang, Y., Ding, K., Wu, Y., Zhuang, X., Yang, Y., Zhang, Q., Chen, H.: Breaking the modality barrier: Generative modeling for accurate molecule retrieval from mass spec-tra. arXiv preprint arXiv:2511.06259 (2025) [28] Irwin, R., Dimitriadis, S., He, J., Bjerrum, E.J.: Chemformer: a pre-trained transformer for computational chemistry. Machine Learn-ing: Science and Technology 3(1), 015022 (2022) [29] Pudil, P., Novovicov´ a, J., Bl´ aha, S., Kit-tler, J.: Multistage pattern recognition with reject option. In: 11th IAPR International Conference on Pattern Recognition. Vol. II. Conference B: Pattern Recognition Method-ology and Systems, vol. 1, pp. 92–93 (1992). IEEE Computer Society [30] Chow, C.-K.: An optimum character recog-nition system using decision functions. IRE Transactions on Electronic Computers (4), 247–254 (2009) [31] El-Yaniv, R., et al.: On the foundations of noise-free selective classification. Journal of Machine Learning Research 11 (5) (2010) [32] Geifman, Y., El-Yaniv, R.: Selective classi-fication for deep neural networks. Advances in neural information processing systems 30 
+
+(2017) [33] H¨ ullermeier, E., Waegeman, W.: Aleatoric 16 and epistemic uncertainty in machine learn-ing: An introduction to concepts and meth-ods. Machine learning 110 (3), 457–506 (2021) [34] Kendall, A., Gal, Y.: What uncertainties do we need in bayesian deep learning for com-puter vision? Advances in neural information processing systems 30 (2017) [35] Xu, Y.-F., Lu, W., Rabinowitz, J.D.: Avoid-ing misannotation of in-source fragmenta-tion products as cellular metabolites in liquid chromatography–mass spectrometry-based metabolomics. Analytical chemistry 
+
+87 (4), 2273–2281 (2015) [36] Hendrycks, D., Gimpel, K.: A baseline for detecting misclassified and out-of-distribution examples in neural networks. In: Proceedings of the International Conference on Learning Representations (2017) [37] Bengs, V., H¨ ullermeier, E., Waegeman, W.: Pitfalls of epistemic uncertainty quantifica-tion through loss minimisation. Advances in Neural Information Processing Systems 35 ,29205–29216 (2022) [38] Depeweg, S., Hernandez-Lobato, J.-M., Doshi-Velez, F., Udluft, S.: Decomposition of uncertainty in bayesian deep learning for efficient and risk-sensitive learning. In: Inter-national Conference on Machine Learning, pp. 1184–1193 (2018). PMLR [39] Sale, Y., Hofman, P., L¨ ohr, T., Wimmer, L., Nagler, T., H¨ ullermeier, E.: Label-wise aleatoric and epistemic uncertainty quan-tification. arXiv preprint arXiv:2406.02354 (2024) [40] Adomavicius, G., Zhang, J.: Classification, ranking, and top-k stability of recommen-dation algorithms. INFORMS Journal on Computing 28 (1), 129–147 (2016) [41] Yang, J., Zhou, K., Li, Y., Liu, Z.: General-ized out-of-distribution detection: A survey. International Journal of Computer Vision 
+
+132 (12), 5635–5662 (2024) [42] Sun, Y., Ming, Y., Zhu, X., Li, Y.: Out-of-distribution detection with deep nearest neighbors. In: International Conference on Machine Learning, pp. 20827–20840 (2022). PMLR [43] Lee, K., Lee, K., Lee, H., Shin, J.: A sim-ple unified framework for detecting out-of-distribution samples and adversarial attacks. In: Advances in Neural Information Process-ing Systems, vol. 31 (2018) [44] Vapnik, V.N.: An overview of statistical learning theory. IEEE transactions on neural networks 10 (5), 988–999 (1999) [45] Raymond, J.W., Willett, P.: Maximum com-mon subgraph isomorphism algorithms for the matching of chemical structures. Journal of computer-aided molecular design 16 (7), 521–533 (2002) [46] De Waele, G., Wydmuch, M., Waegeman, W., et al.: Small molecule retrieval from tandem mass spectrometry: what are we optimizing for? arXiv preprint arXiv:2602.16507 (2026) [47] Lin, T.-Y., Goyal, P., Girshick, R., He, K., Doll´ ar, P.: Focal loss for dense object detec-tion. In: Proceedings of the IEEE Interna-tional Conference on Computer Vision, pp. 2980–2988 (2017) [48] Lakshminarayanan, B., Pritzel, A., Blun-dell, C.: Simple and scalable predictive uncertainty estimation using deep ensembles. Advances in neural information processing systems 30 (2017) [49] Gal, Y., Ghahramani, Z.: Dropout as abayesian approximation: Representing model uncertainty in deep learning. In: Interna-tional Conference on Machine Learning, pp. 1050–1059 (2016). PMLR [50] Daxberger, E., Kristiadi, A., Immer, A., Eschenhagen, R., Bauer, M., Hennig, P.: Laplace redux-effortless bayesian deep learn-ing. Advances in neural information process-ing systems 34 , 20089–20103 (2021) 17 [51] Hofman, P., Sale, Y., H¨ ullermeier, E.: Uncer-tainty quantification for machine learning: One size does not fit all. arXiv preprint arXiv:2512.12341 (2025) [52] Li, Y.L., Lu, D., Kirichenko, P., Qiu, S., Rudner, T.G., Bruss, C.B., Wilson, A.G.: Out-of-distribution detection methods answer the wrong questions. arXiv preprint arXiv:2507.01831 (2025) [53] Jin, Y., Candes, E.J.: Selection by prediction with conformal p-values. Journal of Machine Learning Research 24 (244) (2023) [54] Shafer, G., Vovk, V.: A tutorial on confor-mal prediction. Journal of machine learning research 9(3) (2008) [55] Gascuel, O., Caraux, G.: Distribution-free performance bounds with the resubstitution error estimate. Pattern Recognition Letters 
+
+13 (11), 757–764 (1992) 18 Appendix A Uncertainty metrics 
+
+This appendix provides the formal definitions of the second-order and distance-based scoring functions summarized in Section 2.3. Throughout, we assume access to S samples θ1, . . . , θS ∼ q(θ|x), obtained via a Bayesian approximation of q(θ|x). All expectations and variances with respect to q(θ|x) are approximated by their sample counterparts. 
+
+## A.1 Bitwise uncertainty decomposition 
+
+Information-theoretic decomposition. Assuming independence between fingerprint bits, we model each bit probability via the marginal distribution θd ∼ qd(θd|x), hence for the fingerprint bits yd|θd ∼
+
+Ber( θd). Let ¯θd = Eq [θd] denote the posterior mean for bit d. Applying the information-theoretic decom-position [38] to the mean predicted bit probability, we can derive expressions for total, aleatoric and epistemic uncertainty: 
+
+H(¯θd)
+
+| {z } 
+
+> u(d)tot
+
+= Eq
+
+H(yd | θd)| {z }
+
+> u(d)al
+
++ Eq
+
+DKL (θd ∥ ¯θd)| {z }
+
+> u(d)ep
+
+, d = 1 , . . . , D , 
+
+where H(p) = −p log p − (1 − p) log(1 − p) is the binary entropy. Following [39], we aggregate the bitwise uncertainties to fingerprint-level uncertainties by summing over all bits: 
+
+κ(·)bit (x) = −
+
+> D
+
+X
+
+> d=1
+
+u(d)(·) ,
+
+where ( ·) ∈ { tot , al , ep } and the negation ensures the convention that higher values indicate greater confidence. 
+
+## A.2 Retrieval-level uncertainty decomposition 
+
+Information-theoretic decomposition. For the uncertainty on the candidate level, we look at the distribution over candidate probabilities. Each sample θs induces a candidate distribution pj (x, θs) via Eq. (6). Let ¯ pj (x) = 1
+
+> S
+
+PSs=1 pj (x, θs) denote the expected candidate probability. Following the same information-theoretic decomposition as for the fingerprint-level uncertainty, but applied to the candidate probabilities, the empirical decomposition for the retrieval-level uncertainty is given as 
+
+κtot ret (x) = 
+
+> Mi
+
+X
+
+> j=1
+
+¯pj (x) log ¯ pj (x)
+
+κal ret (x) = 1
+
+S
+
+> S
+
+X
+
+> s=1
+> Mi
+
+X
+
+> j=1
+
+pj (x, θs) log pj (x, θs),κep ret (x) = κtot ret (x) − κal ret (x),
+
+where the sign convention ensures that higher values correspond to lower uncertainty. Note that κtot ret 
+
+equals the negative entropy of the expected candidate distribution, while κal ret equals the negative expected conditional entropy, so that −κep ret corresponds to the mutual information between θ and the predicted candidate. 
+
+Rank variance. For each spectrum x, let SK (x) denote the top-K candidate set under the mean prediction ¯θ. For each candidate cj ∈ S K (x), let rs(cj ) denote its rank when candidates are re-ranked 19 using sample θs. The rank-variance scoring function is defined as 
+
+κrank (x) = − 1
+
+K
+
+X  
+
+> cj∈S K(x)
+
+Var s
+
+rs(cj ) ,
+
+where the variance is taken over the S posterior samples. High rank variance indicates that the relative ordering of top candidates is sensitive to parameter uncertainty, suggesting unreliable retrieval. 
+
+## A.3 Distance-based scoring functions 
+
+Let h(x) ∈ Rdh denote the penultimate-layer representation of the model for input x, and let 
+
+Htrain = {h(xi)}Ni=1 be the set of training representations. 
+
+KNN distance. Let hnn 1 , . . . , hnn  
+
+> k
+
+be the k nearest elements of Htrain to h(x) in Euclidean distance. Then 
+
+κknn (x) = − 1
+
+k
+
+> k
+
+X
+
+> i=1
+
+h(x) − hnn   
+
+> i2
+
+.
+
+Mahalanobis distance. Let μ = 1
+
+> N
+
+PNi=1 h(xi) and Σ = 1
+
+> N
+
+PNi=1 (h(xi) − μ)( h(xi) − μ)⊤ be the sample mean and covariance of the training representations. Then 
+
+κmah (x) = −
+
+q
+
+(h(x) − μ)⊤Σ−1(h(x) − μ) .
+
+Configuration and hyperparameter search. We evaluate both scoring functions under the Deep Ensemble trained with ranking loss and with focal loss. We use the 1024-dimensional encoder represen-tation with optional PCA dimensionality reduction to 64 or 128 components, and neighbourhood sizes 
+
+k ∈ { 1, 10 , 50 , 100 } for κknn . All embeddings are ℓ2-normalised. The best relAURC across all configura-tions is 0 .886 (k-NN, encoder, PCA to 128 dimensions, k=100, Hit@20, focal loss), compared to 0 .30 for confidence. 
+
+# Appendix B Risk control algorithm 
+
+This appendix provides the algorithmic details of the risk control procedure described in Section 2.4, namely, the global risk control method SGR [32]. To this end, we assume access to a calibration set 
+
+Dcal = {(xi, yi, Ci)}ni=1 of n i.i.d. samples from the data distribution P . In the following, let κ : X → R be a scoring function. We start by sorting the calibration samples by ascending confidence: κ(x(1) ) ≤ · · · ≤ 
+
+κ(x(n)). For any candidate threshold τ , one then defines the accepted subset A(τ ) = {i : κ(xi) ≥ τ } with 
+
+nτ = |A (τ )|, and the empirical selective risk on this subset: ˆr(τ ) = 
+
+P  
+
+> i∈A (τ)
+
+ℓK (xi, yi)
+
+nτ
+
+.
+
+Since ℓK ∈ { 0, 1}, the number of errors kτ = P  
+
+> i∈A (τ)
+
+ℓK (xi, yi) among nτ accepted samples is a sufficient statistic. The Clopper–Pearson upper bound [55] B∗(ˆ r, δ ′, n τ ) is the solution b of 
+
+> kτ
+
+X
+
+> j=0
+
+nτ
+
+j
+
+
+
+bj (1 − b)nτ −j = δ′ ,
+
+20 200 400 600 800 1000            
+
+> Precursor m/z
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> Avg pairwise similarity  Spearman = 0.56
+> 0
+> 500
+> 1000
+> Count
+> 060 120 180 240
+> Number of candidates
+> 200
+> 400
+> 600
+> 800
+> 1000
+> Precursor m/z
+> Spearman = -0.58
+> 0
+> 3000
+> 6000
+> Count
+> 0.00 0.25 0.50 0.75 1.00
+> Avg pairwise similarity
+> 0
+> 60
+> 120
+> 180
+> 240
+> Number of candidates  Spearman = -0.50
+> 0
+> 2000
+> 4000
+> Count
+
+Fig. C1 : Pairwise scatter plots of precursor mass, average pairwise cosine similarity and number of candidates per spectrum in the candidate sets of the MassSpecGym test set. Spearman rank correlations are shown in each panel. Histograms on the top and right axes show the marginal distribution of each variable. Larger candidate sets arise for lower precursor masses and contain more structurally diverse candidates. which yields the tightest b such that P R(f, g τ ) > b  < δ ′ for a fixed threshold τ . The SGR algorithm performs a binary search over threshold indices z ∈ { 1, . . . , n }, examining at most k = ⌈log 2 n⌉ thresholds. At iteration i, it sets τ = κ(x(z)), computes the empirical risk ˆ r(τ ), and evaluates the bound b∗ 
+
+> i
+
+=
+
+B∗(ˆ r, δ/k, n τ ) with adjusted significance δ/k . If b∗ 
+
+> i
+
+< r ∗, the search moves toward higher coverage (lower 
+
+z), otherwise toward lower coverage (higher z). The output is the final threshold τ ∗ and bound b∗,satisfying the guarantee 
+
+P R(f, g τ ∗ ) > b ∗ < δ. 
+
+# Appendix C Experimental details 
+
+## C.1 Dataset characterisation 
+
+The MassSpecGym test set contains 17 556 spectra with candidate set sizes ranging from 1 to the bench-mark cap of 256. Figure C1 characterises the candidate sets obtained by filtering by molecular formula through three pairwise relationships. Candidate set size correlates negatively with precursor mass: heav-ier molecules have fewer database matches, yielding smaller candidate sets. At the same time, larger candidate sets exhibit lower average pairwise cosine similarity among their members, indicating greater structural diversity. These two effects are linked: low-mass molecules are more densely represented in chemical databases, producing large candidate sets of structurally diverse molecules, while high-mass molecules yield small, structurally homogeneous candidate sets. This variation has direct consequences for both retrieval difficulty and uncertainty estimation, as analyzed in Section 3.3. 
+
+## C.2 Model architecture and training 
+
+The base model is a three-layer MLP following the fingerprint predictor of De Waele et al. [46] The input spectrum is binned with binwidth 0 .1 Da, yielding a vector x ∈ R10 050 . Three fully connected layers with hidden dimension 1024, GeLU activations, layer normalisation and dropout ( p = 0 .3) map the input to a 1024-dimensional representation. A linear output layer Wout ∈ R4096 ×1024 followed by a component-wise sigmoid produces the fingerprint prediction θ = σ(Wout f (x)) ∈ [0 , 1] 4096 . We train two model variants. The first is trained with focal loss [47] on individual bits ( γ = 2 .0, learning rate 3 × 10 −4). The second is trained with the contrastive ranking loss (Eqn. 10) using cosine similarity and temperature T = 0 .003 21 (learning rate 1 ×10 −4). Both variants use the Adam optimizer, a batch size of 64, gradient clipping at 1 .0and are trained for a maximum of 50 epochs. Model selection is based on the best validation Hit@20 under cosine similarity retrieval. 
+
+## C.3 Posterior approximation methods 
+
+Deep Ensemble. Five copies of the base model are trained independently with different ran-dom initialisations (seeds 42–46) and data-loader shuffles. Model selection is performed per member independently. 
+
+MC Dropout. A single trained model (one ensemble member) is evaluated with dropout enabled at test time, using S = 50 stochastic forward passes with the training dropout rate ( p = 0 .3). 
+
+Laplace approximation. A diagonal last-layer Laplace approximation [50] is fitted to a single trained model. The posterior is a Gaussian over the final linear layer Wout , with precision estimated via the diagonal generalised Gauss–Newton (GGN) approximation accumulated over 200 training batches. The prior precision is tuned via marginal likelihood maximisation over a logarithmically spaced grid. At test time, S = 50 weight samples are drawn and passed through the sigmoid to produce fingerprint probability samples. 
+
+# Appendix D Further experimental results 
+
+## D.1 Fingerprint similarity loss rejection 
+
+The main analysis in Section 3.2 evaluates selective prediction with the retrieval loss ℓK = 1 − Hit@ K,where retrieval-level scoring functions such as confidence and aleatoric uncertainty achieve the best risk-coverage tradeoffs. Here we evaluate with fingerprint-level similarity losses to test whether the level-alignment principle extends bidirectionally. 
+
+Similarity losses. Let ¯θ ∈ [0 , 1] D denote the ensemble-mean predicted probabilities and ˆ y = I[¯θ >
+
+0.5] ∈ { 0, 1}D the binarised prediction, with ground truth y ∈ { 0, 1}D. We consider three similarity measures, each of which can be evaluated with either the continuous or the discrete predicted fingerprint: Tanimoto( a, y) = 
+
+P 
+
+> j
+
+aj yj
+
+P 
+
+> j
+
+aj + P 
+
+> j
+
+yj − P 
+
+> j
+
+aj yj
+
+,
+
+Cosine( a, y) = a⊤y
+
+∥a∥2 ∥y∥2
+
+,
+
+Hamming( a, y) = 1 − 1
+
+D
+
+> D
+
+X
+
+> j=1
+
+I[aj̸ = yj ] ,
+
+where a = ¯θ for the continuous prediction and a = ˆ y for the discrete prediction. The corresponding losses are ℓsim = 1 − sim( a, y). Hamming loss requires binary inputs and is therefore always evaluated on ˆ y.
+
+Continuous evaluation. When Tanimoto and cosine similarity are evaluated on the continuous prob-abilities, the loss is sensitive not only to which bits cross the binarisation threshold, but also to how far each prediction is from it. Table D1 (left) shows that bitwise total uncertainty achieves the lowest relAURC for both Tanimoto and cosine loss, reversing the retrieval-level dominance observed for hit rate. This pattern is consistent across all three posterior approximation methods. The explanation is that con-tinuous Tanimoto and bitwise total uncertainty measure the same property: both are determined by how peaked the per-bit probabilities are near zero or one, rather than by which side of the decision boundary they fall on. 22 Table D1 : Selective prediction quality for fingerprint-level sim-ilarity losses, reported as relAURC (Eqn. 9). Lower is better. Left: continuous evaluation on predicted probabilities ¯θ. Right: discrete evaluation on binarised fingerprints ˆ y = I[¯θ > 0.5]. Ham-ming always uses discrete inputs. Results are shown for the Deep Ensemble ( S = 5) trained with focal loss, and the experimental setup as described in Section 2.6.                                                  
+
+> Continuous Discrete
+> κTan. Cos. Tan. Cos. Ham.
+> Fingerprint-level
+> κtot bit total 0.367 0.712 0.818 0.974 1.335
+> κal bit aleatoric 0.534 0.713 0.853 0.971 1.171
+> κep bit epistemic 1.142 1.150 1.099 1.061 0.777
+> Retrieval-level
+> κal ret aleatoric 0.755 0.768 0.809 0.867 1.156
+> κconf confidence 0.826 0.835 0.859 0.908 1.130
+> κrank K= 5 0.852 0.871 0.849 0.900 1.062
+> Other
+> |C| num. candidates 0.921 0.948 1.002 1.033 1.255
+
+Discrete evaluation. To test whether this alignment reflects genuine substructure-level prediction quality or merely probability calibration, we repeat the analysis with the binarised fingerprint (Table D1, right). The advantage of bitwise scoring functions largely vanishes: bitwise entropy, which is entirely about distance-from-boundary, loses its predictive power. This reveals that the apparent level alignment in the continuous setting was driven by a coupling between bitwise entropy and probability calibration, rather than by genuine predictive value at the substructure level. 
+
+Hamming loss. Nearly all scoring functions perform worse than random rejection (relAURC > 1), because Hamming weights all bits equally while both bitwise and retrieval-level scoring functions concen-trate their signal on the sparse minority of active bits. The sole exception is bitwise epistemic uncertainty, which captures disagreement on inactive bits that other scores ignore: on these bits the aleatoric compo-nent vanishes, so any inter-sample disagreement manifests entirely as epistemic uncertainty. This gives it a more uniform sensitivity across all bits, matching the uniform weighting of Hamming loss. 
+
+## D.2 Scoring function correlations 
+
+Figure D2 shows the pairwise Spearman rank correlations between all scoring functions for the Deep Ensemble trained with focal loss (top) and ranking loss (bottom). The overall structure is consistent across both training objectives, with two features standing out. First, the retrieval-level and fingerprint-level scoring functions form nearly independent blocks: correlations across the two groups are close to zero. This confirms that the two levels capture fundamentally different aspects of prediction quality, consistent with the finding in Section 3.2 that fingerprint-level scores are poor proxies for retrieval-level task losses. Second, within the retrieval-level block, confidence, aleatoric uncertainty, total uncertainty, and the number of candidates are strongly correlated. This clustering is particularly tight under ranking loss, where the retrieval scoring function is explicitly optimized. Rank variance interpolates between this cluster and the remaining scores as K increases: at K = 20 it aligns closely with confidence and aleatoric uncertainty, while at K = 1 it is more weakly coupled. Score gap and retrieval epistemic uncertainty are both largely decoupled from the other retrieval-level scores, explaining their distinct behavior in the risk-coverage analysis. 23 conf 
+
+> gap
+> al ret
+> tot ret
+> ep ret
+> (1) rank
+> (5) rank
+> (20) rank
+> tot bit
+> al bit
+> ep bit
+> | |
+> conf
+> gap
+> al ret
+> tot ret
+> ep ret
+> (1) rank
+> (5) rank
+> (20) rank
+> tot bit
+> al bit
+> ep bit
+
+| | 
+
+1.00 0.62 -0.86 -0.86 -0.22 -0.63 -0.47 -0.42 -0.27 -0.27 0.08 -0.36 
+
+0.62 1.00 -0.37 -0.34 -0.00 -0.38 -0.13 -0.13 -0.03 -0.05 0.03 -0.08 
+
+-0.86 -0.37 1.00 0.99 0.21 0.55 0.56 0.57 0.39 0.39 -0.18 0.54 
+
+-0.86 -0.34 0.99 1.00 0.34 0.61 0.63 0.65 0.36 0.35 -0.12 0.58 
+
+-0.22 -0.00 0.21 0.34 1.00 0.55 0.60 0.60 -0.08 -0.12 0.26 0.41 
+
+-0.63 -0.38 0.55 0.61 0.55 1.00 0.63 0.50 0.06 0.04 0.11 0.30 
+
+-0.47 -0.13 0.56 0.63 0.60 0.63 1.00 0.80 0.02 0.01 0.10 0.50 
+
+-0.42 -0.13 0.57 0.65 0.60 0.50 0.80 1.00 0.07 0.05 0.07 0.69 
+
+-0.27 -0.03 0.39 0.36 -0.08 0.06 0.02 0.07 1.00 1.00 -0.16 0.15 
+
+-0.27 -0.05 0.39 0.35 -0.12 0.04 0.01 0.05 1.00 1.00 -0.22 0.13 
+
+0.08 0.03 -0.18 -0.12 0.26 0.11 0.10 0.07 -0.16 -0.22 1.00 -0.13 
+
+-0.36 -0.08 0.54 0.58 0.41 0.30 0.50 0.69 0.15 0.13 -0.13 1.00 
+
+1.00 
+
+0.75 
+
+0.50 
+
+0.25 
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Spearman conf
+> gap
+> al ret
+> tot ret
+> ep ret
+> (1) rank
+> (5) rank
+> (20) rank
+> tot bit
+> al bit
+> ep bit
+> | |
+> conf
+> gap
+> al ret
+> tot ret
+> ep ret
+> (1) rank
+> (5) rank
+> (20) rank
+> tot bit
+> al bit
+> ep bit
+
+| | 
+
+1.00 0.07 -0.96 -0.96 -0.09 -0.46 -0.67 -0.83 -0.13 -0.14 -0.04 -0.95 
+
+0.07 1.00 0.01 0.01 -0.05 -0.39 -0.09 -0.05 -0.04 -0.03 -0.05 -0.01 
+
+-0.96 0.01 1.00 1.00 0.05 0.36 0.62 0.82 0.14 0.14 0.04 0.95 
+
+-0.96 0.01 1.00 1.00 0.09 0.37 0.63 0.83 0.13 0.14 0.04 0.95 
+
+-0.09 -0.05 0.05 0.09 1.00 0.20 0.21 0.20 -0.23 -0.23 -0.10 0.08 
+
+-0.46 -0.39 0.36 0.37 0.20 1.00 0.68 0.53 0.04 0.05 0.04 0.32 
+
+-0.67 -0.09 0.62 0.63 0.21 0.68 1.00 0.83 0.07 0.07 0.04 0.57 
+
+-0.83 -0.05 0.82 0.83 0.20 0.53 0.83 1.00 0.08 0.09 0.04 0.78 
+
+-0.13 -0.04 0.14 0.13 -0.23 0.04 0.07 0.08 1.00 1.00 0.88 0.12 
+
+-0.14 -0.03 0.14 0.14 -0.23 0.05 0.07 0.09 1.00 1.00 0.85 0.13 
+
+-0.04 -0.05 0.04 0.04 -0.10 0.04 0.04 0.04 0.88 0.85 1.00 0.03 
+
+-0.95 -0.01 0.95 0.95 0.08 0.32 0.57 0.78 0.12 0.13 0.03 1.00 
+
+1.00 
+
+0.75 
+
+0.50 
+
+0.25 
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+> Spearman
+
+Fig. D2 : Pairwise Spearman rank correlations between scoring functions for the Deep Ensemble on the MassSpecGym test set. Top: focal loss with fingerprint aggregation. Bottom: ranking loss with score aggregation. Horizontal and vertical lines separate retrieval-level, fingerprint-level, and external scoring functions. 24
