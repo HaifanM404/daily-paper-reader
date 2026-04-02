@@ -1,0 +1,2732 @@
+Title: Uncertainty Quantification of Spline Predictors on Compact Riemannian Manifolds
+
+URL Source: https://arxiv.org/pdf/2603.24259v1
+
+Published Time: Thu, 26 Mar 2026 01:16:38 GMT
+
+Number of Pages: 34
+
+Markdown Content:
+# Uncertainty Quantification of Spline Predictors on Compact Riemannian Manifolds 
+
+Charlie Sire ∗, Mike Pereira 
+
+> Center for Statistics and Images, Mines Paris, PSL University, Fontainebleau, 77300, France
+
+Abstract 
+
+To predict smooth physical phenomena from observations, spline interpolation provides an inter-pretable framework by minimizing an energy functional associated with the Laplacian operator. This work proposes a methodology to construct a spline predictor on a compact Riemannian manifold, while quantifying the uncertainty inherent in the classical deterministic solution. Our approach leverages the equivalence between spline interpolation and universal kriging with a spe-cific covariance kernel. By adopting a Gaussian random field framework, we generate stochastic simulations that reflect prediction uncertainty. However, on compact manifolds, the covariance kernel depends on the generally unknown spectrum of the Laplace-Beltrami operator. To address this, we introduce a finite element approximation based on a triangulation of the manifold. This leads to the use of intrinsic Gaussian Markov Random Fields (GMRF) and allows for the incor-poration of anisotropies through local modifications of the Riemannian metric. The method is validated using a temperature study on a sphere, where the operator’s spectrum is known, and is further extended to a test case on a cylindrical surface. 
+
+Keywords: Uncertainty Quantification, Spline interpolation, Riemannian manifold, Intrinsic Gaussian Markov Random Fields, Universal Kriging   
+
+> ∗Corresponding author
+> Email address: charlie.sire@minesparis.psl.eu (Charlie Sire)
+> arXiv:2603.24259v1 [stat.CO] 25 Mar 2026
+
+1. Introduction 
+
+Thin-plate spline interpolation [1] is one of the most widely used methods for predicting spa-tially distributed data. It consists in constructing an interpolating function that exactly matches the observed values at the measurement locations while being as smooth as possible according to a precise mathematical criterion. This notion of optimality, defined through the minimization of a roughness functional, is particularly well suited to settings with few observations in which the underlying phenomenon is expected to vary smoothly over space. However, thin-plate splines yield a single deterministic prediction over the domain and do not directly provide a measure of uncertainty. In many applications, uncertainty quantification is crucial, for instance to assess risk or compute predictive probabilities, which motivates the need for a full predictive distribu-tion rather than a point estimate [2]. From this perspective, the spline predictor can be shown to be equivalent to the universal kriging predictor, as first established by Matheron [3] and later exploited for data defined on R [4] and on Rd [5, 6]. In this framework, the observations are viewed as a realization of a random field with an unknown mean function and a prescribed covariance structure, that are related to the eigenvalues and eigenvectors of the Laplacian operator −∆. Universal kriging then relies on a statistical model to provide not only a prediction but also an associated predictive variance at every point in the domain. To fully characterize this predictive uncertainty, a Gaussian assumption is typically adopted for the prior random field, leading to Gaussian process regression (GPR) [7], which enables computation of the posterior distribution of the random field, that is, the conditional distribution given the observed values at the measurement locations. While the predictive mean and variance obtained from kriging and GPR are identical, the latter framework additionally allows for the simulation of posterior realizations of the random field [8]. These simulations provide a richer representation of uncertainty and facilitate the visualization and quantification of plausible scenarios under the assumed statistical model. Thus, exploiting Gaussian process regression with the appropriate covariance kernel makes it possible to incorporate uncertainty into the spline prediction problem. However, when the domain of interest is a non-planar surface, several practical challenges arise. Studies on such non-Euclidean domains appear in a variety of contexts, for example in fluid mechanics when analyzing flows around cylinders [9, 10], or in neuroimaging when collecting data on the brain [11]. In theory, the equivalence between spline interpolation and universal kriging prediction still holds on compact Riemannian manifolds, as formally established in [12] using the framework of Reproducing Kernel Hilbert Spaces (RKHS), building on the pioneering work of Wahba on the sphere [13]. On manifolds, the mean function and covariance kernel un-derlying this equivalence are derived from the spectral decomposition of the Laplace-Beltrami operator, a natural generalization of the Euclidean Laplacian. In practice, however, the eigenval-ues and eigenfunctions of the Laplace-Beltrami operator are generally unknown for surfaces that are neither planar nor spherical. This lack of spectral information prevents the exact construction of spline predictors and their associated covariance structures for data defined on such manifolds. To overcome this limitation, and as proposed in [14], one possible approach is to rely on a finite element approximation of random fields defined on compact manifolds, thereby working with a finite set of approximate eigenvalues and eigenfunctions. This type of approximation was first introduced by Lindgren [15] and later extended by Pereira [16] to incorporate local anisotropies into the covariance structure. This framework can then be adapted to construct spline predictors with preferred directions of dependence, which can significantly improve prediction 2accuracy when the underlying phenomenon is anisotropic. However, a key di ffi culty arising in the finite-element approximation of spline predictors is that it requires working with a Gaussian Markov random field (GMRF, see [17]) whose covari-ance matrix is not invertible, referred to as an intrinsic GMRF. This type of model, investigated in particular in [18], complicates both the formulation of the classical kriging equations and the generation of simulations. As shown in [19] and thoroughly studied in [20], such simulations can be obtained through linear conditioning of non-intrinsic GMRFs. This strategy enables an extension of the work of [14], which focused exclusively on computing an approximate solution to the spline interpolation problem, without addressing the associated uncertainty quantification of the resulting predictions. Therefore, the contribution of this work is to propose a statistical model for the spline inter-polation problem, with the aim of providing both spline-based predictions at every point of the investigated compact Riemannian manifold and a quantification of the associated uncertainty. A strategy for generating conditional simulations of the underlying random function is also pro-posed, enabling the visualization of predictive scenarios arising from spline interpolation prob-lems. The paper is organized as follows. Section 2 introduces the theoretical solution to the spline interpolation problem on compact Riemannian manifolds and establishes its equivalence with kriging. Section 3 presents the finite element approximation of this solution. Section 4 then details the strategy for generating conditional simulations of the target intrinsic GMRF, while Section 5 addresses the introduction of anisotropy and the estimation of the unknown parame-ters. Finally, the application test cases and corresponding results are presented in Section 6, and Section 7 summarizes the contributions and outlines potential directions for future work. 
+
+2. Spline interpolation solution on compact manifolds 
+
+In this manuscript, the investigated domain is a smooth compact and connected manifold M
+
+of dimension d, equipped with a Riemannian metric g, and −∆ denotes the Laplace-Beltrami operator on ( M, g). The integral of a function f over M is denoted by R 
+
+> M
+
+f d μg, where dμg is the canonical measure associated to ( M, g) and ∂M denotes its boundary. The spaces L2(M)and H2(M) denote the set of square-integrable functions and the Sobolev space of order 2, re-spectively. The objective of this article is to obtain a prediction of a phenomenon based on n
+
+observations denoted by y = (yi)ni=1 at points S = (si)ni=1 with si ∈ M , 1 ≤ i ≤ n.
+
+2.1. Formulation of the spline prediction problems 
+
+The spline interpolation problem on M, denoted by P0, consists in finding the smoothest function, in a precise mathematical sense, that interpolates the observed data. More precisely, it consists in solving the following variational problem [21, 22]. 
+
+Definition 1 (Spline interpolation problem on M). P0 the spline interpolation problem on M
+
+consists in finding a function u ∈ H2(M) such that 
+
+
+
+E(u) = min 
+
+> v∈H2(M)
+
+Z
+
+> M
+
+|∆v|2 dμg
+
+u(si) = yi, 1 ≤ i ≤ n.
+
+(1) 3When the observed data are corrupted by noise, seeking an exact interpolating solution is no longer appropriate. In this case, the smoothing spline problem, denoted by Pτ, is more suit-able, as it consists in minimizing the energy functional penalized by the prediction error at the observation points. 
+
+Definition 2 (Smoothing spline problem on M). Pτ the smoothing spline problem on M consists in finding, for τ > 0 a function u ∈ H2(M) minimizing 
+
+1
+
+n
+
+> n
+
+X
+
+> i=1
+
+(yi − u(si)) 2 + τ2
+
+Z
+
+> M
+
+|∆v|2 dμg (2) The analytical solutions of these problems are very similar, and are related to the spectrum of the operator −∆.
+
+2.2. Analytical solution to the spline prediction problems 
+
+To derive the solutions to the problems P0 and P1, we rely on the Spectral Theorem [23], recalled in Appendix A, which provides the countable spectrum of −∆, denoted by ( λk, ϕ k)k∈N.Here, ( λk)k∈N ⊂ R+ are the eigenvalues and ( ϕk)k∈N ⊂ C ∞(M) the associated eigenfunctions, which form an orthonormal basis of L2(M). The eigenvalue λ0 = 0 corresponds to constant functions [24], with ϕ0 = 1R 
+
+> Mdμg
+
+.
+
+As explained in [12], the theory of RKHS is needed to obtain the solution of problems of the type Pτ for τ ≥ 0. Some details were recalled in [14], but are not evoked here. We simply introduce the kernel that will be central in the solution, which is defined as 
+
+K1(s1, s2) =
+
+X
+
+> k∈N⋆
+
+1
+
+λ2
+
+> k
+
+ϕk(s1)ϕk(s2), (s1, s2) ∈ M 2, (3) and the solution to the spline prediction problems is provided by Proposition 1. 
+
+Proposition 1 (Spline prediction [25]) . The solution to the problem Pτ, which corresponds to the interpolating spline when τ = 0 and to the smoothing spline when τ > 0, is given by u⋆τ (s) = aτϕ0(s) + k1(s)⊤K−11,τ 
+
+y − aτϕobs 
+
+> 0
+
+ , (4) 
+
+with 
+
+K1,τ = hK1(si, s j)i  
+
+> 1≤i,j≤n
+
++ τ2In
+
+k1(s) = (K1(s1, s), . . . , K1(sn, s)) ⊤ ∀s ∈ M 
+
+ϕobs  
+
+> 0
+
+= (ϕ0(s1), . . . , ϕ 0(sn)) 
+
+aτ = (ϕobs  
+
+> 0
+
+)⊤K−11,τ ϕobs 
+
+> 0
+
+−1
+
+(ϕobs  
+
+> 0
+
+)⊤K−11,τ y
+
+(5) The invertibility of the matrix K1,τ is discussed in Appendix B. For τ = 0, K1,τ is positive definite if and only if any observation vector y can be interpolated by a function in L2(M), while the inversibility is guaranteed when τ > 0.
+
+42.3. Equivalence with kriging 
+
+The solution uτ coincides with the universal kriging predictor [26, 27], with mean aϕ0, where 
+
+a ∈ R is an unknown parameter, covariance kernel σ2 K1, and observation noise variance σ2τ2
+
+when τ > 0. Here, σ2 > 0 is the unknown variance. Note that since ϕ0 is constant in this setting, the model reduces to ordinary kriging [28], which assumes a constant but unknown mean. Under these assumptions, and with predictive mean equal to uτ(s0) at a new point s0 ∈ M ,the associated kriging variance is given by 
+
+VUK (s0) = σ2 hv(s0) + K1(s0, s0) − k1(s0)⊤K−11,τ k1(s0)i (6) with v(s0) = hϕ0(s0) − k1(s0)⊤K−11,τ ϕobs 0
+
+i⊤  ϕobs 0
+
+⊤
+
+K−11,τ ϕobs 0
+
+−1 hϕ0(s0) − k1(s0)⊤K−11,τ ϕobs 0
+
+i .
+
+The term σ2v(s0) reflects the uncertainty associated with the unknown coe ffi cient a appearing in the mean of the random field, while σ2 hK1(s0, s0) − k1(s0)⊤K−11,τ k1(s0)i corresponds to the pre-dictive variance of the simple kriging predictor, that is, when the mean is assumed to be known. This analogy with universal kriging naturally paves the way for uncertainty quantification in spline prediction. However, to obtain the full predictive distribution rather than just the mean and variance, the idea is to introduce Gaussian assumptions and to work with Gaussian random fields (GRFs) Z and E. Since the parameter a governing the mean is unknown, the Bayesian kriging framework [29] is adopted by modeling it as a random variable A. The observations y are then interpreted as noisy realizations of the GRF Z such that, 
+
+Yi = Z(si) + στ Ei, 1 ≤ i ≤ n
+
+where 
+
+• (Z | A = a) is a GRF with mean aϕ0 and covariance kernel σ2 K1, for all a ∈ R
+
+• A ∼ N (μ, α ), which is the a priori distribution of the unknown coe ffi cient of the mean 
+
+• E = (Ei)ni=1 is a centered Gaussian vector with Cov( E) = In, independent of A and Z.
+
+This corresponds to the a priori information on the model, where Z again represents the underlying phenomenon of interest and στ E accounts for an additional measurement noise when 
+
+τ > 0. Under the Gaussian assumptions, the posterior distribution of the random field Z can be computed explicitly, namely (Z | Yobs = y) , (7) where Yobs denotes the random vector of observations [ Y1, . . . , Yn]⊤. This conditional random field is itself a GRF, and its distribution is therefore entirely characterized by its mean and covari-ance kernel. As explained in [30] and recalled here in Proposition 2, its behavior when α → ∞ 
+
+is of particular interest. 
+
+Proposition 2 (Convergence of the conditional GRF.) . When α, the variance of A, tends to infinity, corresponding to a non-informative prior, the conditional field (Z | Yobs = y) converges to a GRF whose mean and covariance coincide with the universal kriging predictor. They are given by 
+
+
+
+lim 
+
+> α→∞
+
+E (Z(s) | Yobs = y) = u⋆τ (s)lim 
+
+> α→∞
+
+Cov  Z(s), Z(s′) | Yobs = y = σ2 hc(s, s′) + K1(s, s′) − k1(s)⊤K−11,τ k1(s′)i (8) 5with c (s, s′) = hϕ0(s) − k1(s)⊤K−11,τ ϕobs 
+
+> 0
+
+i⊤  ϕobs 
+
+> 0
+
+⊤
+
+K−11,τ ϕobs 
+
+> 0
+
+−1 hϕ0(s′) − k1(s′)⊤K−11,τ ϕobs 
+
+> 0
+
+i .
+
+The proof is provided in Appendix C. Note that the a priori mean μ of the random variable A
+
+does not a ff ect the results when α → ∞ . Therefore, without loss of generality, we set μ = 0 for the remainder of the analysis. The objective of the study is then to investigate this conditional GRF, with a particular focus on generating simulations that reflect both the spline predictor and its associated uncertainty. However, the covariance kernel K1 is linked to the spectrum of the Laplace-Beltrami operator −∆. For a general compact and connected manifold, these eigenvalues and eigenfunctions are not available in closed form, making standard Gaussian process regression computations intractable. To overcome this di ffi culty, and as already proposed in [14], a finite-element approximation of the conditional GRF can be considered. 
+
+3. Finite element approximation of Gaussian Random Fields 
+
+Here, the objective is to construct a discretization of Gaussian random fields on the Rie-mannian manifold M by exploiting the finite element approximation framework, as introduced in [15]. We discretize the manifold M by introducing a polyhedral approximation obtained by a triangulation T with m nodes c1, . . . , cm ∈ M . In particular, we assume (as it is standard with surface finite element methods, cf. [31]) that the resulting triangulated surface is “close enough” to the manifold M so that we can assume there is a one-to-one mapping between the points of 
+
+M, and those of its discretized counterpart. As a result, we use with an abuse of notation the same letter M to denote the triangulated surface. Associated with this triangulation, we define a set of compactly supported basis functions 
+
+{ψ j}mj=1 on M. Each basis function ψ j is piecewise linear over T, equals 1 at the node c j, and vanishes at all other nodes, corresponding to a first-order finite element discretization. This construction naturally yields the following matrices: 
+
+• the mass matrix M ∈ Rm×m, with entries [ M]i j = ⟨ψi, ψ j⟩L2(M),
+
+• the sti ff ness matrix F ∈ Rm×m, with entries [ F]i j = ⟨∇ ψi, ∇ψ j⟩L2(M),
+
+• the projection matrix Pn ∈ Rn×m mapping the triangulation nodes to the observation points, with entries [ Pn]i j = ψ j(si). The mass matrix M is symmetric positive definite, and the sti ff ness matrix F is symmetric positive semi-definite [16]. Consequently, one can introduce a matrix square root √M ∈ Rm×m
+
+satisfying √M √M⊤ = M, which may be obtained, for example, via a Cholesky factoriza-tion [32]. Owing to the local support of the basis functions {ψ j}mj=1, both M and F are sparse matrices. 
+
+3.1. Finite element statistical model 
+
+Let us propose a finite-element approximation of the statistical model introduced in Sec-tion 2.3. First, it should be reminded that a finite-element approximation relies solely on the values at the triangulation nodes and is then extended over the entire domain by linear combina-tion. For instance, the random field Z modeling the phenomenon will be approximated by 
+
+Z(m)(s) =
+
+> m
+
+X
+
+> j=1
+
+Z jψ j(s) = P(s)⊤Z, s ∈ M (9) 6where for 1 ≤ j ≤ m, Z j = Z(m)(c j) corresponds to the value of the finite-element approximation 
+
+Z(m) at the mesh node c j, Z = (Z1, . . . , Zm)⊤, and P(s) = (ψ1(s), . . . , ψ m(s)) ⊤. We therefore suppose that from now on, the observations y from our initial spline problems in Section 2.1 are noisy realizations of the random field Z(m), i.e. yi is a realization of 
+
+Y(m) 
+
+> i
+
+= Z(m)(si) + στ Ei, 1 ≤ i ≤ n (10) where E = (Ei)ni=1 is a centered Gaussian vector with Cov( E) = In, independent of Z.Finally, following the same approach as in Section 2.3, we assume that the distribution of Z,which entirely charecterizes the distribution of Z(m) arises from the following two-stage hierar-chical model: 
+
+• Z(m)(s) | A = a =  P(s)⊤Z | A = a is a centered Gaussian vector 
+
+• A ∼ N (0 , α ) ( μ = 0 without loss of generality) The objective is then to define the distribution of the random vector ( Z | A = a) , so that Z(m) | A = a is the finite-element approximation of ( Z | A = a) . As a reminder, ∀a ∈ R, (Z | A = a)is a GRF with mean aϕ0 and covariance kernel σ2 K1. The result is presented and justified in [33, 34], and is briefly recalled here. Let us denote −∆m the Galerkin approximation of −∆ on the triangulation T, defined explic-itly in Appendix D, and λ(m)
+
+> k
+
+m−1 
+
+> k=0
+
+and ϕ(m)
+
+> k
+
+m−1 
+
+> k=0
+
+denote its eigenvalues and eigenvectors. Then, to characterize the distribution of ( Z | A = a) , we need to introduce the following matrix S defined as 
+
+S =  √M−1
+
+F  √M−⊤ 
+
+, (11) which is real, symmetric, and positive semi-definite with same eigenvalues as −∆(m). [34]. Then, using the diagonalization S = VDiag λ(m)0 , . . . , λ (m)
+
+> m−1
+
+ V⊤, we have the following result. 
+
+Proposition 3 (Distribution of the random vector ( Z | A = a).) . For all a ∈ R, the random vector 
+
+(Z | A = a) is a Gaussian vector with 
+
+• mean a ϕ0
+
+• covariance matrix σ2Σ with Σ =  √M−⊤ 
+
+f (S)  √M−1
+
+,where ϕ0 = ϕ(m)0 (c j)mj=1 = 1m
+
+> ∥ √M⊤1m∥2
+
+(see Appendix E), f is the function such that f (λ) = 1 
+
+> λ2
+
+1λ> 0
+
+and f (S) is the matrix function defined from the eigendecomposition of S as f (S) = VDiag  f (λ(m)0 ), . . . , f (λ(m)
+
+> m−1
+
+) V⊤.
+
+Using proposition 3 and Equation 9, it provides the distribution of the finite-element random field Z(m)(s) | A = a .
+
+Corollary 1 (Distribution of the finite-element approximation of the GRF.) . For all a ∈ R,Z(m)(s) | A = a is a Gaussian random field with mean a P(s)⊤ϕ0 and covariance kernel σ2 K(m)1
+
+with K(m)1 (s, s′) = P(s)⊤ΣP(s′), (s, s′) ∈ M 2.
+
+7In practice, and as commonly adopted in finite element implementations, the mass matrix M
+
+is replaced by its mass lumping approximation [35]. This approximation consists of a diagonal matrix whose entries are given by [ M] j j = ⟨ψ j, 1⟩ for 1 ≤ j ≤ m. For notational simplicity, we retain the same symbol M for the mass lumping matrix. This simplification facilitates access to 
+
+ √M−1
+
+and ensures that S is sparse. Now that we have characterized the distribution of the discretized field Z(m) used to model the observations Y(m)obs = hY(m)1 , . . . , Y(m)
+
+> n
+
+i⊤
+
+introduced in Equation 10, we can move on to the characterization of the posterior distribution Z(m) | Y(m)obs = y when the variance α of A tends to infinity, which will be used to make predictions at new locations. 
+
+3.2. Predictive distribution of the finite element model 
+
+Following once again the approach in Section 2.3, we wish to use the posterior distribution Z(m) | Y(m)obs = y in the case V(A) = α → ∞ as a predictive distribution to recover the observed field at any location. Noting that the vector of observations Y(m)obs can be written as 
+
+Y(m)obs = PnZ + στ E, (12) with Pn the projection matrix defined in Section 3, we can adapt Proposition 2 to our finite-element statistical model to obtain the following result. 
+
+Proposition 4 (Convergence of the finite element conditional GRF) . Let α = V(A) in the hier-archical model defining Z (m). Then, Z(m) | Y(m) 
+
+> obs
+
+= y is a GRF such that (i) For any s ∈ M , the mean E Z(m)(s) | Y(m) 
+
+> obs
+
+= y satisfies 
+
+lim 
+
+> α→∞
+
+E Z(m)(s) | Y(m) 
+
+> obs
+
+= y = a(m) 
+
+> τ
+
+P(s)⊤ϕ0 + P(s)⊤ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+(y − a(m) 
+
+> τ
+
+Pnϕ0)
+
+where a (m) 
+
+> τ
+
+=
+
+
+
+ϕ⊤ 
+
+> 0
+
+P⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+−1
+
+ϕ⊤ 
+
+> 0
+
+P⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+y and K(m) 
+
+> τ
+
+= PnΣ(Pn)⊤ + τ2In
+
+(ii) For any s, s′ ∈ M , the covariance kernel Cov Z(s), Z(s′) | Y(m) 
+
+> obs
+
+= y satisfies 
+
+lim 
+
+> α→∞
+
+Cov Z(s), Z(s′) | Y(m) 
+
+> obs
+
+= y = σ2hc(m)(s, s′) + P(s)⊤ΣP(s′)
+
+− P(s)⊤ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+PnΣP(s′)i.
+
+where c (m)(s, s′) = b(s)
+
+
+
+ϕ⊤ 
+
+> 0
+
+P⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+−1
+
+b(s′) and b(s) = P(s)⊤ϕ0 − P(s)⊤ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0.Again, the limiting field defined by these moments remains a GRF. 
+
+The proof is identical to that of Proposition 2 given in Appendix C, replacing ϕ0(s) with 
+
+ϕ(m)0 (s) = P(s)⊤ϕ0 and K1(s, s′) with K(m)1 (s, s′) = P(s)⊤ΣP(s′). The inverisibility of the matrix 
+
+K(m) 
+
+> τ
+
+is discussed in Appendix F. Using these results, the objective is now to simulate, at the triangulation points, the GRF Z(m) | Y(m)obs = y of Proposition 4, which corresponds to the vector 8Z | Y(m)obs = y as α → ∞ . This will be the purpose of the next section. As an extension, in Ap-pendix G, we provide a strategy to generate simulations of Z(m) | Y(m)obs = y, A = a(m)
+
+> τ
+
+ , that is a GRF with the same mean as the limit presented in Proposition 2, then matching the finite element approximation of the spline prediction, but whose covariance kernel does not contain the term 
+
+c(m)(s, s′) that refers to the uncertainty on the a priori mean, as in the simple kriging framework. 
+
+4. Predictive posterior simulations 
+
+4.1. Overview of the approach 
+
+In this section, we define Zpost ∼ N (mpost (y), Σpost ), the limiting predictive distribution of Proposition 4, i.e. we take 
+
+• mpost (y) = lim 
+
+> α→∞
+
+E Z | Y(m)obs = y as the posterior expectation of Z | Y(m)obs = y in the limit 
+
+V(A) = α → ∞ .
+
+• Σpost = lim 
+
+> α→∞
+
+Cov Z | Y(m)obs = y as the corresponding covariance kernel, which in particular does not depend on y (see Proposition 4). Our objective is to generate simulations of this Gaussian vector. Two approaches may natu-rally be considered as possible starting points. First, within this universal kriging framework, simulations of Zpost can be derived from prior simulations of ( Z | A = a), that has a covariance matrix σ2Σ (as established in Proposition 3). However, computing Σ requires the diagonalization of S (defined in Equation 11). Because 
+
+S is an m × m matrix, where m denotes the number of triangulation nodes, this computation becomes computationally intractable for large m. To address this, the precision matrix, defined as the inverse of the covariance matrix Σ, is exploited in practice. The idea is that Gaussian random vectors defined on a triangulation mesh can be viewed as GMRFs, which implies that their precision matrix is sparse. However, direct manipulation of the precision matrix is not feasible in our setting. Since rank( Σ) = rank   f (S) = m − 1, with f (λ(m)0 ) = 0 and f (λ(m) 
+
+> k
+
+) > 0for 1 ≤ k ≤ m − 1, the random vector ( Z | A = a) is an intrinsic GMRF, rendering classical computational methods involving the precision matrix inapplicable. Alternatively, one may approximate the α → ∞ limit by simulating Z | Y(m)obs = y for a su ffi ciently large α. These simulations leverage the invertibility of ˜ Σα, the covariance matrix of Z, defined as ˜ Σα = σ2Σ + αϕ0ϕ⊤ 
+
+> 0
+
+. The computations leading to this covariance matrix are identical to those detailed in Appendix C.1. Its inverse, the precision matrix of Z, is defined as: ˜Qα = ˜Σ−1 
+
+> α
+
+= σ−2 √MS 2 √M⊤ + 1
+
+α
+
+ Mϕ0
+
+   Mϕ0
+
+⊤ . (13) The structure of ˜ Qα is well-suited for sparse computations. Specifically, one can compute the Cholesky factorization of the sparse matrix √MS 2 √M⊤ and subsequently obtain the Cholesky factorization of ˜ Qα via a rank-one update. However, this strategy leads to numerical di ffi culties that depend on the value of α and relies on the approximation of a limit, which prevents exact computation. The approach proposed here involves leveraging the matrix ˜ Qα for a fixed α to derive exact simulations of Zpost , thereby avoiding the need for a limiting approximation. This process is decomposed into the following steps: 91. Generate simulations of the intrinsic GMRF ( Z | A = a) using ˜ Qα (Section 4.2). 2. Compute the posterior expectation mpost (y) using ˜ Qα, without limit estimation (Section 4.3) 3. Construct exact simulations of Zpost by combining the results from the previous two steps (Section 4.4) The overall procedure is summarized in Section 4.5. 
+
+4.2. Simulating an intrinsic GMRF 
+
+Here, we detail the procedure to obtain simulations, for a given a ∈ R, of the intrinsic GMRF 
+
+Za := (Z | A = a) ∼ N (aϕ0, σ 2Σ),
+
+using the GMRF Z ∼ N (0m, ˜Q−1 
+
+> α
+
+). The work of [19] can be adapted here and leads to the following result, which is valid for all α > 0.
+
+Proposition 5 (Simulation of intrinsic GMRF) . Considering Z ∼ N (0m, ˜Σα), then 
+
+aϕ0 + Z | h  Mϕ0
+
+⊤ Z = 0i = aϕ0 + Z − ϕ0
+
+ Mϕ0
+
+⊤ Z ∼ N (aϕ0, σ 2Σ).
+
+Proof. The vector 
+
+Z − ϕ0
+
+ Mϕ0
+
+⊤ Z = Im − ϕ0
+
+ Mϕ0
+
+⊤ Z
+
+is a centered Gaussian vector, since it is a linear transformation of the centered Gaussian vector 
+
+Z. Its covariance is 
+
+Im − ϕ0
+
+ Mϕ0
+
+⊤ Cov( Z) Im − ϕ0
+
+ Mϕ0
+
+⊤⊤
+
+= Im − ϕ0
+
+ Mϕ0
+
+⊤  σ2Σ + αϕ0ϕ⊤
+
+> 0
+
+  Im − Mϕ0ϕ⊤
+
+> 0
+
+ .
+
+As shown in Appendix F, ΣMϕ0 = 0m. Then, 
+
+Im − ϕ0
+
+ Mϕ0
+
+⊤  σ2Σ + αϕ0ϕ⊤
+
+> 0
+
+  Im − Mϕ0ϕ⊤
+
+> 0
+
+
+
+= σ2Σ + αϕ0ϕ⊤ 
+
+> 0
+
+− 2αϕ0
+
+ Mϕ0
+
+⊤ ϕ0ϕ⊤ 
+
+> 0
+
++ αϕ0
+
+ Mϕ0
+
+⊤ ϕ0ϕ⊤ 
+
+> 0
+
+Mϕ0
+
+= σ2Σ + αϕ0ϕ⊤ 
+
+> 0
+
+− 2αϕ0ϕ⊤ 
+
+> 0
+
++ αϕ0ϕ⊤ 
+
+> 0
+
+using ϕ⊤ 
+
+> 0
+
+Mϕ0 = 1 see Appendix E .
+
+= σ2Σ
+
+Since the simulation of Z ∼ N (0m, ˜Σα) can be carried out by solving a linear system involving 
+
+Lα the Cholesky factor of ˜ Qα, and a vector of independent standard Gaussian components, this yields the following algorithm for simulating Za.
+
+Algorithm 1 Simulation of Za ∼ N (aϕ0, σ 2Σ)
+
+Require: M , F, ϕ0, σ, α, a and a vector εm of m independent standard Gaussian components  
+
+> 1:
+
+S ← √M−1 F √M−⊤  
+
+> 2:
+
+Q ← √M S 2 √M⊤ 
+
+> 3:
+
+Compute Lα the Cholesky factor ˜ Qα using sparsity of σ−2Q and a rank-one update  
+
+> 4:
+
+Solve the linear system L⊤ 
+
+> α
+
+z = εm 
+
+> 5:
+
+return z a = aϕ0 + z − ϕ0
+
+ Mϕ0
+
+⊤ z
+
+10 4.3. Computing the posterior expectation 
+
+The objective here is to compute mpost (y). The work of [14] establishes an analytical rela-tionship between 
+
+m(α)post (y) : = EZ | Y(m)obs = y = ˜Q−1 
+
+> α
+
+P⊤
+
+> n
+
+hPn ˜Q−1 
+
+> α
+
+P⊤ 
+
+> n
+
++ σ2τ2In
+
+i−1
+
+y,
+
+and mpost (y) = lim 
+
+> α→∞
+
+m(α)post (y).
+
+Proposition 6 (Computation of the posterior expectation.) . The posterior expectation mpost (y)
+
+can be computed using m(α)
+
+> post
+
+(y) and m(α)
+
+> post
+
+ Pnϕ0
+
+ , using the relation 
+
+mpost (y) = m(α)
+
+> post
+
+(y) + ϕ0 − hhm(α)
+
+> post
+
+ Pnϕ0
+
+i  Mϕ0
+
+⊤ m(α)
+
+> post
+
+ Pnϕ0
+
+ − ϕ0 + hhm(α)
+
+> post
+
+ Pnϕ0
+
+i !  Mϕ0
+
+⊤ m(α)
+
+> post
+
+(y),
+
+where h[m] = m−ϕ0(Mϕ0)⊤m
+
+> 1−
+
+(Mϕ0)⊤m , ∀m ∈ Rm.
+
+Using Proposition 6 which is valid for all α > 0, the posterior expectation mpost (y) can be computed for any y ∈ Rn,, provided that m(α)post (y) is tractable for any y ∈ Rn. For the computation of m(α)post (y), two scenario are distinguished. 1. The first scenario corresponds to the study of interpolating splines, i.e., setting the noise 
+
+τ = 0. To facilitate the computations in this situation, we require that the observation points S = (si)ni=1 are included among the triangulation nodes c1, . . . , cm. More precisely, let I = {i1, . . . , in} denote the set of indices such that sk = cik for 1 ≤ k ≤ n. This requirement is not restrictive in practice, as the triangulation can typically be designed to include the observation points, while simplifying the computations. Indeed, with this hypothesis, we have (Pn)k, j =
+
+
+
+1 if j = ik,
+
+0 otherwise ,
+
+for 1 ≤ k ≤ n and 1 ≤ j ≤ m, leading to Pn ˜Q−1 
+
+> α
+
+P⊤ 
+
+> n
+
+= h ˜Q−1
+
+> α
+
+i 
+
+> I,I
+
+, by denoting h ˜Qα
+
+i
+
+> I1,I2
+
+the submatrix of ˜ Qα consisting of the rows indexed by I1 and the columns indexed by I2 for any index sets I1, I2. Then, we have the simplified results 
+
+m(α)post (y)¯I =  ˜Qα
+
+−1¯I, ¯I
+
+ ˜Qα
+
+¯I,I y
+
+m(α)post (y)I = y,
+
+and the vector m(α)post (y) can be computed with the following procedure. 11 Algorithm 2 Computation of m(α)post (y) in the first scenario 
+
+Require: M , F, ϕ0, I, σ, α, y 
+
+> 1:
+
+S ← √M−1 F √M−⊤  
+
+> 2:
+
+Q ← √M S 2 √M⊤ 
+
+> 3:
+
+ϕ0 ← 1m 
+
+> ∥ √M⊤1m∥2
+> 4:
+
+Compute the Cholesky decomposition of h ˜Qα
+
+i  
+
+> ¯I,¯I
+
+= σ−2 [Q]¯I, ¯I + 1
+
+> α
+
+Mϕ0
+
+¯I
+
+Mϕ0
+
+⊤ 
+
+> ¯I
+
+using sparsity of σ−2 [Q]¯I, ¯I and a rank-one update  
+
+> 5:
+
+Solve h ˜Qα
+
+i  
+
+> ¯I,¯I
+
+ω = h ˜Qα
+
+i 
+
+> ¯I,I
+
+y using sparse linear systems  
+
+> 6:
+
+return 
+
+[m(α)post (y)] ¯I
+
+[m(α)post (y)] I
+
+ =
+
+"ω
+
+y
+
+#
+
+2. The second scenario corresponds to the computation of smoothing splines, i.e., setting the noise τ > 0. In this case, the assumption that the observation points belong to the triangulation nodes is no longer required to obtain computational simplifications. Indeed, one has ˜Q−1 
+
+> α
+
+P⊤
+
+> n
+
+Pn ˜Q−1 
+
+> α
+
+P⊤ 
+
+> n
+
++ σ2τ2In
+
+−1
+
+y = σ2τ2 ˜Qα + P⊤ 
+
+> n
+
+Pn
+
+−1
+
+P⊤ 
+
+> n
+
+y
+
+by the Woodbury formula. Using the fact that P⊤ 
+
+> n
+
+Pn is sparse by construction of the basis functions ( ψ j)mj=1, the decomposition of σ2τ2 ˜Qα + P⊤ 
+
+> n
+
+Pn can be e ffi ciently obtained by expressing this matrix as the sum of a sparse matrix and a rank-one update. Algorithm 3 then provides the computation of m(α)post (y) for τ > 0. 
+
+Algorithm 3 Computation of m(α)post (y) in the second scenario 
+
+Require: M , F, ϕ0, α, Pn, y, τ > 0, σ > 0 
+
+> 1:
+
+S ← √M−1 F √M−⊤  
+
+> 2:
+
+Q ← √M S 2 √M⊤ 
+
+> 3:
+
+ϕ0 ← 1m 
+
+> ∥ √M⊤1m∥2
+> 4:
+
+Compute the Cholesky of σ2τ2 ˜Qα +P⊤ 
+
+> n
+
+Pn = τ2Q+P⊤ 
+
+> n
+
+Pn + σ2τ2
+
+> α
+
+ Mϕ0
+
+   Mϕ0
+
+⊤ using sparsity of τ2Q + P⊤ 
+
+> n
+
+Pn and a rank-one update  
+
+> 5:
+
+Solve σ2τ2 ˜Qα + P⊤ 
+
+> n
+
+Pn
+
+ ω = P⊤ 
+
+> n
+
+y using sparse linear systems  
+
+> 6:
+
+return m (α)post (y) = ω
+
+4.4. Generating the conditional simulations 
+
+Our approach exploits the prior simulations of ( Za = Z | A = a) (Section 4.2) and the calcu-lation of the posterior expectation (Section 4.3) to obtain simulations of Zpost . To this end, we use the following result, which specifically addresses the simulation of residuals [36]. 
+
+Proposition 7 (Simulation of the residuals.) . For all a ∈ R, let Za ∼ N (aϕ0, σ 2Σ), and E ∼N(0 , In). Then, the vector of residuals 
+
+Zres = mpost (PnZa + στ E) − Za
+
+is a centered Gaussian vector with covariance matrix Σpost .
+
+12 Proof. The objective is to compute 
+
+
+
+E(Zres ) = E mpost (PnZa + στ E) − aϕ0
+
+Cov( Zres ) = Cov hmpost (PnZa + στ E)i − 2Cov hmpost (PnZa + στ E) , Za
+
+i + Cov [ Za] (14) using Cov ( PnZa + στ E) = σ2K(m)
+
+> τ
+
+Cov [ Za] = σ2Σ.
+
+Step 1: Compute m post (PnZa + στ E) . Using Proposition 4, have 
+
+mpost (PnZa + στ E) = ˜a(m) 
+
+> τ
+
+ϕ0 + ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+(PnZa + στ E − ˜a(m) 
+
+> τ
+
+Pnϕ0)with ˜ a(m) 
+
+> τ
+
+=
+
+
+
+ϕ⊤ 
+
+> 0
+
+P⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+−1
+
+ϕ⊤ 
+
+> 0
+
+P⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+(PnZa + στ E) .
+
+Let us denote b = ϕ0 − ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0 and β = ϕ⊤ 
+
+> 0
+
+P⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0. Then, 
+
+mpost (PnZa + στ E) = b˜a(m) 
+
+> τ
+
++ ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+[PnZa + στ E]
+
+= β−1bϕ⊤ 
+
+> 0
+
+P⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+[PnZa + στ E] + ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+[PnZa + στ E]
+
+= hβ−1bϕ⊤ 
+
+> 0
+
+P⊤ 
+
+> n
+
++ ΣP⊤
+
+> n
+
+i  K(m)
+
+> τ
+
+−1
+
+[PnZa + στ E] .
+
+(15) 
+
+Step 2: Compute E hmpost (PnZa + στ E)i and Cov hmpost (PnZa + στ E)i. From step 1, we have 
+
+E hmpost (PnZa + στ E)i = a hβ−1bϕ⊤ 
+
+> 0
+
+P⊤ 
+
+> n
+
++ ΣP⊤
+
+> n
+
+i  K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+= a
+
+
+
+b + ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+
+
+= aϕ0 from the definition of b.
+
+For the covariance, we obtain Cov hmpost (PnZa + στ E)i = σ2 hβ−1bϕ⊤ 
+
+> 0
+
+P⊤ 
+
+> n
+
++ ΣP⊤
+
+> n
+
+i  K(m)
+
+> τ
+
+−1 hβ−1bϕ⊤ 
+
+> 0
+
+P⊤ 
+
+> n
+
++ ΣP⊤
+
+> n
+
+i⊤
+
+= σ2
+
+
+
+β−1b⊤b + h2β−1bϕ⊤ 
+
+> 0
+
+P⊤ 
+
+> n
+
++ ΣP⊤
+
+> n
+
+i  K(m)
+
+> τ
+
+−1
+
+PnΣ
+
+
+
+.
+
+Step 3: Compute Cov hmpost (PnZa + στ E) , Za
+
+i . Using Equation 15, we have Cov hmpost (PnZa + στ E) , Za
+
+i = hβ−1bϕ⊤ 
+
+> 0
+
+P⊤ 
+
+> n
+
++ ΣP⊤
+
+> n
+
+i  K(m)
+
+> τ
+
+−1
+
+Cov [ PnZa + στ E, Za]
+
+= σ2 hβ−1bϕ⊤ 
+
+> 0
+
+P⊤ 
+
+> n
+
++ ΣP⊤
+
+> n
+
+i  K(m)
+
+> τ
+
+−1
+
+PnΣ
+
+13 Step 4: Gathering the results. It comes E(Zres ) = 0, and using Cov( Za) = σ2Σ, it leads to Cov( Zres ) = σ2
+
+
+
+b⊤β−1b − ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+PnΣ + Σ
+
+
+
+= lim 
+
+> α→∞
+
+Cov Z | Y(m)obs = y using Proposition 4 
+
+= Σpost 
+
+Then, the strategy adopted here to obtain a simulation of Zpost ∼ N (mpost (y), Σpost ) is to simulate Za ∼ N (aϕ0, σ Σ) for a given a and then return 
+
+Zpost = mpost (y) + mpost (PnZa + στ E) − Za. (16) As the result does not depend on a, we work with a = 0, without loss of generality. It leads to the following overall procedure, detailed in Section 4.5. 
+
+4.5. Overall simulation algorithm 
+
+Following the procedure outlined in the previous sections, Algorithm 4 presents the method for generating spline simulations, with or without observation noise. 
+
+Algorithm 4 Generation of splines simulations 
+
+Require: M , F, ϕ0, α, τ, σ, y, a vector εm of m independent standard Gaussian components  
+
+> 1:
+
+Generate a simulation z0, centered with covariance matrix σ2Σ, using Algorithm 1  
+
+> 2:
+
+if τ = 0 then  
+
+> 3:
+
+Require : I 
+
+> 4:
+
+Compute m(α)post (y), m(α)post ([ z0]I ) and m(α)post 
+
+ Pnϕ0
+
+ using Algorithm 2  
+
+> 5:
+
+Compute mpost (y) and mpost ([ z0]I ) using Proposition 6  
+
+> 6:
+
+else  
+
+> 7:
+
+Require : P n and εn a vector of n independent standard Gaussian components  
+
+> 8:
+
+Compute m(α)post (y), m(α)post (Pnz0 + στ εn) and m(α)post 
+
+ Pnϕ0
+
+ using Algorithm 3  
+
+> 9:
+
+Compute mpost (y) and mpost (Pnz0 + στ εn) using Proposition 6  
+
+> 10:
+
+end if  
+
+> 11:
+
+return z post = mpost (y) + mpost (Pnz0) − z0
+
+Note that these results are theoretically valid for any α > 0. However, in practice, this parameter cannot be chosen too large or too small in order to avoid numerical instabilities. As detailed in [14] and adapted here to account for the additional parameter σ, it is important to ensure that σ
+
+√α ∈ [λ(m)1 , λ (m)
+
+> m−1
+
+],
+
+to control the condition number of the matrices involved in the Cholesky decomposition. The power-iteration method can be used to estimate these eigenvalues [37]. 14 5. Anisotropy and parameter estimation 
+
+5.1. Anisotropic splines 
+
+These spline-based simulations are particularly valuable as they quantify uncertainty along-side the predicted field. However, the covariance kernels introduced above, K1 and its finite-element approximation K(m)1 , are isotropic, implying that the modeled phenomenon must exhibit identical behavior in all spatial directions. A natural way to incorporate directional anisotropy, while preserving the exact modeling framework presented here, is to modify the parametrization of the manifold ( M, g) via its Riemannian metric g. This strategy is described in detail in [33] and is briefly summarized below. Considering that M is embedded in Rd, for any point s ∈ M we consider a coordinate chart (U, x) such that s ∈ U, where U is an open subset of M and x : U → Rd is a homeomorphism onto an open subset of Rd. The Riemannian metric expressed in local coordinates is given by 
+
+gs(us, vs) =  ux
+
+> s
+
+⊤ Gx(s) vx 
+
+> s
+
+, (17) where ux 
+
+> s
+
+and vx 
+
+> s
+
+denote the coordinate representations of the tangent vectors us, vs ∈ TsM in the chart ( U, x), and Gx(s) is the matrix representation of the Riemannian metric at s in these local coordinates. The matrix Gx(s) is symmetric positive definite and admits the decomposition 
+
+Gx(s) = Rx(s) Dx(s)2 (Rx(s)) ⊤ ,
+
+which can be interpreted as a local deformation operator. For d ∈ { 2, 3}, the matrix Rx(s) cor-responds to a rotation, while Dx(s) is a diagonal matrix containing scaling factors. Under this interpretation, the Riemannian metric induces a local deformation of the manifold by first ap-plying a rotation and then an anisotropic scaling that emphasizes preferred directions. These rotations and scalings are parametrized and can be specified locally on each element of the tri-angulation. The corresponding parameters are collected in a vector β, which modifies the inner product on L2(M) and, consequently, the matrices M and S.
+
+5.2. Parameter estimation 
+
+We then have unknown parameters β defining the anisotropies, and the variance σ2. A stan-dard approach is to rely on the universal kriging statistical model for the observations and to maximize the associated log-likelihood. It corresponds to the log-density of the random vector Y(m)obs | A = a, which is maximized with respect to a, σ 2, β
+
+L (a, σ, β) = − 12
+
+
+
+n log(2 π) + log |σ2K(m) 
+
+> τ
+
+| + σ−2  y − aPnϕ0
+
+⊤ K(m)
+
+> τ
+
+−1  y − aPnϕ0
+
+
+
+,
+
+where β impacts both K and ϕ0. The optimization leads to 
+
+
+
+a⋆ = a(m)
+
+> τ
+
+σ⋆ =
+
+" 1
+
+n
+
+ y − aPnϕ0
+
+⊤ K(m)
+
+> τ
+
+−1  y − aPnϕ0
+
+#1/2 (18) and we end up maximizing in β the concentrated log-likelihood [38] 
+
+L(C)(β) = −n log σ⋆ − 12 log |K(m) 
+
+> τ
+
+|.
+
+The computation of σ⋆ and |K(m) 
+
+> τ
+
+| is detailed in [14]. Note that, in the smoothing spline setting, the noise variance τ > 0 can be estimated jointly with β.15 6. Application test cases 
+
+Here, we present two application test cases involving the prediction of smooth phenomena from a limited number of observations. The first application concerns temperature prediction on the Earth, modeled as a spherical surface. The second considers an analytical function defined on a cylindrical surface. In both cases, anisotropies are estimated in local coordinate charts, namely spherical coordinates for the sphere and cylindrical coordinates for the cylinder. For both test cases, the locations of the observation points are fully controlled, so we consider the first scenario and focus on the interpolation problem. The results obtained in the second scenario are similar and are provided in the supplementary material [39]. 
+
+6.1. Prediction on Earth surface 
+
+Here, we consider the daily analysed Sea Surface Temperature (SST) field for December 26 th , 2023, obtained from the Copernicus satellite SST dataset [40]. It corresponds to a gap-free, gridded estimate of sea surface temperature at approximately 20 cm depth, obtained through optimal interpolation combining observations from multiple satellite sensors. The SST field evolves smoothly over the oceans and exhibits strong anisotropy, as latitude is expected to have a major influence on temperature values. We collect the data on a latitude-longitude grid with a 1 .5◦ ×1.5◦ resolution, which defines the triangulation mesh ( c j)nj=1. Obviously, the data points are restricted to oceanic regions only. For the prediction study, we use only n = 20 observation points y = (y(si)) ni=1, in order to illustrate the e ff ectiveness of splines for reconstructing a smooth phenomenon from a limited number of observations. The observation locations are selected using a Maximin Latin Hypercube Sampling design (LHS, [41]). In the first scenario, the observation points must belong to the mesh nodes (c j)nj=1. The final design is therefore obtained by selecting the mesh nodes closest to the points generated by the LHS. The remaining mesh nodes, for which the data values are known, are then used as a validation dataset. For the anisotropic model, two parameters were considered: the rotation angle in spherical coordinates and the ratio between the two scaling parameters in this coordinate chart. These parameters were estimated by maximum likelihood, as described in Section 5.2.    
+
+> Figure 1: Predictions of the SST ( ◦C) on Earth, illustrated in 2D using the spherical coordinates ( θ, ϕ ).n=20 observation points are shown as black dots. Left: true values. Middle: isotropic splines. Right : Anisotropic splines.
+
+Figure 1 displays the prediction mean obtained on the sphere over the oceanic regions using the isotropic and the anisotropic spline. It clearly highlights the influence of anisotropy along 16 (a) Distribution of the prediction errors and associated RMSE in the isotropic and the anisotropic case. 
+
+> (b) Distribution of the scores for the isotropic and the anisotropic prediction.
+> Figure 2: Comparison of the prediction errors and scores for the isotropic and anisotropic SST predictions on the Earth.
+
+the longitudinal direction, which substantially improves the prediction, as illustrated by the dis-tribution of prediction errors in Figure 2a and the associated Root Mean Square Error (RMSE). Figure 3 displays the uncertainty associated with the prediction, obtained from 500 simulations, along the line of longitude closest to ϕ = 170 ◦ in the triangulation mesh, crossing the Pacific Ocean. Once again, the anisotropic splines better capture the behavior of the phenomenon. However, this figure also emphasizes the importance of properly assessing uncertainty. In the isotropic case, although the prediction mean is less accurate, the associated uncertainty remains consistent. For example, when computing the 95% prediction interval over all points of the tri-angulation mesh, the true SST value lies within this interval for more than 98% of the points in the isotropic setting. However, such coverage is not a relevant performance criterion, since an arbitrarily large prediction variance would ensure that all true values fall within a given confidence interval. As discussed in [42], a relevant metric that promotes a proper balance between predictive accuracy and uncertainty quantification is obtained by considering, at a prediction point s, the score 
+
+S (s) = − ˆy(s) − ytrue (s)ˆσ2(s)
+
+!2
+
+− log  ˆσ2(s) , (19) which is directly related to the log-likelihood of the Gaussian predictive distribution at s, with predictive mean ˆ y(s) and predictive variance ˆ σ2(s). This score is computed at all points of the triangulation mesh, and its distribution is shown in Figure 2b, with higher scores indicating better predictive performance. The results once again confirm the benefit of incorporating anisotropy in the spline model for this phenomenon. Note that the case of the sphere is particularly interesting, since the eigenfunctions of −∆ are the spherical harmonics [43]. As detailed in [14], the kernel 
+
+K1(s1, s2) =
+
+X
+
+> k∈N⋆
+
+1
+
+λ2
+
+> k
+
+ϕk(s1)ϕk(s2)can therefore be computed explicitly by truncating the series expansion. In practice, the sum is truncated at K = 40, following the recommendations of [21]. Classical kriging operations can then be performed using this kernel. The resulting predictions serve for comparison with 17 (a) Predictive distribution in the isotropic case. (b) Predictive distribution in the anisotropic case. 
+
+> Figure 3: Comparison between the uncertainty quantification in the isotropic and the anisotropic SST prediction on the Earth, along the longitude closest to 170 ◦.
+
+the finite element approximation, in order to validate our numerical approach, and are provided in Appendix H. 
+
+6.2. Prediction on the surface of a cylinder 
+
+Here, we consider a cylinder of radius 1 and height 20, since in many industrial applications the height of a cylinder is typically much larger than its radius (e.g., in the study of subsea pipelines [44]). We define C as the surface under investigation: 
+
+C = n(x, y, z) ∈ R2 × [0 , 20] | x2 + y2 = 1o .
+
+As a case study, we consider the three-dimensional Franke function [45], which is widely used for interpolating smooth functions [46, 47]. It is defined on [0 , 1] 3 by 
+
+g(x, y, z) = 0.75 exp − (ax(9 x − 2)) 2 + (ay(9 y − 2)) 2 + (az(9 z − 2)) 2
+
+4
+
+!
+
++ 0.75 exp − (ax(9 x + 1)) 2
+
+49 + (ay(9 y + 1)) 2
+
+10 + (az(9 z + 1)) 2
+
+10 
+
+!! 
+
++ 0.5 exp − (ax(9 x − 7)) 2 + (ay(9 y − 3)) 2 + (az(9 z − 5)) 2
+
+4
+
+!
+
+− 0.2 exp − (ax(9 x − 4)) 2 + (ay(9 y − 7)) 2 + (az(9 z − 5)) 2 ,
+
+where ax, ay, and az are coe ffi cients that introduce anisotropy, set to ax = 0.4, ay = 0.4, and 
+
+az = 1. The phenomenon on C is then modeled by the function ˜ g defined as 
+
+∀(x, y, z) ∈ C , ˜g(x, y, z) = g x + 12 , y + 12 , z
+
+20 
+
+!
+
+,
+
+so that g is applied on [0 , 1] 3.18 (a) 3D plots of the predictions compared to the true function. The cylinder’s height is normalized for visualization purposes.      
+
+> (b) 2D plots of the predictions compared to the true function. The x-axis represents the longitudinal direction, while the y-axis represents the polar angle in degrees.
+> Figure 4: Predictions on the cylinder. Left: true function. Middle: isotropic spline. Right: anisotropic spline. n=20 observation points are shown as black dots.
+
+A triangulation mesh is constructed using a regular grid in the cylindrical coordinate chart (θ, z), with a 5 ◦ resolution in θ and a resolution of 0 .5 in z. A total of n = 10 observation points are selected as described in Section 6.1. The anisotropy parameters are estimated using the same approach as before, i.e. with the rotation angle and the ratio between the scaling parameters in the cylindrical coordinate chart. The resulting prediction mean is displayed in Figure 4, while the prediction errors are shown in Figure 5a. Once again, estimating anisotropy substantially improves predictive accuracy. The uncer-tainty quantification appears consistent with the true values, as illustrated in Figure 6, which presents the 95% prediction interval along the line θ = 270 ◦. Finally, the distribution of the score defined in Equation 19, which balances predictive accuracy and uncertainty quantifica-tion, further confirms the improved performance obtained when incorporating anisotropy (see Figure 5b). 
+
+7. Summary and perspectives 
+
+This article extends the work of [14] by proposing a framework for spline interpolation on compact Riemannian manifolds, together with a quantification of the associated uncertainty. The approach relies on the equivalence between the classical solution to the interpolation problem and the universal kriging predictor. However, it is based on the spectrum of the Laplace-Beltrami operator −∆, which is generally unknown on compact Riemannian manifolds. 19 (a) Distribution of the prediction errors and associated RMSE in the isotropic and the anisotropic case. 
+
+(b) Distribution of the scores for the isotropic and the anisotropic prediction. 
+
+Figure 5: Comparison of the prediction errors and scores for the isotropic and anisotropic predictions on the cylinder. 
+
+(a) Predictive distribution in the isotropic case. (b) Predictive distribution in the anisotropic case. 
+
+Figure 6: Comparison between the uncertainty quantification in the isotropic and the anisotropic prediction on the cylin-der, along the line θ = 270 ◦.
+
+20 To overcome this di ffi culty, a finite-element approximation of the predictor is introduced, based on a triangulation of the manifold as proposed in [33]. This strategy avoids the need for the explicit spectrum of −∆ and enables the incorporation of anisotropies in the covariance kernel through a parametrization of the Riemannian metric associated with the manifold. However, it leads to an intrinsic Gaussian Markov random field (GMRF) with a singular covariance matrix, which complicates both computations and simulations. Adapting the methodology of [20], we represent this intrinsic GMRF through linear condi-tioning of a non-intrinsic GMRF. The approach is illustrated on two test cases: the Earth, mod-eled as a spherical surface, and a cylinder. For both examples, the impact of anisotropy and the role of uncertainty quantification are emphasized. The predictive distribution is displayed over a selected subdomain to demonstrate that the predictive variance is consistent with the actual pre-diction error, even in situations where isotropic splines yield inaccurate point estimates. Finally, a scoring rule is evaluated to assess the overall predictive performance, taking into account both accuracy and uncertainty quantification. Although this work o ff ers a thorough investigation, several perspectives for future research remain. First, in this work we only considered constant anisotropy parameters. However, for certain phenomena, one may need to estimate a spatially varying anisotropy field. Such an ex-tension would naturally lead to a very large number of parameters to infer through maximum log-likelihood estimation. Alternative strategies would therefore be worth exploring, for in-stance by modeling the anisotropy parameters themselves as a random field within a hierarchical framework. This would raise significant challenges, including the specification of a suitable prior statistical model for the anisotropy field and the implementation of a fully Bayesian approach. Another promising direction is to investigate the link between spline prediction and the Matérn stochastic partial di ff erential equation (SPDE), defined as follows [48]: (κ2 − ∆)α/ 2Z = W, (20) where ( κ2 − ∆)α/ 2 is a pseudo-di ff erential operator and W denotes Gaussian white noise. As extensively studied in [18] in Rd, the solution to this SPDE is an intrinsic Gaussian field when κ =
+
+0. On a compact manifold M, when α = 2, this solution is strongly related to our spline predictor as it admits a covariance kernel K1, and a then detailed investigation of this result would be of particular interest. More generally, this perspective opens the way to extending to Riemannian manifolds the work of [18] on intrinsic Whittle–Matérn fields, and to comparing our approach with theirs, which involves the computation of the Moore–Penrose pseudoinverse. It may then be interesting to study the behavior of our spline predictor, and more generally of intrinsic fields, in extrapolation scenarios, i.e. when predictions are made far from the observation points, and to compare it with results obtained using classical Matérn solutions. Finally, in our work we used the score defined in Equation 19 to assess the predictive perfor-mance at each point, while accounting for the associated uncertainty. This metric provides a con-venient balance between accuracy and uncertainty quantification, and remains straightforward to compute when predictive simulations are available. However, it only relies on the marginal pre-dictive variance at each location and does not incorporate the full covariance structure of the predictive distribution. More sophisticated scoring rules could therefore be considered, although their implementation becomes challenging when dealing with an intrinsic GMRF and a large number of prediction points (e.g., the entire triangulation mesh). In such situations, estimating the predictive covariance matrix empirically would require a very large number of independent 21 simulations to obtain a su ffi ciently accurate estimator, while its analytical computation is delicate due to the manipulation of singular matrices. 
+
+Acknowledgements 
+
+This work was fully supported by the Chaire Geolearning funded by Andra, BNP-Paribas, CCR and SCOR Foundation. 
+
+Declaration of Competing Interest 
+
+The authors declare that they have no known competing financial interests or personal rela-tionships that could have appeared to influence the work reported in this paper. 
+
+Data Availability 
+
+The data and code used to generate the results presented in this article are provided in the Supplementary Material [39]. 
+
+References 
+
+[1] G. Wahba, Y. Wang, Spline function: Overview, Wiley StatsRef: Statistics Reference Online (1990) 1–19. [2] T. J. Santner, B. J. Williams, W. I. Notz, The design and analysis of computer experiments, volume 1, Springer, New York, 2003. [3] G. Matheron, Splines and kriging: their formal equivalence, Down to Earth Statistics: Solutions looking for geological problems (1981) 77–95. [4] O. Dubrule, Comparing splines and kriging, Computers and Geosciences 10 (1984) 327– 338. [5] D. E. Myers, Interpolation with positive definite functions, Sciences de la Terre 28 (1988) 251–265. [6] D. E. Myers, Kriging, cokriging, radial basis functions and the role of positive definiteness, Computers & Mathematics with Applications 24 (1992) 139–148. [7] C. Williams, C. Rasmussen, Gaussian Processes for Machine Learning, volume 2, MIT Press, Cambridge, MA, USA, 2006. [8] L. Hewing, E. Arcari, L. P. Fröhlich, M. N. Zeilinger, On simulation and trajectory pre-diction with gaussian process dynamics, in: Learning for Dynamics and Control, PMLR, 2020, pp. 424–434. [9] G. Fournier, S. Pellerin, L. T. Phuoc, Contrôle par rotation ou par aspiration de l’écoulement autour d’un cylindre calculé par simulation des grandes échelles, Comptes rendus. Mé-canique 333 (2005) 273–278. 22 [10] W. Gao, D. Nelias, Z. Liu, Y. Lyu, Numerical investigation of flow around one finite circular cylinder with two free ends, Ocean Engineering 156 (2018) 373–380. [11] E. Lila, J. A. Aston, L. M. Sangalli, Smooth principal component analysis over two-dimensional manifolds with an application to neuroimaging (2016). [12] P. Kim, Splines on riemannian manifolds and a proof of a conjecture by wahba, preprint (http: // www. uoguelph. ca /pkim /research. html) (2001). [13] G. Wahba, Spline interpolation and smoothing on the sphere, SIAM Journal on Scientific and Statistical Computing 2 (1981) 5–16. [14] C. Sire, M. Pereira, T. Romary, Spline interpolation on compact riemannian manifolds, arXiv preprint arXiv:2510.11239 (2025). [15] F. Lindgren, H. Rue, J. Lindström, An explicit link between gaussian fields and gaussian markov random fields: the stochastic partial di ff erential equation approach, Journal of the Royal Statistical Society: Series B (Statistical Methodology) 73 (2011) 423–498. [16] M. Pereira, Generalized random fields on Riemannian manifolds : the-ory and practice, Theses, Université Paris sciences et lettres, 2019. URL: 
+
+https://pastel.hal.science/tel-02499376 .[17] H. Rue, L. Held, Gaussian Markov random fields: theory and applications, Chapman and Hall /CRC, Boca Raton, FL, USA, 2005. [18] D. Bolin, P. Braunsteins, S. Engelke, R. Huser, Intrinsic whittle–matern fields and sparse spatial extremes, arXiv preprint arXiv:2512.23395 (2025). [19] D. P. Simpson, I. W. Turner, A. N. Pettitt, Sampling from gaussian markov random fields conditioned on linear constraints, The Proceedings of ANZIAM 48 (2006) C1041–C1053. [20] D. Bolin, J. Wallin, E ffi cient methods for gaussian markov random fields under sparse linear constraints, Advances in Neural Information Processing Systems 34 (2021) 9882–9894. [21] W. Keller, A. Borkowski, Thin plate spline interpolation, Journal of Geodesy 93 (2019) 1251–1269. [22] T. Duchamp, W. Stuetzle, Spline smoothing on surfaces, Journal of Computational and Graphical Statistics 12 (2003) 354–381. [23] M. Craioveanu, M. Puta, T. M. Rassias, Spectral Properties of the Laplace-Beltrami Oper-ator and Applications, Springer Netherlands, Dordrecht, 2001, pp. 119–211. [24] H. Urakawa, Geometry of laplace-beltrami operator on a complete riemannian manifold, Progress in di ff erential geometry 22 (1993) 347–406. [25] G. Wahba, Spline models for observational data, SIAM, Philadelphia, PA, USA, 1990. [26] G. Matheron, Le krigeage universel, volume 1, École nationale supérieure des mines de Paris, Paris, 1969. 23 [27] T. Hengl, A practical guide to geostatistical mapping, volume 52, Hengl Amsterdam, Netherlands, 2009. [28] H. Wackernagel, Ordinary kriging, in: Multivariate geostatistics: an introduction with applications, Springer, New York, 2003, pp. 79–88. [29] P. J. Diggle, P. J. Ribeiro Jr, Bayesian inference in gaussian model-based geostatistics, Geographical and environmental modelling 6 (2002) 129–146. [30] C. Helbert, D. Dupuy, L. Carraro, Assessment of uncertainty in computer experiments from universal to bayesian kriging, Applied Stochastic Models in Business and Industry 25 (2009) 99–113. [31] G. Dziuk, C. M. Elliott, Finite element methods for surface pdes, Acta Numerica 22 (2013) 289–396. [32] C. Benoit, Note sur une méthode de résolution des équations normales provenant de l’application de la méthode des moindres carrés à un système d’équations linéaires en nom-bre inférieur à celui des inconnues (procédé du commandant cholesky), Bulletin géodésique 2 (1924) 67–77. [33] M. Pereira, N. Desassis, D. Allard, Geostatistics for large datasets on riemannian manifolds: A matrix-free approach, Journal of Data Science 20 (2022) 512–532. doi:10.6339 /22-JDS1075. [34] A. Lang, M. Pereira, Galerkin–chebyshev approximation of gaussian random fields on compact riemannian manifolds, BIT Numerical Mathematics 63 (2023) 51. [35] A. Quarteroni, Modellistica numerica per problemi di ff erenziali, volume 97, Springer, Cham, Switzerland, 2016. [36] J.-P. Chiles, P. Delfiner, Conditional Simulations, John Wiley and Sons, Ltd, Chichester, 2012, pp. 478–628. doi:https: // doi.org /10.1002 /9781118136188.ch7. [37] R. Mises, H. Pollaczek-Geiringer, Praktische verfahren der gleichungsauflösung., ZAMM-Journal of Applied Mathematics and Mechanics /Zeitschrift für Angewandte Mathematik und Mechanik 9 (1929) 58–77. [38] D. R. Jones, A taxonomy of global optimization methods based on response surfaces, Journal of global optimization 21 (2001) 345–383. [39] C. Sire, M. Pereira, Supplementary material : Uncertainty quantifica-tion of spline predictors on compact riemannian manifolds, 2026. URL: 
+
+https://doi.org/10.5281/zenodo.19186963 .[40] Copernicus Climate Change Service (C3S), Global sea surface temperature derived from satellite observations, 2025. doi:10.24381 /cds.cf608234, accessed on DD-MMM-YYYY. [41] Q. Y. Kenny, W. Li, A. Sudjianto, Algorithmic construction of optimal symmetric latin hypercube designs, Journal of statistical planning and inference 90 (2000) 145–159. 24 [42] T. Gneiting, A. E. Raftery, Strictly proper scoring rules, prediction, and estimation, Journal of the American statistical Association 102 (2007) 359–378. [43] F. Dai, Y. Xu, F. Dai, Y. Xu, Spherical harmonics, Approximation theory and harmonic analysis on spheres and balls (2013) 1–27. [44] D. Seth, B. Manna, J. T. Shahu, T. Fazeres-Ferradosa, F. T. Pinto, P. J. Rosa-Santos, Buck-ling mechanism of o ff shore pipelines: a state of the art, Journal of Marine Science and Engineering 9 (2021) 1074. [45] R. Franke, A critical comparison of some methods for interpolation of scattered data, Tech-nical Report, 1979. [46] M. Challacombe, A n-body solver for free mesh interpolation, arXiv preprint arXiv:1511.01353 (2015). [47] R. Franke, K. Šalkauskas, Localization of multivariate interpolation and smoothing meth-ods, Journal of computational and applied mathematics 73 (1996) 79–94. [48] P. Whittle, On stationary processes in the plane, Biometrika (1954) 434–449. 
+
+Appendix A. Spectral Theorem Proposition 8 (Spectrum of −∆). The Spectral Theorem provides the following properties [23]. (i) For the closed, the Dirichlet, and the Neumann eigenvalue problems, the spectrum of −∆
+
+is an infinite, countable sequence of real eigenvalues 
+
+0 ≤ λ0 ≤ λ1 ≤ · · · ≤ λk ≤ . . . , 
+
+where each eigenvalue λk appears with finite multiplicity m k.(ii) There exists an orthonormal basis (ϕk)k∈N of L 2(M) such that, for all k ∈ N, ϕk ∈ C ∞(M)
+
+is an eigenfunction associated with λk. Consequently, for any u ∈ L2(M),u =
+
+X
+
+> k∈N
+
+ukϕk, uk = ⟨u, ϕ k⟩L2(M) =
+
+Z
+
+> M
+
+u ϕk dμg.
+
+(iii) For the closed and the Neumann eigenvalue problems, the eigenvalue λ0 = 0 corresponds to the constant functions [24], which implies that m 0 = 1 and 
+
+ϕ0 = 1
+
+R 
+
+> M
+
+dμg
+
+.
+
+(iv) For the Dirichlet eigenvalue problem, all eigenvalues are strictly positive. 
+
+In this study, we consider λ0 = 0, as in the closed and Neumann eigenvalue problems, noting that the case λ0 > 0 (Dirichlet problem) is computationally simpler for the operations that will be performed. 25 Appendix B. Inversibility of K 1,τ 
+
+The inversibility of K1,τ is guaranteed when τ > 0. In the following, we focus on the case 
+
+τ = 0, referring to the interpolating problem. For k ∈ N⋆, let us denote wk = (ϕk(s1), . . . , ϕ k(sn)) ⊤ .
+
+∀x ∈ Rn, x⊤K1,0x =
+
+> n
+
+X
+
+> i=1
+> n
+
+X
+
+> j=1
+
+xi x j
+
+X
+
+> k>0
+
+1
+
+λ2
+
+> k
+
+ϕk(si)ϕk(s j)
+
+=
+
+X
+
+> k>0
+
+1
+
+λ2
+
+> kn
+
+X
+
+> i=1
+> n
+
+X
+
+> j=1
+
+xi x jϕk(si)ϕk(s j)
+
+=
+
+X
+
+> k>0
+
+1
+
+λ2
+
+> k
+> n
+
+X
+
+> i=1
+
+xiϕk(si)
+
+> 2
+
+Then, 
+
+x⊤K1,0x = 0 ⇔ ∀ k > 0,
+
+> n
+
+X
+
+> i=1
+
+xiϕk(si) = 0
+
+⇔ ∀ k > 0, ⟨x, wk⟩Rn = 0It comes 
+
+K1,0 is positive definite ⇔ span {wk}k>0 = Rn
+
+⇔ ∀ x ∈ Rn, ∃ (ak)k>0 , x =
+
+X
+
+> k>0
+
+akwk
+
+⇔ ∀ x ∈ Rn, ∃ (ak)k>0 , ∀ 1 ≤ i ≤ n, xi =
+
+X
+
+> k>0
+
+akϕk(si),
+
+⇔ ∀ x ∈ Rn, ∃ (ak)k>0 , the function u =
+
+X
+
+> k>0
+
+akϕk interpolates the vector x
+
+As ( ϕk)k>0 is a basis of L2(M), K1,0 is invertible if and only if the an interpolating function exists in L2(M) for any vector of observations x.
+
+Note that this condition cannot be satisfied when an observation point lies on the boundary 
+
+∂M under Dirichlet boundary conditions. 
+
+Appendix C. Proof of Proposition 2 
+
+Our random vector of observations Yobs = (Yi)ni=1 verifies 
+
+Yi = Z(si) + στ Ei, 1 ≤ i ≤ n,
+
+with 
+
+• (Z | A = a) a GRF with mean aϕ0 and covariance kernel σ2 K1, for all a ∈ R
+
+26 • A ∼ N (μ, α )
+
+• E = (Ei)ni=1 a centered Gaussian vector with Cov( E) = In, independent of A and Z.The objective is to compute the mean and covariance kernel of ( Z(s) | Yobs = y) when α tends to +∞.
+
+Appendix C.1. Distribution of Z (s)Here, we will show that Z(s) is a GRF with 
+
+• mean μϕ 0
+
+• covariance kernel αϕ 0(s)ϕ0(s′) + Σ 2 K1(s, s′)Note that this step is not mandatory, but is included here since a very similar development can be used to show that Z ∼ N (0m, ˜Σα) in Section 4.1. Let us consider x1, . . . , xp, p points of M, and study the distribution of 
+
+Ztest = Z(x1), . . . , Z(xp).
+
+We denote ϕtest 0 = (ϕ0(xi)) pi=1 , and Ktest 1 = hK1(xi, x j)i 
+
+> 1≤i,j≤p
+
+. Then density of Ztest is 
+
+pZtest (z) =
+
+Z
+
+> Rp
+
+pZtest |A=a(z)pA(a)da 
+
+=
+
+Z
+
+> R
+
+1(2 π)(p+1) /2|(σ2Ktest 1 )|1/2 exp − 12 (z − aϕtest 0 )⊤(σ2Ktest 1 )−1(z − aϕtest 0 )
+
+! 1
+
+√α exp − (a − μ)2
+
+2α
+
+!
+
+da 
+
+= 1
+
+√α(2 π)(p+1) /2|(σ2Ktest 1 )|1/2 exp − 12 z⊤(σ2Ktest 1 )−1z + μ2
+
+α
+
+!! Z 
+
+> R
+
+exp − 12 γa2 + ζa
+
+!
+
+da 
+
+with γ = (ϕtest 0 )⊤(Ktest 1 )−1ϕtest 0 + 1
+
+α
+
+!
+
+and ζ = z⊤(σ2Ktest 1 )−1ϕtest 0 + μα .
+
+Then, 
+
+pZtest (z) = 1(2 π)(p+1) /2|(σ2Ktest 1 )|1/2 exp − 12 z⊤(σ2Ktest 1 )−1z + μ2
+
+α
+
+! s
+
+2πγ exp ζ2
+
+2γ
+
+!
+
+∝ exp − 12 z⊤
+
+"
+
+(σ2Ktest 1 )−1 − 1
+
+γ (σ2Ktest 1 )−1ϕtest 0 (ϕtest 0 )⊤(Ktest 1 )−1
+
+#
+
+z
+
+!
+
+exp 1
+
+γ z⊤(σ2Ktest 1 )−1ϕtest 0
+
+μα
+
+!
+
+Let us denote K1,α = σ2Ktest 1 + αϕtest 0 (ϕtest 0 )⊤. From Woodbury formula, 
+
+K−11,α = (σ2Ktest 1 )−1 − 1
+
+γ (σ2Ktest 1 )−1ϕtest 0 (ϕtest 0 )⊤(σ2Ktest 1 )−1.
+
+And as we can remark that 1 
+
+> γα
+
+= 1 − (ϕtest 0 )⊤(σ2Ktest 1 )−1ϕtest 0 
+
+> γ
+
+, we have 27 1
+
+γ z⊤(σ2Ktest 1 )−1ϕtest 0
+
+μα = z⊤ (σ2Ktest 1 )−1 − 1
+
+γ (σ2Ktest 1 )−1ϕtest 0
+
+ϕtest 0
+
+⊤
+
+(σ2Ktest 1 )−1
+
+!
+
+μϕtest 0
+
+= z⊤K−11,α μϕtest 0 .
+
+Finally, 
+
+pZtest (z) ∝ exp − 12 z⊤K−11,α z + z⊤K−11,α μϕtest 0
+
+!
+
+.
+
+We recognize the density of a Gaussian distribution, with mean vector μϕtest 0 and covari-ance matrix Kα. That shows that Z is a GRF with function mean μϕ 0 and covariance kernel 
+
+αϕ 0(s)ϕ0(s′) + σ2 K1(s, s′).
+
+Appendix C.2. Distribution of (Z(s) | Yobs = y)From 
+
+Yobs = (Z(si) + στ Ei)ni=1
+
+Z is a GRF of mean μϕ 0 and covariance kernel σ2 K1(s, s′) + αϕ 0(s)ϕ0(s′),
+
+we use the conditional Gaussian formulas and obtain that ( Z(s) | Yobs = y) is a GRF with 
+
+• mean mα(s) = μϕ 0(s) + hσ2k1(s) + αϕ 0(s)ϕobs 0
+
+i⊤ hσ2K1,τ + αϕobs 0 (ϕobs 0 )⊤i−1 hy − μϕobs 0
+
+i
+
+• covariance kernel 
+
+kα(s, s′) = σ2 K1(s, s′) + αϕ 0(s)ϕ0(s′)
+
+− hσ2k1(s) + αϕ 0(s)ϕobs 0
+
+i⊤ hσ2K1,τ + αϕobs 0 (ϕobs 0 )⊤i−1 hσ2k1(s′) + αϕ 0(s′)ϕobs 0
+
+i
+
+Appendix C.3. Limit when α → ∞ 
+
+Now, let us compute the limits lim 
+
+> α→∞
+
+mα(s) and lim 
+
+> α→∞
+
+kα(s, s′).
+
+First, from Woodbury formula, 
+
+hσ2K1,τ + αϕ0(ϕobs 0 )⊤i−1
+
+= σ−2K−11,τ 
+
+1 − σ−2αϕobs 0
+
+(ϕobs 0 )⊤K−11,τ 
+
+1 + σ−2α(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+
+
+Then, 
+
+αϕ 0(s)( ϕobs 0 )⊤ hσ−2K1,τ + αϕ0(ϕobs 0 )⊤i−1
+
+= σ−2αϕ 0(s)( ϕobs 0 )⊤K−11,τ − σ−2αϕ 0(s) σ−2α(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+1 + σ−2α(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+(ϕobs 0 )⊤K−11,τ 
+
+= σ−2αϕ 0(s)( ϕobs 0 )⊤K−11,τ − σ−2αϕ 0(s)
+
+1 − 11 + σ−2α(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+ (ϕobs 0 )⊤K−11,τ 
+
+= σ−2ϕ0(s)( ϕobs 0 )⊤K−11,τ  
+
+> 1
+> α
+
++ σ−2(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+28 and 
+
+σ2k1(s)⊤ hσ2K1,τ + αϕ0(ϕobs 0 )⊤i−1
+
+= k1(s)⊤K−11,τ − σ−2k1(s)⊤K−11,τ ϕobs 0 (ϕobs 0 )⊤K−11,τ  
+
+> 1
+> α
+
++ σ−2(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+Convergence of m α(s). Then, with 1 
+
+> α
+
+→ 0, it gives lim 
+
+> α→∞
+
+mα(s) = μϕ 0(s) +
+
+k1(s)⊤K−11,τ + hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i (ϕobs 0 )⊤K−11,τ 
+
+(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+hy − μϕobs 0
+
+i
+
+= k1(s)⊤K−11,τ y + a(m)
+
+> τ
+
+hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i
+
++ μ hϕ0(s) − k1(s)⊤K−11,τ ϕ0 − hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+ii 
+
+= u⋆τ (s).
+
+Convergence of k α(s, s′).
+
+hσ2k1(s) + αϕ 0(s)ϕobs 0
+
+i⊤ hσ2K1,τ + αϕobs 0 (ϕobs 0 )⊤i−1 hσ2k1(s′) + αϕ 0(s′)ϕobs 0
+
+i
+
+= k1(s)⊤K−11,τ 
+
+hσ2k1(s′) + αϕ 0(s′)ϕobs 0
+
+i
+
++ hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i σ−2(ϕobs 0 )⊤K−11,τ  
+
+> 1
+> α
+
++ σ−2(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+hσ2k1(s′) + αϕ 0(s′)ϕobs 0
+
+i
+
+= σ2k1(s)⊤K−11,τ k1(s′) + hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i (ϕobs 0 )⊤K−11,τ  
+
+> 1
+> α
+
++ σ−2(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+k1(s′)
+
++ αk1(s)⊤K−11,τ ϕ0(s′)ϕobs 0 + α hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i σ−2α(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+1 + σ−2α(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+ϕ0(s′)
+
+= σ2k1(s)⊤K−11,τ k1(s′) + hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i (ϕobs 0 )⊤K−11,τ  
+
+> 1
+> α
+
++ σ−2(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+k1(s′)
+
++ αk1(s)⊤K−11,τ ϕ0(s′)ϕobs 0 + α hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i 1 − 11 + σ−2α(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+ ϕ0(s′)
+
+= σ2k1(s)⊤K−11,τ k1(s′) + hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i (ϕobs 0 )⊤K−11,τ  
+
+> 1
+> α
+
++ σ−2(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+k1(s′)
+
++ αϕ 0(s)ϕ0(s′) − hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i ϕ0(s′) 
+
+> 1
+> α
+
++ σ−2(ϕobs 0 )⊤K−11,τ ϕobs 0
+
+And then it comes lim 
+
+> α→∞
+
+kα(s, s′) = σ2 K1(s, s′) − σ2k1(s)⊤K−11,τ k1(s′)
+
++ σ2 hϕ0(s) − k1(s)⊤K−11,τ ϕobs 0
+
+i h (ϕobs 0 )⊤K−11,τ ϕobs 0
+
+i−1 hϕ0(s′) − (ϕobs 0 )⊤K−11,τ k1(s′)i .
+
+29 Convergence to a GRF. For any finite set of p test points {x1, . . . , xp} ⊂ M , let us denote Ztest =
+
+(Z(x1), . . . , Z(xp)) ⊤ the corresponding random vector. Since ( Z | Yobs = y) is a Gaussian Random Field for any α > 0, the conditional vector ( Ztest | Yobs = y) is Gaussian with a mean vector and a covariance matrix that converge, as α → ∞ , to mlim and Klim respectively. It follows from Lévy’s continuity theorem that (Ztest | Yobs = y) L
+
+−−−−→ 
+
+> α→∞
+
+N(mlim , Klim ), (C.1) which ensures that all finite-dimensional distributions of the limiting process are Gaussian, thereby proving that the limit of ( Z | Yobs = y) remains a GRF. 
+
+Appendix D. Definition of −∆m
+
+This section defines the Galerkin approximation −∆m of the Laplace-Beltrami opperation −∆.
+
+Let us denote Vm the linear span of ψ1, . . . , ψ m the piecewise linear functions associated with the triangulation T . −∆m is the endomorphism mapping any f ∈ Vm to −∆m f, with 
+
+∀u ∈ Vm, ⟨− ∆m f, u⟩L2(M) = ⟨− ∆ f, u⟩L2(M).
+
+Appendix E. Computation of ϕ0
+
+By definition, the function ϕ(m)0 has unit norm in L2(M), that is, 
+
+* mX
+
+> k=1
+
+[ϕ0]kψk,
+
+> m
+
+X
+
+> k=1
+
+[ϕ0]kψk
+
++
+
+> L2(M)
+
+= 1,
+
+which implies that 
+
+ϕ⊤ 
+
+> 0
+
+Mϕ0 =  √M⊤ϕ0
+
+⊤ √M⊤ϕ0 = 1.
+
+Since ϕ0 is constant, it follows that 
+
+ϕ0 = 1m
+
+∥ √M⊤1m∥2
+
+. (E.1) 
+
+Appendix F. Inversibility of K (m)
+
+> τ
+
+Appendix F.1. First scenario 
+
+As a reminder, Σ is positive semidefinite of rank m−1. Now let us identify a vector in Ker( Σ).
+
+By definition of the basis function ψ j
+
+mj=1 , we have ∀s ∈ M , Pmj=1 ψ j(s) = 1, and then 
+
+∀s ∈ M ,
+
+> m
+
+X
+
+> j=1
+
+∇ψ j(s) = 0.
+
+As ϕ0 is constant, S  √M⊤
+
+ϕ0 =  √M−1
+
+F  √M−⊤  √M⊤
+
+ϕ0 =  √M−1
+
+Fϕ0 = 0. Then, 
+
+ √M⊤
+
+ϕ0 ∈ Ker( S) ⊂ Ker( f (S)) .
+
+30 It comes, 
+
+ΣMϕ0 =  √M−⊤ 
+
+f (S)  √M−1 √M  √M⊤
+
+ϕ0 = 0.
+
+And finally ker( Σ) = span( Mϕ0).
+
+As a reminder, I = {i1, . . . , in} denotes the set of indices such that sk = cik for 1 ≤ k ≤ n.Then, ∀y ∈ Rn \ { 0},
+
+hP⊤ 
+
+> n
+
+yi 
+
+> i
+
+=
+
+
+
+yk if i = ik for some 1 ≤ k ≤ n,
+
+0 otherwise ,
+
+and P⊤ 
+
+> n
+
+y < ker( Σ). It shows that PnΣP⊤ 
+
+> n
+
+is positive definite. 
+
+Appendix F.2. Second scenario 
+
+For the second scenario , the covariance matrix PnΣP⊤ 
+
+> n
+
++ τ2In is invertible if and only if −τ2
+
+is not an eigenvalue of PnΣP⊤ 
+
+> n
+
+. As Σ is positive semidefinite, PnΣP⊤ 
+
+> n
+
+is positive semidefinite, and 
+
+−τ2 is not an eigenvalue of PnΣP⊤ 
+
+> n
+
+.
+
+Appendix G. Simulations with known mean 
+
+Here, we provide a strategy to generate simulations of Z(m) | Y(m)obs = y, A = a(m)
+
+> τ
+
+ . From Proposition 3, we have Z(m) | A = a(m)
+
+> τ
+
+ is a Gaussian Process with mean a(m) 
+
+> τ
+
+ϕ0(s) and covari-ance kernel σ2P(s)⊤ΣP(s′). Then, using conditionnal Gaussian process formulas, 
+
+Z(m) | Y(m)obs = y, A = a(m)
+
+> τ
+
+
+
+is a GRF with 
+
+• Mean a(m) 
+
+> τ
+
+P(s)⊤ϕ0 + P(s)⊤ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+(y − a(m) 
+
+> τ
+
+Pnϕ0)
+
+• Covariance kernel σ2
+
+
+
+P(s)⊤ΣP(s′) − P(s)⊤ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+PnΣP(s′)
+
+
+
+.
+
+This GRF has the same mean as Z(m) | Y(m)obs = y in the limit as α → ∞ „ while the covari-ance kernels match except for the term c(m)(s, s′), which accounted for the uncertainty in the mean parameter A (see Proposition 4). Therefore, it remains relevant to generate simulations of Z(m) | Y(m)obs = y, A = a(m)
+
+> τ
+
+: the predictive mean coincides with the target value, and the associ-ated uncertainty corresponds to the simple kriging framework. Let us introduce the following proposition to obtain the target simulations. 
+
+Proposition 9 (Simulations using the simple kriging framework) . Let Z0 ∼ N (0m, σ 2Σ) and 
+
+˜Z0 = Z0 + ϕ0(Mϕ0)⊤m(α) 
+
+> post (y)(Mϕ0)⊤m(α)
+> post (Pnϕ0)
+
+. Then, the vector 
+
+ZSK = ˜Z0 + hIm − ϕ0(Mϕ0)⊤ + h hm(α)
+
+> post
+
+(Pnϕ0)i (Mϕ0)⊤i m(α)
+
+> post
+
+y − Pn ˜Z0 − στ E
+
+has same distribution as Z | Y(m) 
+
+> obs
+
+= y, A = a(m)
+
+> τ
+
+ .
+
+31 Proof. Let us denote 
+
+
+
+mSK (y) = E Z | Y(m)obs = y, A = a(m)
+
+> τ
+
+ = mpost (y)
+
+ΣSK = Cov Z | Y(m)obs = y, A = a(m)
+
+> τ
+
+ = σ2
+
+
+
+Σ − ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+PnΣ
+
+
+
+.
+
+As detailed in [14], 
+
+
+
+(Mϕ0)⊤m(α)post (x) = 1 
+
+> 1
+> α
+
++ σ−2(Pnϕ0)⊤ K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+σ−2(Pϕ0)⊤ K(m)
+
+> τ
+
+−1
+
+x, ∀x ∈ Rm
+
+h hm(α)post (Pnϕ0)i = ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0.
+
+Then, ˜Z0 = Z0 + a(m) 
+
+> τ
+
+ϕ0. (G.1) From Proposition 6, 
+
+ZSK = ˜Z0 + mpost 
+
+y − Pn ˜Z0 − στ E + hhm(α)post 
+
+ Pnϕ0
+
+i − ϕ0
+
+ Mϕ0
+
+⊤ m(α)post 
+
+ Pnϕ0
+
+ (Mϕ0)⊤m(α)post 
+
+y − Pn ˜Z0 − στ E
+
+= ˜Z0 + mpost 
+
+y − Pn ˜Z0 − στ E + h hm(α)post 
+
+ Pnϕ0
+
+i − ϕ0
+
+ (Pϕ0)⊤ K(m)
+
+> τ
+
+−1 y − Pn ˜Z0 − στ E
+
+(Pnϕ0)⊤ K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+= ˜Z0 + mpost 
+
+y − Pn ˜Z0 − στ E −
+
+
+
+ϕ0 − ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+ (Pϕ0)⊤ K(m)
+
+> τ
+
+−1 y − Pn ˜Z0 − στ E
+
+(Pnϕ0)⊤ K(m)
+
+> τ
+
+−1
+
+Pnϕ0
+
+= ˜Z0 + ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1 y − Pn ˜Z0 − στ E
+
+It comes 
+
+E(ZSK ) = mSK (y)and Cov( ZSK ) = Cov  ˜Z0
+
+ − 2Cov  ˜Z0, Pn ˜Z0 + στ E  K(m)
+
+> τ
+
+−1
+
+P⊤ 
+
+> n
+
+Σ
+
++ ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+Cov Pn ˜Z0 + στ E  K(m)
+
+> τ
+
+−1
+
+P⊤ 
+
+> n
+
+Σ
+
+= σ2Σ − 2σ2ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+P⊤ 
+
+> n
+
+Σ + σ2ΣP⊤
+
+> n
+
+K(m)
+
+> τ
+
+−1
+
+P⊤ 
+
+> n
+
+Σ
+
+= ΣSK 
+
+Using this result, Algorithm 5 details the procedure to generate simulations of Z | Y(m)obs = y, A = a(m)
+
+> τ
+
+ .
+
+32 Algorithm 5 Generation of simple kriging simulations 
+
+Require: M , F, α, τ, σ, y, a vector εm of m independent standard Gaussian components  
+
+> 1:
+
+Generate a simulation z0, centered with covariance matrix σ2Σ, using Algorithm 1  
+
+> 2:
+
+if τ = 0 then  
+
+> 3:
+
+Require : I 
+
+> 4:
+
+Compute m(α)post (y), m(α)post ([ z0]I ) and m(α)post 
+
+ Pnϕ0
+
+ using Algorithm 2  
+
+> 5:
+
+Compute zSK Proposition 9  
+
+> 6:
+
+else  
+
+> 7:
+
+Require : P n and εn a vector of n independent standard Gaussian components  
+
+> 8:
+
+Compute m(α)post (y), m(α)post (Pnz0 + στ εn) and m(α)post 
+
+ Pnϕ0
+
+ using Algorithm 3  
+
+> 9:
+
+Compute zSK Proposition 9  
+
+> 10:
+
+end if  
+
+> 11:
+
+return z SK 
+
+Appendix H. Spherical harmonics on the Earth 
+
+Here we show that the results obtained using the kernel K1 on the sphere, based on the well-known spherical harmonics, are really close to what we obtain with our finite-element ap-proximation. Figure H.7 provides the SST prediction obtained at the triangulation nodes on the Earth, while Figure H.8 shows the uncertainty associated with the prediction along the longitude closest to 170 ◦.    
+
+> Figure H.7: Predictions of the SST ( ◦C) on Earth, illustrated in 2D using the spherical coordinates ( θ, ϕ ).n=20 observation points are shown as black dots. Left: Finite-element approximation of the isotropic spline. Right : Spline using spherical harmonics.
+
+33 (a) Predictive distribution with the finite-element isotropic spline. (b) Predictive distribution with the kernel based on the spherical harmonics. 
+
+Figure H.8: Comparison between the uncertainty quantification in SST prediction on the Earth using the finite-element approximation or the kernel based on the spherical harmonics, along the longitude closest to 170 ◦.
+
+34
