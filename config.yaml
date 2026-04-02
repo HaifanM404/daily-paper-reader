@@ -25,5 +25,49 @@ subscriptions:
     stage: A
     diff_threshold_pct: 15
   keyword_recall_mode: or
-  intent_profiles: []
-source_backends: {}
+  intent_profiles:
+    - tag: 药物关联
+      description: 请帮我查找有关基于学习的药物关联关系的论文
+      enabled: true
+      paper_sources:
+        - arxiv
+      keywords:
+        - keyword: drug-drug interaction
+          keyword_cn: 药物相互作用
+          query: drug interaction prediction
+        - keyword: deep learning
+          keyword_cn: 深度学习
+          query: deep learning models
+        - keyword: association prediction
+          keyword_cn: 关联预测
+          query: association prediction models
+        - keyword: computational methods
+          keyword_cn: 计算方法
+          query: computational approaches
+      intent_queries:
+        - query: machine learning for drug drug interaction
+          query_cn: 用于药物关联发现的机器学习
+          enabled: true
+          source: manual
+          note: ''
+        - query: deep learning models in drug drug interaction
+          query_cn: 药理学关联中的深度学习模型
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-04-02T03:20:19.292Z'
+source_backends:
+  arxiv:
+    papers_table: arxiv_papers
+    use_vector_rpc: true
+    vector_rpc: match_arxiv_papers
+    vector_rpc_exact: match_arxiv_papers_exact
+    use_bm25_rpc: true
+    bm25_rpc: match_arxiv_papers_bm25
+    sync_table: arxiv_sync_status
+    sync_success_value: success
+    schema: public
+    kind: supabase
+    enabled: true
+    url: https://lyucdwgefyfbmaiopjbk.supabase.co
+    anon_key: sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq
