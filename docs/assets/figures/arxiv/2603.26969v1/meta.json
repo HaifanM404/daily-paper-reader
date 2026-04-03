@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2603.26969v1/fig-001.webp",
+      "caption": "FIG. 8. Training a system of reacting chemical species to learn Boolean logic gates. A network of N = 10 species, reacting following biochemical kinetic dynamics Eq. (8), is trained to reproduce unary NOT, and binary AND, OR, and XOR logic gates. A logical “TRUE” for a given node (species) is indicated by a concentration x = 1.0 (arbitrary units) while “FALSE” is indicated by x = 0.1. Early in training, species do not react strongly due to initialization, with the output species always showing a logical “FALSE” for all inputs (dark blue; left side of figure). After training, each logic gate settles at the correct Boolean output for the desired gate (red for “TRUE,” blue for “FALSE”; right side of figure).",
+      "page": 11,
+      "index": 1,
+      "width": 512,
+      "height": 418
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26969v1/fig-002.webp",
+      "caption": "FIG. 7. Training a leaky integrate-and-fire neural network for audio MNIST classification with the forward supervisor. (a) We provide three frequencies from spectrograms of a person saying “zero” and “one” as time-dependent signals to three input nodes. The output amplitude is read out at two nodes. (b) The network learns successfully to exhibit high/low amplitudes at the Zero (solid line) and One (dashed lines) nodes at time t = 0.7s when the input is “zero” (red lines), and low/high amplitudes, respectively, when the input is “one” (purple lines). (c) The dynamical learning process reduces the mean squared error on the test set (blue line), and increases the accuracy on the test set (black line) 0.5 to 0.95. (d) Network connectivity after training with the local rule (Eq. (12)) and the forward supervisor (Eq. (20)) (input neurons = red; output neurons = blue; hidden neurons = black). Edge widths show the strength of directed connections between neurons, with excitatory (positive) connections shown as solid lines and inhibitory (negative) connections shown as dashed lines. Here, training creates strong directed connections between the two output neurons and the input neuron encoding the 375Hz spectrogram component, which well separates the ‘Zero’ and ‘One’ audio examples.",
+      "page": 11,
+      "index": 2,
+      "width": 488,
+      "height": 351
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26969v1/fig-003.webp",
+      "caption": "FIG. 13. The catalogue of attractor states for a system following ecological dynamics, Eq. (D1). We choose 10,000 random initializations for a system of S = 50 interacting species and then simulate the dynamics for each initialization until the system reaches a dynamical attractor. We do this for the same set of random initializations both before and after training. (Top row) Before training, we observe five distinct attractors, plotted in decreasing order of observed frequency. (a) The most frequently observed attractor is a quasiperiodic limit cycle occurring 7255/10,000 times. We note, before training, the initialization repeatedly used during training, Na(0) = 0.5, settles into this attractor if simulated long enough. The remaining observed attractors are (b) a periodic limit cycle attractor with frequency 1199/10,000, (c) a fixed point attractor with frequency 1041/10,000, (d) a second distinct fixed point attractor with frequency 311/10,000, and (e) a third distinct fixed point attractor with frequency 94/10,000. The relevant output species in shown in dark blue in all panels; it is only appreciably alive in Attractor 3. (Bottom row) After training, we observe six distinct attractors, plotted in decreasing order of observed frequency. (f) The most frequently observed attractor is a fixed point attractor occurring 8333/10,000 times. In this fixed point, the target species is exactly on target. The remaining observed attractors are (g) a quasiperiodic limit cycle attractor with frequency 1083/10,000, (h) a distinct quasiperiodic limit cycle attractor with frequency 352/10,000, (i) a periodic limit cycle attractor with frequency 121/10,000, (j) a second distinct fixed point attractor with frequency 68/10,000, and (j) a third distinct fixed point attractor with frequency 43/10,000",
+      "page": 21,
+      "index": 3,
+      "width": 1058,
+      "height": 509
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26969v1/fig-004.webp",
+      "caption": "FIG. 3. Training a linear dynamical system to promote a desired temporal lag in the output. (a) The desired output signal (dashed red line) lags the input signal, F (blue) by a time interval. Before training, the response of the output node, x10 (orange), and hidden nodes (thin colored lines) in the initialized network are weak (b) After training, the output node reproduces the desired trajectory. (c) After training is complete, the network generalizes to a longer time window for an input sinusoid at a different initial phase and for random initial node positions. The network also generalizes correctly for input (d) triangle waves, (e) impulse signals, and (f) composite waves. (g) (Top) Response of “output node,” x10 (orange) when a sinusoid is injected at “input node” x1, (blue) vs. (Bottom) response of previous “input node” x1 (green) when a sinusoid is instead injected at the previous “output node” x10 (purple), showing reciprocal time lags in a trained reciprocal system. (h) Same as (g) but for a non-reciprocal network trained for two different time lags, depending on whether a signal is injected at one node or the other.",
+      "page": 7,
+      "index": 4,
+      "width": 1064,
+      "height": 452
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26969v1/fig-005.webp",
+      "caption": "FIG. 10. Black curves: The cost functions of executing each of the target tasks described in Sec. III decrease as training progresses using the local rule and forward supervisor. Blue curves: the alignment (the normalized dot product) between the cost gradient and the weight updates of Eq. 12 with the forward supervisor of Eq. 20. Training is successful with the local forward process despite alignment fluctuations and complex dynamics. The horizontal dashed line corresponds to vanishing alignment. (a) Amplitude task for linear oscillators with symmetric couplings. We train the time-dependent displacement of an output node to mirror the displacement of an input node, amplified by a factor p (Sec. IIIA). (b) Lag task for linear oscillators. We train the displacement of an output node to mirror an applied stimulus at an input node, with a time lag ∆t (Sec. IIIA). (c) Allostery task for a Kuramoto oscillator network. We train the network to synchronize the phase of an output node with the time-dependent phase of an input node (Sec. III B). (d) Synchronization task for a Kuramoto oscillator network. We train the network to synchronize globally at a frequency ωsync = 1, far above the mean of the distribution of intrinsic oscillator frequencies (Sec. III B). (e) Target dynamical task for a Leaky Integrate-and-Fire neuron network. We train an output neuron to reproduce points on a target trajectory driven by a sinusoidal signal at an input neuron (Sec. III C). (f) Audio classification task for a Leaky Integrate-and-Fire neuron network. We train the network to classify whether the input (the time series of three frequencies in utterances from the Audio-MNIST database) is drawn from a spoken “one” or “zero,” by producing a large response in one of two output neurons at a specified time (Sec. III C). (g) XOR task for a biochemical network. We train the network to replicate the Boolean logic function exclusive-or as a function of specified input species concentrations (Sec. IIID). (h) Fixation task for an ecological network. We train an output species to stably fix at a specified value in a multi-stable parameter regime with multiple attractors (Sec. III E).",
+      "page": 14,
+      "index": 5,
+      "width": 1062,
+      "height": 498
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26969v1/fig-006.webp",
+      "caption": "FIG. 9. Training a system of interacting ecological species to stably fix at a desired target. We study a fully-connected network of S = 50 highly fluctuating species following generalized ecological dynamics Eq. (32). We choose intrinsic carrying capacities of Ka = 1 and intrinsic growth rates ra = 1 for all species, such that we describe normalized species counts Na and measure dynamical time in units of 1/r. We then desire one selected species (highlighted in dark blue in all figure panels) to fix at a target normalized species count of Ntarget = 0.5 (shown in dashed red). We train iteratively over a duration T = 500 and for initial conditions N0 = 0.5 for all species. In each column of the figure, the systems have the same initial conditions. (Top Row) Before training: (a) The network is fluctuating strongly over the training duration T = 500 for the selected training initial conditions. (b) For the same initial conditions, but over a longer time horizon, the system exhibits a quasiperiodic limit cycle. (c) & (d) For different choices of initial conditions, the system settles into other attractors, such as periodic limit cycles or fixed points. (Bottom Row) After training: (e) After iterative training, the network designs a new fixed point attractor that it reaches within the training duration of T = 500. (f) For the same initial conditions as (e), the fixed point extends stably beyond the training window. (g) & (h) For the same initial conditions as in (c) & (d), respectively, the network generalizes, settling into the same fixed point with the output species on-target.",
+      "page": 13,
+      "index": 6,
+      "width": 1062,
+      "height": 529
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26969v1/fig-007.webp",
+      "caption": "FIG. 5. Training snapshots for a network of N = 100 Kuramoto oscillators spatially organized in two dimensions and coupled locally with an average of Z = 4.62 neighbors. The oscillators have intrinsic frequencies ωa drawn from a normal distribution with mean zero and unit variance and are initially distributed uniformly in phase with vanishing couplings. The desired behavior is for the oscillators to synchronize to a common global frequency, here Ω = ψ̇ = 1 so the desired period of oscillation is 2π; the desired phase for each oscillator as a function of time is shown for five periods (the duration of the trajectory, T ) by the red dashed line in each plot in the top row. Early in training (left column) no synchronization occurs because the oscillators are decoupled and none of them has the desired phase behavior. As training progresses (second, third and fourth columns), the couplings adjust so that nearly all of the oscillators acquire the desired behavior. (Top row) Desired phase (red dashed), actual phase of the Kuramoto order parameter ψ(t) (Eq. (28)) (blue), and phases of individual oscillators (faded colors), over five periods of the desired oscillation, after the number of training periods, each of duration T , indicated by the top labels. At the end of training the oscillators have synchronized to the desired frequency. (Second row) Magnitude (r) and frequency",
+      "page": 9,
+      "index": 7,
+      "width": 982,
+      "height": 857
+    },
+    {
+      "url": "assets/figures/arxiv/2603.26969v1/fig-008.webp",
+      "caption": "FIG. 12. Training snapshots for a reciprocal network of N = 100 Kuramoto oscillators spatially organized in 2D, and coupled locally with an average of Z = 4.62 neighbors (c.f. Fig. 5 of the main text). The oscillators have intrinsic frequencies ωa drawn from a normal distribution with mean zero and unit variance and are initially distributed uniformly in phase with vanishing couplings. Early in training (left column) no synchronization occurs because the oscillators are decoupled. As training progresses (second, third and fourth columns), the couplings adjust and the system does learn to congregrate and synchronize, but only at the initialized mean frequency ⟨θ̇⟩ = ⟨ω⟩ ̸= 1. (Top row) Desired phase (red dashed), actual phase of the Kuramoto order parameter ψ(t) (blue), and phases of individual oscillators (faded colors), over four epochs of training. At the end of training the oscillators largely synchronize away from the target frequency at ⟨ω⟩ ̸= 1. (Second row) Magnitude (r) and frequency",
+      "page": 20,
+      "index": 8,
+      "width": 902,
+      "height": 804
+    }
+  ]
+}
