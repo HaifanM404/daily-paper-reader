@@ -1,0 +1,589 @@
+Title: Fractional Risk Analysis of Stochastic Systems with Jumps and Memory
+
+URL Source: https://arxiv.org/pdf/2603.26009v1
+
+Published Time: Mon, 30 Mar 2026 00:20:44 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Fractional Risk Analysis of Stochastic Systems with Jumps and Memory 
+
+Yimeng Sun 1∗, Zhuoyuan Wang 1∗, Xiaole Zhang 2∗, Heng Ping 2, Jintang Xue 2, Paul Bogdan 2, Yorie Nakahira 1†
+
+Abstract — Accurate risk assessment is essential for safety-critical autonomous and control systems under uncertainty. In many real-world settings, stochastic dynamics exhibit asymmet-ric jumps and long-range memory, making long-term risk prob-abilities difficult to estimate across varying system dynamics, initial conditions, and time horizons. Existing sampling-based methods are computationally expensive due to repeated long-horizon simulations to capture rare events, while existing par-tial differential equation (PDE)-based formulations are largely limited to Gaussian or symmetric jump dynamics and typically treat memory effects in isolation. In this paper, we address these challenges by deriving a space- and time-fractional PDE that characterizes long-term safety and recovery probabilities for stochastic systems with both asymmetric L´ evy jumps and mem-ory. This unified formulation captures nonlocal spatial effects and temporal memory within a single framework and enables the joint evaluation of risk across initial states and horizons. We show that the proposed PDE accurately characterizes long-term risk and reveals behaviors that differ fundamentally from systems without jumps or memory and from standard non-fractional PDEs. Building on this characterization, we further demonstrate how physics-informed learning can efficiently solve the fractional PDEs, enabling accurate risk prediction across diverse configurations and strong generalization to out-of-distribution dynamics. 
+
+I. I NTRODUCTION 
+
+Safety is critical for autonomous and control systems oper-ating under uncertainty. In many real-world settings, stochas-tic dynamics exhibit non-Gaussian fluctuations, asymmetric jumps, and long-range temporal dependence, as observed in applications including power grids [1] and physiological systems [2]. Under such conditions, safety must be charac-terized probabilistically. In particular, estimating the long-term probability that system trajectories enter unsafe regions is important for risk assessment and safety-critical control, but remains challenging due to the underlying stochastic complexity and extended time horizons involved [3], [4]. A variety of methods have been developed to esti-mate such long-term risk probabilities. Sampling-based ap-proaches such as Monte Carlo simulation and its variants, including importance sampling and subset simulation, are widely used [5], [6], [7]. However, these methods are of-ten computationally expensive, since they must repeatedly simulate the stochastic dynamics over long horizons to capture rare failure events, and the calculations typically need to be redone for different system dynamics and initial conditions. Recently, partial differential equation (PDE)-based methods have shown promise by characterizing risk    
+
+> 1Carnegie Mellon University. 2University of Southern California.
+> ∗Equal contribution. †Correspondence:
+
+yorie@cmu.edu .
+
+probabilities through deterministic equations derived from the underlying dynamics [8], [9]. Compared with trajectory-based sampling, this perspective can jointly solve for risk probabilities across different initial states and time horizons, while also enabling physics-informed learning methods to serve as neural surrogate solvers for parametric and func-tional variants of the problem [10], [11], [12]. However, existing PDE-based formulations remain largely limited to Gaussian noise and Markovian settings [8], [9], and only a few results have considered symmetric jumps or time-change effects in isolation, rather than stochastic systems that combine asymmetric jumps with memory [13], [14], [15]. In this work, we extend the PDE-based risk characteri-zation framework to a broader class of stochastic systems with both asymmetric jumps and memory. Specifically, we derive a space- and time-fractional PDE that characterizes the evolution of long-term risk probabilities for systems driven by general asymmetric L´ evy processes and time-change effects (Theorem 1-2). We show that this fractional PDE accurately characterizes long-term risk values, captur-ing behaviors that differ fundamentally from systems without jumps or memory and from those described by standard non-fractional PDE formulations (Fig. 1-2). Building on this char-acterization, we further demonstrate how physics-informed learning techniques can be leveraged to efficiently estimate the corresponding fractional PDE solutions (Section V-B). The resulting framework integrates physical constraints with limited data and enables accurate prediction of long-term risk of diverse configurations while generalizing to out-of-distribution system dynamics (Fig. 3 and Table I). II. P ROBLEM FORMULATION 
+
+A. System Dynamics 
+
+We consider a class of nonlinear stochastic control systems subject to heavy-tailed disturbances and time-change mem-ory effects. We first introduce the underlying system without memory. Let Xs ∈ Rn denote the system state at time s ≥ 0,evolving according to the stochastic differential equation 
+
+dX s = f (Xs) ds + σ(Xs) dL (α, Λ)  
+
+> s
+
+, (1) where f : Rn → Rn is the drift vector field, σ : Rn → Rn×k
+
+is the diffusion coefficient, and L(α, Λ)  
+
+> s
+
+is an α-stable L´ evy process in Rn with 0 < α < 2. The finite spectral measure 
+
+Λ on the unit sphere Sn−1 characterizes the directional distribution and skewness of the jump noise. In particular, the process is symmetric if and only if Λ( A) = Λ( −A) for all measurable sets A ⊂ Sn−1.
+
+> arXiv:2603.26009v1 [eess.SY] 27 Mar 2026
+
+Assumption 1. We assume that f and σ are bounded and globally Lipschitz. 
+
+Under Assumption 1, there exists a unique strong solution to (1) for the base system [16]. Note that dynamics (1) can capture not only autonomous systems, but also closed-loop systems with memoryless state feedback control ( e.g., PID and robust controllers). To model time-delay effects and memory phenomena, we introduce a stochastic time change. Let (Du)u≥0 be an β-stable subordinator with 0 < β < 1, independent of (Xs)s≥0.Define its inverse (first-passage-time) process by 
+
+Et := inf {u ≥ 0 : Du > t }, t ≥ 0. (2) The state process with memory is defined via the following time change 
+
+Yt := XEt , t ≥ 0. (3) This construction induces non-Markovian dynamics and cap-tures heavy-tailed waiting-time effects. 
+
+B. Safety Specification 
+
+We formalize safety via a barrier function characterization. 
+
+Definition 1 (Safe Set [17]) . Let ϕ : Rn → R be a twice continuously differentiable function. The safe set is defined as the superlevel set 
+
+C := {x ∈ Rn : ϕ(x) ≥ 0}. (4) The interior, boundary, and unsafe region are defined as 
+
+int( C) = {x ∈ Rn : ϕ(x) > 0}, (5) 
+
+∂C = {x ∈ Rn : ϕ(x) = 0 }, (6) 
+
+Cc = {x ∈ Rn : ϕ(x) < 0}. (7) 
+
+Assumption 2. We assume all points on ∂C are regular for the exterior Cc, meaning that the base process Xt starting at any x ∈ ∂C enters Cc immediately with probability one. C. Long-Term Probabilities of Interest 
+
+We study the long term safety and recovery probabilities of the delayed process Y , depending on whether the initial state x lies inside the safe set C. If the system starts inside 
+
+C, the safety probability is defined as 
+
+F (x, T ) := P(Yt ∈ C , ∀t ∈ [0 , T ] | Y0 = x ∈ C ) . (8) If the system starts outside C, the recovery probability is defined as 
+
+G(x, T ) := P(∃t ∈ [0 , T ], Y t ∈ C | Y0 = x / ∈ C ) . (9) To characterize these probabilities, define the first exit time from the safe set and the first recovery time to the safe set 
+
+τC = inf {t ≥ 0 | Yt /∈ C} , (10) 
+
+ρC = inf {t ≥ 0 | Yt ∈ C} . (11) The safety and recovery probabilities can then be written as 
+
+F (x, T ) = P(τC ≥ T | Y0 = x ∈ C ), (12) 
+
+G(x, T ) = P(ρC ≤ T | Y0 = x / ∈ C ). (13) Such long-term probabilities are essential for designing safe control methods to guarantee long-term safety of the sys-tem [3], [4], and are non-trivial to estimate because the computation scales with the horizon T of interest as well as the number of initial states x of interest [9]. The research question for this paper is as follows.  
+
+> •
+
+When the stochastic system dynamics (1) with jumps and time change (3) are given, what is the exact PDE characterization of (8) and (9) for different initial states 
+
+x and time horizons T ? 
+
+> •
+
+With the PDE characterization, how do we efficiently calculate their solutions to obtain the long-term proba-bilities (8) and (9) of diverse system dynamics? III. M AIN RESULTS 
+
+In this section, we provide an analytical characterization of safety-critical events for stochastic systems with jumps and memory. Specifically, we derive fractional PDEs that directly characterize the long-term safety and recovery prob-abilities (8) and (9). This formulation provides a principled foundation for efficient computational methods, including numerical solvers and physics-informed learning approaches, as demonstrated in Section V. Throughout the paper, we use upper-case letters (e.g., X) to denote random variables and lower-case letters (e.g., x) to denote their realizations. 
+
+Definition 2 (Infinitesimal Generator) . The infinitesimal generator A of a stochastic process {Xt ∈ Rn}t∈R+ is 
+
+Aφ(x) = lim 
+
+> h→0
+
+Ex [φ(Xh)] − φ(x)
+
+h , (14) whose domain D(A) is the set of all functions φ : Rn → R
+
+such that the limit of (14) exists for all x ∈ Rn.The infinitesimal generator of (1) is then given by 
+
+Lφ(x) := f (x) · ∇ φ(x) + σα(x) Jαφ(x), (15) where 0 < α ≤ 2 and the space-fractional jump operator Jα
+
+is defined by its Fourier transform 
+
+F{J αφ}(ξ) = −ψα(ξ) F{ φ}(ξ), (16) with characteristic exponent 
+
+ψα(ξ) = 
+
+Z
+
+> Sn−1
+
+|ξ · θ|α
+
+1 − i tan   πα 
+
+> 2
+
+ sign( ξ · θ)
+
+
+
+Λ( dθ ).
+
+(17) for α ∈ (0 , 2) \ { 1}, and 
+
+ψ1(ξ) = 
+
+Z
+
+> Sn−1
+
+|ξ · θ|
+
+
+
+1 + i 2
+
+π sign( ξ · θ) log |ξ · θ|
+
+
+
+Λ( dθ ).
+
+(18) The Caputo time-fractional derivative of a function u(x, t )
+
+is defined as 
+
+∂βt u(x, t ) := 1Γ(1 − β)
+
+Z t
+
+> 0
+
+∂su(x, s )(t − s)β ds, (19) where 0 < β < 1 and Γ denotes the gamma function. Let 1C (x) denote the indicator function of x being inside 
+
+C. The main result is as follows. 
+
+Theorem 1. Consider system (1) and the fractional time change (3) with the initial state Y0 = x ∈ C . Then, the long-term safety probability (8) is the solution to 
+
+
+
+∂βT F (x, T ) = LF (x, T ), x ∈ int( C), T > 0,F (x, T ) = 0 , x ∈ C c ∪ ∂C, T > 0,F (x, 0) = 1C (x), x ∈ Rn.
+
+(20) 
+
+Theorem 2. Consider system (1) and the fractional time change (3) with the initial state Y0 = x /∈ C . Then, the long-term recovery probability (9) is the solution to 
+
+
+
+∂βT G(x, T ) = LG(x, T ), x ∈ C c, T > 0,G(x, T ) = 1 , x ∈ C , T > 0,G(x, 0) = 1C (x), x ∈ Rn.
+
+(21) Theorem 1 and Theorem 2 show that the long-term safety and recovery probability of the stochastic system (3) with jumps and memory are solutions of deterministic fractional PDEs. This characterization enables efficient estimation of such long-term risk values for diverse initial states, time horizons and system dynamics, as demonstrated in Section V. IV. P ROOFS 
+
+In this section, we present the proofs of Theorems 1 and 2. We begin by deriving a space-fractional PDE for the safety probability without time-change effects in Lemma 1. We then incorporate the time-change mechanism and show that it induces a time-fractional structure in the governing equation, which leads to the proofs of Theorems 1 and 2. 
+
+Lemma 1. Consider system (1) with the initial state 
+
+X0 = x. Then, the long-term safety probability Q(x, T ) := 
+
+P(Xt ∈ C , ∀t ∈ [0 , T ] | X0 = x) is the solution to 
+
+
+
+∂T Q(x, T ) = LQ(x, T ), x ∈ int( C), T > 0,Q(x, T ) = 0 , x ∈ C c ∪ ∂C, T > 0,Q(x, 0) = 1C (x), x ∈ Rn.
+
+(22) 
+
+Proof (Lemma 1). Let τ X 
+
+> C
+
+:= inf {t ≥ 0 : Xt /∈ C} denote the first exit time of X from C. By definition, 
+
+Q(x, T ) = P(τ X 
+
+> C
+
+≥ T | X0 = x). (23) For any 0 < h < T , using the Markov property of Xt,
+
+Q(x, T ) = E
+
+h
+
+1{τ X 
+
+> C>h }
+
+Q(Xh, T − h) | X0 = x
+
+i
+
+, (24) where 1{τ X  
+
+> C>h }
+
+is an indicator function of the event τ X 
+
+> C
+
+> h .Define Φ( s, x ) := Q(x, T − s) for 0 ≤ s ≤ h. Applying the time-dependent Dynkin’s formula [18] to the stopped process 
+
+Xs∧τ X 
+
+> C
+
+yields 
+
+E
+
+h
+
+Φ( h ∧ τ X 
+
+> C
+
+, X h∧τ X 
+
+> C
+
+) | X0 = x
+
+i
+
+− Φ(0 , x ) = 
+
+E
+
+"Z h∧τ X
+
+> C
+> 0
+
+(∂sΦ( s, X s) + LΦ( s, X s)) ds | X0 = x
+
+#
+
+,
+
+(25) where ∧ is the minimum operator such that h ∧ τ X 
+
+> C
+
+:= min {h, τ X 
+
+> C
+
+}. Since Q(x, ·) = 0 for x ∈ C c ∪ ∂C, we have 
+
+Φ( h ∧ τ X 
+
+> C
+
+, X h∧τ X 
+
+> C
+
+) = 1{τ X 
+
+> C>h }
+
+Q(Xh, T − h). (26) From (24), we know that the left-hand side of (25) equals zero, which implies 
+
+E
+
+"Z h∧τ X
+
+> C
+> 0
+
+(−∂T Q + LQ)( Xs, T − s)ds | X0 = x
+
+#
+
+= 0 .
+
+(27) Dividing (27) by h and letting h → 0 yields 
+
+∂T Q(x, T ) = LQ(x, T ), x ∈ int( C), T > 0. (28) The boundary condition and the initial condition in (22) follow from Assumption 2 and the definitions of the exit time and the long-term safety probability. ■
+
+Lemma 2. (Independence Lemma [19, Lemma 2.3.4]) Let 
+
+(Ω , F, P) be a probability space and let G ⊆ F be a sub-
+
+σ-algebra. Let Z, W be random variables such that Z is G-measurable and W is independent of G. Then for any Borel measurable function f : Rm × Rn → R such that f (Z, W )
+
+is integrable, 
+
+E[f (Z, W ) | G ] = g(Z) a.s. , (29) 
+
+where g(z) := E[f (z, W )] .
+
+Assumption 3. For every T > 0, the long-term safety probability Q(x, T ) := P(Xt ∈ C , ∀t ∈ [0 , T ] | X0 = x) of process (1) is continuous in x, so that Q(·, T ) ∈ C0(Rn).Furthermore, for almost every T > 0, Q is in the domain of the infinitesimal generator L, i.e., Q(x, T ) ∈ D(L), and for any λ > 0,Z ∞
+
+> 0
+
+e−λT ∥L Q(·, T )∥C0(Rn) dT < ∞. (30) Assumption 3 imposes basic continuity and integrability conditions on the long-term safety probability associated with the base process (1). These conditions ensure that the Laplace transforms of both Q and LQ are well defined. 
+
+A. Proof of Theorem 1 Proof (Theorem 1). By definition, τC ≥ T if and only if 
+
+Ys ∈ C , ∀s ≤ T. (31) Since Ys = XEs , (31) is equivalent to 
+
+XEs ∈ C , ∀s ≤ T. (32) Since the β-stable subordinator (Du)u≥0 is strictly increas-ing [20], ET is continuous and monotone, and we have 
+
+{Es : 0 ≤ s ≤ T } = [0 , E T ]. (33) Thus, (32) is equivalent to Xr ∈ C , ∀r ≤ ET , which is also equivalent to τ X 
+
+> C
+
+≥ ET . Therefore, 
+
+{τC ≥ T } = {τ X 
+
+> C
+
+≥ ET }. (34) Hence, 
+
+F (x, T ) = P(τ X 
+
+> C
+
+≥ ET | X0 = x). (35) Since ET is independent of X, and hence, independent of 
+
+τ X 
+
+> C
+
+, by Lemma 2, 
+
+F (x, T ) = P(τ X 
+
+> C
+
+≥ ET | X0 = x)= E P(τ X 
+
+> C
+
+≥ ET | ET , X 0 = x)
+
+= E [Q(x, E T )] .
+
+(36) From Lemma 1, we have Q(x, s ) satisfies the PDE 
+
+∂sQ(x, s ) = LQ(x, s ), (37) for x ∈ int( C) and s > 0, with initial and boundary conditions 
+
+Q(x, 0) = 1C (x), x ∈ Rn,Q(x, s ) = 0 , x ∈ C c ∪ ∂C, s > 0. (38) From [21], the Laplace transform of the density h(s, T ) of 
+
+ET in T satisfies 
+
+˜h(s, p ) := 
+
+Z ∞
+
+> 0
+
+e−pT h(s, T )dT = pβ−1e−sp β
+
+, ∀p > 0.
+
+(39) Therefore 
+
+Z ∞
+
+> 0
+
+e−pT P(ET ∈ ds )dT = pβ−1e−sp β
+
+ds, ∀p > 0. (40) From (36), 
+
+F (x, T ) = 
+
+Z ∞
+
+> 0
+
+Q(x, s )P(ET ∈ ds ). (41) Taking the Laplace transform of (41) in T gives 
+
+˜F (x, p ) := 
+
+Z ∞
+
+> 0
+
+e−pT F (x, T ) dT 
+
+=
+
+Z ∞
+
+> 0
+
+Q(x, s )
+
+Z ∞
+
+> 0
+
+e−pT P(ET ∈ ds )dT 
+
+
+
+.
+
+(42) Substituting (40) yields 
+
+˜F (x, p ) = 
+
+Z ∞
+
+> 0
+
+Q(x, s )pβ−1e−sp β
+
+ds = pβ−1 ˜Q(x, p β ).
+
+(43) Taking the Laplace transform of the PDE (37) for Q with respect to s gives 
+
+Z ∞
+
+> 0
+
+e−λs ∂sQ(x, s )ds = λ ˜Q(x, λ ) − Q(x, 0) , ∀λ > 0.
+
+(44) Under Assumption 1 and 3, the associated semigroup to (1) is Feller [16] with closed generator L [22]. Therefore, L
+
+commutes with the Laplace transform [23, Theorem 1.19], yielding 
+
+Z ∞
+
+> 0
+
+e−λs LQ(x, s )ds = L ˜Q(x, λ ), ∀λ > 0. (45) Therefore 
+
+λ ˜Q(x, λ ) − Q(x, 0) = L ˜Q(x, λ ), ∀λ > 0. (46) Since Q(x, 0) = 1 when x ∈ C ,
+
+(λ − L ) ˜Q(x, λ ) = 1 , ∀λ > 0, x ∈ C . (47) Setting λ = pβ and using (43) gives 
+
+(pβ − L ) ˜F (x, p )
+
+pβ−1 = 1 , ∀p > 0, (48) which implies 
+
+pβ ˜F (x, p ) − pβ−1 = L ˜F (x, p ), ∀p > 0. (49) The Laplace transform of the Caputo derivative satisfies 
+
+^
+
+{∂βT F }(p) = pβ ˜F (x, p ) − pβ−1F (x, 0) , p > 0. (50) Since F (x, 0) = P(τC ≥ 0 | Y0 = x ∈ C ) = 1 ,
+
+^
+
+{∂βT F }(p) = pβ ˜F (x, p ) − pβ−1, p > 0. (51) Comparing with (49) yields 
+
+^
+
+{∂βT F }(p) = L ˜F (x, p ) = gLF (x, p ), ∀p > 0. (52) The uniqueness of Laplace transform implies 
+
+∂βT F (x, T ) = LF (x, T ), x ∈ int( C), T > 0. (53) The initial and boundary conditions remain identical to those established in Lemma 1. This spatial invariance holds due to the nature of the subordinated process Yt = XEt . Since the inverse stable subordinator Et is a continuous and non-decreasing operational time process with E0 = 0 , the starting position is strictly preserved (Y0 = X0). Furthermore, because the time-change purely stretches or compresses time without altering the underlying geometric path of the base process, any point x ∈ ∂C that is regular for the base process 
+
+Xt remains regular for the time-changed process Yt. Thus, the process satisfies the same zero-boundary conditions upon exiting the safe region. ■
+
+B. Proof of Theorem 2 Proof (Theorem 2). Since both Cc and int( C) are open sets, let us consider a new safe set Cc ∪ ∂C as opposed to C.By Theorem 1, the corresponding safety probability (8) will satisfy the following PDE 
+
+∂βT F (x, T ) = LF (x, T ), x ∈ C c, T > 0. (54) Since exiting Cc is equivalent to returning to C, we have 
+
+G(x, T ) := P(ρC ≤ T | Y0 = x / ∈ C )= P(τCc ≤ T | Y0 = x / ∈ C )= 1 − P(τCc ≥ T | Y0 = x / ∈ C )= 1 − F (x, T ).
+
+(55) Since (54) is a linear PDE, plugging in (55) we have 
+
+∂βT G(x, T ) = LG(x, T ), x ∈ C c, T > 0. (56) By definition of the recovery probability (9), we get 
+
+G(x, T ) = 1 , x ∈ C , T > 0,G(x, 0) = 1C (x), x ∈ Rn. (57) 
+
+■
+
+Remark 1. Although we consider safety probability and Fig. 1: Recovery probability with and without L´ evy jumps. recovery probability of systems with both jumps and mem-ory, the proof entails that the effect of jumps and memory can be separately analyzed, resulting in space- and time-fractional terms in the PDE characterization, respectively. This is verified in the experiments in Section V-A. V. E XPERIMENTS 
+
+This section presents several experimental results demon-strating the effectiveness of the fractional PDE characteriza-tion of long-term probabilities for stochastic systems with jumps and memory. We also demonstrate how physics-informed machine learning can be leveraged based on the derived PDEs, for efficient estimation of probability values of diverse systems dynamics. 
+
+A. Recovery Probabilities 
+
+We first study the recovery probability (9) for stochastic systems with jumps and memory, and demonstrate the ef-fectiveness of the proposed fractional PDE characterization. Specifically, we consider the following case study:  
+
+> •
+
+System (1) with f ≡ 0.8 and σ ≡ 0.4, with α = 1 (with L´ evy jumps) and β = 1 (without fractional time).  
+
+> •
+
+System (1) with f ≡ 0.3 and σ ≡ 0.6, with α = 2 
+
+(without jumps) and β = 0 .4 (with fractional time). The safe set is defined as C = {x : x > 1}. We obtain refer-ence estimates using Monte Carlo (MC) simulation and solve the corresponding fractional PDEs. For comparison, Fig. 1 and Fig. 2 visualize the MC estimates and proposed PDE solutions across the state space at different time horizons. We also include results for the corresponding systems without jumps or memory, together with their associated classical (non-fractional) PDE formulations. The results show that the space- and time-fractional PDEs accurately characterize the long-term risk probabilities for systems with L´ evy jumps and memory effects, respectively, across a range of initial states x
+
+and time horizons T . Importantly, these systems exhibit long-term probability values that differ substantially from those of the same underlying dynamics when jumps or memory are absent. As a result, classical convection–diffusion PDEs cannot capture these behaviors, highlighting that fractional PDEs are essential for accurately characterizing risk in stochastic systems with jumps and memory. 
+
+B. Safety Probabilities 
+
+Next, we show that the derived PDE characterization enables physics-informed learning methods to efficiently estimate long-term safety probabilities (8) across diverse 
+
+Fig. 2: Recovery probability with and without time change. systems. Specifically, we consider the safety probability for a diverse class of systems (1) and (3) in two dimensions with L´ evy jumps ( α = 1.5) and fractional time change (β = 0.7). We train a physics-informed Fourier neural operator (PINO) [12] to learn the corresponding time-space fractional PDE (20) to estimate the safety probabilities. To evaluate generalization, the system dynamics are sam-pled from a randomized family. Specifically, for the system dynamics function f := [ f1, f 2] corresponding to the two spatial coordinates x1 and x2, both f1 and f2 are indepen-dently drawn from 
+
+f (x1, x 2) = c0 + c1,1x1 + c1,2x2 + c2,1x21 + c2,2x22
+
++ c12 x1x2 + c3,1|x1|1.5 + c3,2|x2|1.5
+
++
+
+> K1
+
+X
+
+> k1=1
+> K2
+
+X
+
+> k2=1
+
+ak1,k 2 sin  2π(s1k1x1 + s2k2x2)
+
+(k21 + k22 )d/ 2
+
++ bk1,k 2 cos  2π(s1k1x1 + s2k2x2)
+
+(k21 + k22 )d/ 2
+
+!
+
+, (58) where the coefficients are independently sampled from pre-scribed bounded domains. We consider the spatial domain 
+
+(x1, x 2) ∈ [0 , 1] 2 and the time horizon T ∈ [0 , 1] , with safe set C = {x1 < 1, x 2 < 1}. We generate ground-truth solutions over the entire space-time domain for 1000 randomly sampled dynamics f , among which 800 are used for training and 200 for testing. The model is trained using the physics-informed loss 
+
+Lloss = Ldata + λPDE LPDE + λBC LBC , (59) where Ldata = ∥ ˆF − Ftrue ∥22 is the mean-squared error loss between the prediction ˆF and the ground truth Ftrue , LPDE 
+
+is the fractional PDE residual loss with weight λPDE , and 
+
+LBC is the boundary conditions residual loss with weight 
+
+λBC . After 100 epochs of training, the in-distribution test relative L2 error is 9.77 × 10 −3, indicating that the learned operator accurately predicts safety probabilities for unseen systems within this diverse family of system dynamics. We further evaluate the model on out-of-distribution (OOD) dynamics of the form 
+
+f1(x1, x 2) = 1 .32 x1 + 1 .32 x2 + 1 ,f2(x1, x 2) = 10 |x1|1.6 − 5|x2|1.6 + 2 cos(3 πx 2) + 1 + 20 sin(0 .96 x1 + 0 .36 x2 + π). (60) Fig. 3 presents the ground-truth safety probability, the PINO predicted solution, and the corresponding error at different TABLE I: OOD prediction time and error comparison. 
+
+MC PINO Time (s) / Rel. L2 Error 93.42 / 9.06 ×10 −2 0.26 / 2.37 ×10 −2𝑇 = 0.23     
+
+> 𝑇 =0.46
+> 𝑇 =1
+
+Fig. 3: Safety probability for 2D system with OOD dynamics. time instances. The results show that the model can produce accurate predictions even for OOD dynamics (relative L2
+
+error 2.37 × 10 −2), which are fundamentally challenging for existing sampling-based methods (Table I). VI. C ONCLUSIONS 
+
+In this paper, we studied long-term safety and recovery probabilities for stochastic dynamical systems with jumps and memory effects. We showed that these probabilities admit an exact characterization through fractional PDEs, extending existing risk analysis beyond Gaussian distur-bances and incorporating fractional time-change dynamics. This formulation provides a principled framework that trans-forms stochastic safety evaluation into the solution of deter-ministic fractional PDEs. Building on this connection, we demonstrated that physics-informed learning can efficiently approximate these solutions and enable risk quantification across diverse initial states and system configurations. Future work includes developing improved computational methods for high-dimensional systems. APPENDIX 
+
+We describe the experimental setup. For recovery probabil-ity (Section V-A), the space-fractional case uses a generator-based discretization with implicit Euler, while MC estimates are obtained via continuous-time Markov chain (CTMC) simulation. For the time-fractional case, the Caputo deriva-tive is discretized using the L1 scheme, and MC estimates are computed via a subordination-based method. For safety prob-ability (Section V-B), ground-truth solutions are obtained by solving the fractional PDE with a sparse CTMC generator and implicit L1 scheme. The neural operator takes input 
+
+[f1, f 2, x 1, x 2, t ] and outputs the safety probability, trained with λPDE = 0 .01 and λBC = 1 . Experiments are run on an RTX 5080 GPU and AMD 9800X3D CPU. REFERENCES [1] J. Sia, E. Jonckheere, L. Shalalfeh, and P. Bogdan, “Pmu change point detection of imminent voltage collapse and stealthy attacks,” in 2018 IEEE Conference on Decision and Control (CDC) . IEEE, 2018, pp. 6812–6817. [2] C. Yin, M. Udrescu, G. Gupta, M. Cheng, A. Lihu, L. Udrescu, P. Bogdan, D. M. Mannino, and S. Mihaicuta, “Fractional dynamics foster deep learning of copd stage prediction,” Advanced Science ,vol. 10, no. 12, p. 2203485, 2023. [3] Z. Wang, H. Jing, C. Kurniawan, A. Chern, and Y. Nakahira, “Myopi-cally verifiable probabilistic certificate for long-term safety,” in 2022 American Control Conference (ACC) . IEEE, 2022, pp. 4894–4900. [4] ——, “Myopically verifiable probabilistic certificates for safe control and learning,” arXiv preprint arXiv:2404.16883 , 2024. [5] G. Rubino and B. Tuffin, Rare event simulation using Monte Carlo methods . John Wiley & Sons, 2009. [6] F. C´ erou, P. Del Moral, T. Furon, and A. Guyader, “Sequential monte carlo for rare event estimation,” Statistics and computing , vol. 22, no. 3, pp. 795–808, 2012. [7] K. M. Zuev, “Subset simulation method for rare event estimation: an introduction,” in Encyclopedia of Earthquake Engineering . Springer, 2015, pp. 3671–3691. [8] A. Chern, X. Wang, A. Iyer, and Y. Nakahira, “Safe control in the presence of stochastic uncertainties,” in 2021 60th IEEE Conference on Decision and Control (CDC) . IEEE, 2021, pp. 6640–6645. [9] Z. Wang, A. Chern, and Y. Nakahira, “Generalizable physics-informed learning for stochastic safety-critical systems,” IEEE Transactions on Automatic Control , 2025. [10] M. Raissi, P. Perdikaris, and G. E. Karniadakis, “Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations,” 
+
+Journal of Computational physics , vol. 378, pp. 686–707, 2019. [11] G. Pang, L. Lu, and G. E. Karniadakis, “fpinns: Fractional physics-informed neural networks,” SIAM Journal on Scientific Computing ,vol. 41, no. 4, pp. A2603–A2626, 2019. [12] Z. Li, H. Zheng, N. Kovachki, D. Jin, H. Chen, B. Liu, K. Aziz-zadenesheli, and A. Anandkumar, “Physics-informed neural operator for learning partial differential equations,” ACM/IMS Journal of Data Science , vol. 1, no. 3, pp. 1–27, 2024. [13] T. Gao, J. Duan, X. Li, and R. Song, “Mean exit time and escape probability for dynamical systems driven by l´ evy noises,” SIAM Journal on Scientific Computing , vol. 36, no. 3, pp. A887–A906, 2014. [14] M. Yang, D. del Castillo-Negrete, and G. Zhang, “An efficient proba-bilistic scheme for the exit time probability of α-stable l´ evy process,” 
+
+arXiv preprint arXiv:2601.09882 , 2026. [15] M. Abundo, G. Ascione, M. Carfora, and E. Pirozzi, “A fractional pde for first passage time of time-changed brownian motion and its numerical solution,” Applied Numerical Mathematics , vol. 155, pp. 103–118, 2020. [16] D. Applebaum, L´ evy processes and stochastic calculus . Cambridge university press, 2009. [17] A. D. Ames, S. Coogan, M. Egerstedt, G. Notomista, K. Sreenath, and P. Tabuada, “Control barrier functions: Theory and applications,” in 2019 18th European Control Conference (ECC) . IEEE, 2019, pp. 3420–3431. [18] B. Øksendal and A. Sulem, Applied stochastic control of jump diffu-sions . Springer, 2007, vol. 3. [19] S. E. Shreve et al. , Stochastic calculus for finance II: Continuous-time models . Springer, 2004, vol. 11. [20] M. M. Meerschaert, E. Nane, and P. Vellaisamy, “Inverse subordinators and time fractional equations,” Handbook of Fractional Calculus with Applications , vol. 1, pp. 9 783 110 571 622–017, 2019. [21] M. M. Meerschaert and P. Straka, “Inverse stable subordinators,” 
+
+Mathematical modelling of natural phenomena , vol. 8, no. 2, pp. 1–16, 2013. [22] A. Pazy, Semigroups of linear operators and applications to partial differential equations . Springer Science & Business Media, 2012. [23] J. Van Neerven, “Stochastic evolution equations,” ISEM lecture notes ,2008.
