@@ -1,0 +1,6197 @@
+Title: Constructive existence proofs and stability of stationary solutions to parabolic PDEs using Gegenbauer polynomials
+
+URL Source: https://arxiv.org/pdf/2603.27198v1
+
+Published Time: Tue, 31 Mar 2026 00:32:49 GMT
+
+Number of Pages: 52
+
+Markdown Content:
+CONSTRUCTIVE EXISTENCE PROOFS AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES USING GEGENBAUER POLYNOMIALS 
+
+MAXIME BREDEN, MATTHIEU CADIOT, AND ANTOINE ZUREK 
+
+Abstract. In this paper, we present a computer-assisted framework for constructive proofs of existence for stationary solutions to one-dimensional parabolic PDEs and the rigorous determina-tion of their linear stability. By expanding solutions in Gegenbauer polynomials, we first develop a general approach for boundary value problems (BVPs), corresponding to the stationary part of the PDE. This yields a computationally efficient sparse structure for both differential and multiplication operators. By deriving sharp, explicit and quantitative estimates for the inverse of differential operators, we implement a Newton-Kantorovich approach. Specifically, given a numerical approximation ¯ u, we prove the existence of a true stationary solution ˜ u within a small, rigorously quantified neighborhood of ¯ u. A key advantage of this approach is that the sharp control over the defect ˜ u − ¯u, integrated with the spectral properties of the Gegenbauer basis, en-ables an accurate enclosure of the linearization’s spectrum around ˜ u. This allows for a definitive conclusion regarding the (in)stability of the verified solution, which is the main contribution of the paper. We demonstrate the efficacy of this method through several applications, capturing both stable and unstable equilibrium states. 
+
+Mathematics Subject Classification (2020): 65G20, 35K58, 35G30, 35G60, 65N35, 47H10, 37C20. 
+
+Keywords: Rigorous numerics, semi-linear boundary value problems, spectral methods, fixed-point argument, stability of stationary solutions. 
+
+Contents 
+
+1. Introduction 22. Formulation of the problem using Gegenbauer polynomials 52.1. Introduction to the Gegenbauer polynomials 52.2. Banach algebra and different representations 62.3. Differential and boundary operators in coefficient spaces 72.4. Linear Problem 11 2.5. Definition of the zero finding problem 14 2.6. Compactness estimates for DK( ¯U ) 16 3. A Newton-Kantorovich approach for studying steady states 19 3.1. A general framework 19 3.2. Computable estimates 21 4. Stability 22 4.1. Enclosure of the spectrum using Gershgorin disks 23 4.2. Enclosure of the spectrum directly based on the generalized eigenproblem 30 4.3. Summary 37 5. Applications 37 
+
+Date : March 31, 2026.  
+
+> 1
+> arXiv:2603.27198v1 [math.AP] 28 Mar 2026 EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 2
+
+5.1. A simple parabolic PDE 37 5.2. Kuramoto–Sivashinsky PDE 41 Appendix A. Properties for the inverse of the Dirichlet and Neumann Laplacians 46 Appendix B. Proof of Lemma 5.11 49 Acknowledgments 50 References 50 1. Introduction 
+
+We are interested in the following class of parabolic PDEs: 
+
+
+
+∂t v = ( −1) m+1 ∂2mx v + Q(v) + ψ(x) (t, x ) ∈ (0 , T ) × (−1, 1) ,
+
+> 2m−1
+
+∑
+
+> j=0
+
+βj,i ∂jx v(t, −1) = 0 for all i ∈ { 1, 2, . . . , m },
+
+> 2m−1
+
+∑
+
+> j=0
+
+γj,i ∂jx v(t, 1) = 0 for all i ∈ { 1, 2, . . . , m },
+
+(1) complemented with some initial conditions and where βj,i and γj,i are constant coefficients. We assume that Q(v) is a polynomial in v and in its partial derivatives in x up to the order 2 m − 1. More specifically, we assume that 
+
+Q(v) = vj0 (∂xv)j1 . . . (∂2m−1 
+
+> x
+
+v)j2m−1 , where ( j0, . . . , j 2m−1) ∈ (N0)2m,(2) where N0 denotes the set of nonnegative integers. Under (2), we have that (1) is autonomous and semi-linear. Finally, the source term ψ = ψ(x) is assumed to be a time-independent polynomial in 
+
+x.In order to understand the global dynamics of (1), a first step is to study its equilibria and their stability. More precisely, the equilibria solve the stationary version of (1) given by (−1) m+1 ∂2mx v + Q(v) + ψ = 0 , x ∈ (−1, 1) ,(3) with the boundary conditions 
+
+
+
+> 2m−1
+
+∑
+
+> j=0
+
+βj,i ∂jx v(−1) = 0 for all i ∈ { 1, 2, . . . , m },
+
+> 2m−1
+
+∑
+
+> j=0
+
+γj,i ∂jx v(1) = 0 for all i ∈ { 1, 2, . . . , m }.
+
+(4) However, studying elliptic equations of the form (3)–(4) can already be very challenging, if only because such equations can have multiple non-trivial solutions. In the past decades, computer-assisted methods have emerged to study PDEs. One of the interest-ing features of these techniques is that they not only provide existence results, but also a quanti-tative description of the obtained solutions, as the resulting theorems take the form: “there exists a solution v in a small and explicit neighborhood of a given function ¯ v which is explicitly known” (and typically obtained by numerically solving the PDE). A popular approach for proving such statements is to use a fixed-point argument in the spirit of the Newton-Kantorovich theorem [37], although more geometrical or topological approaches can also be very successful [24, 39, 40]. For a broader overview of computer-assisted proofs in PDEs, we refer to the survey [20], the book [30] and the references therein. Among the computer-assisted proofs for elliptic PDEs based on the Newton-Kantorovich theorem, most works use either finite elements or Fourier series to approximate solutions. While finite elements are much more flexible regarding the geometry of the domain, Fourier series are still a very EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 3
+
+natural tool to use for many problems, and when they can be used they not only lead to accurate numerics, but also to more efficient and streamlined computer-assisted proofs [22, 36]. In particular, once a steady state of a semilinear parabolic PDE has been obtained through a computer-assisted proof using Fourier series, it is often straightforward to also obtain the Morse index of the solution, i.e., the number of unstable eigenvalues of the linearization at the equilibrium, essentially because the computer-assisted proof of the steady state already requires a relatively sharp control of that linear operator [2, 33]. For another approach based on cone conditions and self-consistent bounds, see for a general description [43], and [42] for an early PDE example. However, Fourier series can only be used on the torus, or for equations posed on (hyper-)rectangular domains with homogeneous Dirichlet or Neumann boundary conditions and appropriate symmetries. For instance, even in dimension 1 and for a simple equation like 
+
+{
+
+∂2
+
+> x
+
+v + α (v2 + 1) = 0 x ∈ (0 , 1) ,v(0) = v(1) = 0 ,
+
+(5) Fourier series do not seem to be a suitable option, as the boundary conditions require first extending the solution v as an odd function on ( −1, 1), and therefore using sine series, but the term α(v2 +1) is not odd and therefore very poorly approximated using sine series. For such an example, or for more complicated boundary conditions, a natural alternative to Fourier series are Chebyshev series, which have similar properties but are not restricted to periodic (or periodizable) problems. Chebyshev-based approximations are well-known to be very efficient for approaching smooth functions, and in particular for solving boundary value problems [4]. Computer-assisted proofs for nonlinear boundary value problems using Chebyshev series can already be found in [27, 38] and many other works, and also easily accommodate complicated boundary conditions [8]. However, it should be noted that in all these works, equations of the form (3) are first rewritten as systems of first order equations, thereby losing the higher regularizing properties of (3), which leads to suboptimal estimates and unnecessarily expensive computer-assisted proofs. In this paper, we show that by using different families of Gegenbauer polynomials (which generalize Chebyshev polynomials), one can easily retain the high order structure of (3), leading to computer-assisted proofs with very similar estimates to what one would obtain with Fourier series on the torus. We note that this strategy is also known to be useful from a purely numerical point of view [31]. The second and main contribution of this paper is to introduce an approach allowing to also study the spectral stability of the steady states obtained with such computer-assisted proofs based on Gegenbauer polynomials, that is, to rigorously count the number of unstable eigenvalues (because the linearized equation is elliptic and we work on a bounded domain, there are only eigenvalues in the spectrum). More precisely, given a steady state solution ˜ v of (1), we want to obtain computable and rigorous enclosures for each λ ∈ C such that there exists a non-trivial function v : [ −1, 1] → C
+
+satisfying 
+
+(−1) m+1 ∂2mx v + DQ(˜ v)v = λv x ∈ (−1, 1) ,
+
+> 2m−1
+
+∑
+
+> j=0
+
+βj,i ∂jx v(−1) = 0 for all i ∈ { 1, 2, . . . , m },
+
+> 2m−1
+
+∑
+
+> j=0
+
+γj,i ∂jx v(1) = 0 for all i ∈ { 1, 2, . . . , m }.
+
+(6) In the sequel, we say that such an eigenvalue λ is stable if ℜ(λ) < 0 and unstable if ℜ(λ) > 0. Situations with eigenvalues having zero real part require extra work and are not considered here, but we emphasize that our approach can be used without knowing a priori that there are no eigenvalues with zero real part. In the context of this paper, note that spectral (in)stability implies nonlinear (in)stability since we work with parabolic-semilinear PDEs, see, e.g., [21, Section 5.1]. our goal is to obtain sufficiently sharp quantitative enclosures to be able to rigorously determine the number of unstable eigenvalues. The main reason we will be able to do so is because our computer-assisted proof for the steady state solution ˜ v already provides us with a lot of quantitative information about the linearized operator. However, it should be noted that, in contrast to similar problems that can be written using Fourier EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 4
+
+series, we have to deal here with a generalized eigenvalue problem. This significantly complicates the analysis. Indeed, if the boundary conditions and symmetries in (6) allowed for a Fourier series expansion, one could simply write (6) in Fourier space, and use a Gershgorin argument to directly control the spectrum of ( −1) m+1 ∂2mx + DQ(˜ v). Such arguments can be found, e.g., in [11, 14], see also [2] for earlier computer-assisted stability proofs of the same flavor. In our setting, it seems a generalized eigenvalue problem is unavoidable, because the more general boundary conditions cannot easily be incorporated in the function space, and because ∂2mx does not have a simple expression in the Chebyshev basis. As we will see in Section 2.3, ∂2mx does have a simple expression when considered between different Gegenbauer bases, but this would require adding a change of basis on the λv term, and therefore would also lead to a generalized eigenvalue problem. We eventually recast this generalized eigenvalue problem as a standard eigenvalue problem, but we then end up having to control the spectrum of a compact operator whose eigenvalues accumulate at zero, which makes distinguishing between stable and unstable eigenvalues much more challenging. We overcome this issue by combining a computer-assisted Gershgorin argument with a priori bounds on the eigenvalues. We also propose an alternative procedure, based on directly studying the generalized eigenvalue problem, which is slightly more technical but sometimes more efficient in practice. In summary, we showcase in this paper that the existence and the stability of steady states of equations of the form (1) can be studied with efficient computer-assisted proofs based on spec-tral methods, thus generalizing the known Fourier techniques from the literature that were only applicable on the torus (or for problems admitting a smooth periodic extension). In particular, this work represents a first step towards the application of such methods for the study of applied models relying on PDEs with possibly intricate boundary conditions, and for which more classical computer-assisted techniques are not applicable. If, for pedagogical purposes, we will only consider here some academic examples of PDEs (see Section 5), we intend to study more complex models in future work. We have in mind, for instance, to pursue the analysis done in [8] to study the stability of traveling waves solutions for the so-called Diffusion Poisson Coupled Model (DPCM). This model is a one-dimensional free-boundary problem involving drift-diffusion equations coupled with a Poisson equation and some nonlinear Fourier boundary conditions. It arises in the general study of the long term safety of the geological repository of nuclear wastes. Another possible field of application of the methods developed in this work is the uniqueness or non-uniqueness of one-dimensional stationary solutions for semiconductor equations [28, Chapter 3]. These systems are also composed of drift-diffusion equations coupled with a Poisson equation and either Dirichlet or mixed Dirichlet/Neumann boundary conditions. If the uniqueness of stationary solutions is known for small applied potentials [28, Section 3.4], only a few theoretical results are known in full generality; see [1] and references therein. The two above examples are not exactly of the form (3)–(4). However, this framework is used throughout this paper for the sake of simplifying the presentation and because the point of this paper is to focus on one main difficulty shared by these examples: boundary conditions that are not compatible with Fourier expansions. Let us also emphasize that the setup we introduce is flexible enough to accommodate a broader class of problems that could contain, for instance, 
+
+• nonhomogeneous terms or boundary conditions, 
+
+• nonlinear boundary conditions, 
+
+• equations containing a sum of several terms of the form (2), 
+
+• systems instead of scalar equations, 
+
+• analytic but non polynomial nonlinearities. The crucial assumptions are that the equation (or system) is elliptic and semilinear, and posed on a bounded interval. The extension to higher dimensional rectangular domains is non-trivial but will be studied in a future work. Let us also note that, even though we focus here on boundary value problems, our setup could also be used to enclose solutions of ODEs with initial conditions, without having to first rewrite them as a system of first order equations, as suggested in [27]. For a EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 5
+
+slightly different setup also using Chebyshev-based approximation to rigorously integrate (linear) ODEs, see [13, 12]. The remainder of the paper is organized as follows. In Section 2 we give a sequence space reformulation of the steady state problem (3)-(4) using Gegenbauer bases, which is amenable to computer-assisted proofs, and derive related quantitative compactness estimates. The usual Newton-Kantorovich strategy for computer-assisted proof is recalled in Section 3, and applied to the steady state problem (3)-(4). In Section 4, we then present two separate approaches for study-ing the stability of steady states of (1). The whole procedure is then applied to two examples in Section 5. Finally, Appendix A contains explicit formulas for the Dirichlet and Neumann Laplacian operators in sequence spaces, and Appendix B the proof of an a priori estimate regarding possible unstable eigenvalues of the Kuramoto–Sivashinsky model. 2. Formulation of the problem using Gegenbauer polynomials 
+
+We first recall the definition of Gegenbauer polynomials in Section 2.1, which allows us to fix some notation, and recall some of their basic properties. For a more thorough treatment, we refer to [19, (18)] and [6]. Suitable Banach spaces and transformations between sequences of coefficients and function series are discussed in Section 2.2, and formula for differential operators in sequence spaces are then derived in Section 2.3. We then first express and solve linear boundary value problems in coefficient space in Section 2.4, and then finally rewrite the whole problem (3)-(4) in coefficient space in Section 2.5. Section 2.6 contains quantitative compactness estimates that play a critical role in our computer-assisted proofs. 2.1. Introduction to the Gegenbauer polynomials. In the entire paper, N0 denotes the set of nonnegative integers and N the set of positive integers. For any k ∈ N0, the Gegenbauer polynomials of order k, denoted ( G(k) 
+
+> n
+
+)∞
+
+> n=0
+
+, are orthogonal polynomials on the interval [ −1, 1] associated with the weight ωk : ( −1, 1) → R defined as 
+
+ωk(x) def 
+
+= (1 − x2)k− 1 
+
+> 2
+
+.(7) More precisely, we have 
+
+∫ 1
+
+> −1
+
+G(k) 
+
+> i
+
+(x) G(k) 
+
+> j
+
+(x) ωk(x) dx = Ω k,j δi,j ,(8) where δi,j is the usual Kronecker delta, and the normalizing sequence factor (Ω k,j )j∈N0 is given by (9) Ωk,j 
+
+> def
+
+=
+
+
+
+π
+
+2 − δ0,j 
+
+if k = 0 ,π 21−2k Γ( j + 2 k)
+
+j! ( j + k) Γ( k)2 if k ∈ N.
+
+Note that the cases k = 0 and k = 1 correspond to the Chebyshev polynomials of the first and of the second kind respectively. More generally, Gegenbauer polynomials are a specific case of Jacobi polynomials, for which the weight (1 − x)α(1 + x)β is taken even (i.e., α = β). We recall below some well-known formulas involving Gegenbauer polynomials that will prove useful in our work, and refer to [19, (18)] for a more exhaustive description of their properties and further references. 
+
+Lemma 2.1 (Evaluation, derivatives and change of basis) . Given n ∈ N0, we have the following properties: 
+
+G(k) 
+
+> n
+
+(1) = 
+
+
+
+1 if k = 0 ,
+
+Γ(2 k + n)
+
+Γ(2 k) n! if k ∈ N, and G(k) 
+
+> n
+
+(−1) = 
+
+
+
+(−1) n if k = 0 ,
+
+(−1) n Γ(2 k + n)
+
+Γ(2 k) n! if k ∈ N,
+
+(10) (11) d
+
+dx G(k) 
+
+> n
+
+=
+
+{
+
+n G (1) 
+
+> n−1
+
+(x) if k = 0 ,
+
+2k G (k+1)  
+
+> n−1
+
+(x) if k ∈ N,EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 6
+
+and 
+
+(12) G(k) 
+
+> n
+
+=
+
+
+
+1
+
+2
+
+(
+
+G(1)  
+
+> n
+
+− G(1) 
+
+> n−2
+
+)
+
+if k = 0 ,k
+
+n + k
+
+(
+
+G(k+1)  
+
+> n
+
+− G(k+1) 
+
+> n−2
+
+)
+
+if k ∈ N,
+
+with the convention that G(k) 
+
+> −1
+
+= G(k) 
+
+> −2
+
+= 0 for all k ∈ N0.
+
+2.2. Banach algebra and different representations. In this work, we ultimately reformulate problem (3)-(4) in terms of Chebyshev coefficients only, but more general Gegenbauer expansions prove useful in various intermediate steps, and we often go back and forth between sequences of Gegenbauer coefficients and the corresponding function series. In order to keep track of these different formulations, we introduce a Fourier type transform associated to the Gegenbauer poly-nomials. For this purpose, we define L2 
+
+> ωk
+
+as the ωk weighted L2(−1, 1) space, i.e., the set of measurable functions u : ( −1, 1) → R such that 
+
+‖u‖2
+
+> L2
+> ωk
+> def
+
+=
+
+∫ 1
+
+> −1
+
+|u(x)|2 ωk(x) dx < ∞.
+
+Similarly, recalling definition (9) of the sequence Ω k = (Ω k,n )n∈N0 , we define ℓ2Ωk as the Ω k weighted 
+
+ℓ2(N0) sequence space, i.e., the set of sequences U ∈ RN0 such that 
+
+‖U ‖2
+
+> ℓ2Ωk
+> def
+
+= ∑
+
+> n∈N0
+
+|Un|2 Ωk,n < ∞.
+
+Then, for any k ∈ N0, define the map Gk : ℓ2Ωk → L2 
+
+> ωk
+
+as 
+
+Gk (U ) = U0 + 2 
+
+> ∞
+
+∑
+
+> n=1
+
+Un G(k) 
+
+> n
+
+for all U = ( Un)n∈N0 in ℓ2Ωk .(13) Using (8), we observe that Gk : ℓ2Ωk → L2 
+
+> ωk
+
+has an inverse G−1 
+
+> k
+
+: L2 
+
+> ωk
+
+→ ℓ2Ωk given by 
+
+(G−1 
+
+> k
+
+(u)) 
+
+> n
+
+=
+
+
+
+1
+
+Ωk, 0
+
+∫ 1
+
+> −1
+
+u(x) G(k)0 (x) ωk (x) dx if n = 0 ,
+
+1
+
+2Ω k,n 
+
+∫ 1
+
+> −1
+
+u(x) G(k) 
+
+> n
+
+(x) ωk(x)dx if n ≥ 1.
+
+(14) The maps Gk send a sequence of Gegenbauer coefficients to the corresponding Gegenbauer series, and vice versa for G−1 
+
+> k
+
+. Throughout the paper, we will systematically use uppercase letters like U
+
+to denote sequences, and lowercase symbols like u to denote the associated function. While ℓ2 and L2 spaces are the natural ones to define the above transformations, solutions of (3)-(4) are expected to be much more regular, and other choices of space can greatly simplify the analysis required to rigorously validate approximate solutions. Given ν ≥ 1, we define the Banach space ℓ1
+
+> ν
+
+by 
+
+ℓ1
+
+> ν
+> def
+
+= {U = ( Un)∞
+
+> n=0
+
+, ‖U ‖ν < ∞} , where ‖U ‖ν
+
+> def
+
+= |U0| + 2 ∑
+
+> n∈N
+
+|Un|νn.(15) Such spaces are convenient to represent Chebyshev coefficients of analytic functions [35]; and they have the useful property of being Banach algebra under the discrete convolution product corresponding to the point-wise product of functions. If analytic regularity is too much to ask for the problem at hand, weaker norms (with algebraic weights instead of exponential ones) corresponding to functions having a finite number of derivatives can also be used. For any k ∈ N0, we define E(ν) 
+
+> k
+
+∈ ℓ1 
+
+> ν
+
+to be the sequence given by (16) 
+
+(
+
+E(ν)
+
+> k
+
+) 
+
+> n
+
+=
+
+
+
+1 if k = n = 0  
+
+> 1
+> 2νk
+
+if k ≥ 1 and n = k, 
+
+0 otherwise .EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 7
+
+The family 
+
+(
+
+E(ν)
+
+> k
+
+)
+
+> k∈N0
+
+is the canonical Schauder basis of ℓ1 
+
+> ν
+
+, normalized so that ‖E(ν) 
+
+> k
+
+‖ν = 1 for all 
+
+k. The Banach space ℓ1 
+
+> ν
+
+is in fact a Banach algebra, with the product inherited from the product of functions. 
+
+Lemma 2.2. Let ν ≥ 1. For all U, V ∈ ℓ1 
+
+> ν
+
+, we define their discrete convolution product U ∗ V def 
+
+=
+
+G−10 (G0(U )G0(V )) . This discrete convolution product can be computed as follows: 
+
+(U ∗ V )n
+
+> def
+
+= ∑ 
+
+> n′∈Z
+
+U|n′| V|n−n′ |, for all n ∈ N0,
+
+and satisfies 
+
+‖U ∗ V ‖ν ≤ ‖ U ‖ν ‖V ‖ν .
+
+Remark 2.3. Similarly, one can define a discrete convolution product associated to each Gegen-bauer expansion, i.e., an operation ∗k such that U ∗k V = G−1 
+
+> k
+
+(Gk(U )Gk (V )) , which, with a suitable choice of norm or of normalization Ωk, also yields a Banach algebra structure [7, 16, 34]. In this work, we use general Gegenbauer expansions in order to derive formula for linear differential oper-ator in sequence space, but all the nonlinear operations will apply to Chebyshev series only, which is why such generalized convolution products are not needed in this paper. 
+
+Also note that, for all ν ≥ 1, the ℓ1 
+
+> ν
+
+norm of the coefficients controls the supremum norm of the function: for all U ∈ ℓ1 
+
+> ν
+
+,(17) ‖G 0(U )‖∞
+
+> def
+
+= max  
+
+> x∈[−1,1]
+
+|G 0(U )( x)| ≤ ‖ U ‖ν ,
+
+since |G(0)  
+
+> n
+
+(x)| ≤ 1 for all x ∈ [−1, 1]. Finally, we introduce projection operators, which will naturally appear when we use finite dimen-sional objects to approximate infinite dimensional ones. 
+
+Definition 2.4. For any N ∈ N, we introduce the projection operators π≤N : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+and 
+
+π>N : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+defined as 
+
+(π≤N (U )) 
+
+> n
+
+=
+
+{ Un, if 0 ≤ n ≤ N, 
+
+0, otherwise , and (π>N (U )) 
+
+> n
+
+=
+
+{ 0, if 0 ≤ n ≤ N, Un, otherwise ,
+
+for all U ∈ ℓ1 
+
+> ν
+
+.
+
+We note that we frequently abuse notations when using these projections. For instance, we often identify elements of π≤N ℓ1 
+
+> ν
+
+with finite vectors in RN +1 and vice versa, as well as linear operators on π≤N ℓ1 
+
+> ν
+
+with finite matrices. Similarly, we identify linear operators on π≤N ℓ1 
+
+> ν
+
+with their natural injection as linear operators on ℓ1 
+
+> ν
+
+. That is, given a linear operator A0 : π≤N ℓ1 
+
+> ν
+
+→ π≤N ℓ1 
+
+> ν
+
+, we use the same symbol A0 for the operator ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+which is defined, for all u ∈ ℓ1 
+
+> ν
+
+, by 
+
+A0u = A0π≤N u ∈ π≤N ℓ1 
+
+> ν
+
+⊂ ℓ1 
+
+> ν
+
+.
+
+2.3. Differential and boundary operators in coefficient spaces. Lemma 2.1 shows that Gegenbauer polynomials form a natural family of polynomials for the study of differential equations. Indeed, similarly as for Fourier series, identity (11) provides a simple representation of derivative operators in coefficient spaces. These operators are diagonals between the families ( G(k) 
+
+> n
+
+)n and (G(k+1)  
+
+> n
+
+)n (up to a shift index). This property is of major importance for numerical investigations as well as for the computer-assisted analysis of this manuscript (although we note that slightly more complicated structures, e.g., tridiagonal operators in coefficient space, can also sometimes be handled [10, 9, 17]). Moreover, we saw in the previous section that we can define a discrete convolution in coefficient space for the representation of products, with corresponding Banach algebras ℓ1 
+
+> ν
+
+in which (analytic) nonlinearities are particularly easy to control. We are therefore going to use ℓ1 
+
+> ν
+
+in order to recast (3)–(4) and study its solutions. For this purpose, we will look for a solution to (3)–(4) of the form G0(V ), for an element V ∈ ℓ1 
+
+> ν
+
+,where we recall that G(0)  
+
+> n
+
+= Tn is nothing but the n-th Chebyshev polynomial of the first kind. For EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 8
+
+any k ∈ N, the k-th derivate operator dk 
+
+> dx k
+
+has a somewhat complicated expression when written from the basis ( G(0)  
+
+> n
+
+)n to itself. However, according to (11), dk 
+
+> dx k
+
+has a much simpler expression from the basis ( G(0)  
+
+> n
+
+)n to the basis ( G(k) 
+
+> n
+
+)n. That is, dk 
+
+> dx k
+
+has a natural Gegenbauer representation as an (unbounded) operator Dk : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+given as 
+
+Dk
+
+> def
+
+= G−1
+
+> k
+
+dk
+
+dx k G0 where (DkU )n =
+
+{
+
+2k k! Uk if n = 0 ,
+
+(n + k) 2 k−1 (k − 1)! Un+k if n ∈ N.
+
+(18) In other words, given a sequence U of Chebyshev coefficients corresponding to a function u = G0(U ), 
+
+DkU gives the coefficients of dk u 
+
+> dx k
+
+, but in the basis ( G(k) 
+
+> n
+
+)n. The operator Dk already has a very simple expression, but in practice it is often more convenient to work with diagonal operators, so we prefer to consider a shift of Dk. For this purpose, let us consider the linear operator Σ : ℓ1 
+
+> ν
+
+→ ℓ1
+
+> ν
+
+defined as (Σ U )n
+
+> def
+
+=
+
+{
+
+0 if n = 0 ,Un−1 if n ∈ N.
+
+(19) We note that Σ kDk : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+is diagonal. Moreover, because of the shift Σ k, the first k rows of ΣkDk are empty, and we will be able to use these rows to incorporate the boundary conditions associated to our differential operators, and hence to represent both the differential and boundary parts of the problem in sequence space using a single operator (see (36)). We now introduce another important operator, which is the inverse of Σ kDk on its range. 
+
+Lemma 2.5. Let k ∈ N and let D† 
+
+> k
+
+: ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+be defined as 
+
+(D†
+
+> k
+
+U )n =
+
+
+
+0 if 0 ≤ n ≤ k − 1,Uk
+
+2k k! if n = k, Un
+
+n2k−1 (k − 1)! if n ≥ k + 1 .
+
+(20) 
+
+Then, we have 
+
+(21) (ΣkDk
+
+) D† 
+
+> k
+
+= D†
+
+> k
+
+(ΣkDk
+
+) = π>k −1 and DkD†
+
+> k
+
+Σk = I,
+
+with π>k −1 the projection introduced in Definition 2.4. Proof. The proof is a direct consequence of the fact that Σ kDk : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+is diagonal, combined with (18). 
+
+The above lemma will be particularly useful when inverting linear differential operator (cf. Section 2.4). The operators Dk provide us with simple representation of derivatives acting on Gegenbauer series, but they map between different Gegenbauer bases. When considering a PDE which contains differential operators of different orders, it is therefore helpful to also introduce operators allowing to move from one basis to another, with the goal of ultimately recasting the whole problem using single and common basis. Therefore, for all k ∈ N0, we define Ck
+
+> def
+
+= G−1
+
+> k+1
+
+Gk : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+as the change of basis operator mapping a sequence U in the basis ( G(k) 
+
+> n
+
+)n to its representation in the basis ( G(k+1)  
+
+> n
+
+)n. According to (12), we have (C0U )n
+
+> def
+
+=
+
+
+
+U0 − U2 if n = 0 ,
+
+1
+
+2 (Un − Un+2 ) if n ∈ N,
+
+(22) and (CkU )n
+
+> def
+
+=
+
+
+
+U0 − 2k
+
+2 + k U2 if n = 0 ,k
+
+n + k Un − k
+
+n + k + 2 Un+2 if n ∈ N,
+
+(23) EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 9
+
+for all k ∈ N, and we note that Ck is indeed a well defined and bounded operator on ℓ1 
+
+> ν
+
+. Moreover, for k ≤ l we also introduce Ck,l : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+the change of basis from ( G(k) 
+
+> n
+
+)n to ( G(l) 
+
+> n
+
+)n, which can be expressed as follows (24) Ck,l 
+
+> def
+
+= G−1 
+
+> l
+
+Gk = Cl−1Cl−2 . . . Ck+1 Ck,
+
+the last formula being valid only if k < l . An important point to note is that Σ Ck is tridiagonal, and more generally that Σ l−kCk,l has bandwidth ( l − k). This property will prove useful in several estimates to come. Next, we introduce a representation in the Chebyshev basis ( G(0)  
+
+> n
+
+)n of antiderivative operators. Let S : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+given by (SU )n
+
+> def
+
+=
+
+
+
+U0 − 1
+
+2 U1 +
+
+> ∞
+
+∑
+
+> n=2
+
+(−1) n+1 Un
+
+n2 − 1 if n = 0 1
+
+2n (Un−1 − Un+1 ) if n ∈ N,
+
+(25) and, for all i ∈ N0,
+
+S(i) def 
+
+= π>i −1Si : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+.(26) Thanks to Lemma 2.1, one can readily see that 
+
+S = G−10
+
+∫ x
+
+> −1
+
+G0,
+
+i.e., S provides the coefficients representation of the antiderivative which vanishes at −1. In turn, 
+
+S(i) corresponds to taking i antiderivatives, but this time with the constants fixed so that the i
+
+first Chebyshev coefficients are equal to 0, because of the incorporation of the projection π>i −1.Unsurprisingly, S(i) can also be expressed in terms of the operator D† 
+
+> i
+
+. Moreover, while S(i)S(j)
+
+is not equal to S(i+j) in general (because the terms of order less that i + j do not necessarily match), this becomes true when working only with high enough Chebyshev modes. The previous two comments are made precise in the statement below. 
+
+Lemma 2.6. For all i ∈ N,
+
+S(i) = D† 
+
+> i
+
+ΣiC0,i .(27) 
+
+Moreover, for all i, j ∈ N,
+
+S(i)S(j)π>2( i+j)−1 = S(i+j) π>2( i+j)−1.(28) 
+
+Proof. Let W ∈ ℓ1 
+
+> ν
+
+, U = S(i)W , and consider the function representations w = G0(W ) and 
+
+u = G0(U ). By construction, u is the unique solution to 
+
+{∂ix u = w
+
+∫ 1 
+
+> −1
+
+u(x)G(0)  
+
+> n
+
+(x)ω0(x) dx = 0 for all n ∈ { 0, . . . , i − 1}.
+
+In sequence space, U is therefore the unique solution to 
+
+{
+
+GiDiU = G0W, π≤i−1U = 0 ,
+
+and we simply have to check that ˜U = D† 
+
+> i
+
+ΣiC0,i W satisfies these equations. The fact that π≤i−1 ˜U =0 is immediate since the range of D† 
+
+> i
+
+is included in π>i −1ℓ1 
+
+> ν
+
+, and identity (21) and definition (24) directly yield 
+
+GiDi ˜U = GiC0,i W = G0W. 
+
+We now proceed to prove (28). First, recall that S(i) amounts to taking i antiderivatives, hence 
+
+S(i)S(j) does amount to taking i + j antiderivatives, and may only differ from S(i+j) in the first 
+
+i + j modes. That is, we have 
+
+π>i +j−1 S(i)S(j) = π>i +j−1S(i+j) .(29) EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 10 
+
+In order to rigorously establish (29), we use the fact that S(i) has bandwidth i, therefore 
+
+π>i +j−1 Si = π>i +j−1 S(i) = π>i +j−1S(i)π>j −1 = π>i +j−1 Siπ>j −1,
+
+which yields 
+
+π>i +j−1S(i)S(j) = π>i +j−1 Siπ>j −1Sj
+
+= π>i +j−1 SiSj
+
+= π>i +j−1 Si+j
+
+= π>i +j−1 S(i+j) .
+
+Using again several times the fact that S(k) has bandwidth k for all k ∈ N, we then get 
+
+S(i)S(j) π>2( i+j)−1 = π>i +j−1 S(i)S(j)π>2( i+j)−1(29) 
+
+= π>i +j−1S(i+j) π>2( i+j)−1
+
+= S(i+j) π>2( i+j)−1 ,
+
+which concludes the proof. 
+
+Finally, let us describe how boundary conditions of the form (4) can be rewritten in sequence space. Taking U ∈ ℓ1 
+
+> ν
+
+, j ∈ { 1, . . . , 2m}, and using (11) and (10), we get that ∂jxu(1) is given by 
+
+B1(U, j ) def 
+
+= 2 j j!Uj + 2 j (j − 1)! 
+
+> ∞
+
+∑
+
+> n=1
+
+(n + j)Γ(2 j + n)
+
+Γ(2 j)n! Un+j .(30) Similarly, ∂jxu(−1) is given by 
+
+B−1(U, j ) def 
+
+= 2 j j!Uj + 2 j (j − 1)! 
+
+> ∞
+
+∑
+
+> n=1
+
+(−1) n (n + j)Γ(2 j + n)
+
+Γ(2 j)n! Un+j .
+
+For the case j = 0, we obtain 
+
+B1(U, 0) def 
+
+= U0 + 2 
+
+> ∞
+
+∑
+
+> n=1
+
+Un and B−1(U, 0) def 
+
+= U0 + 2 
+
+> ∞
+
+∑
+
+> n=1
+
+(−1) nUn.(31) For simplification, we define αj,n as 
+
+αj,n =
+
+
+
+2j−1j! if n = 0 ,
+
+2j−1(j − 1)! (n + j)Γ(2 j + n)
+
+Γ(2 j)n! if n ≥ 1,
+
+for all n ∈ N0 and all j ≥ 1, and we set α0,n = 1 for all n ∈ N0. The expressions for B±1(U, j ) then simplifies to 
+
+B1(U, j ) = 2 
+
+> ∞
+
+∑
+
+> n=0
+
+αj,n Un+j and B−1(U, j ) = 2 
+
+> ∞
+
+∑
+
+> n=0
+
+(−1) nαj,n Un+j , ∀j ≥ 1.
+
+We also note that, since B±1(U, j ) = ∂jxu(±1), with u = G0U , we can write the term B±1(U, j ) as 
+
+B±1(G−10 ∂jxu, 0), so that 
+
+B±1(U, j ) = B±1(G−10 Gj Dj U, 0) .(32) Finally, we define B : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+as the linear operator given by (33) (B(U )) n =
+
+
+
+> 2m−1
+
+∑
+
+> j=0
+
+βj,n B−1(U, j ) if n = 0 , . . . , m − 1,
+
+> 2m−1
+
+∑
+
+> j=0
+
+γj,n −m B1(U, j ) if n = m, . . . , 2m − 1,
+
+0 if n ≥ 2m, 
+
+which encodes the boundary conditions (4) of the problem. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 11 
+
+2.4. Linear Problem. We now use the objects introduced up to now in Section 2 in order to write and solve linear boundary value problems in sequence space. More specifically, given W ∈ ℓ1
+
+> ν
+
+and w = G0(W ), we are interested in solutions v of the following problem: 
+
+
+
+(−1) m+1 ∂2mx v = w on ( −1, 1) 
+
+> 2m−1
+
+∑
+
+> j=0
+
+βj,i ∂jx v(−1) = 0 for all i ∈ { 1, 2, . . . , m },
+
+> 2m−1
+
+∑
+
+> j=0
+
+γj,i ∂jx v(1) = 0 for all i ∈ { 1, 2, . . . , m }.
+
+(34) This linear problem will play a central role both in the analysis of the nonlinear steady state equation (3), and in the study of the stability of equilibria. 
+
+Remark 2.7. While it is often more common to work with positive operators, i.e., with (−1) m∂2mx ,we focus on (−1) m+1 ∂2mx here because this is the operator appearing in the linearization, when studying stability. 
+
+It is clear from a functional-analytic point of view that the above problem may or may not be well posed, depending on the boundary conditions. This can also easily be seen in sequence space, and we provide below an explicit criterion, that can be checked in practice, to ensure well-posedness. If this criterion is satisfied, we then provide a computable formula in sequence space for the inverse of the linear operator plus boundary conditions. 
+
+Remark 2.8. In practice, we may have to restrict to a suitable subspace or to add extra symmetry constraints in order to recover a well posed problem. This is well known, for instance when using homogeneous Neumann boundary conditions. We will not discuss this example further here, but it can easily be dealt with within our sequence space framework, as will be illustrated in Section 5.2. 
+
+Proposition 2.9. Let ν ≥ 1, W ∈ ℓ1 
+
+> ν
+
+, w = G0(W ), and B the operator representing the boundary conditions defined in (33) . There exists a unique V ∈ ℓ1 
+
+> ν
+
+such that v = G0(V ) solves the linear problem (34) if and only if the operator π≤2m−1Bπ≤2m−1 : π≤2m−1ℓ1 
+
+> ν
+
+→ π≤2m−1ℓ1 
+
+> ν
+
+is invertible. In that case, denoting B† 
+
+> 2m
+
+: π≤2m−1ℓ1 
+
+> ν
+
+→ π≤2m−1ℓ1 
+
+> ν
+
+the inverse of π≤2m−1Bπ≤2m−1, the operator 
+
+L−1 def 
+
+= ( −1) m+1 (
+
+I − B †
+
+> 2m
+
+B
+
+)
+
+D†
+
+> 2m
+
+Σ2mC0,2m = ( −1) m+1 (
+
+I − B †
+
+> 2m
+
+B
+
+)
+
+S(2 m)
+
+(35) 
+
+is well defined and bounded on ℓ1 
+
+> ν
+
+, and V = L−1W .Proof. Let us first note that any element V in the kernel of π≤2m−1Bπ≤2m−1 corresponds to a polynomial function v = G0(V ) of degree strictly less than 2 m which satisfies the boundary conditions of (34). Therefore, as soon as π≤2m−1Bπ≤2m−1 is not invertible, the linear system (34) cannot have a unique solution. We henceforth assume that π≤2m−1Bπ≤2m−1 is invertible, and study the linear system (34) in sequence space. We first present some somewhat formal calculations leading to the definition of L−1, and then prove that the resulting operator is actually well defined and solves (34). Using the notation of Section 2.3, the equation ( −1) m+1 ∂2mx v = w rewrites (−1) m+1 D2mV = C0,2mW, 
+
+and thanks to the injectivity of the shift operator Σ defined in (19), we equivalently have (−1) m+1 Σ2mD2mV = Σ 2mC0,2mW. 
+
+Moreover, since the boundary conditions of (34) are equivalent to B(V ) = 0, and only the 2 m first rows of B are nontrivial, we introduce the unbounded operator ˜L : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+given by ˜L def 
+
+= B + ( −1) m+1 Σ2mD2m,(36) which allows us to rewrite the problem (34) in sequence space as ˜LV = Σ 2mC0,2mW. (37) EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 12 
+
+Here and in the sequel, it may be useful to think of ˜L as an infinite-matrix associated to the canon-ical Schauder basis of ℓ1 
+
+> ν
+
+. In particular, using the projection operator introduced in Definition 2.4, we can write ˜L = π≤2m−1 B π≤2m−1 + π≤2m−1 B π>2m−1 + ( −1) m+1 Σ2m D2m,
+
+where in fact Σ 2m D2m = π>2m−1 Σ2m D2m π>2m−1. In other words, ˜L is block upper triangular: ˜L =
+
+
+
+π≤2m−1 ˜L π≤2m−1 π≤2m−1 ˜L π>2m−1
+
+π>2m−1 ˜L π≤2m−1 π>2m−1 ˜L π>2m−1
+
+
+
+=
+
+
+
+π≤2m−1 B π≤2m−1 π≤2m−1 B π>2m−1
+
+0 π>2m−1 (−1) m+1 Σ2m D2m π>2m−1
+
+ .
+
+Here and in the sequel, we recall that we slightly abuse notation and identify, e.g., the operator 
+
+π≤2m−1 Bπ≤2m−1 : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+and its restriction from π≤2m−1ℓ1 
+
+> ν
+
+to π≤2m−1ℓ1 
+
+> ν
+
+, which can be described as an 2 m×2m matrix. Since π>2m−1 Σ2m D2m π>2m−1 is invertible according to Lemma 2.5, and we assumed π≤2m−1 B π≤2m−1 to be invertible, one can formally invert ˜L thanks to its block-triangular structure, and we get ˜L−1 =
+
+
+
+B† 
+
+> 2m
+
+−(−1) m+1 B†
+
+> 2m
+
+π≤2m−1Bπ>2m−1D†
+
+> 2m
+
+π>2m−1
+
+0 π>2m−1 (−1) m+1 D† 
+
+> 2m
+
+π>2m−1
+
+ ,
+
+or, in a more condensed from: ˜L−1 = B† 
+
+> 2m
+
+− (−1) m+1 B†
+
+> 2m
+
+BD † 
+
+> 2m
+
++ ( −1) m+1 D†
+
+> 2m
+
+,(38) which is a particular case of Schur’s complement. Coming back to (37), and using that B†
+
+> 2m
+
+Σ2m = 0, we get 
+
+V = ˜L−1Σ2mC0,2mW = ( −1) m+1 (
+
+I − B †
+
+> 2m
+
+B
+
+)
+
+D†
+
+> 2m
+
+Σ2mC0,2mW, 
+
+which yields formula (35). Note that the only potentially unbounded operator involved in the definition of L−1 is B. Therefore, recalling (33), it suffices to prove that W 7 → B ±1
+
+(
+
+D†
+
+> 2m
+
+Σ2mC0,2mW, j 
+
+)
+
+is a well defined linear form on ℓ1 
+
+> ν
+
+for all j ∈ { 0, . . . , 2m − 1}, in order to check that L−1 is indeed a bounded operator on ℓ1 
+
+> ν
+
+.This is in fact an immediate consequence of Lemma 2.12 below. We now denote V = L−1W , and we prove that v = G0(V ) indeed solves (34). First, observe that B(I − B †
+
+> 2m
+
+B) = 0, and hence B(V ) = 0, which means that v satisfies the boundary conditions of (34). It remains to check that ( −1) m+1 ∂2mx v = w. Note that D2mπ≤2m−1 = 0, hence D2mB† 
+
+> 2m
+
+=0, and using (21) we then get 
+
+D2mL−1 = ( −1) m+1 D2mD†
+
+> 2m
+
+Σ2mC0,2m = ( −1) m+1 C0,2m,
+
+which indeed yields (−1) m+1 ∂2mx v = ( −1) m+1 G2mD2mV
+
+= ( −1) m+1 G2mD2mL−1W
+
+= G2mC0,2mW
+
+= G0W
+
+= w. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 13 
+
+Obviously, if π≤2m−1Bπ≤2m−1 is invertible and ˜V ∈ ℓ1 
+
+> ν
+
+is such that G0( ˜V ) also solves (34), then ˜V =
+
+V . Indeed, under that assumption B(V − ˜V ) = 0 implies π≤2m−1(V − ˜V ) = 0, and Σ 2mD2m(V −
+
+˜V ) = 0 always implies π>2m−1(V − ˜V ) = 0. 
+
+Remark 2.10. In practice, when we want to apply Proposition (2.9) , we use rigorous numerics to prove the invertibility of the (finite) matrix π≤2m−1Bπ≤2m−1 and to compute B†
+
+> 2m
+
+. Furthermore, note that the expression of L−1 is obviously independent of how the 2m first rows of B (the boundary conditions) are ordered. 
+
+As expected, Proposition 2.9 shows that L−1 essentially amounts to taking 2 m antiderivatives, with finite range modifications incorporated in I − B †
+
+> 2m
+
+B to account for the boundary conditions. The main benefit of Proposition 2.9 is to give a general construction of the solution operator L−1
+
+of (34) in sequence space, which can be used for all orders m and any boundary conditions of the form (33). Moreover, formula (35) allows to better describe the structure of L−1. It can be split into two parts, namely ( −1) m+1 S(2 m), which is a banded operator of bandwidth 2 m, and (−1) mB†
+
+> 2m
+
+BS (2 m), whose range is contained in π≤2m−1ℓ1 
+
+> ν
+
+, and therefore corresponds to 2 m infinite rows . These structural properties of L−1 will prove helpful in several estimates to come. We end this section with two lemma giving quantitative compactness estimates for S(i), and thus for L−1, which will prove instrumental in Section 2.6. We recall that E(ν) 
+
+> k
+
+are the normalized elements of the Schauder basis of ℓ1 
+
+> ν
+
+introduced in (16), and refer to Section 2.3 for the definitions of the operators B±1.
+
+Lemma 2.11. Let ν ≥ 1, let i ∈ N, let k ≥ 2i, and let 
+
+γ(ν)
+
+> i,k
+> def
+
+=
+
+
+
+νip∏
+
+> j=1
+
+1
+
+k2 − (2 j − 1) 2 if i = 2 p for some p ∈ N,νik
+
+> p
+
+∏
+
+> j=0
+
+1
+
+k2 − (2 j)2 if i = 2 p + 1 for some p ∈ N0.
+
+(39) 
+
+Then, ‖S (i)E(ν) 
+
+> k
+
+‖ν ≤ γ(ν) 
+
+> i,k
+
+.Proof. Since k ≥ 2i, we can use (28) and get 
+
+‖S (i)E(ν) 
+
+> k
+
+‖ν = ‖S (i−1) S(1) E(ν) 
+
+> k
+
+‖ν .(40) Now, using the definition (25) of S, we obtain 
+
+S(1) E(ν) 
+
+> k
+
+= 1
+
+2kν E(ν) 
+
+> k−1
+
+− ν
+
+2k E(ν)
+
+> k+1
+
+,(41) so that 
+
+‖S (i)E(ν) 
+
+> k
+
+‖ν ≤ ν
+
+2k
+
+(
+
+‖S (i−1) E(ν)
+
+> k−1
+
+‖ν + ‖S (i−1) E(ν)
+
+> k+1
+
+‖ν
+
+)
+
+.(42) Hence, in the sequel we argue by induction. If i = 1, we get, thanks to (41), the following estimate 
+
+‖S (1) E(ν) 
+
+> k
+
+‖ν = 1
+
+2kν + ν
+
+2k ≤ ν
+
+k = γ(ν)1,k ∀k ≥ 2.
+
+Now, let i ∈ N and suppose that 
+
+‖S (i)E(ν) 
+
+> k
+
+‖ν ≤ γ(ν)
+
+> i,k
+
+for all k ≥ 2i. Then, using (42) and taking k ≥ 2( i + 1), we get 
+
+‖S (i+1) E(ν) 
+
+> k
+
+‖ν ≤ ν
+
+2k
+
+(
+
+γ(ν) 
+
+> i,k −1
+
++ γ(ν)
+
+> i,k +1
+
+)
+
+.EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 14 
+
+Suppose first that i = 2 p for some p ∈ N. Then, using (39), we have that 
+
+‖S (i+1) E(ν) 
+
+> k
+
+‖ν ≤ νi+1 
+
+2k
+
+> p
+
+∏
+
+> j=1
+
+( 1
+
+(k − 1) 2 − (2 j − 1) 2 + 1
+
+(k + 1) 2 − (2 j − 1) 2
+
+)
+
+= νi+1 
+
+2k
+
+> p
+
+∏
+
+> j=1
+
+( 1
+
+(k − 2j)( k + 2( j − 1)) + 1
+
+(k + 2 j)( k − 2( j − 1)) 
+
+)
+
+.
+
+Hence, reordering the terms, we obtain 
+
+‖S (i+1) E(ν) 
+
+> k
+
+‖ν ≤ νi+1 
+
+2
+
+γ(ν)
+
+> i−1,k
+
+νi−1
+
+( 1
+
+k − 2p + 1
+
+k + 2 p
+
+)
+
+= νi+1 γ(ν)
+
+> i−1,k
+
+νi−1
+
+k
+
+k2 − (2 p)2 = γ(ν)
+
+> i+1 ,k
+
+.
+
+We argue similarly if i is odd. Therefore, we conclude the proof by induction. 
+
+Lemma 2.12. Let ν ≥ 1, let j ∈ N and let i > j . Then, for all k ≥ 2i, we have 
+
+|B ±1(S(i)E(ν) 
+
+> k
+
+, j )| ≤ ν−kγ(1) 
+
+> i−j,k
+
+,
+
+where γ(1)  
+
+> i−j,k
+
+is defined in (39) .Proof. According to (32), 
+
+B±1(S(i)E(ν) 
+
+> k
+
+, j ) = B±1(G−10 Gj Dj S(i)E(ν) 
+
+> k
+
+, 0) .
+
+Since k ≥ 2i, we can use (28) to rewrite 
+
+S(i)E(ν) 
+
+> k
+
+= S(j)S(i−j) E(ν) 
+
+> k
+
+,
+
+and therefore, thanks to (27) and (21), 
+
+G−10 Gj Dj S(i)E(ν) 
+
+> k
+
+= G−10 Gj Dj S(j) S(i−j)E(ν)
+
+> k
+
+= G−10 Gj C0,j S(i−j)E(ν)
+
+> k
+
+= S(i−j) E(ν) 
+
+> k
+
+.
+
+In summary, we have just proven that, as one might have expected, 
+
+B±1(S(i)E(ν) 
+
+> k
+
+, j ) = B±1(S(i−j) E(ν) 
+
+> k
+
+, 0) .
+
+Finally, recalling (31) and using Lemma 2.11, we have that 
+
+|B 1(S(i−j) E(ν) 
+
+> k
+
+, 0) | ≤ ‖S (i−j) E(ν) 
+
+> k
+
+‖1 = ν−k‖S (i−j) E(1)  
+
+> k
+
+‖1 ≤ ν−kγ(1) 
+
+> i−j,k
+
+.
+
+This concludes the proof of Lemma 2.12 
+
+Recalling that S(i) corresponds to taking i antiderivatives, Lemma 2.11 simply shows that we recover the expected 1 /k i decay, with explicit constants. It is then also not surprising that the operators B±1(·, j ), which contain derivatives of order j, are compact when composed with S(i),with i > j . The main purpose of Lemma 2.12 is to make such compactness quantitative. Explicit examples are derived in the Appendix A for the Dirichlet and the Neumann Laplacian operators. 2.5. Definition of the zero finding problem. We are now ready to define a zero finding prob-lem, in coefficient space, whose zeros will correspond to solutions of (3)–(4). As is usually the case with computer-assisted proofs, there are in fact several zero-finding problems one could consider, which are mathematically equivalent but for which the analysis can differ significantly. Compared to more classical computer-assisted proofs using Fourier series, the differences are even more drastic in this work, mainly because of the impact of boundary conditions. We discuss several options below. A natural approach would be to proceed as in Section 2.4 and to add the nonlinear term, which yields the zero-finding problem: 
+
+F(V ) = ˜LV + Σ 2mC0,2mG−10 Q(G0V ) + Σ 2mC0,2mΨ,(43) EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 15 
+
+with Ψ = G−10 (ψ) Indeed, if F(V ) = 0 for some V ∈ ℓ1 
+
+> ν
+
+, then v = G0(V ) solves (3)–(4). If we only cared about proving the existence of the steady state, but not about studying its stability, this would be a convenient formulation to consider. Assuming the linear problem (34) is well-posed (this will be a standing assumption throughout, which can be checked in practice as shown in Proposition 2.9) a mathematically equivalent problem would be to look for zeros of 
+
+F(V ) = V + L−1G−10 Q(G0V ) + L−1Ψ,(44) which is the sequence-space representation of the problem (45) v + ( −1) m+1 (∂2mx
+
+)−1 Q (v) + ( −1) m+1 (∂2mx
+
+)−1 ψ = 0 ,
+
+where the inverse operator ( ∂2mx )−1 incorporates the boundary conditions (4). A key feature of the zero-finding problem (44) is that we expect its Fr´ echet derivative to be of the form “identity + compact operator”, which is a standard setup for computer-assisted proofs, because Q only contains derivatives of order strictly less than 2 m. However, getting quantitative and sharp compactness estimates might be tricky, because of the boundary conditions, which make the situation more subtle than when using Fourier series. Indeed, let us consider the sequence space representation of (−1) m+1 (∂2mx
+
+)−1 ∂ix, i.e., 
+
+L−1G−10 ∂ixG0 = L−1(C0,i )−1Di = ˜L−1Σ2mCi, 2mDi,
+
+for i ∈ { 0, . . . , 2m − 1}. Although one might expect such operator to be compact on ℓ1 
+
+> ν
+
+, this may actually not be the case if ν = 1, and when ν > 1 the compactness estimates could be quite bad if 
+
+ν is too close to 1. 
+
+Example 2.13. Given ψ odd, let us consider the following linear problem 
+
+(46) 
+
+{
+
+∂2
+
+> x
+
+v = ψ on (−1, 1) ,∂xv(1) = 0 , v is odd. Let L−11 : ℓ1 
+
+> ν,o
+
+→ ℓ1 
+
+> ν,o
+
+be the associated solution operator, which is explicitly given in (120) , and where ℓ1 
+
+> ν,o
+
+is the restriction of ℓ1 
+
+> ν
+
+to odd functions given in (110) . Then, given k ∈ N suffi-ciently large, one can prove using (120) that ‖L −11 (E(ν) 
+
+> k
+
+)‖ν = O(k−2) + O(k−2ν−k), but only that 
+
+‖L −11 G−10 ∂xG0(E(ν) 
+
+> k
+
+)‖ν = O(k−1) + O(ν−k ). In particular, since ‖E(ν) 
+
+> k
+
+‖ν = 1 for all k ≥ 1, we do not get that L−11 G−10 ∂xG0 : ℓ1 
+
+> ν,e
+
+→ ℓ1 
+
+> ν,o
+
+is compact if ν = 1 , where ℓ1 
+
+> ν,e
+
+is the restriction of ℓ1 
+
+> ν
+
+to even functions (110) .For higher order operators, the situation can be even worse: for instance, with L−1 the solution operator associated to 
+
+(47) 
+
+{
+
+−∂4
+
+> x
+
+v = ψ on (−1, 1) ,∂xv(±1) = ∂3
+
+> x
+
+v(±1) = 0 ,
+
+restricted to the subspace of odd functions to recover well-posedness, one gets that 
+
+‖L −1G−10 ∂3
+
+> x
+
+G0(E(ν) 
+
+> k
+
+)‖ν = O(k−1) + O(k3ν−k).
+
+In particular, even if this estimate guarantees that L−1G−10 ∂3
+
+> x
+
+G0 is compact for any ν > 1, our computer-assisted proofs require quantitative estimates and would therefore become very computa-tionally expensive, since ‖L −1G−10 ∂3
+
+> x
+
+G0(E(ν) 
+
+> k
+
+)‖ν only becomes small for very large values of k (or for ν much larger than one, which is then detrimental to other estimates). 
+
+These difficult O(ν−k ) or O(k3ν−k) terms only come from the boundary conditions, i.e., from the first rows of L−1. Therefore, one could in fact recover better compactness estimates by using a suitably weighted ℓ1 space, e.g., with norm 
+
+∑
+
+> n≥0
+
+|Vn|n2mνn,EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 16 
+
+but of course these faster growing weights make some other estimates worse. We emphasize that we would face similar issues if F was taken as in (43), after introducing a suitable approximate inverse of DF(V ) (see Section 3.1) based on ˜L−1.In order to circumvent these hurdles, we consider a slightly different zero-finding problem. Before actually moving to coefficient space, let us formally describe how we reformulate the problem in function space. Starting from (3), we make the change of unknown v = ( −1) m+1 (∂2mx )−1u, which yields the zero finding problem: (48) u + Q
+
+(
+
+(−1) m+1 (∂2mx
+
+)−1 u
+
+)
+
++ ψ = 0 .
+
+If u solves this equation, then v = ( −1) m+1 (∂2mx )−1u does solve (3)–(4), and vice-versa. Introducing (49) K(U ) def 
+
+= G−10 Q(G0L−1U ),
+
+which represents the nonlinear terms in sequence space, we then consider the zero-finding problem (50) F(U ) def 
+
+= U + K(U ) + Ψ = 0 ,
+
+with Ψ = G−10 (ψ) assumed to be in ℓ1 
+
+> ν
+
+, which is the coefficient-space formulation of (48). In other words, if U ∈ ℓ1 
+
+> ν
+
+is a zero of F, then v = G0(L−1U ) solves (3)–(4). Reciprocally, if ψ ∈ G 0ℓ1 
+
+> ν
+
+and v
+
+solves (3)–(4), then U = G−10 (( −1) m+1 ∂2mx v) belongs to ℓ1 
+
+> ν
+
+and is a zero of F.The main difference with the F considered previously in (44) is that L−1 now acts on the other side, i.e., with (50) we are going to face operators of the form ∂ix(∂2mx )−1, instead of ( ∂2mx )−1∂ix with (44). This actually makes a crucial difference in sequence space, as the rows in L−1 corresponding to the boundary conditions no longer get hit by the unbounded terms in Di. As a consequence, the compactness estimates will be better behaved even if ν = 1. 
+
+Example 2.14. Consider again the linear problem (46) from Example 2.13, and the associated so-lution operator L−11 given in (120) . With L−11 acting on the right, we get ‖G −10 ∂xG0L−1(E(ν) 
+
+> k
+
+)‖ν =
+
+O(k−1) + O(k−2 ν−k). Therefore, G−10 ∂xG0L−11 : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+is compact even if ν = 1 (and taking ν
+
+close to 1 is also not an issue). Similarly, for L−1 associated to the problem (47) , G−10 ∂3
+
+> x
+
+G0L−1 behaves much more favorably than 
+
+L−1G−10 ∂3
+
+> x
+
+G0, and we get ‖G −10 ∂3
+
+> x
+
+G0L−1(E(ν) 
+
+> k
+
+)‖ν = O(k−1) + O(k−2 ν−k ).
+
+Because of these more favorable compactness estimates, the F defined in (50) is the one we ac-tually work with for the remainder of the paper. This choice also leads to more stable numerics when trying to numerically find an approximate zero of F. Once such an approximate zero has been obtained, our goal is to rigorously prove the existence of a nearby zero of F in ℓ1 
+
+> ν
+
+, using a standard Newton-Kantorovich approach (see Section 3.1), and then to also study the stability of the corresponding steady states of (2). In order to establish the existence of zeros of F, we will need relatively sharp and fully computable compactness estimates on DK(U ), which essentially amounts to the type of estimates discussed in Example 2.14. The derivation of such estimates is presented in Section 2.6. Before doing so, let us mention that the F defined in (50) also turns out to be more convenient when studying the stability of the obtained steady state in Section 4. Indeed, working in ℓ11 then becomes natural, because we know a priori that all the eigenvectors lie in ℓ11, but not necessarily in ℓ1 
+
+> ν
+
+with ν > 1. 2.6. Compactness estimates for DK( ¯U ). Looking back at the definition of Q, for any U ∈ ℓ1
+
+> ν
+
+we have 
+
+K(U ) = G−10
+
+((G0L−1U )j0 ) ∗ G −10
+
+((∂xG0(L−1U )) j1 ) ∗ . . . ∗ G −10
+
+((∂2m−1 
+
+> x
+
+G0(L−1U )) j2m−1 )
+
+=
+
+> 2m−1
+
+∏
+
+> i=0
+
+G−10
+
+((∂ixG0(L−1U )) ji ) ,EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 17 
+
+where the products in ∏ have to be understood as convolution products, as they apply to sequences of coefficients. Therefore, fixing ¯U ∈ ℓ1 
+
+> ν
+
+, the Fr´ echet derivative of K at ¯U applied to U writes 
+
+DK( ¯U )U =
+
+> 2m−1
+
+∑
+
+> i=0
+
+¯Vi ∗ K i(U ),
+
+where, for any i ∈ { 0, . . . , 2m − 1},(51) ¯Vi
+
+> def
+
+= ji G−10
+
+((∂ixG0(L−1 ¯U)) ji −1) ∗
+
+> 2m−1
+
+∏ 
+
+> l=0
+> l6=i
+
+G−10
+
+((∂lxG0(L−1 ¯U )) jl
+
+) ,
+
+and (52) Ki
+
+> def
+
+= G−10 ∂ixG0L−1 = G−10 GiDiL−1 = ( C0,i )−1DiL−1,
+
+where, if i = 0, Di is simply the identity operator. This section is devoted to the study of the operators Ki, and more precisely to the derivation of explicit compactness estimates. We emphasize that the operators Ki incorporate all the possible boundary conditions of the form (4), via the operator L−1 (at least, all boundary conditions for which ˜L is invertible, see Section 2.4). It is because of this high level of generality that Proposition 2.15 below is somewhat bulky and notation-heavy, and that the given estimates are not necessarily very sharp. However, we reiterate for any given explicit choice of boundary conditions, deriving such estimates is relatively easy, and one can often obtain sharper constants than the general ones given here. We illustrate this on a concrete example in Section 5.2. 
+
+Proposition 2.15. Let B be as in (33) , and assume the operator π≤2m−1Bπ≤2m−1 : π≤2m−1ℓ1 
+
+> ν
+
+→
+
+π≤2m−1ℓ1 
+
+> ν
+
+is invertible. Then, for all i ∈ { 0, . . . , 2m − 1}, Ki : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+given by (52) is well defined and compact for any ν ≥ 1, and it admits the following decomposition: 
+
+Ki = (BKi + ( −1) m+1 Σ2m−iD2m−i
+
+)−1 Σ2m−iC0,2m−i,(53) 
+
+with BKi : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+a linear operator given by 
+
+(54) (BKi (U )) n =
+
+
+
+> 2m−1
+
+∑
+
+> j=0
+
+(
+
+θ(−1)  
+
+> j,n
+
+B−1(S(i)U, j ) + θ(1)  
+
+> j,n
+
+B1(S(i)U, j )
+
+)
+
+if n = 0 , . . . , 2m − i − 1,
+
+0 if n ≥ 2m − i, 
+
+and where 
+
+θ(±1) = ( θ(±1)  
+
+> j,n
+
+)(j,n )∈{ 0,..., 2m−1}×{ 0,..., 2m−i−1},
+
+are two real-valued sequences. In particular, Ki can be rewritten as 
+
+Ki = ( −1) m+1 (I − B †Ki,2m−i BKi )D†
+
+> 2m−i
+
+Σ2m−iC0,2m−i
+
+= ( −1) m+1 (I − B †Ki,2m−i BKi )S(2 m−i),(55) 
+
+where B†Ki,2m−i : π≤2m−i−1ℓ1 
+
+> ν
+
+→ π≤2m−i−1ℓ1 
+
+> ν
+
+is the inverse of π≤2m−i−1BKi π≤2m−i−1. Finally, for all k > 4m, we define η(ν) 
+
+> i,k
+
+as 
+
+η(ν)
+
+> i,k
+> def
+
+= γ(ν)2m−i,k + ν−k‖B †Ki,2m−i‖ν
+
+> 2m−i−1
+
+∑
+
+> n=0 2m−1
+
+∑
+
+> j=0
+
+(∣ ∣∣θ(−1) 
+
+> j,n
+
+∣∣∣ +
+
+∣∣∣θ(1) 
+
+> j,n
+
+∣∣∣)
+
+γ(1) 2m−j,k ,(56) 
+
+with γ(ν) 
+
+> i,j
+
+given as in (39) . Then, we have 
+
+‖K iE(ν) 
+
+> k
+
+‖ν ≤ η(ν) 
+
+> i,k
+
+,
+
+where we recall that E(ν) 
+
+> k
+
+∈ ℓ1 
+
+> ν
+
+is the normalized k-th element of the canonical Schauder basis of ℓ1
+
+> ν
+
+(see (16) ). EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 18 
+
+Proof. Let U ∈ ℓ1 
+
+> ν
+
+, V = L−1U and W = KiU . We first explain how to get (53). We could conduct all the analysis directly in sequence space, but some of the arguments are much easier to follow in function space, therefore we also introduce u = G0(U ), v = G0(V ) and w = G0(W ). Noting that 
+
+Ki = G−10 ∂ix(−1) m+1 (∂2mx )−1G0, where ( −1) m+1 (∂2mx )−1 denotes the solution operator of (34), we have that w = ∂ix(−1) m+1 (∂2mx )−1u = ∂ixv. Therefore (57) ∂2m−ix w = ∂2mx v = ( −1) m+1 u, 
+
+which in sequence space gives (−1) m+1 D2m−iW = C0,2m−iU, 
+
+and is also equivalent to (58) (−1) m+1 Σ2m−iD2m−iW = Σ 2m−iC0,2m−iU. 
+
+As in Section 2.4, the shift Σ 2m−i has two purposes: it makes Σ 2m−iD2m−i diagonal, and it leaves space on the 2 m − i first rows in order to incorporate the boundary conditions that are necessary to fully determine w from (57). In order to obtain these boundary conditions on w, or equivalently on W , we use the fact that 
+
+w = ∂ixv. Therefore, V = S(i)W + P , where P ∈ π≤i−1ℓ1 
+
+> ν
+
+, i.e., G0(P ) is a polynomial of order at most i − 1. Then, we use the boundary conditions (34) on V , i.e., the fact that (59) 0 = B(V ) = B(S(i)W ) + B(P ),
+
+where we will eliminate P in order to recover 2 m−i conditions on W . Recalling that B = π≤2m−1B,we write 
+
+π≤2m−1B =
+
+ π≤i−1 B π≤i−1 π≤i−1 B π>i −1
+
+π≤2m−1π>i −1 B π≤i−1 π≤2m−1π>i −1 B π>i −1
+
+ =
+
+ B11 B12 
+
+B21 B22 
+
+ .
+
+Using that P = π≤i−1P and that S(i) = π>i −1S(i) from (26), the “first part” π≤iB(V ) = 0 of the boundary conditions yields 
+
+B11 π≤i−1P + B12 S(i)W = 0 .
+
+Moreover, we assumed π≤2m−1Bπ≤2m−1 to be invertible. Using Remark 2.10, we can always rearrange of the 2 m first rows of B, without changing the expression of L−1, hence of Ki. In particular, we consider, without loss of generality, a re-ordering for which B11 is also invertible, which means 
+
+π≤i−1P = −B −111 B12 S(i) W. 
+
+Plugging this expression in π>i −1B(V ) = 0, i.e., in 
+
+B21 π≤i−1P + B22 S(i)W = 0 ,
+
+yields (B22 − B 21 B−111 B12 
+
+) S(i)W = 0 ,
+
+which gives us 2 m − i conditions on S(i)W from (59). We now show that these 2 m − i conditions can be rewritten in the form BKi (W ) = 0. To that end, note that 
+
+(B22 − B 21 B−111 B12 
+
+) S(i)W = ( π>i −1 − B 21 B−111 )( B12 + B22 )S(i) W, 
+
+since π>i −1B12 = 0 and B21 B−111 B22 = 0 (because π≤i−1π>i −1 = 0). Moreover, since S(i) =
+
+π>i −1S(i) from (26), we obtain that ( B12 + B22 )S(i) = BS (i). In other terms, our 2 m − i conditions write (π>i −1 − B 21 B−111 )( BS (i)W ) = 0 ,
+
+which means they are in fact all given by linear combinations of ( BS (i)W )n for n ∈ { i, . . . , 2m − 1}.Therefore, BKi
+
+> def
+
+= (B22 − B 21 B−111 B12 
+
+) S(i) can indeed be written in the form (54), and we obtain that W = KiU is equivalent to having (−1) m+1 Σ2m−iD2m−iW = Σ 2m−iC0,2m−iU and BKi W = 0 ,
+
+which can be rewritten as 
+
+(BKi + ( −1) m+1 Σ2m−iD2m−i
+
+) W = Σ 2m−iC0,2m−iU. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 19 
+
+Moreover, using once more that π≤2m−1Bπ≤2m−1 is invertible, we have that the Schur complement 
+
+π≤2m−i−1 (B22 − B 21 B−111 B12 
+
+) π≤2m−i−1 is invertible, and therefore π≤2m−i−1BKi π≤2m−i−1 is in-vertible. The exact same reasoning and algebraic manipulations as those applied to ˜L in Section 2.4 then yield 
+
+W = (BKi + ( −1) m+1 Σ2m−iD2m−i
+
+)−1 Σ2m−iC0,2m−iU
+
+=
+
+(
+
+B†Ki,2m−i − (−1) m+1 B†Ki,2m−i BKi D† 
+
+> 2m−i
+
++ ( −1) m+1 D†
+
+> 2m−i
+
+)
+
+Σ2m−i C0,2m−iU
+
+= ( −1) m+1 (I − B †Ki,2m−i BKi )D†
+
+> 2m−i
+
+Σ2m−iC0,2m−iU, 
+
+which proves (55). Now, it remains to estimate ‖K iE(ν) 
+
+> k
+
+‖ν , for k > 4m. We first use (55) and (27), and split into two terms: 
+
+‖K iE(ν) 
+
+> k
+
+‖ν ≤ ‖S (2 m−i)E(ν) 
+
+> k
+
+‖ν + ‖B †Ki,2m−i‖ν ‖B Ki S(2 m−i)E(ν) 
+
+> k
+
+‖ν .
+
+The first term is directly estimated thanks to Lemma 2.11, and we focus on the last term. According to (54), we have 
+
+∣∣∣(
+
+BKi S(2 m−i)E(ν)
+
+> k
+
+)
+
+> n
+
+∣∣∣ ≤
+
+> 2m−1
+
+∑
+
+> j=0
+
+(
+
+|θ(−1)  
+
+> j,n
+
+||B −1(S(i)S(2 m−i)E(ν) 
+
+> k
+
+, j )| + |θ(1) 
+
+> j,n
+
+||B 1(S(i)S(2 m−i)E(ν) 
+
+> k
+
+, j )|
+
+)
+
+,
+
+for all n = 0 , . . . , 2m − i − 1. Since k ≥ 4m by assumption, (28) yields 
+
+S(i)S(2 m−i)E(ν) 
+
+> k
+
+= S(2 m)E(ν) 
+
+> k
+
+.
+
+The proof is then a direct consequence of Lemma 2.12. 
+
+We end this section by emphasizing that, according to formula (55), each Ki has a structure similar to that of L−1 = K0. That is, each Ki is made of a banded operator of bandwidth 2m − i, namely ( −1) m+1 S(2 m−i), complemented with 2 m − i − 1 first infinite rows, given by (−1) mB†Ki,2m−i BKi S(2 m−i). In particular, for all N ∈ N0,(60) Kiπ≤N = π≤N +2 m−iKiπ≤N ,
+
+and, for all N ≥ 2(2 m − i), (61) Kiπ>N = π≤2m−i−1Kiπ>N + π>N −(2 m−i)Kiπ>N 
+
+= π≤2m−i−1Kiπ>N + ( −1) m+1 π>N −(2 m−i)S(2 m−i)π>N .
+
+The first identity (60) shows that Kiπ≤N has finite range, therefore we will be able to compute its operator norm, while the second identity (61) showcases the splitting between the first infinite rows and the banded part of Ki.3. A Newton-Kantorovich approach for studying steady states 
+
+In this section, we present the main theorem used in the sequel to prove the existence of a solution to (50) (or equivalently to (3)–(4)). Before rigorously stating this theorem, let us roughly describe the main ideas of this result, reminiscent of the Newton-Kantorovich theorem. 3.1. A general framework. In Section 2.5, we transformed (3)–(4) into the zero finding problem 
+
+F(U ) = 0 given in (50), on the Banach space ℓ1 
+
+> ν
+
+. Such a framework is natural when developing computer-assisted methodologies. Indeed, assuming that we have access to an approximate zero ¯U ∈ ℓ1 
+
+> ν
+
+of F, we would like to prove that there exists an exact zero ˜U in an explicit neighborhood of ¯U . For this purpose, a classical idea is to prove that the operator I − DF( ¯U )−1F from ℓ1 
+
+> ν
+
+to itself admits a unique fixed-point ˜U in Br ( ¯U ), the closed ball of center ¯U and radius r in ℓ1 
+
+> ν
+
+, for some r > 0. However, in practice, it can be cumbersome to work with DF( ¯U )−1, and one can instead consider a Newton-like operator: 
+
+I − A F : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+,EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 20 
+
+with A a suitably chosen approximate inverse of DF( ¯U ). The following result provides us with an efficient way of finding an explicit radius r such that the operator I − AF is a contraction on 
+
+Br ( ¯U ). 
+
+Theorem 3.1. Let ν ≥ 1, let F : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+be given as in (50) and let A : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+be a bounded linear operator. Moreover, let ¯U be a given element of ℓ1 
+
+> ν
+
+, let Y, Z 1 be non-negative constants and let Z2 : (0 , ∞) → [0 , ∞) be a non-negative function such that 
+
+(62) 
+
+‖AF ( ¯U )‖ν ≤ Y, 
+
+‖I − A DF( ¯U )‖ν ≤ Z1,
+
+‖A (DF( ¯U + h) − DF( ¯U )) ‖ν ≤ Z2(r)r, for all h ∈ Br (0) and all r > 0.
+
+If there exists r > 0 such that 
+
+(63) 1
+
+2 Z2(r)r2 − (1 − Z1)r + Y < 0 and Z1 + Z2(r)r < 1,
+
+then, there exists a unique ˜U ∈ Br ( ¯U ) ⊂ ℓ1 
+
+> ν
+
+such that F( ˜U ) = 0 .
+
+This theorem is easy to prove. Indeed, the conditions (63) ensure that I − AF maps Br ( ¯U ) into itself and is contracting on that ball. Moreover, condition (63) also implies that Z1 < 1, and therefore that A is injective, hence fixed-points of I − AF are in one-to-one correspondence with zeros of F. For variants of Theorem 3.1 and detailed proofs, we refer to [3, 18, 30, 32, 41]. Before deriving bounds satisfying (62), it remains to define the approximate solution ¯U to the zero finding problem F = 0 and the approximate inverse A of DF( ¯U ). In the rest of the paper, we fix N ∈ N to be the truncation size of our numerical approximations. Then, we define 
+
+F≤N = π≤N F π≤N .
+
+Now, ¯U is simply obtained as an approximate solution to the “finite dimensional” problem F≤N =0, obtained numerically. In particular, ¯U satisfies ¯U = π≤N ¯U , meaning that ¯U only has a finite number of non-zero coefficients ( ¯U can be seen as a vector) which are stored on the computer. Let us now define the linear operator A : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+which is an approximate inverse of DF( ¯U ). We recall that there exist ¯V0, . . . , ¯V2m−1 ∈ ℓ1 
+
+> ν
+
+, defined in (51), such that 
+
+DF( ¯U ) = I +
+
+> 2m−1
+
+∑
+
+> i=0
+
+¯ViKi,(64) where we identified the element ¯Vi ∈ ℓ1 
+
+> ν
+
+and the multiplication operator ¯Vi : ℓ1 
+
+> ν
+
+→ ℓ1 
+
+> ν
+
+defined by ¯ViU = ¯Vi ∗ U . Since multiplication operators are bounded ( ℓ1 
+
+> ν
+
+is a Banach algebra), and each 
+
+Ki is compact, each operator ¯ViKi is compact on ℓ1 
+
+> ν
+
+. This implies that DF( ¯U ) is a compact perturbation of the identity. Consequently, its inverse must also be a compact perturbation of the identity. Having such a property in mind, we take A of the form (65) A = A0 + π>N ,
+
+where A0 = π≤N A0π≤N is a finite dimensional operator, that can be represented by a ( N + 1) ×
+
+(N + 1) matrix. In practice A0 is constructed numerically to approximate π≤N DF( ¯U )−1π≤N ,and we simply take A0 ≈ (DF≤N ( ¯U ))−1. Such an A is indeed a compact perturbation of the identity, which we expect to approximate DF( ¯U )−1 well if N is taken large enough. We make this statement quantitative in the next section, where we derive computable bound Y , Z1 and Z2
+
+satisfying (62). 
+
+Remark 3.2. In practice, it could be computationally more efficient to use separate truncation levels N for the approximate solution ¯U and for the finite part A0 of A, but, for the sake of presentation, we use the same N for both. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 21 
+
+3.2. Computable estimates. In this entire section, we assume that F is given by (50), that A
+
+is of the form specified in (65), and derive estimates Y , Z1 and Z2 satisfying the assumption (62). 
+
+Lemma 3.3. Let Y be a constant satisfying 
+
+‖A 0π≤N F( ¯U )‖ν + ‖π>N K( ¯U ) − π>N Ψ‖ν ≤ Y. 
+
+Then, ‖AF ( ¯U)‖ν ≤ Y .Proof. By definition of A in (65), we have 
+
+‖AF ( ¯U)‖ν = ‖A 0π≤N F( ¯U )‖ν + ‖π>N F( ¯U)‖ν .
+
+We conclude the proof using the definition of F in (50). 
+
+Note that, since ¯U belongs to π≤N ℓ1 
+
+> ν
+
+(i.e., ¯ u = G−10 ( ¯U ) is a trigonometric polynomial of order at most N ), L−1 ¯U belongs to π≤N +2 mℓ1 
+
+> ν
+
+(i.e., ( ∂2mx )−1 ¯u is also a trigonometric polynomial, of order at most N + 2 m), and can be computed exactly. Here and in the sequel, when we say that something “can be computed exactly”, we actually mean that it can be computed with finitely many basic arithmetic operations, and therefore rigorously enclosed by a computer using interval arithmetic. Since Q only involves multiplication and derivatives, K( ¯U ) itself can be computed exactly, as well as F( ¯U ), hence we can find a computable bound Y as in Lemma 3.3. 
+
+Lemma 3.4. Define the following constants: 
+
+Z1,0 = ‖π≤N − A 0DF( ¯U )π≤N ‖ν , Z1,1 =
+
+∥∥∥∥∥
+
+> 2m−1
+
+∑
+
+> i=0
+
+π>N ¯ViKiπ≤N
+
+∥∥∥∥∥ν
+
+Z1,2 = 2 
+
+> 2m−1
+
+∑
+
+> i=0
+
+(
+
+η(ν) 
+
+> i,N +1
+
+∑ 
+
+> n>N −2m+i
+
+|( ¯Vi)n|νn + ‖ ¯Vi‖ν γ(ν)2m−i,N +1 
+
+)
+
+, Z1,3 =
+
+> 2m−1
+
+∑
+
+> i=0
+
+‖A 0 ¯Vi‖ν η(ν) 
+
+> i,N +1
+
+,
+
+where we recall definition (56) of the constants η(ν) 
+
+> i,N +1
+
+. Then, the constant Z1 such that 
+
+max {Z1,0 + Z1,1, Z 1,2 + Z1,3} ≤ Z1,
+
+satisfies the estimate ‖I − A DF( ¯U )‖ν ≤ Z1.Proof. Using the fact that ‖ · ‖ ν is a weighted ℓ11 norm, we have 
+
+‖I − A DF( ¯U )‖ν = max {‖(I − A DF( ¯U )) π≤N ‖ν , ‖(I − A DF( ¯U )) π>N ‖ν
+
+} .
+
+Now, using the definition (65) of A, we obtain 
+
+‖(I − A DF( ¯U )) π≤N ‖ν ≤ ‖ π≤N − π≤N ADF( ¯U )π≤N ‖ν + ‖π>N ADF( ¯U )π≤N ‖ν
+
+= ‖π≤N − A 0DF( ¯U )π≤N ‖ν + ‖π>N DF( ¯U )π≤N ‖ν
+
+= Z1,0 + ‖π>N DF( ¯U )π≤N ‖ν .
+
+Then, since DF( ¯U ) = I + DK( ¯U ) and π>N π≤N = 0, we use (64) to get 
+
+‖π>N DF( ¯U )π≤N ‖ν = ‖π>N DK( ¯U )π≤N ‖ν =
+
+∥∥∥∥∥
+
+> 2m−1
+
+∑
+
+> i=0
+
+π>N ¯ViKiπ≤N
+
+∥∥∥∥∥ν
+
+= Z1,1.
+
+Moreover, as A = A0 + π>N , we get 
+
+‖π>N − A DF( ¯U )π>N ‖ν ≤ ‖ π>N − π>N ADF( ¯U )π>N ‖ν + ‖π≤N ADF( ¯U )π>N ‖ν
+
+= ‖π>N − π>N (I − DK( ¯U )) π>N ‖ν + ‖A 0π≤N (I + DK( ¯U )) π>N ‖ν
+
+= ‖π>N DK( ¯U )π>N ‖ν + ‖A 0DK( ¯U )π>N ‖ν .EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 22 
+
+Using once more identity (64), together with Proposition 2.15 and the fact that η(ν) 
+
+> i,n
+
+decreases with 
+
+n, we deduce that 
+
+‖A 0DK( ¯U )π>N ‖ν ≤
+
+∥∥∥∥∥
+
+> 2m−1
+
+∑
+
+> i=0
+
+A0 ¯ViKiπ>N 
+
+∥∥∥∥∥ν
+
+≤
+
+> 2m−1
+
+∑
+
+> i=0
+
+‖A 0 ¯Vi‖ν η(ν)  
+
+> i,N +1
+
+= Z1,3.
+
+Now, using (61) together with the assumption N ≥ 4m, we get, for each i ∈ { 0, . . . , 2m − 1},
+
+π>N ¯ViKiπ>N = π>N ¯Viπ≤2m−iKiπ>N + π>N ¯Viπ>N −2m+iKiπ>N .
+
+For all U ∈ ℓ1 
+
+> ν
+
+, we have 
+
+‖π>N ¯Viπ≤2m−iU ‖ν = 2 ∑
+
+> n>N
+
+νn
+
+∣∣∣∣∣
+
+> 2m−i
+
+∑
+
+> k=−2m+i
+
+( ¯Vi)|n−k|U|k|
+
+∣∣∣∣∣ ≤ 2
+
+> 2m−i
+
+∑
+
+> k=−2m+i
+
+|U|k||ν|k| ∑
+
+> n>N
+
+νn−| k||( ¯Vi)|n−k||≤ 2‖U ‖ν
+
+∑ 
+
+> n>N −2m+i
+
+νn|( ¯Vi)n|,
+
+and thus, according to Proposition 2.15 
+
+‖π>N ¯Viπ≤2m−iKiπ>N ‖ν ≤ 2η(ν) 
+
+> i,N +1
+
+∑ 
+
+> n>N −2m+i
+
+|( ¯Vi)n|νn.
+
+Finally, combining (61) and Lemma 2.11 to estimate the remaining term, we obtain 
+
+‖π>N ¯ViKiπ>N ‖ν ≤ 2η(ν) 
+
+> i,N +1
+
+∑ 
+
+> n>N −2m+i
+
+|( ¯Vi)n|νn + ‖ ¯Vi‖ν γ(ν)2m−i,N +1 = Z1,2.(66) This concludes the proof of Lemma 3.4. 
+
+We emphasize that each of the constants involved in Lemma 3.4 are computable, as they involve only finite quantities. Indeed, recalling (60), Kiπ≤N has a finite dimensional range. Furthermore, since ¯U = π≤N ¯U , we have that ¯Vi has a finite number of nonzero coefficients (cf. (51)), which implies that ¯ViKiπ≤N is also a finite dimensional operator. 
+
+Lemma 3.5. Let r > 0 and let Z2(r) be satisfying 
+
+Z2(r)r ≥ ‖A‖ ν sup  
+
+> h∈Br(0)
+
+‖DK( ¯U + h) − DK( ¯U )‖ν .
+
+Then, it holds 
+
+‖A (DF( ¯ U + h) − DF( ¯ U )) ‖ν ≤ Z2(r)r, ∀h ∈ Br (0) .
+
+Proof. The proof is a direct consequence of the definition of F in (50). 
+
+Computable Z2 estimates will be derived on a case-by-case basis in Section 5 for two problems. The obtained bounds could be adapted in a straightforward manner to any other example with a nonlinear term Q of the form (2). In Section 5, we give two concrete instances of (3)–(4) for which we use the bounds obtained here, together with Theorem 3.1, in order to obtain quantitative existence results. 4. Stability 
+
+In this section, we investigate the spectral stability of stationary solutions to (1). Suppose we were able to prove the existence of a zero ˜U of F in a vicinity of an approximate solution ¯U thanks to Theorem 3.1. As in the previous section, we always consider here the F given in (50). Denoting (67) ˜v def 
+
+= G0
+
+(
+
+L−1 ˜U
+
+)
+
+,
+
+the corresponding stationary solution to (1) in function space, our main objective is to rigorously control the spectrum of the linearized operator at ˜ v, and more precisely, to be able to count the number of unstable eigenvalues in (6). EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 23 
+
+As for the steady state problem, we first make the change of unknown v = ( −1) m+1 (∂2mx )−1u,which transforms (6) into the generalized eigenvalue problem 
+
+u + DQ(˜ v)( −1) m+1 (∂2mx )−1u = λ(−1) m+1 (∂2mx )−1u, u 6 ≡ 0.
+
+In sequence space, this generalized eigenvalue problem writes 
+
+U + DK( ˜U )U = λL−1U U 6 = 0 ,
+
+i.e., (68) DF( ˜U )U = λL−1U U 6 = 0 .
+
+Since the steady state ˜ v is automatically smooth by elliptic regularity, any eigenvector v of (6) will also be smooth, and hence the corresponding eigenvectors U = G0(( −1) m+1 ∂2mx v) will all at least belong to ℓ11. We therefore study the generalized eigenvalue problem (68) for eigenvectors U in ℓ11.Even though we will come back to the generalized eigenproblem formulation (68) later on, it also useful to recast it as a standard eigenvalue problem, which is made precise in the following statement. 
+
+Lemma 4.1. Repeat the assumptions of Theorem 3.1, assume that (62) –(63) hold for ν = 1 , and let ˜U be the unique zero of F in Br ( ¯ U ). Then DF( ˜ U ) : ℓ11 → ℓ11 is boundedly invertible. Moreover, we have that λ ∈ C is an eigenvalue of the generalized eigenvalue problem (68) (posed on ℓ11), if and only if λ 6 = 0 and 1 
+
+> λ
+
+is an eigenvalue of DF( ˜U )−1L−1.Proof. Provided DF( ˜U ) : ℓ11 → ℓ11 is boundedly invertible, 0 cannot be an eigenvalue of the generalized eigenvalue problem (68), which can then be rewritten as 1
+
+λ U = DF( ˜U )−1L−1U. 
+
+However, the invertibility of DF( ˜U ) is in fact automatic for any zero ˜U obtained via Theorem 3.1. Indeed, taking r > 0 satisfying (63), we have that ‖ ˜U − ¯U ‖ ≤ r, and that 
+
+‖I − A DF( ˜U )‖1 ≤ ‖I − A DF( ¯U )‖1 + ‖A (DF( ¯U ) − DF( ˜U )) ‖1 ≤ Z1 + Z2(r)r < 1.(69) Therefore, ADF( ˜U ) is invertible, and DF( ˜U ) must be injective. Moreover, since DF( ˜U ) = I +
+
+DK( ˜U ), with DK( ˜U ) compact thanks to Proposition 2.15, DF( ˜U ) is a Fredholm operator of index zero and is therefore invertible. 
+
+We present below two separate approaches to rigorously count the number of unstable eigenvalues of (68). The first one is described in Section 4.1, and relies on a Gershgorin disks argument applied to DF( ˜U )−1L−1, combined with an a priori bound on unstable eigenvalues. The second approach is given in Section 4.2. It is based on the idea that, if the eigenvalues under consideration are not too large, their corresponding eigenvectors must be mostly concentrated on low modes, hence we can compare such eigenvalues to those of a finite dimensional problem. Because of this initial assumption that the eigenvalues are not too large, we also requires an a priori bound on unstable eigenvalues in order to be able to count the total number of unstable eigenvalues. In both cases, it should be noted that the quantitative bounds needed are based on estimates that were already used for obtaining the steady state. 4.1. Enclosure of the spectrum using Gershgorin disks. In this section, we study the stan-dard eigenvalue problem reformulation of (68) provided by Lemma 4.1, i.e., we try to obtain quantitative information on the spectrum of DF( ˜U )−1L−1.If we were dealing with a problem that can be studied with Fourier series, we could simply apply a Gershgorin argument to the Fourier series representation of ( −1) m+1 ∂2mx + DQ(˜ v) and be done. Here, we face the additional difficulty that we first needed to turn to a generalized eigenvalue problem to deal with the Gegenbauer setup and the boundary conditions. Even though we recovered a standard eigenvalue problem with DF( ˜U )−1L−1, this operator is compact, and therefore its eigenvalues accumulate at zero. This means that a Gershgorin argument can only give us the sign (of the real part of) finitely many eigenvalues, unless we have a very fine control on the radius of EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 24 
+
+the asymptotic Gershgorin disks, which we are not able obtain here. In order to overcome this obstacle, we combine a Gershgorin argument with rougher a priori estimates on the eigenvalues of (68), showing that if λ has a positive real part, then it must remain bounded (in modulus), with an explicit bound. As a consequence, if an eigenvalue 1 
+
+> λ
+
+of DF( ˜U )−1L−1 is close enough to zero, it must have negative real part. If we were to directly compute the Gershgorin disks of DF( ˜U )−1L−1, there is no guarantee that we would get any useful information about its spectrum, as the disks would most likely overlap each others and intersect both halves of the complex plane. Therefore, we first introduce a pseudo-diagonalization of the operator DF( ˜U )−1L−1, i.e., we want to build an operator P such that 
+
+P−1DF( ˜U )−1L−1P is “close” to a diagonal (infinite) matrix. Because DF( ˜U )−1L−1 is compact, we consider P of the form 
+
+P = P0 + π>N ,
+
+where P0 = π≤N P0π≤N , i.e., P0 admits a square matrix representation of size N + 1. In practice, the columns of P0 are obtained numerically as approximations of the N + 1 first eigenvectors of 
+
+π≤N DF( ˜U )−1L−1π≤N . Moreover, we suppose that P0 : π≤N ℓ1 
+
+> ν
+
+→ π≤N ℓ1 
+
+> ν
+
+is invertible (which is a reasonable assumption since DF( ˜U )−1 is invertible), and we denote, with a slight abuse of notation, P−10 : π≤N ℓ1 
+
+> ν
+
+→ π≤N ℓ1 
+
+> ν
+
+its inverse. In particular, P is invertible with 
+
+P−1 = P−10 + π>N .
+
+Finally, we define M : ℓ11 → ℓ11 as (70) M def 
+
+= P−1DF( ˜U )−1L−1P.
+
+By construction, the operators M and DF( ˜U )−1L−1 have the same spectrum, and thanks to our choice of P0, we expect M, or at least a finite truncation of M, to be diagonally dominant. In particular, the first Gershgorin disks of M should be narrow enough to allow us to determine the sign of the corresponding eigenvalues by using Lemma 4.2 below, which is nothing but a generalization of the well-known Gershgorin theorem to infinite dimensional compact operators. In the sequel we identify M with its infinite matrix ( Mk,n )k,n ∈N0 in the Schauder basis ( E(1)  
+
+> n
+
+)n∈N0
+
+of ℓ11, and also consider the weights ( ξn)n∈N0 given by (71) ξn
+
+> def
+
+=
+
+{
+
+1 n = 0 ,
+
+2 n ∈ N.
+
+Note that these weights are exactly those appearing in the ℓ11 norm (15): 
+
+‖U ‖1 = ∑
+
+> n∈N0
+
+|Un|ξn, ∀ U ∈ ℓ11,
+
+and that the associated operator norm can then be expressed as follows (72) ‖M‖ 1 = sup 
+
+> n∈N0
+
+1
+
+ξn
+
+∑
+
+> k∈N0
+
+|M k,n |ξk = sup 
+
+> n∈N0
+
+1
+
+ξn
+
+‖M ·,n ‖1,
+
+where M·,n denotes the n-th column of M.
+
+Lemma 4.2. For all n ∈ N0, we define 
+
+rn
+
+> def
+
+= 1
+
+ξn
+
+∑  
+
+> k∈N0, k 6=n
+
+|M k,n | ξk,
+
+where we recall definition (70) of the operator M, and we denote Brn (Mn,n ) ⊂ C the closed disk of radius rn centered at Mn,n , which we call the n-th Gershgorin disk of M. Then, the spectrum of 
+
+DF( ˜U )−1L−1 consists of eigenvalues belonging to the set ⋃ 
+
+> n∈N0
+
+Brn (Mn,n ) ⊂ C. Moreover, any set of k Gershgorin disks whose union is disjoint from all other Gershgorin disks contains exactly 
+
+k eigenvalues of DF( ˜U )−1L−1, counted with algebraic multiplicity. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 25 
+
+We note that the Gershgorin disks introduced in Lemma 4.2 are defined column-wise. As is the case for finite matrices, we could also have considered the Gershgorin disks associated to the rows of M, but we choose to work with columns as they interact more naturally with the ℓ11 operator norm (72). This makes natural the above definition of the radii rn (and whose role will become apparent in Lemma 4.3): essentially measuring the radii of the disks in our ℓ11 norm. 
+
+Proof. First, we know from Lemma 4.1, that DF( ˜U )−1 : ℓ11 → ℓ11 is bounded, hence DF( ˜U )−1L−1
+
+is compact. Since P : ℓ11 → ℓ11 is bounded and has bounded inverse M is also compact and has the same spectrum as DF( ˜U )−1L−1, which is indeed made of eigenvalues only. Let μ ∈ C \ { 0} an eigenvalue of M, and U ∈ ℓ∞ = ( ℓ11)∗ a corresponding left-eigenvector (which is guaranteed to exist because M is compact). We first show that the eigenvector U must have additional decay, which then allows us to mimic the proof of the Gershgorin Theorem in the finite dimensional case. By construction, we have that 
+
+M∗U = (L−1)∗ (
+
+DF( ˜U )−1)∗
+
+U = μU, 
+
+where the notation ∗ stands for the the adjoint operator. Since DF( ˜U )−1 : ℓ11 → ℓ11 is bounded, we have that 
+
+(
+
+DF( ˜U )−1
+
+)∗
+
+: ℓ∞ → ℓ∞ is bounded. Let V =
+
+(
+
+DF( ˜U )−1
+
+)∗
+
+U , then V ∈ ℓ∞ and 
+
+(L−1)∗ V = μU. 
+
+Let ℓ∞
+
+> 1
+> def
+
+= {U ∈ ℓ∞, ‖U ‖ℓ∞ 
+
+> 1
+
+< ∞} , where 
+
+‖U ‖ℓ∞
+
+> 1
+> def
+
+= sup 
+
+> n∈N0
+
+|Un|(1 + n).
+
+We want to prove that U ∈ ℓ∞ 
+
+> 1
+
+. In fact, this is a direct consequence of Proposition 2.15, since we have that kη (1) 0,k → 0 as k → ∞ . Using that U ∈ ℓ∞ 
+
+> 1
+
+, we have that |Uk| → 0 as k → ∞ , which implies that there exists n ∈ N0 such that |Un| = max k∈N0 |Uk|.Now, mimicking the proof in the finite-dimensional case, we use that ( M∗U )n = μU n, to get (Mn,n − μ) Un = ∑ 
+
+> k6=n
+
+Mk,n Uk,
+
+hence 
+
+|M n,n − μ| ≤ ∑ 
+
+> k6=n
+
+|M k,n |.
+
+Therefore μ belongs to the closed disk of center Mn,n and radius ˜ rn
+
+> def
+
+= ∑  
+
+> k6=n
+
+|M k,n |. We explain at the end of the proof why we end up having slightly different radii rn.For the moment, we have already proven that the spectrum of M is included in ⋃ 
+
+> n∈N0
+
+B˜rn (Mn,n ). Let us then assume that there exists a subset Ik ⊂ N0 of cardinal k such that 
+
+( ⋃
+
+> n∈Ik
+
+B˜rn (Mn,n )
+
+) ⋂ ⋃
+
+> n∈N0\Ik
+
+B˜rn (Mn,n )
+
+ = ∅,
+
+and consider a Jordan curve Γ separating ⋃ 
+
+> n∈Ik
+
+B˜rn (Mn,n ) from ⋃  
+
+> n∈N0\Ik
+
+B˜rn (Mn,n ). We now prove that ⋃ 
+
+> n∈Ik
+
+B˜rn (Mn,n ) contains exactly k eigenvalues of M. Denoting by diag( M) the diagonal operator made of the diagonal elements Mn,n , we consider, for all s ∈ [0 , 1], 
+
+M(s) def 
+
+= diag( M) + s(M − diag( M)) .
+
+The map s 7 → M (s) is continuous from [0 , 1] to B(ℓ11) (the space of bounded linear operators on ℓ11), and we have that ⋃ 
+
+> n∈Ik
+
+B˜rn (Mn,n ) contains exactly k eigenvalues of M(0) = diag( M) (namely 
+
+Mn,n for n ∈ Ik ). Moreover, for all s ∈ [0 , 1], M(s) is compact and for all n ∈ N0
+
+∑ 
+
+> k6=n
+
+|M k,n (s)| = s ∑ 
+
+> k6=n
+
+|M k,n | ≤ ˜rn.
+
+Therefore, the spectrum of M(s) is included in ⋃ 
+
+> n∈N0
+
+B˜rn (Mn,n ), and Γ separates the spectrum of M(s), for all s ∈ [0 , 1]. By upper continuity of separated parts of the spectrum [25, Chapter EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 26 
+
+IV, Theorem 3.16] M(s) has exactly k eigenvalues in ⋃ 
+
+> n∈Ik
+
+B˜rn (Mn,n ) for all s ∈ [0 , 1], and in particular this holds for M(1) = M.Finally, let us consider the diagonal operator ξ : ℓ11 → ℓ11 given by ξn,n, = ξn for all n ∈ N0, and let ˜M = ξMξ−1. Obviously ˜M and M have the same spectrum, and we obtain Lemma 4.2 by applying the above proof to ˜M, for which we have 
+
+∑ 
+
+> k6=n
+
+| ˜Mk,n | = ∑ 
+
+> k6=n
+
+ξk|M k,n |ξ−1 
+
+> n
+
+= rn. 
+
+This proof of Lemma 4.2 is strongly inspired from [11], which deals instead with operators having compact resolvent, and from the references therein. A similar Gershgorin argument for infinite compact operators was also proposed recently in [14]. For the remainder of this section, our goal is to obtain quantitative and sharp information on the Gershgorin disks of M, in order to make good use of Lemma 4.2. The main difficulty lies in the fact that DF( ˜U )−1, which appears in M, is not known exactly, as even ˜U itself is not known exactly. However, we have a reasonable proxy for DF( ˜U )−1, namely A. Therefore, we consider ¯M, an approximation of M, for which we can compute exactly an arbitrary number of Gershgorin disks using interval arithmetic, and then explicitly estimate the errors between the disks of ¯M and those of M. In practice, we chose ¯M as follows ( ¯M)k,n 
+
+> def
+
+=
+
+{( π≤N P−1AL −1P) 
+
+> k,n
+
+if n ≤ N
+
+(P−1L−1P) 
+
+> k,n
+
+if n > N. 
+
+(73) This specific choice is merely convenient but not mandatory, and one could potentially improve ¯M by accurately computing the eigenvectors of M. In what follows, we derive several estimates that are valid for a general bounded linear operator ¯M : ℓ11 → ℓ11, but keep in mind the above for practical computations. For any given choice of ¯M, we have the following lemma, which is a direct consequence of the triangle inequality, and of our weighted definition of the Gershgorin radii. 
+
+Lemma 4.3. Given a bounded operator ¯M : ℓ11 → ℓ11, for all n ∈ N0 we define 
+
+¯rn
+
+> def
+
+= 1
+
+ξn
+
+∑  
+
+> k∈N0, k 6=n
+
+∣∣ ¯Mk,n 
+
+∣∣ ξk .(74) 
+
+For any n ∈ N0, if 1 
+
+> ξn
+
+‖M ·,n − ¯M·,n ‖1 ≤ εn, then 
+
+Brn (Mn,n ) ⊂ B¯rn +εn ( ¯Mn,n ).
+
+Proof. For any z ∈ Brn (Mn,n ) and n ∈ N0, we estimate 
+
+|z − ¯Mn,n | ≤ rn + |M n,n − ¯Mn,n |
+
+= 1
+
+ξn
+
+∑  
+
+> k∈N0, k 6=n
+
+|M k,n |ξk + ξn
+
+ξn
+
+|M n,n − ¯Mn,n |≤ 1
+
+ξn
+
+∑  
+
+> k∈N0, k 6=n
+
+| ¯Mk,n |ξk + 1
+
+ξn
+
+∑
+
+> k∈N0
+
+|M k,n − ¯Mk,n |ξk
+
+= ¯ rn + 1
+
+ξn
+
+‖M ·,n − ¯M·,n ‖1. 
+
+If ¯M is taken as in (73), ¯Mn,n and ¯ rn can be computed explicitly, and as soon as we get an explicit bound εn we therefore have a computable enclosure for the Gershgorin disk Brn (Mn,n ) of M. An easy way to get such a εn is simply to use that ξ−1 
+
+> n
+
+‖M ·,n − ¯M·,n ‖1 ≤ ‖M − ¯M‖ 1, as we can get a computable upper bound for ‖M − ¯M‖ 1 almost for free from the steady state proof. Indeed, the EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 27 
+
+estimate (69) shows that ‖DF( ˜U)−1‖1 ≤ ‖A‖ 1  
+
+> 1−(Z1+Z2(r)r)
+
+, and we then get 
+
+‖M − ¯M‖ 1 = ‖P −1 (
+
+I − AD F( ˜U )
+
+)
+
+DF( ˜U )−1L−1P‖ 1
+
+≤ ‖P −1‖1 ‖P‖ 1
+
+Z1 + Z2(r)r
+
+1 − (Z1 + Z2(r)r) ‖A‖ 1‖L −1‖1.
+
+Admittedly, the above estimate could be somewhat sharpened, but nevertheless, how small M− ¯M
+
+can be is limited by how small I − AD F( ˜U ) is (see (69)), and made worse by other factors such as the condition number of P. In order to successfully apply Theorem 3.1 and obtain the existence of ˜U in Br ( ¯U ), we need to have Z1 + Z2(r)r < 1, but this term does not need to be much smaller than 1 (in principle it can be made very small by taking N very large, but this then severely increases the computational cost of the proof). Overall, this means the estimate just outlined would have rather poor performances in practice (i.e., εn would be rather large). We therefore derive below a finer estimate for εn. We do so by using another (simplified) Newton-Kantorovich argument for solving for the columns of M, that still reuses parts of the bounds computed to prove the steady state ˜U .
+
+Proposition 4.4. Repeat the assumptions of Theorem 3.1, assume that (62) –(63) hold for ν = 1 ,and let ˜U be the unique zero of F in Br ( ¯U ). Let M be the operator defined in (70) , and let 
+
+¯M : ℓ11 → ℓ11. Finally, for all n ∈ N0, let 
+
+εn
+
+> def
+
+= 1
+
+ξn
+
+‖P −1‖1
+
+(
+
+‖A (DF( ¯U )P ¯M·,n − 1 
+
+> ξn
+
+L−1PE(1)  
+
+> n
+
+)‖1 + Z2(r)r ‖P ¯M·,n ‖1
+
+)
+
+1 − (Z1 + Z2(r)r) .(75) 
+
+Then, 
+
+Brn (Mn,n ) ⊂ B¯rn +εn ( ¯Mn,n ).
+
+Proof. We are going to show that εn defined in (75) satisfies ξ−1 
+
+> n
+
+‖M ·,n − ¯M·,n ‖1 ≤ εn, which proves Proposition 4.4 thanks to Lemma 4.3. To that end, we introduce a zero-finding problem satisfied by M·,n . We recall that E(1)  
+
+> n
+
+is the n-th element of the canonical Schauder basis of ℓ11, and in particular that 
+
+M·,n = 1
+
+ξn
+
+ME(1)  
+
+> n
+
+= 1
+
+ξn
+
+P−1DF( ˜U )−1L−1PE(1)  
+
+> n
+
+.
+
+In other words, 
+
+DF( ˜U )PM ·,n − 1
+
+ξn
+
+L−1PE(1)  
+
+> n
+
+= 0 .
+
+If ¯M·,n is an accurate approximation of M·,n , then we expect 
+
+δn = DF( ˜U )P ¯M·,n − 1
+
+ξn
+
+L−1PE(1)  
+
+> n
+
+,
+
+to be small, and we are going to estimate ‖M ·,n − ¯M·,n ‖1 in terms of the residual δn. In general this can be accomplished thanks to the Newton-Kantorovich Theorem 3.1, but here M·,n is the zero of an affine map, therefore elementary calculations suffice. Indeed, by linearity 
+
+DF( ˜U )P ( ¯M·,n − M ·,n 
+
+) = δn,
+
+hence ¯M·,n − M ·,n = P−1DF( ˜U )−1
+
+(
+
+DF( ˜U )P ¯M·,n − 1
+
+ξn
+
+L−1PE(1) 
+
+> n
+
+)
+
+.
+
+We then use once more estimate (69), which shows that A itself is invertible, and that 
+
+‖(ADF( ˜U )) −1‖1 ≤ 1
+
+1 − (Z1 + Z2(r)r) .EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 28 
+
+Therefore, we can get rid of the term DF( ˜U ) as follows 
+
+‖ ¯M·,n −M ·,n ‖1
+
+=
+
+∥∥∥∥P−1 (
+
+ADF( ˜U )
+
+)−1
+
+A
+
+(
+
+DF( ¯U )P ¯M·,n − 1
+
+ξn
+
+L−1PE(1)  
+
+> n
+
++ ( DF( ˜U ) − DF( ¯U )) P ¯M·,n 
+
+)∥ ∥∥∥1
+
+≤‖P −1‖1
+
+(
+
+‖A (DF( ¯U )P ¯M·,n − 1 
+
+> ξn
+
+L−1PE(1)  
+
+> n
+
+)‖1 + ‖A (DF( ˜U ) − DF( ¯U )) ‖1 ‖P ¯M·,n ‖1
+
+)
+
+1 − (Z1 + Z2(r)r)
+
+≤‖P −1‖1
+
+(
+
+‖A (DF( ¯U )P ¯M·,n − 1 
+
+> ξn
+
+L−1PE(1)  
+
+> n
+
+)‖1 + Z2(r)r ‖P ¯M·,n ‖1
+
+)
+
+1 − (Z1 + Z2(r)r) . 
+
+The key aspect of Proposition 4.4 is that, as soon as the column ¯M·,n is finite (i.e., has a finite number of nonzero entries), then ¯ rn is computable, and so is εn (provided we take A of the form (65)). Therefore, we do get an explicit enclosure of the n-th Gershgorin disk Brn (Mn,n ) of 
+
+M. However, in practice εn and ¯ rn can only be computed explicitly for finitely many n’s, and we need to do some extra work to control the remaining Gershgorin disks. To do so, we go back to our construction in (73) and derive the following estimates. 
+
+Proposition 4.5. Repeat the assumptions of Theorem 3.1, assume that (62) –(63) hold for ν = 1 ,and let ˜U be the unique zero of F in Br ( ¯U ). Let M be the operator defined in (70) .Then, for all 
+
+n > N , recalling definitions (39) and (56) of γ(1)  
+
+> i,k
+
+and η(1)  
+
+> i,k
+
+, and defining 
+
+(76) 
+
+ε∞
+
+> n
+> def
+
+= 1
+
+2
+
+‖P −1‖1
+
+1 − (Z1 + Z2(r)r)
+
+(
+
+Z2(r)r η (1) 0,n +
+
+> 2m−1
+
+∑
+
+> i=0
+
+‖A ¯Vi‖1 η(1) 
+
+> i,n −2m−1
+
+γ(1) 2m,n + ‖A ¯ViKiπ≤2m−1‖1 η(1) 0,n 
+
+)
+
+¯r∞
+
+> n
+> def
+
+= 1
+
+2 ‖P −1‖1 η(1) 0,n ,
+
+we get 
+
+Brn (Mn,n ) ⊂ B¯r∞  
+
+> n+ε∞
+> n
+
+(0) .
+
+Proof. Consider, for each n > N , ¯M·,n 
+
+> def
+
+= P−1L−1E(1)  
+
+> n
+
+as in (73). According to Proposition 4.4, 
+
+Brn (Mn,n ) ⊂ B¯rn +εn ( ¯Mn,n ),
+
+with ¯ rn and εn given by (74) and (75). Regarding ¯ rn, we simply estimate using Lemma 2.15: 
+
+| ¯Mn,n | + ¯ rn = ‖ ¯M·,n ‖1 = 1
+
+ξn
+
+‖P −1L−1E(1)  
+
+> n
+
+‖1 ≤ 1
+
+2 ‖P −1‖1 ‖L −1E(1)  
+
+> n
+
+‖1 ≤ 1
+
+2 ‖P −1‖1 η(1) 0,n = ¯ r∞ 
+
+> n
+
+,
+
+where we used that ξn = 2 since n > N > 2. This implies that B¯rn +εn ( ¯Mn,n ) ⊂ B¯r∞  
+
+> n+εn
+
+(0). Therefore, it now suffices to prove that, for all n > N , εn ≤ ε∞ 
+
+> n
+
+. Our specific choice of ¯M·,n 
+
+together with the fact that DF( ˜U ) = I + DK( ˜U ) and PE(1)  
+
+> n
+
+= E(1)  
+
+> n
+
+for n > N yields 
+
+εn = 1
+
+2
+
+‖P −1‖1
+
+(
+
+‖A (DF( ¯U )L−1E(1)  
+
+> n
+
+− L −1E(1)  
+
+> n
+
+)‖1 + Z2(r)r ‖L −1E(1)  
+
+> n
+
+‖1
+
+)
+
+1 − (Z1 + Z2(r)r)= 1
+
+2
+
+‖P −1‖1
+
+(
+
+‖A DK( ¯U )L−1E(1)  
+
+> n
+
+‖1 + Z2(r)r ‖L −1E(1)  
+
+> n
+
+‖1
+
+)
+
+1 − (Z1 + Z2(r)r)
+
+≤ 1
+
+2
+
+‖P −1‖1
+
+(
+
+‖A DK( ¯U )L−1E(1)  
+
+> n
+
+‖1 + Z2(r)r η (1) 0,n 
+
+)
+
+1 − (Z1 + Z2(r)r) ,
+
+where we have used the fact that L−1 = K0 to bound from above ‖L −1E(1)  
+
+> n
+
+‖1. Now, notice that 
+
+‖A DK( ¯U )L−1E(1)  
+
+> n
+
+‖1 ≤
+
+> 2m−1
+
+∑
+
+> i=0
+
+‖A ¯ViKiL−1E(1)  
+
+> n
+
+‖1.EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 29 
+
+Recalling (35), we have that 
+
+‖A ¯ViKiL−1E(1)  
+
+> n
+
+‖1 ≤ ‖A ¯ViKiS(2 m)E(1)  
+
+> n
+
+‖1 + ‖A ¯ViKiB†
+
+> 2m
+
+BS (2 m)E(1)  
+
+> n
+
+‖1.
+
+Since S(2 m)E(1)  
+
+> n
+
+= π>n −2m−1S(2 m)E(1)  
+
+> n
+
+, we apply Lemma 2.11 to get 
+
+‖A ¯ViKiS(2 m)E(1)  
+
+> n
+
+‖1 ≤ ‖A ¯ViKiπ>n −2m−1‖1 ‖S (2 m)E(1)  
+
+> n
+
+‖1
+
+≤ ‖A ¯Vi‖1 η(1)  
+
+> i,n −2m−1
+
+γ(1) 2m,n .
+
+On the other hand, since B† 
+
+> 2m
+
+= π≤2m−1B†
+
+> 2m
+
+, we use Proposition 2.15 to get 
+
+‖A ¯ViKiB†
+
+> 2m
+
+BS (2 m)E(1)  
+
+> n
+
+‖1 ≤ ‖A ¯ViKiπ≤2m−1‖1‖B †
+
+> 2m
+
+BS (2 m)E(1)  
+
+> n
+
+‖1 ≤ ‖A ¯ViKiπ≤2m−1‖1η(1) 0,n .
+
+This concludes the proof. 
+
+With Proposition 4.5, we have another set of explicit and computable enclosures for the Gershgorin disks of M. These enclosures may be slightly less accurate than the one given in Proposition 4.4, but they have the advantage of having more explicit dependency with respect to n, therefore we are going to be able to use them to derive asymptotic statements valid for all n large enough. Based only on Proposition 4.4 and Proposition 4.5, we are not able to count the number of unstable eigenvalues of M, as the balls B¯rn +εn ( ¯Mn,n ) might intersect both halves of the complex plane for 
+
+n large enough. However, what Proposition 4.5 does provide is a quantitative lower bound on how fast the eigenvalues of M go to 0. On the other hand, going back to the eigenproblem (6) in its initial form, we do expect the linearized operator to be sectorial, and in particular there should be an a priori bound on the modulus of potential unstable eigenvalues. In other words, recalling the link with the spectrum of M given in Lemma 4.1, arbitrarily small eigenvalues of M should all be stable. Provided such statement can be made quantitative, we can then determine the spectral stability of ˜U using the following statement. 
+
+Theorem 4.6. Repeat the assumptions of Theorem 3.1, assume that (62) –(63) hold for ν = 1 ,and let ˜U be the unique zero of F in Br ( ¯U ). Assume that there exists λmax > 0 such that any eigenvalue λ in (6) (with ˜v = G0(L−1 ˜U)) having nonnegative real part satisfies |λ| ≤ λmax . Assume further that: 
+
+• There are exactly nu ∈ N0 Gershgorin disks of M included in the unstable half space 
+
+{z ∈ C, ℜ(z) > 0}.
+
+• All the other Gershgorin disks of M do not intersect the previous ones, and are contained in {z ∈ C, ℜ(z) < 0} ⋃ Bλ−1max (0) .Then, the linearization of (1) at the steady state ˜v has exactly nu unstable eigenvalues. Proof. According to the Gershgorin theorem, recalled in our context in Lemma 4.2, the nu ∈ N0
+
+Gershgorin disks of M included in the unstable half space {z ∈ C, ℜ(z) > 0} and not intersecting any of the other disks yield nu unstable eigenvalues of M. Moreover, by Lemma 4.1, eigenvalues λ
+
+of (6) correspond to eigenvalues λ−1 of M. Therefore, any eigenvalue of M belonging to Bλ−1max (0) must in fact be stable. Since all the remaining Gershgorin disks of M are contained in {z ∈
+
+C, ℜ(z) < 0} ⋃ Bλ−1max (0), all the other eigenvalues of M are stable. We have proven that M has exactly nu unstable eigenvalues, and, using once more Lemma 4.1, there are exactly nu unstable eigenvalues in (6). 
+
+In practice, the constant λmax has to be computed on a case by case basis (see Section 5 for two concrete examples). Moreover, in order to apply Theorem 4.6, we need explicit control on all the Gershgorin disks of M, but this is exactly what Proposition 4.4 and Proposition 4.5 provide. 
+
+Example 4.7. In practice, provided N is taken large enough, what typically happens is that: (i) There are nu ∈ { 0, . . . , N } of the balls B¯rn +εn ( ¯Mn,n ) given by Proposition 4.4 included in the unstable half space {z ∈ C, ℜ(z) > 0},EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 30 
+
+(ii) The remaining N + 1 − nu ∈ N0 balls B¯rn +εn ( ¯Mn,n ) given by Proposition 4.4 are included in the stable half space {z ∈ C, ℜ(z) < 0},(iii) All the balls B¯r∞  
+
+> n+ε∞
+> n
+
+(0) given by Proposition 4.5 are included in Bλ−1max (0) .The first two assumptions can be checked explicitly because the sets B¯rn +εn ( ¯Mn,n ) are all com-putable. Regarding the third one, note that the formula for ¯r∞ 
+
+> n
+
+and ε∞ 
+
+> n
+
+depend explicitly on n, and are in fact decreasing with n, therefore it suffices to check whether ¯r∞  
+
+> N+1
+
++ ε∞  
+
+> N+1
+
+≤ λ−1max (if not, one should use a larger N ). These assumptions taken together allow us to apply Theorem 4.6, and to conclude that there are exactly nu unstable eigenvalues. In other words, as one might expect, all the stability information is contained in the N first Gershgorin disks. 
+
+4.2. Enclosure of the spectrum directly based on the generalized eigenproblem. In this section, we discuss an alternative method for enclosing the eigenvalues in (6). This approach still uses a finite dimensional approximation of M to define approximate eigenvalues, but then differs from the one presented in Section 4.1, in that we directly enclose eigenvalues of the generalized eigenvalue problem (68), rather than first enclosing the eigenvalues of M. This might seem like an inconsequential change at first glance, but it turns out to make a significant difference on some examples. In particular, it will allow us to deal with situations where the tail estimates from Proposition 4.5 are not tight enough in order to conclude with Theorem 4.6, i.e., when the disks obtained in Proposition 4.5 are not all contained in Bλ−1max (0). Similarly as what was achieved in the previous section, we introduce a pseudo-diagonalization 
+
+M0
+
+> def
+
+= P−10 A0π≤N L−1π≤N P0
+
+for some invertible (finite-dimensional) operator P0 : π≤N ℓ11 → π≤N ℓ11 with inverse P−10 , where A0
+
+corresponds to the finite part of the operator A used for establishing the existence of the steady state (see (65)). In contrast to the M considered previously, M0 is finite dimensional, and is defined via the explicit operator A0, and not DF( ˜U )−1. In particular, M0 is fully computable and does not require an additional approximation (such as ¯M to approximate M). Since M0 is finite dimensional, we can only hope to use it to approximate eigenvalues of (68) of moderate amplitude. As was the case in Section 4.1, this will then be combined with a priori estimates on the spectrum. We define S0 as the diagonal part of the matrix M0 and R0 the rest of the entries, that is 
+
+S0
+
+> def
+
+= diag( M0) and R0
+
+> def
+
+= M0 − S0.
+
+In practice, we expect R0 to be really small, because P0 will be constructed with numerically obtained eigenvectors of A0π≤N L−1π≤N . Moreover, we denote by ( μi)i∈N0 the diagonal entries of 
+
+S0, and for each i ∈ N0, we define (77) λi
+
+> def
+
+= 1
+
+μi
+
+,
+
+with the convention that λi = ∞ if μi = 0 . Now, we provide below the central result of this section which allows to enclose any eigenvalues of (68) of moderate amplitude in a neighborhood of one of the explicit λ′
+
+> i
+
+s. Moreover, we provide computable estimates for this enclosure, which are compatible with rigorous numerics. 
+
+Theorem 4.8. Repeat the assumptions of Theorem 3.1, with A of the form (65) , assume that (62) –
+
+(63) hold for ν = 1 , and let ˜U be the unique zero of F in Br ( ¯U ).Let λmax > 0 be fixed, and let λ ∈ C be an eigenvalue of the generalized eigenproblem (68) such that |λ| ≤ λmax . Let ǫ be defined as 
+
+ǫ def 
+
+=
+
+> 2m−1
+
+∑
+
+> i=0
+
+(
+
+2η(1)  
+
+> i,N +1
+
+∑ 
+
+> k>N −2m+i
+
+|( ¯Vi)k| + ‖ ¯Vi‖1γ(1) 2m−i,N +1 
+
+)
+
++ λmax γ(1) 2m,N +1 ,(78) 
+
+with γ(1)  
+
+> i,k
+
+given in (39) , ¯Vi in (51) , and η(1)  
+
+> i,k
+
+in (56) .EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 31 
+
+Let Z1,P0 (r), Z2,P0 (r), Z2,≤N (r), and Z2,>N (r) be bounds satisfying 
+
+Z1,P0 (r) ≥ ‖P −10
+
+(π≤N − A 0π≤N DF( ¯U )π≤N ) P0‖1,Z2,P0 (r)r ≥ ‖P −10 A0π≤N (DF( ¯U ) − DF( ˜U )) π≤N P0‖1,Z2,≤N (r)r ≥ ‖A 0π≤N (DF( ¯U ) − DF( ˜U )) π≤N ‖1,Z2,>N (r)r ≥ ‖ π>N (DK( ¯U ) − DK( ˜U )) π>N ‖1.
+
+Let also β0,1, β0,2, β1,1, β1,2, β1,3, β1,4, β2,1, and β2,2 be such that 
+
+β0,1 ≥ ‖ π>N DK( ¯U )π≤N P0‖1 + ‖P 0‖1Z2,>N (r)r, β0,2 ≥ ‖P −10 A0π≤N DK( ¯U )π>N DK( ¯U )π≤N P0‖1 + ‖P −10 A0π≤N DK( ¯U )π>N ‖1‖P 0‖1Z2,>N (r)r, β1,1 ≥ η(1) 0,N +1 ‖P −10 A0‖1(‖π>N DK( ¯U )π≤N P0‖1 + ‖P 0‖1Z2,>N (r)r),β1,2 ≥ ‖ π>N L−1π≤N P0‖1,β1,3 ≥ ‖P −10 A0π≤N DK( ¯U )π>N L−1π≤N P0‖1,β1,4 ≥ ‖P −10 A0π≤N DK( ¯U )π>N ‖1 + ‖P −10 ‖1Z2,≤N (r)r, β2,1 ≥ ‖P −10 A0π≤N L−1π>N L−1π≤N P0‖1,β2,2 ≥ η(1) 0,N +1 ‖P −10 A0‖1.
+
+Furthermore, let us assume that ǫ < 1, and define β0, β1, and β2 as 
+
+β2
+
+> def
+
+= β2,1 + ǫ
+
+1 − ǫ β1,2β2,2,β1
+
+> def
+
+= β1,1 + β1,3 + ‖P −10 ‖1Z2,≤N (r)rβ 1,2 + ǫ
+
+1 − ǫ (β1,2β1,4 + β0,1β2,2),β0
+
+> def
+
+= β0,2 + ‖P −10 ‖1Z2,≤N (r)rβ 0,1 + ǫ
+
+1 − ǫ β0,1β1,4.
+
+Finally, let δ be defined as 
+
+δ def 
+
+= λmax ‖R0‖1 + β2λ2max + β1λmax + β0 + Z1,P0 + Z2,P0 (r)r, 
+
+and assume that the truncation parameter N satisfies N ≥ 4m. Then, there exists j ∈ { 0, . . . , N }
+
+such that 
+
+|λj − λ| ≤ | λj |δ. (79) 
+
+In addition, let Bj
+
+> def
+
+= Bδ|λj |(λj ) for all j ∈ { 0, . . . , N }, let k ∈ N and let I ⊂ { 0, . . . , N } such that |I| = k. If the set ∪j∈I Bj is included in the interior of Bλmax (0) and is disjoint from 
+
+∪j∈{ 0,...,N }\ I Bj , then ∪j∈I Bj contains exactly k generalized eigenvalues of (68) , counted with algebraic multiplicity. 
+
+Before giving the proof of Theorem 4.8, let us briefly discuss the many terms involved there. First, note that, provided N is taken large enough, we do expect to get ǫ ≪ 1, in a quantitative way, thanks to the quantitative compactness estimates provided by Lemma 2.11 and Proposi-tion 2.15. Next, Z1,P0 is expected to be small because A0 is defined as a numerical inverse of 
+
+π≤N DF( ¯U )π≤N , while rZ 2,P0 , rZ 2,≤N and rZ 2,>N should be small because ¯U is very close to ˜U , and hence DF( ¯U ) − DF( ˜U ) should be very small. Also note that, up to the conjugation by 
+
+P0, these terms are related to quantities that we already needed to estimate for the application of Theorem 3.1. Then, each of the βi,j terms are also expected to be small, because they involve some of the small terms already mentioned, and because of the compactness of DK(¯ u) and of L−1
+
+(see again Lemma 2.11 and Proposition 2.15 for quantitative estimates). Moreover, most of the estimates βi,j amount to the computation of operator norms of finite dimensional operators (we recall that π>N DK( ¯U )π≤N has finite range according to (60)), and hence are computable. The only exception is the P−10 A0π≤N DK( ¯U )π>N term (because of the infinite rows in DK( ¯U )π>N ,see (61)), but we still have a computable estimate for it, namely 
+
+‖P −10 A0π≤N DK( ¯U )π>N ‖1 ≤ ‖P −10 ‖1Z1,3,EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 32 
+
+where we again refer to Lemma 3.4 for more details, including the definition of Z1,3 and the proof of this estimate. In summary, we can get computable estimates for all the βi,j required in Theorem 4.8, and hence for β0, β1 and β2, which should all be small. Finally, recalling that R0 = M0 − diag( M0), we do expect δ to be reasonably small, and hence (79) to provide a reasonably tight enclosure of the eigenvalues, at least in relative error. However, note that these enclosures become worse when λmax increases, and may also become large in absolute distance if λj itself has a large magnitude. 
+
+Proof. Let U ∈ ℓ11, U 6 = 0, be an eigenvector associated to λ, i.e., such that 
+
+U + DK( ˜U )U = λL−1U. (80) The first main idea of the proof is that, if λmax is not too large (or if N is large enough), we expect the eigenvector U to be mostly concentrated in its finite dimensional part π≤N U . We start by making this statement quantitative, by explicitly expressing the tail π>N U in terms of π≤N U . To that end, applying π>N to (80) and separating the contributions of π≤N U and π>N U , we get 
+
+π>N U + π>N DK( ˜U )π>N U − λπ >N L−1π>N U = −π>N DK( ˜U )π≤N U + λπ >N L−1π≤N U, 
+
+which we rewrite 
+
+Bλπ>N U = Cλπ≤N U, (81) with 
+
+Bλ
+
+> def
+
+= π>N + π>N DK( ˜U )π>N − λπ >N L−1π>N : π>N ℓ11 → π>N ℓ11,Cλ
+
+> def
+
+= λπ >N L−1π≤N − π>N DK( ˜U )π≤N : π≤N ℓ11 → π>N ℓ11.(82) We first show that Bλ : π>N ℓ11 → π>N ℓ11 is invertible, by showing that it is close to π>N . We start by estimating 
+
+‖π>N DK( ˜U )π>N ‖1 ≤ ‖ π>N DK( ¯U )π>N ‖1 + ‖π>N (DK( ˜U ) − DK( ¯U )) π>N ‖1
+
+≤ ‖ π>N DK( ¯U )π>N ‖1 + Z2,>N (r)r. 
+
+Recalling that DK( ¯U ) = ∑2m−1 
+
+> i=0
+
+¯ViKi, we use (66) with ν = 1 to get 
+
+‖π>N ¯ViKiπ>N ‖1 ≤ 2η(1)  
+
+> i,N +1
+
+∑ 
+
+> k>N −2m+i
+
+|( ¯Vi)k| + ‖ ¯Vi‖1γ(1) 2m−i,N +1 ,
+
+and we have obtained that 
+
+‖π>N DK( ˜U )π>N ‖1 ≤ Z2,>N (r)r +
+
+> 2m−1
+
+∑
+
+> i=0
+
+(
+
+2η(1)  
+
+> i,N +1
+
+∑ 
+
+> k>N −2m+i
+
+|( ¯Vi)k| + ‖ ¯Vi‖1γ(1) 2m−i,N +1 
+
+)
+
+.
+
+Moreover, using once again Lemma 2.11 we have that 
+
+‖λπ >N L−1π>N ‖1 ≤ λmax γ(1) 2m,N +1 .
+
+Overall, we have obtained that 
+
+‖Bλ − π>N ‖1 ≤ ǫ, (83) where ǫ is given in (78). Since we assumed ǫ < 1, we indeed get that Bλ : π>N ℓ11 → π>N ℓ11 is boundedly invertible, and that 
+
+B−1 
+
+> λ
+
+=
+
+> ∞
+
+∑
+
+> k=0
+
+(
+
+π>N DK( ˜U )π>N − λπ >N L−1π>N )k
+
+.(84) Going back to (81), we get 
+
+π>N U = B−1 
+
+> λ
+
+Cλπ≤N U. (85) That is, we have identified the relationship between the tail of the eigenvector π>N U and the finite part π≤N U , and we expect ‖B−1 
+
+> λ
+
+Cλ‖1 to be small (this will be quantified later on). The second part of the proof consists in obtaining an equation for π≤N U only, then in approx-imately diagonalizing the main part of that equation, and finally in explicitly estimating all the EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 33 
+
+remainder terms in order to obtain an enclosure on the eigenvalue λ. We first apply π≤N to (80), or equivalently to (DF( ˜U ) − λL−1)U = 0 ,
+
+and then separate the contributions of π≤N U and π>N U , and use (85), which yields 
+
+π≤N (DF( ˜U ) − λL−1)π≤N U = −π≤N (DF( ˜U ) − λL−1)π>N U
+
+= Gλπ≤N U, (86) where 
+
+Gλ
+
+> def
+
+= π≤N (
+
+λL−1 − DK( ˜U )
+
+)
+
+π>N B−1 
+
+> λ
+
+Cλ : π≤N ℓ11 → π≤N ℓ11.(87) Then, applying A0 to (86) and reorganizing the terms to take into account that 
+
+A0 ≈
+
+(
+
+π≤N DF( ˜U )π≤N )−1
+
+,
+
+we get 
+
+(π≤N − λA0π≤N L−1π≤N ) π≤N U =
+
+(
+
+A0Gλ + ( π≤N − A 0π≤N DF( ˜U )π≤N )
+
+)
+
+π≤N U. (88) Next, recall that A0π≤N L−1π≤N = P0M0P−10 and M0 = S0 + R0, with S0 = diag( M0). Using these notations together with V def 
+
+= P−10 U , equation (88) becomes 
+
+(π≤N − λS 0
+
+) π≤N V =
+
+(
+
+λR 0 + P−10
+
+(
+
+A0Gλ + ( π≤N − A 0π≤N DF( ˜U )π≤N )
+
+)
+
+P0
+
+)
+
+π≤N V. (89) We expect the right-hand side of (89) to be small, and are going quantify this below. Since S0 is diagonal, identity (89) therefore shows that λ is close to one of the λi defined in (77), and how close depends on how small the right-hand side of (89) actually is. More precisely, 
+
+‖ (π≤N − λS 0
+
+) π≤N V ‖1 = |(1 − μ0λ)V0| + 2 
+
+> N
+
+∑
+
+> n=1
+
+|(1 − μnλ)Vn| ≥ min  
+
+> i≤N
+
+|1 − μiλ|‖ π≤N V ‖1,(90) and therefore min  
+
+> i≤N
+
+|1 − μiλ| ≤ | λ|‖ R0‖1 + ‖P −10 A0GλP0‖1 + ‖P −10 (π≤N − A 0π≤N DF( ˜U )π≤N )P0‖1.(91) It remains to estimate each term on the right-hand side of (91). First, we have 
+
+‖P −10 (π≤N − A 0π≤N DF( ˜U )π≤N )P0‖1 ≤ ‖P −10 (π≤N − A 0π≤N DF( ¯U )π≤N )P0‖1
+
++ ‖P −10 A0π≤N (DF( ¯U ) − DF( ˜U )) π≤N P0‖1
+
+≤ Z1,P0 + Z2,P0 (r)r. 
+
+Next, we focus on the term ‖P −10 A0GλP0‖1. Recalling the definition of Gλ in (87), splitting B−1
+
+> λ
+
+from (84) as 
+
+B−1 
+
+> λ
+
+= π>N +
+
+> ∞
+
+∑
+
+> k=1
+
+(π>N DK( ˜U )π>N − λπ >N L−1π>N )k,
+
+and using (83), we have 
+
+‖P −10 A0GλP0‖1 = ‖P −10 A0π≤N (λL−1 − DK( ˜U )) π>N B−1 
+
+> λ
+
+CλP0‖1(92) 
+
+≤ ‖P −10 A0π≤N (λL−1 − DK( ˜U )) π>N CλP0‖1
+
++ ǫ
+
+1 − ǫ ‖P −10 A0π≤N (λL−1 − DK( ˜U )) π>N ‖1‖CλP0‖1,
+
+and we now estimate the two terms on the right-hand side separately. For the first term, we use the triangle inequality 
+
+‖P −10 A0π≤N (λL−1 − DK( ˜U )) π>N CλP0‖1 ≤ | λ|‖P −10 A0π≤N L−1π>N CλP0‖1
+
++ ‖P −10 A0π≤N DK( ˜U )π>N CλP0‖1,(93) EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 34 
+
+and again estimate the two resulting terms separately. Recalling the definition of Cλ in (82), we have 
+
+‖P −10 A0π≤N L−1π>N CλP0‖1
+
+≤ | λ|‖P −10 A0π≤N L−1π>N L−1π≤N P0‖1 + ‖P −10 A0π≤N L−1π>N ‖1‖π>N DK( ˜U )π≤N P0‖1
+
+≤ β2,1|λ| + ‖P −10 A0‖1η(ν)0,N +1 
+
+(
+
+‖π>N DK( ¯U )π≤N P0‖1 + ‖π>N (DK( ¯U ) − DK( ˜U )) π≤N P0‖1
+
+)
+
+≤ β2,1|λ| + ‖P −10 A0‖1η(ν)0,N +1 
+
+(‖π>N DK( ¯U )π≤N P0‖1 + ‖P 0‖1Z2,>N (r)r)
+
+≤ β2,1|λ| + β1,1,
+
+where we used Proposition 2.15 to control ‖L −1π>N ‖1 by η(1) 0,N +1 . Regarding the second term of (93), we first estimate 
+
+‖P −10 A0π≤N DK( ˜U )π>N CλP0‖1 ≤ ‖P −10 A0π≤N DK( ¯U )π>N CλP0‖1(94) + ‖P −10 ‖1Z2,≤N (r)r‖π>N CλP0‖1.
+
+Using once more the definition of Cλ in (82), rewriting each occurrence of DK( ˜U ) as DK( ¯U ) + (DK( ˜U ) − DK( ¯U )), and using the triangle inequality, we then get 
+
+‖π>N CλP0‖1 ≤ β1,2|λ| + β0,1,(95) and 
+
+‖P −10 A0π≤N DK( ¯U )π>N CλP0‖1 ≤ β1,3|λ| + β0,2.
+
+Overall, we have obtained that (96) ‖P −10 A0π≤N (λL−1 − DK( ˜U )) π>N CλP0‖1 ≤|λ|(β2,1|λ| + β1,1) + β1,3|λ| + β0,2 + ( β1,2|λ| + β0,1)( ‖P −10 ‖1Z2,≤N ).
+
+Focusing now on the last term of (92), we estimate 
+
+‖P −10 A0π≤N (λL−1 − DK( ˜U )) π>N ‖1
+
+≤ | λ|‖P −10 A0π≤N L−1π>N ‖1 + ‖P −10 A0π≤N DK( ˜U )π>N ‖1
+
+≤ | λ|η(1) 0,N +1 ‖P −10 A0‖1 + ‖P −10 A0π≤N DK( ¯U )π>N ‖1 + ‖P −10 ‖1Z2,≤N (r)r
+
+≤ β2,2|λ| + β1,4.(97) Combining (96) and (97) with (95), we finally get 
+
+‖P −10 A0GλP0‖1 ≤ β2|λ|2 + β1|λ| + β0.
+
+Coming back to (91), we have shown that min  
+
+> i≤N
+
+|1 − μiλ| ≤ | λ|‖ R0‖1 + β2|λ|2 + β1|λ| + β0 + Z1,P0 + Z2,P0 (r)r ≤ δ. (98) Finally, letting j ≤ N be such that min i≤N |1 − μiλ| = |1 − μj λ|, we get 
+
+|1 − μj λ| =
+
+∣∣∣∣1 − λ
+
+λj
+
+∣∣∣∣ ≤ δ, 
+
+and (79) is established. In other words, we have shown that, provided |λ| ≤ λmax , the eigenvalue λ belongs to one of the disks Bj = Bδ|λj |(λj ), for some j ∈ { 0, . . . , N }. We now prove the final part of the theorem, allowing to count the eigenvalues of (68) in a disjoint union of disks Bj . To this end, we work again with the spectrum of DF( ˜U )−1L−1 (see Lemma 4.1), and we therefore introduce the sets 
+
+B†
+
+> j
+> def
+
+= {z ∈ C, z −1 ∈ Bj }, for all j ∈ { 0, . . . , N },
+
+and 
+
+B†
+
+> max
+> def
+
+= {z ∈ C, z −1 ∈ Bλmax (0) } = {z ∈ C, |z| ≥ (λmax )−1}.EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 35 
+
+What we have just shown is that any eigenvalue of DF( ˜U )−1L−1 which is in B† 
+
+> max
+
+must lie in 
+
+B† 
+
+> j
+
+for some j ∈ { 0, . . . , N }. Having assumed that I ⊂ { 0, . . . , N }, with |I| = k, is such that the set ∪j∈I Bj is included in the interior of Bλmax (0) and is disjoint from ∪j∈{ 0,...,N }\ I Bj , i.e., that 
+
+∪j∈I B† 
+
+> j
+
+is included in the interior of B† 
+
+> max
+
+and is disjoint from ∪j∈{ 0,...,N }\ I B† 
+
+> j
+
+, we want to prove that ∪j∈I B† 
+
+> j
+
+contains exactly k eigenvalues of DF( ˜U )−1L−1. What is clear is that S0, viewed as an operator on ℓ11, has exactly k eigenvalues in ∪j∈I B† 
+
+> j
+
+, because each μj = λ−1 
+
+> j
+
+belongs to B†
+
+> j
+
+for j ∈ { 0, . . . , N }, and the only other eigenvalue of S0 is 0, which lies outside of B†
+
+> max
+
+. Our aim will therefore be to construct an homotopy between S0 and DF( ˜U )−1L−1, i.e., a continuous map 
+
+H : [0 , 1] → B(ℓ11) such that H(0) = S0 and H(1) = DF( ˜U )−1L−1, for which we can prove that any element of the spectrum of H(t) which is in B† 
+
+> max
+
+must lie in one of the B† 
+
+> j
+
+, for any t ∈ [0 , 1]. As in the proof of Lemma 4.2, Theorem 3.16 from [25, Chapter IV] then shows that DF( ˜U )−1L−1
+
+has exactly k eigenvalues in ∪j∈I B† 
+
+> j
+
+. This is essentially what we accomplish below, except that we use several successive homotopies to connect S0 to DF( ˜U )−1L−1.We first deform S0 into M0, by considering the homotopy H1(t) def 
+
+= (1 − t)S0 + tM0 = S0 + tR 0 for all t ∈ [0 , 1]. We claim that, for all t ∈ [0 , 1], if μ is an eigenvalue of H1(t) which is also in B†
+
+> max
+
+,then μ lies in some B† 
+
+> j
+
+. Indeed, first note that 
+
+z ∈ B† 
+
+> j
+
+⇐⇒ 
+
+∣∣∣∣
+
+1
+
+z − λj
+
+∣∣∣∣ ≤ δ|λj | ⇐⇒ 
+
+∣∣∣ μj
+
+z − 1
+
+∣∣∣ ≤ δ. 
+
+Then, since μ ∈ B†
+
+> max
+
+, μ 6 = 0, and therefore we can select an eigenvector U ∈ π≤N ℓ11 associated to the eigenvalue μ of H1(t). We have (S0 − μI)U = −tR 0U, 
+
+therefore, by the same argument used to obtain (91), there exists j ∈ { 0, . . . , N } such that 
+
+|μj − μ| ≤ | t|‖ R0‖1 ≤ ‖ R0‖1,
+
+which yields ∣∣∣∣
+
+μj
+
+μ − 1
+
+∣∣∣∣ ≤ ‖ R0‖1λmax ≤ δ. 
+
+We have indeed proven that μ ∈ B† 
+
+> j
+
+, thus M0 also has exactly k eigenvalues in ∪j∈I B† 
+
+> j
+
+.Then, recall that M0 has the same spectrum as A0π≤N L−1π≤N = P0M0P−10 . We now deform 
+
+A0π≤N L−1π≤N into AL −1, using a second homotopy H2(t) def 
+
+= (1 − t)A0π≤N L−1π≤N + tAL −1, for all t ∈ [0 , 1]. Since A is bounded on ℓ11 and L−1 is compact on ℓ11 by Proposition 2.15, H2(t) : ℓ11 → ℓ11
+
+is compact for all t ∈ [0 , 1]. This implies that the spectrum of H2(t) is composed of eigenvalues only. Let t ∈ [0 , 1] and let ( μ, U ) ∈ B† 
+
+> max
+
+× ℓ11 be an eigenpair of H2(t), which means that (1 − t)A0π≤N L−1π≤N U + tAL −1U = μU. 
+
+Multiplying the above by π>N and using the structure of A (see (65)), we are left with 
+
+tπ >N L−1U = μπ >N U. 
+
+Recalling that μ ∈ B†
+
+> max
+
+, we introduce λ = μ−1 which satisfies |λ| ≤ λmax , an get that 
+
+π>N U − tλπ >N L−1π>N U = tλπ >N L−1π≤N U. 
+
+Following a similar analysis as presented above for the proof of (86), we get that 
+
+π>N U = ˜B−1 
+
+> λ
+
+˜Cλπ≤N U, 
+
+where this time ˜Bλ = π>N − tλπ >N L−1π>N and ˜Cλ = tλπ >N L−1π≤N .
+
+In particular, note that ˜Bλ : π>N ℓ11 → π>N ℓ11 is invertible since 
+
+‖π>N − ˜Bλ‖1 ≤ ǫ, EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 36 
+
+where ǫ is given by (78), and we can reproduce the remainder of the arguments leading to (98) to prove that there exists j ∈ { 0, . . . , N } such that λ ∈ Bj . This shows that μ ∈ B† 
+
+> j
+
+, hence AL −1
+
+also has exactly k eigenvalues in ∪j∈I B† 
+
+> j
+
+.Finally, we deform AL −1 into DF( ˜U )L−1, using a well-chosen (nonlinear) homotopy that allows us to re-use the estimates derived above. We first note that (1 − t)A−1 + tD F( ˜U ) : ℓ11 → ℓ11 is boundedly invertible for all t ∈ [0 , 1], as 
+
+‖I − A ((1 − t)A−1 + tD F( ˜U )) ‖1 = t‖I − A DF( ˜U )‖1 ≤ tZ 1 + tZ 2(r)r < 1.
+
+This enables us to define the homotopy 
+
+H3(t) def 
+
+=
+
+(
+
+(1 − t)A−1 + tD F( ˜U)
+
+)−1
+
+L−1, for all t ∈ [0 , 1] .
+
+Once more, H3(t) is compact on ℓ11 for all t ∈ [0 , 1], hence the spectrum of H3(t) is composed of eigenvalues only. Let t ∈ [0 , 1] and let ( μ, U ) ∈ B† 
+
+> max
+
+× ℓ11 be an eigenpair of H3(t). Then 
+
+(
+
+(1 − t)A−1 + tD F( ˜U )
+
+)
+
+U = λL−1U, 
+
+where λ = 1 
+
+> μ
+
+. Multiplying the above by A, we get 
+
+U + t
+
+(
+
+ADF( ˜U ) − I 
+
+)
+
+U = λAL −1U. (99) Now, we closely follow the analysis used to prove (98). We mimic the steps of the proof and use similar notations for convenience. Applying π>N to (99), separating the contributions of π≤N U
+
+and π>N U , and using (65), we get 
+
+π>N U + tπ >N DK( ˜U )π>N U − λπ >N L−1π>N U = λπ >N L−1π≤N U − tπ >N DK( ˜U )π≤N U, 
+
+which we rewrite 
+
+Bλ(t)π>N U = Cλ(t) π≤N U, (100) with (101) Bλ(t) def 
+
+= π>N + tπ >N DK( ˜U )π>N − λπ >N L−1π>N : π>N ℓ11 → π>N ℓ11,Cλ(t) def 
+
+= λπ >N L−1π≤N − tπ >N DK( ˜U )π≤N : π≤N ℓ11 → π>N ℓ11.
+
+Since t ∈ [0 , 1], we can use the above estimates and obtain ‖Bλ(t) − π>N ‖1 ≤ ǫ. In particular, this implies that Bλ(t) : π>N ℓ11 → π>N ℓ11 has a bounded inverse. Now, applying π≤N to (99), we get 
+
+π≤N U − λA0L−1π≤N U = −t
+
+(
+
+A0DF( ˜U ) − π≤N )
+
+π≤N U + A0
+
+(
+
+λL−1 − tD K( ˜U )
+
+)
+
+π>N U. 
+
+Denoting Gλ(t) = 
+
+(
+
+λL−1 − tD K( ˜U )
+
+)
+
+π>N Bλ(t)−1Cλ(t), we get 
+
+π≤N U − λA0L−1π≤N U =
+
+(
+
+A0Gλ(t) + t
+
+(
+
+π≤N − A 0DF( ˜U )
+
+)) 
+
+π≤N U, (102) exactly as in (88). The rest of the estimates follows exactly as for the proof of (98), using in addition that t ∈ [0 , 1] (meaning that the estimates derived for the proof of (98) will uniformly bound the ones needed for (102)). More specifically, we obtain that λ ∈ B j for some j ∈ { 0, . . . , N },which finishes the proof. 
+
+As was the case for Proposition 4.4 and Proposition 4.5, if we have a computable a priori estimate on unstable eigenvalues of (6) we can try to combine it with Theorem 4.8 in order to count the number of unstable eigenvalues. 
+
+Theorem 4.9. Repeat the assumptions of Theorem 3.1, with A of the form (65) , assume that (62) –
+
+(63) hold for ν = 1 , and let ˜U be the unique zero of F in Br ( ¯U ). Assume that there exists λmax > 0
+
+such that any eigenvalue λ in (6) (with ˜v = G0(L−1 ˜U )) having nonnegative real part satisfies 
+
+|λ| ≤ λmax , and that ǫ < 1, with ǫ as in (78) . Consider the disks Bj introduced in Theorem 4.8 for j ∈ { 0, . . . , N }, and assume further that: EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 37 
+
+• There are exactly nu ∈ N0 disks Bj included in {z ∈ C, ℜ(z) > 0} ⋂ Bλmax (0) .
+
+• All the other disks Bj are contained in the stable half space {z ∈ C, ℜ(z) < 0}.Then, the linearization of (1) at the steady state ˜v has exactly nu unstable eigenvalues. 
+
+Remark 4.10. In order for some of the disks Bj to be disjoints from others, we need to have δ < 1.This condition might fail if our a priori bound λmax on unstable eigenvalues is too rough, as δ grows quadratically with λmax . However, Theorem 4.8 may also be used iteratively to improve upon that bound λmax . That is, let λmax > 0 be such that any eigenvalue λ in (6) (with ˜v = G0(L−1 ˜U ))having nonnegative real part satisfies |λ| ≤ λmax , and assume that ǫ < 1, with ǫ as in (78) . Then, provided the disks Bj are all included in Bλmax (0) for j ∈ { 0, . . . , N }, Theorem 4.8 proves that any eigenvalue of λ in (6) having nonnegative real part lies ⋃Nj=0 Bj . That is, letting 
+
+λnew max 
+
+> def
+
+= inf 
+
+ρ > 0,
+
+> N
+
+⋃
+
+> j=0
+
+Bj ⊂ Bρ(0) 
+
+ ,
+
+we get a sharper a priori estimate on unstable eigenvalues, that can be used instead of λmax .
+
+4.3. Summary. We introduced two computer-assisted approaches that allow the study of linear stability (and more precisely, to count the number of unstable eigenvalues) of steady states of equations of the form (1), summarized in Theorem 4.6 and Theorem 4.9. Theorem 4.6 relies on Gershgorin disks and typically allows for very sharp enclosures of the first eigenvalues {λi}Ni=0 .However, because Theorem 4.6 mostly works with the compact operator DF( ˜U )−1L−1, whose eigenvalues accumulate at 0, it requires a relatively fine control on the remaining eigenvalues 
+
+{λi}i>N in order to be able to check that they are indeed stable, which can sometimes be challenging to obtain in practice. On the other hand, while Theorem 4.9 gives comparatively rougher bounds on the first eigenvalues, in practice it can make it easier to rigorously prove that the remaining eigenvalues are all stable. These differences will be illustrated in Section 5. Finally, we note that once the number of unstable eigenvalue has been determined, with either Theorem 4.6 or Theorem 4.9, one can always get very tight enclosures of these eigenvalues (if need be) by using a Newton-Kantorovich argument directly on the eigenvalue problem (cf. [26] for instance). This is the best way of getting a tight enclosure of any single eigenvalue, but it cannot tell us anything about the other eigenvalues, which is why we need Theorem 4.6 or Theorem 4.9 to determine how many unstable eigenvalues there are. 5. Applications 
+
+We now consider two concrete problems of the form (1) on which we apply the methodology introduced in this paper. That is, after having found numerically what we hope to be a reasonably accurate approximation of a steady state, we first prove the existence of an actual steady state nearby using Theorem 3.1, and then rigorously determine its spectral stability using Theorem 4.6 or Theorem 4.9. 5.1. A simple parabolic PDE. We start with a very simple reaction diffusion equation 
+
+{
+
+∂tv = ∂2
+
+> x
+
+v + α(v2 + 1) , x ∈ (−1, 1) ,v(±1) = 0 ,
+
+(103) where α > 0 is a parameter. This problem could obviously be studied without computer-assisted proofs, and in particular the stationary problem can already be well understood using ODE techniques, shooting methods, convexity, and the existence of a first integral. Nonetheless, we use this as a first example for the method introduced in this paper, as it will allow us to detail all the steps without too many technicalities. Here is a typical statement produced by our approach. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 38 
+
+Theorem 5.1. Let ¯v = ¯ v(x) be the function represented in Figure 1, and whose precise description in terms of Chebyshev coefficients can be downloaded at [15] 1. There exists a smooth steady state 
+
+˜v = ˜ v(x) of (103) with α = 1 such that 
+
+max {‖˜v − ¯v‖∞, ‖∂2 
+
+> x
+
+˜v − ∂2 
+
+> x
+
+¯v‖∞
+
+} ≤ 10 −14 .
+
+This steady state ˜v is asymptotically stable.           
+
+> -1 -0.8 -0.6 -0.4 -0.2 00.2 0.4 0.6 0.8 1
+> -0.1 00.1 0.2 0.3 0.4 0.5 0.6 0.7
+
+Figure 1. Numerical approximation ¯ v of the steady state ˜ v of (103) obtained in Theorem 5.1. Despite the simplicity of this example, we emphasize that the existing computer-assisted proof literature based on Fourier series could not be efficiently used here, because the homogeneous Dirichlet boundary conditions are incompatible with the reaction term, which does not have odd symmetry. Finite element-based computer-assisted proofs [30] could obviously be used to prove the existence of a steady state near ¯ v, but with way poorer error bounds compared to what we obtain using our Chebyshev-based approach. In this specific example, a computer-assisted proof based on a Legendre expansion as in [29] would probably yield error bounds similar to those obtained in Theorem 5.1. However, the work [29] only covers the Laplacian (i.e., m = 1) with Dirichlet boundary conditions, does not deal with derivatives in the nonlinear term, and more crucially only focuses on obtaining a steady state, but not on studying its stability, which is the main novelty of our work. Once a steady state has been obtained for this example, one could also use other techniques such as the homotopy method [30, Chapter 10] in order to rigorously count its number of unstable eigenvalues, but only because the linearized operator is self-adjoint, which is not the case in general for equations of the form (1). In the remainder of Section 5.1, we explain how the setup and estimates introduced in this paper can be used to prove Theorem 5.1. We first obtain the existence of ˜ v in Theorem 5.4, and then its stability in Theorem 5.6. Taken together, these two results immediately prove Theorem 5.1. 5.1.1. Construction of the operators of interest. We first focus our attention on the existence proof of stationary solutions to (103). Equivalently, we look for v : [ −1, 1] → R such that v solves 
+
+{
+
+∂2
+
+> x
+
+v + α(v2 + 1) = 0 , x ∈ (−1, 1) ,v(±1) = 0 .
+
+(104) Similarly as what was achieved in Section 2.4, we first focus on the linear problem, determined by 
+
+L−1. In the case of (104), L−1 corresponds to the inverse of the Dirichlet Laplacian, that is, to       
+
+> 1More precisely, ¯ vdef
+> =G0L−1¯U, where ¯Uis a polynomial whose coefficients (in the Chebyshev basis) are given at [15]. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 39
+
+the operator L−10 , explicitly given in Appendix A in (117). For consistency with Section 2.4, we keep the notation L−1 here. Then, following Section 2.5, we consider the following zero finding problem 
+
+F(U ) = U + K(U ) + αE (1) 0 = U + α(L−1U ) ∗ (L−1U ) + αE (1) 0 .(105) As described in Section 3.1, we fix a numerical truncation size N (in this case N = 30) and numer-ically construct an approximate solution ¯U such that ¯U = π≤N ¯U . In practice, the approximate solution ¯U for α = 1 used in Theorem 5.1 is obtained thanks to a numerical continuation method starting from α = 0, where 0 is a trivial solution. Given ¯ U , we then consider the Fr´ echet derivative 
+
+DF( ¯U ) = I + ¯V0 L−1 where ¯V0
+
+> def
+
+= 2 αL−1 ¯U , 
+
+and, as in Section 3.1, ¯V0 must be interpreted as the multiplication operator U 7 → ¯V0 ∗ U . We then construct an approximate inverse A for DF( ¯U ), as described in Section 3.1. Having constructed ¯U
+
+and A, we are ready to prove the existence of a zero of F in a neighborhood of ¯U , using Theorem 3.1. 5.1.2. Computer-assisted proof of existence. Using the analysis developed in Section 3, we already have explicit formulas for the bounds Y and Z1 of Theorem 3.1. Specifically, the required estimates for applying the formula of Lemma 3.4 are provided in Lemma A.1 (see Remark A.2). In order to apply Theorem 3.1, it remains to obtain explicit estimates for the bound Z2, which is achieved in the next result. 
+
+Lemma 5.2. Let ν ≥ 1 and Z2 be a constant satisfying 
+
+Z2 ≥ (1 + ν2)2|α|
+
+8 ‖A‖ ν ,(106) 
+
+then we have that ‖A (DF( ¯U + h) − DF( ¯U )) ‖ν ≤ Z2r for all h ∈ Br (0) ⊂ ℓ1 
+
+> ν
+
+.Proof. Let h ∈ Br (0) ⊂ ℓ1 
+
+> ν
+
+. Then, for all W ∈ ℓ1 
+
+> ν
+
+, we have that 
+
+‖A (DF( ¯U + h) − DF( ¯U )) W ‖ν = ‖A (DK( ¯U + h) − DK( ¯U )) W ‖ν
+
+= 2 |α|‖A (L−1( ¯U + h) − L −1 ¯U ) ∗ L −1W ‖ν
+
+≤ 2|α|‖A‖ ν ‖L −1h‖ν ‖L −1W ‖ν .
+
+We conclude the proof using Lemma A.1. 
+
+Moreover, since A is of the form (65), the norm of A reduces to a finite computation: 
+
+‖A‖ν = max 
+
+(
+
+max 
+
+> 0≤n≤N
+
+1
+
+ξnνnN∑
+
+> k=0
+
+|Ak,n |ξkνk, 1
+
+)
+
+,
+
+hence the bound Z2 given in Lemma 5.2 is computable. The estimates Y , Z1 and Z2 are im-plemented in Julia using the packages RadiiPolynomial.jl [23] and IntervalArithmetic.jl [5]. In particular, the rigorous computation of these bounds is achieved in [15], where we selected ν = 1. 
+
+Remark 5.3. In principle, one could have used a larger value of ν, and indeed the curious reader can check by using the code provided at [15] that the proof of existence still succeeds for, e.g., 
+
+ν = 3 .5 (increasing the number of coefficients to N = 100 ). This then shows that the steady state 
+
+˜v is analytic at least on the Bernstein ellipse (see [35]) of size ν.The reason we chose to focus on the proof with ν = 1 in the paper is that we will need some of the estimates obtained for that specific value of ν when studying the spectral stability of the steady state. 
+
+Having computable Y , Z1 and Z2 bounds at our disposal, we can now find an explicit r satisfying the assumption (63) of Theorem 3.1, which then finishes the existence part of the proof of Theorem 5.1. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 40 
+
+Theorem 5.4. Let ¯U as defined in [15], r = 9 .55 × 10 −15 and α = 1 . Then, there exists a unique 
+
+˜U ∈ Br ( ¯U ) ⊂ ℓ11 such that F( ˜U ) = 0 . In particular, ˜v def 
+
+= G0
+
+(
+
+L−1 ˜U
+
+)
+
+solves (104) and, letting 
+
+¯v def 
+
+= G0
+
+(L−1 ¯U ), we have max {‖ ˜v − ¯v‖∞, ‖∂2 
+
+> x
+
+˜v − ∂2 
+
+> x
+
+¯v‖∞} ≤ r.Proof. Recalling that we chose N = 30, using Lemmas 3.3, 3.4 and 5.2, and evaluating the bounds using the code available at [15], we obtain 
+
+Y = 9 .27 × 10 −15 , Z 1 = 4 .65 × 10 −3 and Z2 = 1 .12 ,
+
+and check that (63) holds. Theorem 3.1 then yields the existence of a unique zero ˜U of F in 
+
+Br ( ¯U ) ⊂ ℓ11. Then, using (17) and the fact that ‖L −1‖1 ≤ 1 
+
+> 2
+
+(cf. Lemma A.1), we get 
+
+‖¯v − ˜v‖∞ ≤ ‖L −1( ¯U − ˜U )‖1 ≤ 1
+
+2 ‖ ¯U − ˜U‖1 ≤ r
+
+2 .
+
+Moreover, since ∂2
+
+> x
+
+G0(L−1W ) = G0(W ) for all W ∈ ℓ11, we have that 
+
+‖∂2 
+
+> x
+
+˜v − ∂2 
+
+> x
+
+¯v‖∞ = ‖G 0( ˜U − ¯U )‖∞ ≤ ‖ ˜U − ¯U‖1 ≤ r, 
+
+which concludes the proof. 
+
+5.1.3. Proof of stability. In this section, we focus our attention on the stability of the stationary solution ˜ v and prove the second part of Theorem 5.1. Let us denote g(v) = ∂2
+
+> x
+
+v + α(v2 + 1) the right-hand side of (103). Our goal is to prove, using the strategy presented in Section 4.1, that all the eigenvalues of Dg (˜ v) (with the boundary conditions of (103)) are stable. To that end, as explained in Section 4.1, we first need an a priori estimate regarding the location of the spectrum of Dg (˜ v), henceforth denoted σ (Dg (˜ v)), which we derive below. Note that Dg (˜ v) has compact resolvent and is self-adjoint, hence we only have to deal with real eigenvalues. 
+
+Lemma 5.5. Let α = 1 , let ˜v be the steady state of (103) obtained in Theorem 5.1, let ¯U and r
+
+be as in Theorem 5.4, and let λ ∈ σ (Dg (˜ v)) . Then, λ is real and satisfies 
+
+λ ≤ (‖ ¯U ‖1 + r) ≤ 1.43 .
+
+Proof. Let v ∈ H2(−1, 1) be an eigenvector satisfying the boundary conditions of (103), associated with λ ∈ σ (Dg (˜ v)), that is 
+
+{
+
+∂2
+
+> x
+
+v + 2˜ vv = λv, x ∈ (−1, 1) ,v(±1) = 0 .
+
+(107) Then, multiplying the above equation by v and integrating by parts we get 
+
+λ ‖v‖2 
+
+> L2(−1,1)
+
+= −‖ ∂xv‖2 
+
+> L2(−1,1)
+
++ 2 
+
+∫ 1
+
+> −1
+
+˜v v 2 dx ≤ 2 ‖˜v‖L∞(−1,1) ‖v‖2
+
+> L2(−1,1)
+
+.
+
+We obtain the desired estimate using Theorem 5.4 and that ‖˜v‖∞ ≤ ‖L −1 ˜U ‖1 ≤ 1
+
+> 2
+
+(‖ ¯U‖1 + r)
+
+(where we used Lemma A.1). Finally, the value 1 .43 is obtained using rigorous computations in [15]. 
+
+The above result provides the necessary a priori information for applying Theorem 4.6, namely an explicit constant λmax = 1 .43. This allows us to obtain a much finer control of the spectrum, and to prove the spectral stability of ˜ v.
+
+Theorem 5.6. Let α = 1 and ˜v be the steady state of (103) obtained in Theorem 5.1. For all 
+
+λ ∈ σ (Dg (˜ v)) , λ ≤ − 1.33 . In particular, ˜v is spectrally stable, and therefore asymptotically stable. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 41 
+
+Proof. We proceed as explained in Section 4.1, and consider the linear map M defined in (70), with the map F introduced in (105) for obtaining the existence of the steady state. Using the estimates of Proposition 4.4 with N = 30, we control a finite number of Gershgorin disks of M.The implementation of these estimates available at [15] yields 
+
+ℜ (∪n≤N Brn (Mn,n )) ⊂ [−0.75 , 1.08 × 10 −4],
+
+where we only care of the real part of the disks because we already know that all the eigenvalues are real. Moreover, the implementation of the estimates of Proposition 4.5 yields the existence of a constant ¯ r∞ 
+
+> max
+
+such that ¯r∞ 
+
+> n
+
++ ε∞ 
+
+> n
+
+≤ ¯r∞ 
+
+> max
+
+≤ 4.6 × 10 −3,
+
+for all n > N . Taken together, these results show that the spectrum of M is included in [ −0.75 , 4.6×
+
+10 −3]. However, thanks to Lemma 5.5 we already know that there are no eigenvalues of M in the interval [0 , 1 
+
+> 1.43
+
+]. Indeed, this Lemma together with Lemma 4.1 show that any nonnegative eigenvalue of 
+
+M is bigger than 1 /1.43. Hence, as 4 .6 × 10 −3 < 1 
+
+> 1.43
+
+, all the eigenvalues of M must be contained in [ −0.75 , 0). Coming back to the original eigenvalue problem (107) (using once more Lemma 4.1), we have that all the eigenvalues λ of Dg (˜ v) are included in ( −∞ , − 1 
+
+> 0.75
+
+]. Therefore ˜ v is indeed spectrally stable, and hence also asymptotically stable (see, e.g., [21, Section 5.1]). 
+
+Remark 5.7. The second part of the above proof is nothing but a specific and particularly simple instance of Theorem 4.6. In that case, the Gershgorin disks for n ≤ N are not all included in the stable subspace {ℜ (z) < 0} because we used a relatively small N . However, as soon as N is taken a bit larger, we are back in the setting of Example 4.7. 
+
+5.2. Kuramoto–Sivashinsky PDE. We consider now the Kuramoto–Sivashinsky PDE with Neumann boundary conditions, i.e., 
+
+
+
+∂tv = −∂4
+
+> x
+
+v − α ∂ 2
+
+> x
+
+v − α v ∂ xv (t, x ) ∈ (0 , T ) × (−1, 1) ,∂xv(t, −1) = ∂xv(t, 1) = ∂3
+
+> x
+
+v(t, −1) = ∂3
+
+> x
+
+v(t, 1) = 0 t ∈ (0 , T ),v(t, −x) = −v(t, x ) (t, x ) ∈ (0 , T ) × [−1, 1] ,
+
+(108) where α ≥ 0 is a parameter. This equation is known to generate nontrivial spatiotemporal dy-namics, including chaos [40], and therefore often serves as a test case for numerical methods and for computer-assisted proofs. In particular, relatively early computer-assisted proofs for steady states of the Kuramoto–Sivashinsky can be found in [44]. However both this work and subsequent computer-assisted proofs of steady states for this equation [42, 2] use homogeneous Dirichlet or periodic boundary conditions, because these allow for a smooth sine series expansion (which is also compatible with the symmetries of the equation itself). When considering Neumann boundary conditions, these Fourier techniques can no longer be applied, but we showcase here that our more flexible setup based on Chebyshev expansions still works, both for obtaining steady states and then for studying their stability. We mention that the restriction to odd functions made here is often used when studying the Kuramoto–Sivanshisky equation, and in particular in all the aforementioned computer-assisted works, as it removes the zero eigenvalue that would appear because the equation preserves mass (i.e. ∫ 1 
+
+> −1
+
+v(t, x )d x is constant). In practice, this symmetry constraint simply means that we will work on a reduced set of indices (namely the odd natural numbers) for our series expansions. Here is a typical statement produced by our approach. 
+
+Theorem 5.8. Let ¯v1 and ¯v2 be the functions represented in Figure 2, and whose precise descrip-tions in terms of Chebyshev coefficients can be downloaded at [15]. There exist two smooth steady states ˜v1 and ˜v2 of (108) with α = 1 and α = 100 respectively such that 
+
+max {‖˜v1 − ¯v1‖∞, ‖∂4 
+
+> x
+
+˜v1 − ∂4 
+
+> x
+
+¯v1‖∞
+
+} ≤ 1.28 × 10 −12 ,
+
+and 
+
+max {‖˜v2 − ¯v2‖∞, ‖∂4 
+
+> x
+
+˜v2 − ∂4 
+
+> x
+
+¯v2‖∞
+
+} ≤ 3.92 × 10 −9.EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 42 
+
+The steady state ˜v1 has Morse index 1, i.e., the linearized operator around ˜v1 has exactly one unstable eigenvalue. The steady state ˜v2 has Morse index 2.                
+
+> -1 -0.75 -0.5 -0.25 00.25 0.5 0.75 1
+> -6 -5 -4 -3 -2 -1 0123456
+> -1 -0.75 -0.5 -0.25 00.25 0.5 0.75 1
+> -5 -3.75 -2.5 -1.25 01.25 2.5 3.75 5
+
+Figure 2. Numerical approximations ¯ v1 (left) and ¯ v2 (right) of the steady states ˜v1 and ˜ v2 of the Kuramoto–Sivashinsky equation obtained in Theorem 5.8. Note that stable nontrivial steady states also exist for the Kuramoto–Sivashinsky equation [42], but we purposely selected unstable steady states for this example in order to illustrate that our method can also handle such cases. 5.2.1. Additional notation and reformulation in sequence space. The steady state problem writes 
+
+{
+
+−∂4
+
+> x
+
+v − α∂ 2
+
+> x
+
+v − αv∂ xv = 0 x ∈ (−1, 1) ,∂xv(1) = ∂3
+
+> x
+
+v(1) = 0 and v is odd .
+
+(109) The odd symmetry allows us to work with sequences having trivial components. Indeed, let us define ℓ1 
+
+> ν,o
+
+and ℓ1
+
+> ν,e
+
+, respectively containing sequences with odd and even functions in their Gegen-bauer expansion, as follows (110) ℓ1
+
+> ν,o
+> def
+
+= {U = ( Un)n∈N0 ∈ ℓ1 
+
+> ν
+
+, U n = 0 for all even n}
+
+ℓ1
+
+> ν,e
+> def
+
+= {U = ( Un)n∈N0 ∈ ℓ1 
+
+> ν
+
+, U n = 0 for all odd n}.
+
+Note that in practice, we will work with reduced sets, that is, we numerically implement sequences indexed on odd indices to represent sequences in ℓ1
+
+> ν,o
+
+, and respectively even indices for ℓ1
+
+> ν,e
+
+. For our analysis, it is more convenient to consider (110), since we can readily use the work developed in the previous sections. Now, we provide further details regarding the establishment of the zero finding problem in sequence space for finding solutions to (109). First, we construct the boundary conditions operator. More specifically, we define B : ℓ1 
+
+> ν,o
+
+→ ℓ1 
+
+> ν,o
+
+as (B(U )) k =
+
+
+
+2 ∑
+
+> n∈N
+
+n2Un if k = 1 ,
+
+32 
+
+120 
+
+> ∞
+
+∑
+
+> n∈N\{ 1}
+
+n(n − 2) . . . (n + 2) Un if k = 3 ,
+
+0 otherwise, (111) which is nothing but the instance of the operator introduced in (33) corresponding to the boundary conditions of (109). Using this specific B in the construction of Section 2.4, we obtain a sequence space representation L−1 : ℓ1 
+
+> ν,o
+
+:→ ℓ1 
+
+> ν,o
+
+of −(∂4
+
+> x
+
+)−1 restricted to the odd subspace. Then, the general zero finding problem introduced in (50) becomes 
+
+F(U ) = U − αG−10 ∂2
+
+> x
+
+G0L−1U − α(G−10 ∂xG0L−1U ) ∗ (L−1U )= U − αK2U − α(K1U ) ∗ (K0U ).
+
+Note that K1 restricts to an (unbounded) operator from ℓ1 
+
+> ν,o
+
+to ℓ1
+
+> ν,e
+
+, and that the discrete convolu-tion between an element of ℓ1 
+
+> ν,e
+
+and an element of ℓ1 
+
+> ν,o
+
+yields and element of ℓ1 
+
+> ν,o
+
+(the product of an EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 43 
+
+even function and an odd function is an odd function), hence F does preserve the odd symmetry (which is of course natural, since the orginal Kuramoto–Sivashinsky equation does so). In what follows, we provide an explicit representation for K0, K1 and K2.5.2.2. Formulas for the operators Ki. In order to study the operators Ki, it will be convenient to factorize L−1. We therefore first consider L−11 : ℓ1 
+
+> ν,o
+
+→ ℓ1
+
+> ν,o
+
+, which, proceeding as in Section 2.4, we define to be the sequence space representation of the solution operator of 
+
+{
+
+∂2
+
+> x
+
+v = ψ on ( −1, 1) ,∂xv(1) = 0 and v is odd ,
+
+restricted to odd inputs ψ. Note that L−11 is explicitly given in (120). In fact, we have −L −1 = L−21 ,simply because {
+
+∂4
+
+> x
+
+v = ψ on ( −1, 1) ,∂xv(1) = ∂3
+
+> x
+
+v(1) = 0 and v is odd ,
+
+is equivalent to 
+
+{
+
+∂2
+
+> x
+
+v = w on ( −1, 1) ,∂xv(1) = 0 and w is odd , and 
+
+{
+
+∂2
+
+> x
+
+w = ψ on ( −1, 1) ,∂xw(1) = 0 and w is odd .
+
+Consequently, the explicit expression for L−11 allows us to express all the Ki:
+
+K0 = L−1 = −L −21 , K1 = −G −10 ∂xG0L−21 , and K2 = −L −11 .
+
+It remains to obtain a more explicit formula for K1, in the spirit of Proposition 2.15. Let U ∈ ℓ1
+
+> ν,o
+
+, and W = K1U ∈ ℓ1
+
+> ν,e
+
+. Proceeding as in the proof of Proposition 2.15, we also introduce V = L−1U , as well as u = G0(U ), v = G0(V ), and w = G0(W ). We have ∂3
+
+> x
+
+w = −u, i.e., 
+
+(BK1 − Σ3D3
+
+) W = Σ 3C0,3U, 
+
+with a boundary operator BK1 to be determined. To that end, note that w = ∂xv, where v is odd and satisfies ∂xv(1) = ∂3
+
+> x
+
+v(1) = 0. Hence, w is even and satisfies w(1) = ∂2
+
+> x
+
+w(1) = 0. That is, we can take BK1 : ℓ1 
+
+> ν,o
+
+→ ℓ1 
+
+> ν,e
+
+given as (BK1 U )k =
+
+
+
+U0 + 2 ∑ 
+
+> n∈N0
+
+Un if k = 0 ,
+
+> 1
+> 3
+
+∑ 
+
+> n≥2
+
+n2(n − 1)( n + 1) Un if k = 2 ,
+
+0 otherwise. We then get the following fully computable expression 
+
+K1 = −(I − B †K1,3BK1 )D†
+
+> 3
+
+Σ3C0,3,(112) where B†K1,3 relies on the computation of the inverse of a 2 by 2 matrix, which is rigorously achieved in [15] thanks to interval arithmetic computations. In practice, recall that we consider the restriction K1 : ℓ1 
+
+> ν,o
+
+→ ℓ1
+
+> ν,e
+
+, mapping odd to even functions. 5.2.3. Constructive existence proof of a steady-state. Now that the zero finding map F can be made explicit, we are able to implement its numerical representation. We will now follow the analysis derived in Section 3 with ν = 1, that is we choose to work on the usual ℓ11 space. We fix N = 200 and use a Newton method in order to compute a numerical approximation ¯U = π≤N ¯U ∈ ℓ1
+
+> ν,o
+
+, for 
+
+α = 1 and α = 100. In addition, following Section 3.1, we construct an approximate inverse A for 
+
+DF( ¯U ) = I − αK2 + V1K1 + V0K0 where V0
+
+> def
+
+= −αK1 ¯U and V1
+
+> def
+
+= −αL−1 ¯U . 
+
+In order to be able to apply Theorem 3.1, it remains to compute an upper bound Z2 and provide details for the computation of Z1. The bound Y and the main analysis for Z1 is already provided in general in Section 3. In particular, the bound Z1 is explicitly computable thanks to the properties on the operators Ki derived in Lemma A.3 (see also Remark A.4). In order to verify the hypotheses of Theorem 3.1, it remains to compute an upper bound Z2. This is achieved in the next lemma, which, when combined with Lemma A.3 and (118), provides an explicit formula for Z2.EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 44 
+
+Lemma 5.9. Let Z2 be a bound satisfying 
+
+Z2 ≥ 2|α|‖A‖ 1‖L −1‖1‖K 1‖1,
+
+then we have that ‖A (DF( ¯U + h) − F ( ¯U )) ‖ℓ1 ≤ Z2 for all h ∈ Br (0) ⊂ ℓ11.Proof. Let h ∈ Br (0) ⊂ ℓ11. Then, for all W ∈ ℓ11, we have that 
+
+‖A (DF( ¯U + h)−DF( ¯U )) W ‖1 = ‖A (DK( ¯U + h) − DK( ¯U )) W ‖1
+
+= |α|‖A (L−1( ¯U + h) − L −1 ¯U) ∗ K 1W + A(K1( ¯U + h) − K 1 ¯U) ∗ L −1W ‖1
+
+≤ | α|‖A‖ 1
+
+(‖L −1h‖1‖K 1W ‖1 + ‖L −1W ‖1‖K 1h‖1
+
+) . 
+
+Using the above, we constructively prove the existence of steady-state solutions to (108) in a neighborhood of our approximate solutions ¯ v1 = G0(L−1 ¯U1) and ¯ v2 = G0(L−1 ¯U2), depicted in Figure 2. 
+
+Theorem 5.10. Let j ∈ { 1, 2}, ¯Uj as defined in [15], r1 = 1 .28 × 10 −12 , r2 = 3 .92 × 10 −9,
+
+α1 = 1 and α2 = 100 . There exists a unique ˜Uj ∈ Brj ( ¯Uj ) ⊂ ℓ11 such that F( ˜Uj ) = 0 . In particular, ˜vj
+
+> def
+
+= G0
+
+(
+
+L−1 ˜Uj
+
+)
+
+solves (109) with α = αj and, letting ¯vj
+
+> def
+
+= G0
+
+(L−1 ¯Uj
+
+), we have 
+
+max {‖ ˜vj − ¯vj ‖∞, ‖∂4 
+
+> x
+
+˜vj − ∂4 
+
+> x
+
+¯vj ‖∞} ≤ rj .Proof. Using Lemma 3.3, 3.4 and 5.2, and evaluating the bounds using the code available at [15], we obtain 
+
+Y = 5 .06 × 10 −13 , Z 1 = 1 .1 × 10 −3 and Z2 = 2 .55 × 10 −1,
+
+in the case j = 1 . The rest of the existence proof for ˜ v1 follows similarly as the one of Theorem 5.4. In particular, using the proof of Lemma A.3, we have ‖L −11 ‖ ≤ 1. The existence proof for ˜ v2
+
+follows similarly with bounds 
+
+Y = 3 .03 × 10 −9, Z 1 = 2 .28 × 10 −1 and Z2 = 7 .98 × 10 1.
+
+This concludes the proof of Theorem 5.10. 
+
+5.2.4. Proof of instability and number of unstable directions. We now study the stability of the steady states ˜ v1 and ˜ v2 of the Kuramoto–Sivashinsky equation (108) obtained in Theorem 5.10, with the aim of proving the second part of Theorem 5.8. To that end, let g be defined as 
+
+g(v) def 
+
+= −∂4
+
+> x
+
+v − α∂ 2
+
+> x
+
+v − αv∂ xv. 
+
+Our goal in this section is to control the spectrum of Dg (˜ v) (with the boundary conditions of (108)), following the strategies described in Section 4. For this purpose, we first state a result providing a rough a priori estimate on the location of spectrum of Dg (˜ v). 
+
+Lemma 5.11. Let α > 0. Let μ be a nonnegative real number and λ ∈ σ (Dg (˜ v)) with λ ∈ C≥− μ := 
+
+{z ∈ C : ℜ(z) ≥ − μ}. Then, for any κ1, κ 2 > 0 satisfying the constraint 
+
+(113) 1 − ακ 1 − 2ακ 2
+
+π ‖˜v‖L∞(−1,1) ≥ 0,λ satisfies 
+
+−μ ≤ ℜ (λ) ≤ α
+
+(
+
+‖∂x ˜v‖L∞(−1,1) + 1
+
+2πκ 2
+
+‖˜v‖L∞(−1,1) + 1
+
+4κ1
+
+)
+
+.(114) 
+
+Moreover, if the inequality (113) is strict, then 
+
+|ℑ (λ)| ≤ α
+
+(
+
+1 + 2
+
+π ‖˜v‖L∞(−1,1) 
+
+)  μ + α
+
+(
+
+‖∂x ˜v‖L∞(−1,1) + 1 
+
+> 2πκ 2
+
+‖˜v‖L∞(−1,1) + 1
+
+> 4κ1
+
+)
+
+1 − ακ 1 − 2ακ 2 
+
+> π
+
+‖˜v‖L∞(−1,1) 
+
+
+
+> 1/2
+
+.(115) We refer to Appendix B for a proof of Lemma 5.11. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 45 
+
+Remark 5.12. The estimate (114) for the real part can be optimized by hand under the con-straint (113) , and the optimal choice 
+
+κ1 = κ2 =
+
+(
+
+2α
+
+( 1
+
+2 + 1
+
+π ‖˜v‖L∞(−1,1) 
+
+)) −1
+
+,
+
+yields 
+
+ℜ(λ) ≤ α‖∂x ˜v‖L∞(−1,1) + α2
+
+( 1
+
+2 + 1
+
+π ‖˜v‖L∞(−1,1) 
+
+)
+
+.
+
+For the imaginary part, the minimum of (115) under (113) is reached for 
+
+κ1 = κ2 =
+
+ α (2 + 4 
+
+> π
+
+‖˜v‖L∞(−1,1) 
+
+) +
+
+√
+
+α2 (2 + 4 
+
+> π
+
+‖˜v‖L∞(−1,1) 
+
+)2 + 16( μ + α‖∂x ˜v‖L∞(−1,1) )
+
+2
+
+
+
+> −1
+
+,
+
+and we spare the reader the corresponding explicit estimate for ℑ(λ).
+
+For α = 1 and the steady state ˜ v1, the approach presented in Section 4.1 for studying stability works well, and yields the following result. 
+
+Theorem 5.13. Let ˜v1 be the steady state of (108) obtained in Theorem 5.10 for α = 1 . Moreover, let λ0 = 3 .55557324817263 , r0 = 7 .24 × 10 −12 and Λs = −463 < 0. Then, there exists ˜λ0 ∈
+
+Br0 (λ0) ∩ σ(Dg (˜ v1)) , while for all λ ∈ σ (Dg (˜ u)) \ { ˜λ0} it holds ℜ(λ) ≤ Λs. In particular, ˜v1 is unstable and Dg (˜ v1) possesses exactly one unstable direction. Proof. We implement in [15] the estimations of Proposition 4.4, with N = 200. This allows us to control a finite number of Gershgorin disks. In particular, using the notations of Lemma 4.2, we prove that there exists ¯ μ0 = 0 .2812486004933086, ¯ r0 ≤ 5.72 × 10 −13 and ¯ r≤N 
+
+> max
+
+≤ 2.17 × 10 −3 such that 
+
+Br0 (M0,0) ⊂ B¯r0 (¯ μ0) and ⋃ 
+
+> n∈{ 1,...,N }
+
+Brn (Mn,n ) ⊂ B¯r≤N 
+
+> max
+
+(0) .
+
+Furthermore, we implement the estimates of Proposition 4.5, which yield a positive constant ¯ r∞
+
+> max
+
+such that ¯r∞ 
+
+> n
+
++ ε∞ 
+
+> n
+
+≤ ¯r∞ 
+
+> max
+
+≤ 6.53 × 10 −4
+
+for all n > N . Moreover, using Lemma 5.11 combined with Remark 5.12 with μ = 463 .1, we obtain that any eigenvalue of Dg (˜ v) with real part larger than μ has its modulus bounded from above by λmax = 76 .51. Using Theorem 4.6 and the fact that ¯ r∞ 
+
+> n
+
++ ε∞ 
+
+> n
+
+≤ ¯r∞ 
+
+> max
+
+≤ λ−1max , we obtain that all the disks Brn (Mn,n ) with n > N enclose negative eigenvalues of Dg (¯ v1), of modulus larger that 1 
+
+> ¯r∞
+> n+ε∞
+> n
+
+≥ 1
+
+> ¯r∞
+> max
+
+≥ 1532 > Λs. Now, since Br0 (M0,0) ⊂ B¯r0 (¯ μ0) is isolated from the rest of the Gershgorin disks, it implies from Lemma 4.2 that M (cf. (70)) possesses a unique eigenvalue in B¯r0 (¯ μ0). Equivalently, we obtain that Dg (˜ v1) possesses a unique eigenvalue in B¯r0 (¯ μ0)† ={z−1, z ∈ B¯r0 (¯ μ0)} ⊂ Br0 (λ0), which provides the desired enclosure for ˜λ0.
+
+Then, since ¯ r≤N 
+
+> max
+
+≤ λ−1max , Lemma 5.11 shows that ⋃  
+
+> n∈{ 1,...,N }
+
+Brn (Mn,n ) only contains eigenvalues of M with a negative real part. In particular, we have that (¯r≤N
+
+> max
+
+)−1 ≤ Λs ≤ μ, which proves that 
+
+ℜ(λ) ≤ − Λs for all λ ∈ σ (Dg (˜ u)) \ { ˜λ0}. 
+
+In the previous result, we were able to obtain a tight enclosure on the unstable eigenvalue of the linearization, as well as a control on the amplitude of the spectral gap on the left part of the complex plane. This result stems from a successful application of the method presented in Section 4.1. For α = 100 and the steady state ˜ v2, applying the same approach turns out to be numerically demanding. Indeed, for α = 1, we found in the proof of Theorem 5.13 that λmax = 76 .51. This allows to successfully apply Theorem 4.6 with N = 200. For the case α = 100 and the steady state ˜ v2, it turns out that λmax (computed thanks to Remark 5.12) is equal to 8 .24 × 10 4. With 
+
+N = 3000, the application of Theorem 4.6 is not successful with our current estimates. This EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 46 
+
+numerical inefficiency is resolved by using the approach presented in Section 4.2 instead. Note that we do not obtain as tight enclosures as in Theorem 5.13, but this could easily be resolved using an extra Newton-Kantorovich approach, as explained in Section 4.3. We illustrate our previous discussion with the following result, providing an enclosure of the un-stable eigenvalues for the steady state ˜ v2 with a low numerical cost. 
+
+Theorem 5.14. Let ˜v2 be the steady state of (108) obtained in Theorem 5.10 for α = 100 .Moreover, let λ0 = 1173 .40 + i1426 .49 , r0 = 3 .65 and Λs = −375 < 0. Then, there exist ˜λ0 ∈
+
+Br0 (λ0) ∩ σ (Dg (˜ v2)) . Moreover, its complex conjugate ˜λ∗ 
+
+> 0
+
+also belongs to Br0 (λ∗ 
+
+> 0
+
+) ∩ σ (Dg (˜ v2)) ,while for all λ ∈ σ (Dg (˜ v2)) \ { ˜λ0, ˜λ∗
+
+> 0
+
+} we have ℜ(λ) ≤ Λs. In particular, ˜v2 is unstable and Dg (˜ v2)
+
+possesses exactly two unstable directions. Proof. First, using Lemma 5.11 and Remark 5.12 with μ = 377, we obtain that eigenvalues with positive real part must have an amplitude smaller than λmax = 8 .24 × 10 4. Then, we implement in [15] the estimates of Theorem 4.8 with N = 200. This allows us to control all eigenvalues with modulus smaller than λmax . We obtain that exactly two disks are contained in the right-half part of the complex plane, specifically Br0 (λ0) and Br0 (λ∗ 
+
+> 0
+
+), and the rest of the disks are fully contained in the left-half part of the complex plane. In particular, we have that Br0 (λ0) and Br0 (λ∗ 
+
+> 0
+
+) are both contained in Bλmax (0). This allows us to invoke Theorem 4.9, and we obtain that there exists exactly two eigenvalues with positive real part, namely ˜λ0 and ˜λ∗ 
+
+> 0
+
+belonging to Br0 (λ0) and 
+
+Br0 (λ∗ 
+
+> 0
+
+) respectively. Moreover, we obtain that an upper bound for the real part of the union of the rest of the disks is given by −375 . 
+
+Appendix A. Properties for the inverse of the Dirichlet and Neumann Laplacians 
+
+Following the general construction for L−1 given in Section 2.4, we give here fully worked out formula for the inverse of the Dirichlet Laplacian, and then for the inverse of the Neumann Laplacian restricted to odd functions. Let us first construct the inverse of the Dirichlet Laplacian. We start by introducing the (un-bounded) linear operators ˜L0 on ℓ1 
+
+> ν
+
+defined as ( ˜L0U )n =
+
+
+
+B1(U, 0) if n = 0 ,
+
+B−1(U, 0) if n = 1 ,
+
+8U2 if n = 2 ,
+
+2nU n if n ≥ 3.
+
+Then, given u = G0(U ) and f = G0(F ) for some U, F ∈ ℓ1 
+
+> ν
+
+, the following BVP 
+
+{
+
+∂2
+
+> x
+
+u = f, u(−1) = u(1) = 0 ,
+
+is equivalent to ˜L0U = Σ 2C0,2F. 
+
+Consequently, we obtain that the inverse of the Dirichlet Laplacian writes 
+
+L−10 = ˜L−10 Σ2C0,2.
+
+In what follows, we provide an explicit expression for L−10 . Using (23) and (24), we have (Σ 2C0,2U )n =
+
+
+
+0 if n = 0 , 1,U0 − 4U2 
+
+> 3
+
++ U4 
+
+> 3
+
+if n = 2 , 
+
+> Un−2
+> 2( n−1)
+
+− nU n 
+
+> n2−1
+
++ Un+2  
+
+> 2( n+1)
+
+if n ≥ 3.
+
+(116) EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 47 
+
+Now, we compute the inverse of ˜L0. Let U satisfying ˜L0U = Φ with Φ 0 = Φ 1 = 0, then we have that 
+
+U0 + 2 
+
+> ∞
+
+∑
+
+> n=1
+
+Un = 0, U0 + 2 
+
+> ∞
+
+∑
+
+> n=1
+
+(−1) nUn = 0 , U2 = 1
+
+8 Φ2 and Un = 1
+
+2n Φn for all n ≥ 3.
+
+Solving the above, one finds that 
+
+U0 = − Φ2
+
+4 −
+
+> ∞
+
+∑
+
+> n=2
+
+Φ2n
+
+2n , U1 = − 1
+
+2
+
+> ∞
+
+∑
+
+> n=2
+
+Φ2n−1
+
+2n − 1 , U2 = 1
+
+8 Φ2 and Un = 1
+
+2n Φn for all n ≥ 3.
+
+Consequently, combining this with (116), we obtain that (L−10 U )n =
+
+
+
+− U0
+
+4 + 7U2
+
+24 − 3
+
+2
+
+> ∞
+
+∑
+
+> k=2
+
+U2k
+
+(k − 1)( k + 1)(2 k − 1)(2 k + 1) if n = 0 ,
+
+− U1
+
+24 + U3
+
+20 − 3
+
+4
+
+> ∞
+
+∑
+
+> k=3
+
+U2k−1
+
+(k − 1) k(2 k − 3)(2 k + 1) if n = 1 ,U0
+
+8 − U2
+
+6 + U4
+
+24 if n = 2 ,Un−2
+
+4n(n − 1) − Un
+
+2( n2 − 1) + Un+2 
+
+4n(n + 1) if n ≥ 3.
+
+(117) Now that we obtained the explicit expression for the inverse of the Dirichlet Laplacian in sequence space, we derive some useful properties for our analysis. 
+
+Lemma A.1. Let ν ≥ 1. Then, the following properties hold: for all k ≥ 5,
+
+‖L −10 E(1)  
+
+> k
+
+‖ν ≤ 1
+
+4ν(k − 2)( k − 1) + 1
+
+2( k2 − 1) + ν
+
+4( k + 1)( k + 2) + 3ν−k+1 
+
+(k2 − 1)( k − 2)( k + 1) ,
+
+and 
+
+‖L −10 ‖ν ≤ 1 + ν2
+
+4 .
+
+Proof. The first inequality is a direct consequence of (117). In order to prove the second inequality, we recall that since we use a weighted ℓ1 
+
+> ν
+
+-norm, we have a very explicit formula for the operator norm, namely (118) ‖A‖ ν = sup 
+
+> n∈N0
+
+1
+
+ξnνn
+
+∑
+
+> k∈N0
+
+|Ak,n |ξkνk = sup 
+
+> n∈N0
+
+1
+
+ξn
+
+νn‖A·,n ‖ν ,
+
+which is the generalization of (72) to the case ν ≥ 1. The proof is then a direct consequence of (117) combined with (118). 
+
+Remark A.2. Notice that Lemma A.1 provides a sharper estimate for ‖L −10 E(1)  
+
+> k
+
+‖ν than η(ν)0,k ,given in Proposition 2.15. This is, of course, a consequence of the fact that we possess an explicit expression for L−10 , when Proposition 2.15 provides a rougher but more general formula. In practice, especially in Section 5.1, we will use the formulas of Lemma A.1 instead of the ones of Proposition 2.15 to benefit from its sharper estimations. 
+
+Now, we turn to the inverse of the Neumann Laplacian. In this case, we use the notations (110) and restrict our operators to odd functions (respectively we restrict our sequences to ℓ11,o ). In this case, we consider L1 to be the following (unbounded) linear operator on ℓ11,o 
+
+( ˜L1U )n =
+
+
+
+0 if n = 0 ,
+
+B1(U, 0) if n = 1 ,
+
+0 if n = 2 ,
+
+2nU n if n ≥ 3 and n is odd ,
+
+0 otherwise .EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 48 
+
+Similarly as above, the inverse of the (odd) Neumann Laplacian writes 
+
+L−11 = ˜ L−11 Σ2C0,2,(119) where ˜L−11 : ℓ11,o → ℓ11,o is the inverse of ˜L1 restricted to ℓ11,o . It remains to find an explicit expression for ˜L−11 . Let U ∈ ℓ11,o satisfying ˜L−11 U = Φ with Φ ∈ ℓ11,o is such that Φ 1 = 0. Then, we have that 
+
+∑
+
+> n≥1
+
+Unn2 = 0 , U n = Φn
+
+2n for all n ≥ 3 odd and Un = 0 for all n ≥ 2 even. This implies that 
+
+U1 = − 1
+
+2
+
+∑ 
+
+> n≥3,n odd
+
+nΦn = 0 , U n = Φn
+
+2n for all n ≥ 3 odd and Un = 0 for all n ≥ 2 even. Consequently, combining the above with (116), we obtain the following expression for the inverse of the odd Neumann Laplacian (L−11 U )n =
+
+
+
+0 if n = 0 ,
+
+−3 U1
+
+8 + ∑ 
+
+> k≥3,k odd
+
+Uk
+
+k2 − 1 if n = 1 ,Un−2
+
+4n(n − 1) − Un
+
+2( n2 − 1) + Un+2 
+
+4n(n + 1) if n ≥ 3 and n odd .
+
+(120) Now, similarly as for the Dirichlet case, we derive useful properties for the inverse of the Neumann Laplacian. In particular, these properties are used in the analysis of Section 5.2 for the Kuramoto-Sivashinski PDE. 
+
+Lemma A.3. Let k ≥ 4, then the following properties hold 
+
+(121) 
+
+‖L −11 E(1)  
+
+> k
+
+‖ℓ11,o ≤ 1
+
+k2 − 1 + 1
+
+4( k − 2)( k − 1) + 1
+
+2( k2 − 1) + 1
+
+4( k + 2)( k + 1) ,
+
+‖L −21 E(1)  
+
+> k
+
+‖ℓ11,o ≤ 0.42 ‖L −11 E(1)  
+
+> k
+
+‖ℓ11,o ,
+
+‖G −10 ∂xG0L−21 E(1)  
+
+> k
+
+‖ℓ11,e ≤ ‖L −11 E(1)  
+
+> k
+
+‖ℓ11,o .
+
+Moreover, for all k ∈ N0, we have 
+
+‖L −21 E(1)  
+
+> k
+
+‖ℓ11,o ≤ 0.17 , ‖G −10 ∂xG0L−21 E(1)  
+
+> k
+
+‖ℓ11,e ≤ 0.31 .
+
+Proof. First, recall that we have an explicit expression for the decay of L−11 given in (120). In particular, we obtain that 
+
+‖L −11 E(1)  
+
+> k
+
+‖ℓ11,o ≤ 1
+
+k2 − 1 + 1
+
+4( k − 2)( k − 1) + 1
+
+2( k2 − 1) + 1
+
+4( k + 2)( k + 1) (122) for all k ≥ 5. Then, using (72), note that 
+
+‖L −11 ‖ℓ11,o = max 
+
+{
+
+‖L −11 π≤N ‖ℓ11,o , ‖L −11 π>N ‖ℓ11,o 
+
+}
+
+.(123) In fact, using (60), we have that L−11 π≤N = π≤N +2 L−11 π≤N is a finite matrix. Choosing N = 200, we use rigorous numerics in [15] to obtain that 
+
+‖L −11 π≤N ‖ℓ11,o ≤ 0.42 .
+
+On the other hand, we have that 
+
+‖L −11 π>N ‖ℓ11,o ≤ 1
+
+(N + 1) 2 − 1 + 1
+
+4( N − 1) N + 1
+
+2(( N + 1) 2 − 1) + 1
+
+4( N + 3)( N + 2) < 0.42 using (122). In particular, we have obtained that ‖L −11 ‖ℓ11,o ≤ 0.42 . This implies that 
+
+‖L −21 E(1)  
+
+> k
+
+‖ℓ11,o ≤ ‖L 1‖ℓ11,o ‖L −11 E(1)  
+
+> k
+
+‖ℓ11,o ≤ 0.42 ‖L −11 E(1)  
+
+> k
+
+‖ℓ11,o .EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 49 
+
+Now, let u = G0(U ) for some U ∈ ℓ11 and let w = ∂xG0L−11 U . Then, straightforward computations lead to 
+
+w′ = u and w(−1) = 0 .
+
+This implies that G−10 (w) = W = SU where S is given in (25). Noticing that ‖S‖ ℓ11,o →ℓ11,e ≤ 1, where ‖ · ‖ ℓ11,o →ℓ11,e is the usual operator norm for bounded linear operators from ℓ11,o to ℓ11,e , we get ‖G −10 ∂xG0L−21 E(1)  
+
+> k
+
+‖ℓ11,e ≤ ‖L −11 E(1)  
+
+> k
+
+‖ℓ11,o . In order to prove that 
+
+‖L −21 E(1)  
+
+> k
+
+‖ℓ11,o ≤ 0.17 and ‖G −10 ∂xG0L−21 E(1)  
+
+> k
+
+‖ℓ11,e ≤ 0.31 ,
+
+we follow the decomposition (123), compute the finite truncation π≤N thanks to rigorous numerics, and use (121) for the tail part π>N . The computer-assisted details are given in [15]. 
+
+Remark A.4. Similarly to what was observed in Remark A.2, Lemma A.3 provides sharper esti-mates than the general formulas η(1)  
+
+> i,k
+
+provided in Proposition 2.15. Specifically, we will benefit from these sharper estimates in Section 5.2. 
+
+Appendix B. Proof of Lemma 5.11 
+
+Let v ∈ H4(−1, 1) be an eigenvector satisfying the boundary conditions (108), associated with 
+
+λ ∈ σ (Dg (˜ v)), that is 
+
+
+
+−∂4
+
+> x
+
+v − α ∂ 2
+
+> x
+
+v − α v ∂ x ˜v − α˜v∂ xv = λv (t, x ) ∈ (0 , T ) × (−1, 1) ,∂xv(t, −1) = ∂xv(t, 1) = ∂3
+
+> x
+
+v(t, −1) = ∂3
+
+> x
+
+v(t, 1) = 0 t ∈ (0 , T ),v(t, −x) = −v(t, x ) (t, x ) ∈ (0 , T ) × [−1, 1] .
+
+Then, multiplying the above equation by v∗, the complex conjugate of v, and integrating by parts we obtain 
+
+λ‖v‖2 
+
+> L2(−1,1)
+
+= −‖ ∂2
+
+> x
+
+v‖2 
+
+> L2(−1,1)
+
+− α
+
+∫ 1
+
+> −1
+
+∂2
+
+> x
+
+v v ∗ dx − α
+
+∫ 1
+
+> −1
+
+|v|2 ∂x ˜v dx − α
+
+∫ 1
+
+> −1
+
+˜v ∂ xv v ∗ dx. (124) Hence, since ˜ v is a real valued function, we get 
+
+ℜ(λ) ‖v‖2 
+
+> L2(−1,1)
+
+= −‖ ∂2
+
+> x
+
+v‖2 
+
+> L2(−1,1)
+
+− α
+
+∫ 1
+
+> −1
+
+|v|2 ∂x ˜v dx − α ℜ
+
+(∫ 1
+
+> −1
+
+∂2
+
+> x
+
+v v ∗ dx +
+
+∫ 1
+
+> −1
+
+˜v ∂ xv v ∗ dx 
+
+)
+
+.
+
+For an arbitrary κ1 > 0, the elementary relation ab ≤ κ1a2 + b2/(4 κ1) and the Cauchy-Schwarz inequality yield 
+
+ℜ(λ)‖v‖2 
+
+> L2(−1,1)
+
+≤ − (1 − ακ 1) ‖∂2
+
+> x
+
+v‖2 
+
+> L2(−1,1)
+
++ α‖∂x ˜v‖L∞(−1,1) ‖v‖2
+
+> L2(−1,1)
+
++ α ‖v‖2
+
+> L2(−1,1)
+
+4κ1
+
++ α‖˜v‖L∞(−1,1) ‖∂xv‖L2(−1,1) ‖v‖L2(−1,1) .
+
+Since ∂xv vanishes at ±1, the one-dimensional Dirichlet Poincar´ e inequality yields 
+
+‖∂xv‖L2(−1,1) ≤ 2
+
+π ‖∂2
+
+> x
+
+v‖L2(−1,1) .(125) Therefore, for any κ2 > 0 we obtain (126) ℜ(λ)‖v‖2 
+
+> L2(−1,1)
+
+≤ − 
+
+(
+
+1 − ακ 1 − 2ακ 2
+
+π ‖˜v‖L∞(−1,1) 
+
+)
+
+‖∂xv‖2
+
+> L2(−1,1)
+
++ α
+
+(
+
+‖∂x ˜v‖L∞(−1,1) + 1
+
+2πκ 2
+
+‖˜v‖L∞(−1,1) + 1
+
+4κ1
+
+)
+
+‖v‖2
+
+> L2(−1,1)
+
+,
+
+which yields (114) as soon as the constraint (113) is satisfied. Next, coming back to the identity (124) and using once more (125), we have 
+
+|ℑ (λ)| ‖ v‖2 
+
+> L2(−1,1)
+
+≤ α
+
+(
+
+1 + 2
+
+π ‖˜v‖L∞(−1,1) 
+
+)
+
+‖∂2
+
+> x
+
+v‖L2(−1,1) ‖v‖L2(−1,1) .EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 50 
+
+Now, if we assume that ℜ(λ) ≥ − μ and that κ1 and κ2 satisfy the constraint (113), we deduce from (126) that 
+
+‖∂2
+
+> x
+
+v‖2 
+
+> L2(−1,1)
+
+≤
+
+μ + α
+
+(
+
+‖∂x ˜v‖L∞(−1,1) + 1 
+
+> 2πκ 2
+
+‖˜v‖L∞(−1,1) + 1
+
+> 4κ1
+
+)
+
+1 − ακ 1 − 2ακ 2 
+
+> π
+
+‖˜v‖L∞(−1,1) 
+
+‖v‖2
+
+> L2(−1,1)
+
+.(127) Hence 
+
+|ℑ (λ)| ≤ α
+
+(
+
+1 + 2
+
+π ‖˜v‖L∞(−1,1) 
+
+)  μ + α
+
+(
+
+‖∂x ˜v‖L∞(−1,1) + 1 
+
+> 2πκ 2
+
+‖˜v‖L∞(−1,1) + 1
+
+> 4κ1
+
+)
+
+1 − ακ 1 − 2ακ 2 
+
+> π
+
+‖˜v‖L∞(−1,1) 
+
+
+
+> 1/2
+
+,
+
+which concludes the proof. 
+
+Acknowledgments 
+
+The three authors were supported by the ANR project CAPPS: ANR-23-CE40-0004-01. Moreover, MC was also supported by the FMJH : ANR-22-EXES-0013. 
+
+References 
+
+[1] F. Alabau. A method for proving uniqueness theorems for the stationary semiconductor device and electrochemistry equations. Nonlinear Anal., Theory Methods Appl. , 18(9):861–872, 1992. [2] G. Arioli and H. Koch. Computer-assisted methods for the study of stationary solutions in dissipative systems, applied to the Kuramoto-Sivashinski equation. Arch. Ration. Mech. Anal. ,197(3):1033–1051, 2010. [3] G. Arioli, H. Koch, and S. Terracini. Two novel methods and multi-mode periodic solutions for the Fermi-Pasta-Ulam model. Commun. Math. Phys. , 255(1):1–19, 2005. [4] Z. Battles and L. N. Trefethen. An extension of MATLAB to continuous functions and oper-ators. SIAM J. Sci. Comput. , 25(5):1743–1770, 2004. [5] L. Benet and D. Sanders. Intervalarithmetic.jl. 2022. 
+
+https://github.com/JuliaIntervals/IntervalArithmetic.jl .[6] J. P. Boyd. Chebyshev and Fourier spectral methods . Dover Publications, Inc., Mineola, NY, second edition, 2001. [7] M. Breden. A posteriori validation of generalized polynomial chaos expansions. SIAM Journal on Applied Dynamical Systems , 22(2):765–801, 2023. [8] M. Breden, C. Chainais-Hillairet, and A. Zurek. Existence of traveling wave solutions for the Diffusion Poisson Coupled Model: a computer-assisted proof. ESAIM: Mathematical Modelling and Numerical Analysis , 55(4):1669–1697, 2021. [9] M. Breden and H. Chu. Solutions of differential equations in Freud-weighted Sobolev spaces. 
+
+arXiv preprint arXiv:2501.13672 , 2025. [10] M. Breden, L. Desvillettes, and J.-P. Lessard. Rigorous numerics for nonlinear operators with tridiagonal dominant linear part. Discrete & Continuous Dynamical Systems-A , 35(10):4765– 4789, 2015. [11] M. Breden, M. Payan, C. Reisch, and B. Q. Tang. Turing instability for nonlocal heterogeneous reaction-diffusion systems: A computer-assisted proof approach. Journal of Dynamics and Differential Equations , pages 1–48, 2026. [12] F. Br´ ehard. A Newton-like validation method for Chebyshev approximate solutions of linear ordinary differential systems. In Proceedings of the 2018 ACM International Symposium on Symbolic and Algebraic Computation , pages 103–110, 2018. [13] F. Br´ ehard, N. Brisebarre, and M. Jolde¸ s. Validated and numerically efficient Chebyshev spec-tral methods for linear ordinary differential equations. ACM Transactions on Mathematical Software (TOMS) , 44(4):1–42, 2018. [14] M. Cadiot. Stability analysis for localized solutions in PDEs and nonlocal equations on Rm.
+
+arXiv:2505.03091 , 2025. [15] M. Cadiot. BVP Gegenbauer.jl. 2026. https://github.com/matthieucadiot/BVP_Gegenbauer.jl .[16] M. Cadiot, J. Jaquette, J.-P. Lessard, and A. Takayasu. Validated matrix multiplication transform for orthogonal polynomials with applications to computer-assisted proofs for PDEs. 
+
+Commun. Nonlinear Sci. Numer. Simul. , 151:Paper No. 109063, 26, 2025. EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 51 
+
+[17] M. Cadiot and J.-P. Lessard. Recent advances about the rigorous integration of parabolic PDEs via fully spectral Fourier-Chebyshev expansions. arXiv:2502.20644 , 2025. [18] S. Day, J.-P. Lessard, and K. Mischaikow. Validated continuation for equilibria of PDEs. 
+
+SIAM J. Numer. Anal. , 45(4):1398–1424, 2007. [19] NIST Digital Library of Mathematical Functions . https://dlmf.nist.gov/ , Release 1.2.4 of 2025-03-15. F. W. J. Olver, A. B. Olde Daalhuis, D. W. Lozier, B. I. Schneider, R. F. Boisvert, C. W. Clark, B. R. Miller, B. V. Saunders, H. S. Cohl, and M. A. McClain, eds. [20] J. G´ omez-Serrano. Computer-assisted proofs in PDE: a survey. SeMA Journal , 76(3):459–484, 2019. [21] D. Henry. Geometric theory of semilinear parabolic equations , volume 840 of Lecture Notes in Mathematics . Springer-Verlag, Berlin-New York, 1981. [22] A. Hungria, J.-P. Lessard, and J. Mireles James. Rigorous numerics for analytic solu-tions of differential equations: the radii polynomial approach. Mathematics of Computation ,85(299):1427–1459, 2016. [23] O. H´ enot. Radiipolynomial.jl. 2022. https://github.com/OlivierHnt/RadiiPolynomial.jl .[24] T. Kapela, M. Mrozek, D. Wilczak, and P. Zgliczy´ nski. CAPD:: DynSys: a flexible C++ toolbox for rigorous numerical analysis of dynamical systems. Communications in nonlinear science and numerical simulation , 101:105578, 2021. [25] T. Kato. Perturbation theory for linear operators , volume 132. Springer Science & Business Media, 2013. [26] J.-R. Lahmann and M. Plum. A computer-assisted instability proof for the Orr-Sommerfeld equation with Blasius profile. ZAMM Z. Angew. Math. Mech. , 84(3):188–204, 2004. [27] J.-P. Lessard and C. Reinhardt. Rigorous numerics for nonlinear differential equations using Chebyshev series. SIAM J. Numer. Anal. , 52(1):1–22, 2014. [28] P. A. Markowich. The stationary semiconductor device equations . Computational Microelec-tronics. Springer-Verlag, Vienna, 1986. [29] M. T. Nakao and T. Kinoshita. On very accurate verification of solutions for boundary value problems by using spectral methods. JSIAM Letters , 1:21–24, 2009. [30] M. T. Nakao, M. Plum, and Y. Watanabe. Numerical Verification Methods and Computer-Assisted Proofs for Partial Differential Equations , volume 53 of Springer Series in Computa-tional Mathematics . Springer Singapore, 2019. [31] S. Olver and A. Townsend. A fast and well-conditioned spectral method. siam REVIEW ,55(3):462–489, 2013. [32] J. M. Ortega. The Newton-Kantorovich theorem. Am. Math. Mon. , 75:658–660, 1968. [33] C. Reinhardt and J. Mireles James. Fourier–Taylor parameterization of unstable manifolds for parabolic partial differential equations: formalism, implementation and rigorous validation. 
+
+Indagationes Mathematicae , 30(1):39–80, 2019. [34] R. Szwarc. Orthogonal polynomials and Banach algebras. Inzell Lectures on Orthogonal Polynomials. Advances in the Theory of Special Functions and Orthogonal Polynomials, Nova Science Publishers , 2:103–139, 2005. [35] L. N. Trefethen. Approximation theory and approximation practice , volume 128 of Other Titles Appl. Math. Philadelphia, PA: Society for Industrial and Applied Mathematics (SIAM), 2013. [36] J. B. van den Berg. Introduction to rigorous numerics in dynamics: general functional analytic setup and an example that forces chaos. Rigorous Numerics in Dynamics, Proc. Sympos. Appl. Math., Amer. Math. Soc , 74:1–25, 2017. [37] J. B. van den Berg and J.-P. Lessard. Rigorous numerics in dynamics. Notices Amer. Math. Soc. , 62(9), 2015. [38] J. B. van den Berg and R. Sheombarsing. Rigorous numerics for ODEs using Chebyshev series and domain decomposition. Journal of Computational Dynamics , 8(3):353, 2021. [39] D. Wilczak and P. Zgliczy´ nski. A geometric method for infinite-dimensional chaos: Symbolic dynamics for the Kuramoto–Sivashinsky PDE on the line. Journal of Differential Equations ,269(10):8509–8548, 2020. [40] D. Wilczak and P. Zgliczy´ nski. Symbolic dynamics for the Kuramoto–Sivashinsky PDE on the line II. arXiv preprint arXiv:2405.17087 , 2024. [41] N. Yamamoto. A numerical verification method for solutions of boundary value problems with local uniqueness by Banach’s fixed-point theorem. SIAM J. Numer. Anal. , 35(5):2004–2013, EXISTENCE AND STABILITY OF STATIONARY SOLUTIONS TO PARABOLIC PDES 52 
+
+1998. [42] P. Zgliczynski. Attracting fixed points for the Kuramoto–Sivashinsky equation: A computer assisted proof. SIAM Journal on Applied Dynamical Systems , 1(2):215–235, 2002. [43] P. Zgliczynski. Covering relations, cone conditions and the stable manifold theorem. J. Differential Equations , 246(5):1774–1819, 2009. [44] P. Zgliczynski and K. Mischaikow. Rigorous numerics for partial differential equations: The Kuramoto–Sivashinsky equation. Foundations of Computational Mathematics , 1(3):255–288, 2001. 
+
+CMAP, CNRS, Ecole polytechnique, Institut Polytechnique de Paris, 91120 Palaiseau, France 
+
+Email address : maxime.breden@polytechnique.edu 
+
+CMAP, CNRS, Ecole polytechnique, Institut Polytechnique de Paris, 91120 Palaiseau, France 
+
+Email address : matthieu.cadiot@polytechnique.edu 
+
+CNRS – Universit´ e de Montr´ eal CRM – CNRS, Montr´ eal, Canada and Universit´ e de Technologie de Compi` egne, LMAC, 60200 Compi` egne, France 
+
+Email address : antoine.zurek@utc.fr

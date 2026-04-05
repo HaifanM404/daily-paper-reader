@@ -1,0 +1,2801 @@
+Title: Parameter Estimation in Stochastic Differential Equations via Wiener Chaos Expansion and Stochastic Gradient Descent
+
+URL Source: https://arxiv.org/pdf/2603.27019v1
+
+Published Time: Tue, 31 Mar 2026 00:18:55 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+# Parameter Estimation in Stochastic Differential Equations via Wiener Chaos Expansion and Stochastic Gradient Descent 
+
+## Francisco Delgado-Vences a,∗, Jose Julian Pavon-Español b and Arelly Ornelas c
+
+> a
+
+Universitat Autónoma de Barcelona, Departament de Matemàtiques, Edifici C, Facultat de Ciències, 080193, Bellaterra, Spain 
+
+> b
+
+Facultad de Ciencias - Universidad Nacional Autónoma de México. Ciudad Universitaria, Ciudad de México, Mexico 
+
+> c
+
+Secihti - Centro Interdisciplinario de Ciencias Marinas. IPN., BCS, La Paz, México 
+
+A R T I C L E I N F O 
+
+Keywords :Diffusions stochastic gradient descent parameter estimation Wiener chaos expansion simulations 
+
+A B S T R A C T 
+
+This study addresses the inverse problem of parameter estimation for Stochastic Differential Equations (SDEs) by minimizing a regularized discrepancy functional via Stochastic Gradient Descent (SGD). To achieve computational efficiency, we leverage the Wiener Chaos Expansion (WCE), a spectral decomposition technique that projects the stochastic solution onto an orthogo-nal basis of Hermite polynomials. This transformation effectively maps the stochastic dynamics into a hierarchical system of deterministic functions, termed the propagator . By reducing the stochastic inference task to a deterministic optimization problem, our framework circumvents the heavy computational burden and sampling requirements of traditional simulation-based methods like MCMC or MLE. The robustness and scalability of the proposed approach are demonstrated through numerical experiments on various non-linear SDEs, including models for individual biological growth. Results show that the WCE-SGD framework provides accurate parameter recovery even from discrete, noisy observations, offering a significant paradigm shift in the efficient modeling of complex stochastic systems. 
+
+## 1. Introduction 
+
+Mathematical optimization is fundamental to applied mathematics, influencing areas like optimal control theory, inverse problems, and the training of modern deep neural networks. The main aim is usually described as the minimization of a continuously differentiable objective function 𝑓 ∶ ℝ𝑑 → ℝ. While some problems can be solved analytically, the overwhelming majority of practical scenarios demand iterative numerical approaches. Among these, first-order methods—specifically Gradient Descent (GD) and its stochastic counterpart, Stochastic Gradient Descent (SGD)— are very important due to their implementation simplicity and remarkable scalability in high-dimensional spaces. This research focuses on the intersection of these optimization techniques with the theory of Stochastic Differential Equations (SDEs). Specifically, we address the inverse problem of parameter estimation in SDEs by reformulating it as a deterministic optimization task via the Wiener Chaos Expansion. 
+
+1.1. Deterministic Gradient Descent 
+
+The concept of gradient-based optimization originates from Cauchy’s steepest descent method for simultaneous equations. In the context of unconstrained minimization, the Gradient Descent algorithm creates a sequence of iterates represented as {𝑥 𝑘 }𝑘 ≥0 through the specified update rule: 
+
+𝑥 𝑘 +1 = 𝑥 𝑘 − 𝜂 𝑘 ∇𝑓 (𝑥 𝑘 ), (1) where 𝜂 𝑘 > 0 denotes the step size (or learning rate). The theoretical convergence of this method is well-established; for convex functions with Lipschitz continuous gradients ( 𝐿 -smooth), GD converges at a rate of 𝑂 (1∕ 𝑘 ) (see Beck (2017), Nesterov (1983)). 
+
+> ∗
+
+Corresponding author 
+
+FranciscoJavier.Delgado@uab.cat (F. Delgado-Vences); julian.pavon2@ciencias.unam.mx (J.J. Pavon-Español); 
+
+aornelasv@ipn.mx (A. Ornelas) 
+
+> ORCID
+
+(s): 
+
+> 1
+
+FDV is supported by Ministerio de Ciencia e Innovación, Gobierno de España, project ref. PID2021-123733NB-I00. 
+
+F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 1 of 23 
+
+> arXiv:2603.27019v1 [stat.ML] 27 Mar 2026 Parameter Estimation in SDEs via WCE and SGD
+
+However, the efficiency of standard GD is limited by the condition number of the Hessian matrix. To mitigate this issue, Polyak introduced the heavy-ball method, or momentum, using the history of update vectors to accelerate convergence. Further theoretical breakthroughs were made by Nesterov, who proved that by employing a specific momentum schedule, one can achieve a convergence rate of 𝑂 (1∕ 𝑘 2), which is optimal for the class of first-order methods on smooth convex functions. Despite these advances, the computational cost of GD becomes prohibitive in large-scale settings where the objective function decomposes into a finite sum, 𝑓 (𝑥 ) = 1
+
+> 𝑛
+
+∑𝑛 𝑖 =1 𝑓 𝑖 (𝑥 ), requiring 𝑛 
+
+gradient evaluations per iteration. 
+
+1.2. Stochastic Gradient Descent 
+
+To tackle the computational challenges inherent in full-batch gradient calculation, Robbins and Monro (1951) introduced the Stochastic Approximation method. When applied to the optimization process, this concept results in Stochastic Gradient Descent (SGD). Rather than computing the exact gradient, SGD provides an estimate by utilizing a single sample (or a small mini-batch) 𝑖 𝑘 chosen uniformly at random: 
+
+𝑥 𝑘 +1 = 𝑥 𝑘 − 𝜂 𝑘 ∇𝑓 𝑖 𝑘 (𝑥 𝑘 ). (2) It is essential to note that the stochastic gradient serves as an unbiased estimator of the true gradient, satisfying 
+
+𝔼 [∇ 𝑓 𝑖 𝑘 (𝑥 𝑘 )] = ∇ 𝑓 (𝑥 𝑘 ).The convergence analysis of SGD differs fundamentally from GD due to the introduction of variance. While GD converges to the exact minimizer with a constant step size, SGD will eventually oscillate around the minimizer within a "noise ball" proportional to the variance of the gradients and the step size (Bottou (2010), Bottou et al. (2018)). To guarantee almost sure convergence to the optimum, the step size sequence must satisfy the Robbins-Monro conditions: 
+
+> ∞
+
+∑
+
+> 𝑘 =1
+
+𝜂 𝑘 = ∞ and 
+
+> ∞
+
+∑
+
+> 𝑘 =1
+
+𝜂 2 
+
+> 𝑘
+
+< ∞. (3) Under these conditions, SGD achieves a sublinear convergence rate of 𝑂 (1∕ 𝑘 ) for strongly convex functions. While asymptotically slower than GD, the per-iteration cost of SGD is independent of the dataset size 𝑛 , rendering it superior for large-scale problems. 
+
+1.3. Comparison with Variational Data Assimilation Methods 
+
+In the context of parameter estimation for Stochastic Differential Equations (SDEs), it is pertinent to contrast our proposed framework with widely adopted variational data assimilation methods, such as weak-constraint 4D-Var and stochastic optimal control Trémolet (2006); Reich and Cotter (2015). Variational approaches typically retain the stochastic nature of the system, formulating the inverse problem by treating the intrinsic process noise as an additional control variable. Under this paradigm, finding the optimal parameters and state trajectories requires minimizing a cost functional that balances the discrepancy with the observations and the magnitude of the model error. However, performing this optimization generally relies on the continuous adjoint method, which entails computationally demanding forward and backward time integrations of the stochastic dynamics Stuart (2010). In contrast, the methodology presented in this study fundamentally circumvents the need for backward stochastic integration. By leveraging the Wiener Chaos Expansion (WCE), we project the stochastic solution onto a basis of Hermite polynomials, effectively determinizing the system. As previously described, the stochastic dynamics are decomposed into a hierarchical system of deterministic ordinary differential equations, referred to as the propagator. Consequently, the stochastic parameter learning task is rigorously reduced to a deterministic optimization problem. This spectral transformation allows us to compute gradients analytically and apply Stochastic Gradient Descent (SGD) directly on the propagator. By doing so, our framework avoids the severe computational burden and the complex non-convexity landscapes often associated with traditional simulation-based or adjoint-based variational methods, while ensuring robust convergence properties for the parameter estimation. 
+
+1.4. The Wiener Chaos Expansion 
+
+The Wiener Chaos Expansion (WCE) is a spectral decomposition technique on the probability space, originally introduced by Cameron and Martin (1947) and later developed for SDEs by Rozovskii and Lototsky and their   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 2 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+colaborators among others. It provides an orthogonal basis for the space of square-integrable random variables using Hermite polynomials of Gaussian processes. In the context of this work, the WCE serves a dual purpose. First, it allows for the rigorous existence and uniqueness analysis of solutions to Stochastic Partial Differential Equations (SPDEs). Second, and most important for our method, it provides a computational framework to decompose a stochastic process into a hierarchical system of deterministic differential equations, known as the propagator . This transformation enables us to convert the stochastic inverse problem of parameter estimation into a deterministic optimization problem, solvable via gradient-based methods. 
+
+1.5. Overview of the Proposed Methodology 
+
+While the preceding sections outline the foundational mathematical concepts, the primary contribution of this manuscript is the synthesis of these distinct tools into a unified, highly efficient framework for SDE parameter estimation. Specifically, we address the challenge of inferring the unknown drift and diffusion parameters, denoted by 𝜃 , from discrete noisy measurements. This is a critical task when modeling highly non-linear dynamics, such as those governing individual biological growth. Traditional inference frameworks for SDEs, such as Maximum Likelihood Estimation (MLE) and Markov Chain Monte Carlo (MCMC) methods, often rely on intensive Monte Carlo simulations to approximate the transition densities or the likelihood surface. These approaches become computationally prohibitive as the complexity of the system or the dimension of the parameter space increases. In contrast, our framework leverages the Wiener Chaos Expansion to transform the stochastic inverse problem into a hierarchical system of deterministic equations. By doing so, we eliminate the need for repetitive path simulations, providing a more efficient optimization landscape for Stochastic Gradient Descent (SGD) to operate on. Instead of relying on standard maximum likelihood estimators or particle-based filters, our approach reformulates the problem through three fundamental steps: 1. Spectral Determinization: Rather than dealing with random trajectories directly, we apply the Wiener Chaos Expansion to the underlying SDE. By projecting the stochastic process onto an orthogonal basis of Hermite polynomials, we truncate and transform the original stochastic system into a coupled, hierarchical system of deterministic Ordinary Differential Equations (ODEs). The resulting deterministic system is what we refer to as the propagator .2. Formulation of the Discrepancy Functional: We cast the parameter inference as a deterministically driven inverse problem. We construct a Tikhonov-Phillips regularized cost functional that quantifies the error between the statistical properties of the experimental data (specifically, the empirical mean and variance) and the corresponding zeroth and higher-order states of our deterministic propagator. 3. Optimization via SGD: To minimize this functional and recover the optimal parameters 𝜃 , we analytically compute the gradients directly from the propagator equations. We then deploy a Stochastic Gradient Descent algorithm to iteratively navigate the optimization landscape. By executing this sequence, we effectively translate a complex stochastic inference problem into a classical machine learning optimization task. This paradigm shift not only avoids the computational bottlenecks of Monte Carlo simulations but also leverages the robust convergence properties of gradient-based methods on deterministic, regularized loss landscapes. The remainder of this manuscript is organized as follows. In Section 2 we briefly review the inverse problem and in particular the ill-posed inverse problems. Section 3 formalizes the theoretical framework for differential operators subjected to noise, establishing the stochastic inverse problem as a well-posed minimization task grounded in Tikhonov-Phillips regularization. Section 4 bridges this abstract theory with classical models, demonstrating the construction of the deterministic propagator and the corresponding objective functions for both SDEs and Stochastic Partial Differential Equations (SPDEs). Section 5 details the core algorithmic contribution: it introduces a modified empirical loss function incorporating the quadratic variation of the data, explicitly computes the analytical gradients from the propagator, and discusses the convergence guarantees of the SGD algorithm utilizing the Barzilai-Borwein step-size method. Section 6 validates the proposed framework through numerical experiments on a foundational toy model, the Ornstein-Uhlenbeck process. In Section 7 we apply and validate the proposed method to three examples of SDEs. Finally, Section 8 extends the methodology to more complex, non-linear SDEs with practical relevance, including Geometric Brownian Motion, and the stochastic logistic equation for biological growth.   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 3 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+## 2. On inverse problems 
+
+2.1. Inverse Problems and Regularization 
+
+A prominent domain where these iterative methods have found fundamental application is the regularization of ill-posed inverse problems. In this setting, the objective is to recover an unknown parameter 𝑥 ∈  from noisy measurements 𝑦 𝛿 ∈ , modeled by the operator equation: 
+
+𝑥 = 𝑦 𝛿 , (4) where  ∶  →  is a forward operator (potentially non-linear). Following Hadamard’s definition, such problems are often ill-posed , meaning a solution may not exist, may not be unique, or may not depend continuously on the data. The classical approach to solving ill-posed problems involves minimizing a discrepancy functional, typically the least-squares term 12 ‖𝑥 − 𝑦 𝛿 ‖2. To address instability, this minimization is often augmented with a regularization term. 
+
+( 12
+
+‖‖‖𝑦 − 𝐴𝑢 ‖‖‖ 
+
+> 2
+> 𝑌
+
++ 𝜆 ‖‖‖𝑢 − 𝑥 0
+
+‖‖‖
+
+> 2
+> 𝐸
+
+)
+
+. (5) The Tikhonov-Phillips regularization searches for a solution 𝑥 𝛿 that minimizes: 
+
+𝐽 𝛿 (𝑥 ) = ‖𝑥 − 𝑦 𝛿 ‖2 
+
+> 
+
++ 𝛿 ‖𝑥 − 𝑥 0‖2
+
+> 
+
+, (6) where 𝛿 > 0 is the regularization parameter and 𝑥 0 is a prior estimate (often set to zero). It is well-established that applying Gradient Descent to this functional yields the celebrated Landweber iteration 
+
+Landweber (1951), a method known to exhibit a self-regularizing property where the iteration count serves as the regularization parameter (semiconvergence) Engl et al. (1996a). However, for large-scale tomographic or seismic imaging problems where the operator 𝐴 consists of distinct row blocks representing partial data subsets, computing the full gradient is computationally prohibitive. Here, Stochastic Gradient Descent emerges naturally as the Randomized Kaczmarz method (or Algebraic Reconstruction Technique) Strohmer and Vershynin (2009). By selecting random subsets of equations to update the estimate, SGD acts as an efficient iterative solver that drastically reduces the per-iteration computational cost while maintaining convergence guarantees suitable for large-scale inverse problems Needell et al. (2014). 
+
+2.2. Some statistical Ill-posed inverse problems 
+
+In this subsection and for the sake of completeness, we will review some classical inverse problems. There is a high number of good references for the study of the inverse problems, here we refer to: Lu and Pereverzev (2013), Kabanikhin (2011), Engl et al. (1996b), Hasanoğlu and Romanov (2021), Isakov (2006) and the references therein. Set two separable Hilbert spaces  and , and define an operator 𝐴 from  into , 𝐴 ∶  → .We consider the problem 
+
+𝐴𝑥 = 𝑦 (7) with 𝑦 ∈  and 𝑥 ∈ . Here, we are assuming that 𝐴 is a (not necessarily bounded) linear operator acting from a subset 𝑋 of  into a subset 𝑌 of . The inverse problem focuses on finding 𝑥 ∈ 𝑋 given 𝑦 ; sometimes 𝑦 is called the 
+
+data .
+
+Remark 1. In this work, we will be interested in the case where the operator 𝐴 is a differential operator. The problem (7) is called well-posed (in the sense of Hadamard) on  and  if the following three conditions hold: 1. for any 𝑦 ∈  there exists a solution 𝑥 𝑒 ∈  to the equation (7), i.e., 𝑅𝑎𝑛𝑔𝑒 (𝐴 ) =  (the existence condition); 2. the solution 𝑥 𝑒 to the equation (7) is unique in  (the uniqueness condition); 3. for any neighbourhood  (𝑥 𝑒 
+
+) ⊂  of the solution 𝑥 𝑒 to the equation (7), there is a neighbourhood (𝑦 ) ⊂  of 
+
+𝑦 such that for all 𝑦 𝛿 ∈ (𝑦 ) the element 𝐴 −1 𝑦 𝛿 = 𝑥 𝛿 belongs to the neighbourhood  (𝑥 𝑒 
+
+), i.e., the operator 
+
+𝐴 −1 is continuous (the stability condition).   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 4 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+There are three causes leading to ill-posedness of the equation (7): (i) 𝑅𝑎𝑛𝑔𝑒 (𝐴 ) = 𝑅𝑎𝑛𝑔𝑒 (𝐴 ) ≠  .(ii) 𝑘𝑒𝑟𝑛𝑒𝑙 (𝐴 ) ≠ {0} 
+
+(iii) The range of 𝐴 is not closed in .For some discussion on the issues and the possible solutions to each cause see some of the references mentioned before. The minimization problem (6) is an example of what is called a Tikhonov-Phillips regularizer (cf. Kaipio and Somersalo (2005)). 
+
+Definition 1. Let 𝛿 > 0 be a given constant. The Tikhonov–Phillips regularized solution 𝑥 𝛿 ∈  is the minimizer of the functional 
+
+𝐹 𝛿 (𝑥 ) = ‖𝐴𝑥 − 𝑦 ‖2 
+
+> 𝑌
+
++ 𝛿 ‖𝑥 ‖2 
+
+> 𝑋
+
+,
+
+provided that a minimizer exists. The parameter 𝛿 > 0 is called the regularization parameter. 
+
+Remark 2. Note that in (5) by setting 𝑥 0 = 0 , the problem simplifies to finding the solution with the minimum norm (or energy) that fits the data. This is the canonical form of Tikhonov regularization used when no specific prior estimate 
+
+𝑥 0 is available. 
+
+## 3. Differential operators with a noise 
+
+3.1. Framework 
+
+Denote by  a separable Hilbert space, finite or infinite dimensional. Let (Ω ,  , ℙ; ) be a Gaussian probability space. That means that  is a closed subspace of 𝐿 2(Ω ,  , ℙ) whose elements are zero-mean Gaussian random variables; in such manner that we could define a isonormal Gaussian process 𝑊 = (𝑊 (ℎ) ∶ ℎ ∈ ). That means 𝑊 is a centered Gaussian family of random variables such that 
+
+𝔼 (𝑊 (ℎ)𝑊 (𝑔 )) = ⟨ℎ, 𝑔 ⟩ for all ℎ, 𝑔 ∈ , (cf. Nualart (2006)). We will be interested in the white noise case. That is, when we could interpret the elements of  as stochastic integrals of functions in 𝐿 2(𝑇 , (𝑇 ), 𝜇 ) with respect to a Gaussian measure on the parameter space 𝑇 , here 𝜇 is a 𝜎 -finite measure without atoms (cf. Nualart (2006)). Thus, by taking  finite or infinite dimensional, we could study SDEs and SPDEs using this framework. We define the Hilbert space ℍ = 𝐿 2(Ω; ), with norm given by 
+
+‖𝑥 ‖2 
+
+> ℍ
+
+∶= 𝔼 (‖𝑥 ‖2
+
+> 
+
+)
+
+In this section, we consider the stochastic extension of the inverse problem (1.5), formulated as the operator equation: 
+
+𝑥 = 𝑦 + 𝜂, (8) where 𝑦 ∈  represents the observation (or the mean data), and 𝜂 represents the stochastic perturbation, with 𝜂 being an isonormal process representing observational noise. 
+
+On the Solution: Since the source term involves the random variable 𝜂 , the solution 𝑥 is inherently stochastic. Therefore, we seek a solution in the space of square-integrable -valued random variables, denoted by 𝔾 =
+
+𝐿 2(Ω ,  , ℙ; ). The equality in (8) is understood in the mean-square sense; however, due to the ill-posed nature of the operator , an exact solution satisfying the equation almost surely may not exist. Consequently, we define the 
+
+generalized solution to (8) as the unique minimizer of the regularized expected discrepancy functional: 
+
+𝑥 𝑠𝑜𝑙 ∶= argmin 
+
+> 𝑢 ∈𝔾
+
+12 ‖𝑢 − ( 𝑦 + 𝜂 )‖2
+
+> ℍ
+
+. (9) This formulation naturally leads to the stochastic optimization problem (2.4), where the solution is an estimator characterized by its Wiener Chaos expansion. We will assume the following set of hypotheses.   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 5 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+Hypothesis 1. a) The operator  takes values in .b) The mean value of 𝑥 is equal to 𝐴𝑥 from the deterministic problem (7). 
+
+Remark 3. • Observe that given the stochasticity of 𝜂 in Eq. (8), thus the value 𝑥 that solve the inverse problem is stochastic too. Therefore, we need to consider a solution of the inverse problem that lives in a suitable space of random variables (see Da Prato and Zabczyk Da Prato and Zabczyk (1992) for instance). 
+
+• The assumption that the first moment (𝑢 )0 coincides with the deterministic operator 𝐴𝑥 relies on the property of the Itô integral, which vanishes in expectation. However, strictly speaking, this equality holds exactly only for linear drift terms, meaning for the case in which 𝐴 is a linear operator. For non-linear systems, such as the logistic equation, Jensen’s inequality implies that 𝔼 [𝜇 (𝑋 𝑡 )] ≠ 𝜇 (𝔼 [𝑋 𝑡 ]) . In such cases, minimizing the misfit 
+
+‖(𝑢 )0 − 𝑦 ‖2 approximates fitting the data to the projected mean dynamics of the system The kind of problems like Eq. (8) cover examples such as stochastic differential equations and stochastic partial differential equations. Taking expectation in Eq. (8) we have 𝔼 (𝑥 ) = 𝑦 .Thus the stochastic problem has as a particular case the deterministic problem (7). Using the notation and definitions from appendix, we will assume the following set of hypotheses. 
+
+Hypothesis 2. 1. We have the Wiener-chaos expansion for 𝑥 :
+
+𝑥 = ∑
+
+> 𝛼 ∈
+
+(𝑥 )𝛼 𝜉 𝛼 with (𝑥 )𝛼 ∶= 𝔼 [(𝑥 ) 𝜉 𝛼 
+
+].
+
+Using the facts from the Remark 11 jointly with the Hypotheses 1-b), we have that 
+
+𝔼 (𝑥 ) = ∑
+
+> 𝛼 ∈
+
+(𝑥 )𝛼 𝕀 |𝛼 |=0 =∶ ( 𝑥 )0 (10) 
+
+3.2. Stochastic inverse problem 
+
+Consider the optimization problem for the stochastic equation (8): 
+
+𝑣 (𝑥 ) = argmin 𝑥 ∈𝑋 
+
+12
+
+‖‖‖𝑦 − 𝑥 ‖‖‖
+
+> 2
+> ℍ
+
+. (11) We have the main result of this section. 
+
+Theorem 1. Assume hypotheses 1 and 2 are satisfied. Thus, the inverse problem (11) is well-posed. 
+
+PROOF . We will demonstrate that the stochastic minimization problem (11) is mathematically equivalent to a Tikhonov-Phillips regularization for a deterministic problem, which guarantees its well-posedness. Let ℍ denote the appropriate space of square-integrable random variables with values in . Using the Wiener Chaos Expansion, the discrepancy functional can be expanded as follows: 
+
+‖‖‖𝑥 − 𝑦 ‖‖‖ 
+
+> 2
+> ℍ
+
+= 𝔼 
+
+[‖‖‖𝑥 − 𝑦 ‖‖‖
+
+> 2
+> 
+
+]
+
+= 𝔼 
+
+[‖‖‖∑
+
+> 𝛼 ∈
+
+(𝑥 )𝛼 𝜉 𝛼 − 𝑦 ‖‖‖
+
+> 2
+> 
+
+]
+
+= 𝔼 
+
+[‖‖‖‖‖(
+
+(𝑥 )𝟎 − 𝑦 
+
+)
+
++ ∑ 
+
+> 𝛼 ∈∶|𝛼 |≥1
+
+(𝑥 )𝛼 𝜉 𝛼 
+
+‖‖‖‖‖
+
+> 2
+> 
+
+]
+
+, (12) where we have used the fact that for the multi-index |𝛼 | = 0 , the basis polynomial is 𝜉 𝟎 ≡ 1.Expanding the square of the norm yields three terms: 
+
+‖‖‖𝑥 − 𝑦 ‖‖‖ 
+
+> 2
+> ℍ
+
+= ‖‖‖(𝑥 )𝟎 − 𝑦 ‖‖‖ 
+
+> 2
+> 
+
++ 𝔼 
+
+[‖‖‖∑ 
+
+> 𝛼 ∈∶|𝛼 |≥1
+
+(𝑥 )𝛼 𝜉 𝛼 
+
+‖‖‖
+
+> 2
+> 
+
+]
+
++ 2 ∑ 
+
+> 𝛼 ∈∶|𝛼 |≥1
+
+⟨(𝑥 )𝟎 − 𝑦, (𝑥 )𝛼 
+
+⟩ 
+
+> 
+
+𝔼 [𝜉 𝛼 ]. (13)   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 6 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+By the properties of the WCE basis, the random variables 𝜉 𝛼 are centered for all |𝛼 | ≥ 1, meaning 𝔼 [𝜉 𝛼 ] = 0 .Consequently, the cross-term vanishes completely. Furthermore, due to the orthogonality of the basis {𝜉 𝛼 }𝛼 ∈ , we have 𝔼 [𝜉 𝛼 𝜉 𝛽 ] = 𝛿 𝛼𝛽 . Applying this isometry to the variance term, the expectation of the squared norm simplifies to the sum of the squared norms. Assuming the basis is normalized such that 𝔼 [𝜉 2 
+
+> 𝛼
+
+] = 1 , we obtain: 
+
+‖‖‖𝑥 − 𝑦 ‖‖‖ 
+
+> 2
+> ℍ
+
+= ‖‖‖(𝑥 )𝟎 − 𝑦 ‖‖‖
+
+> 2
+> 
+
+⏟⏞⏞⏞⏞⏞⏞⏟⏞⏞⏞⏞⏞⏞⏟ 
+
+> Data Fidelity
+
++ ∑ 
+
+> 𝛼 ∈∶|𝛼 |≥1
+
+‖‖‖(𝑥 )𝛼 
+
+‖‖‖
+
+> 2
+> 
+
+⏟⏞⏞⏞⏞⏞⏞⏞⏞⏞⏞⏞⏞⏟⏞⏞⏞⏞⏞⏞⏞⏞⏞⏞⏞⏞⏟ 
+
+> Regularization Penalty
+
+. (14) The right-hand side of Equation (14) takes the exact form of a Tikhonov-Phillips regularized functional for the deterministic forward operator 𝑥 ↦ (𝑥 )𝟎 . The first term enforces data fidelity by matching the mean dynamics to the deterministic observations 𝑦 , while the infinite sum of higher-order chaos coefficients acts as a strongly convex regularization penalty that minimizes the stochastic variance (or energy) of the system. By invoking classical regularization theory for deterministic inverse problems, this structure ensures the existence, uniqueness, and stability of the minimizer, concluding the proof. While the isometric properties of the Wiener Chaos Expansion are standard in stochastic analysis, Theorem 1 explicitly bridges this spectral property with the deterministic regularization theory of inverse problems, demonstrating that the higher-order stochastic fluctuations naturally induce a Tikhonov-Phillips penalty. Consequently, this theorem serves as the theoretical cornerstone of our methodology. By formally establishing that the spectral projection of the stochastic system inherently regularizes the inverse problem, we justify the transition from a computationally prohibitive stochastic optimization to a tractable deterministic one. Optimizing the resulting deterministic propagator via Stochastic Gradient Descent (SGD) is therefore not merely a heuristic for computational efficiency, but a mathematically rigorous strategy. It guarantees that the parameter estimation remains well-posed and remarkably stable against observational noise, effectively circumventing the severe instability and exhaustive sampling requirements typically associated with direct simulation-based inference. 
+
+3.3. Well-posedness of the Minimization Problem 
+
+The minimization of the functional defined in (11) constitutes a variational approach to the inverse problem. To establish the well-posedness of this formulation—specifically the existence, uniqueness, and stability of the minimizer—we draw upon recent advances in Bayesian inverse problems in Banach spaces. As demonstrated by Chen et al. (2024), the regularized inverse problem can be interpreted as determining the mode Maximum A Posteriori (MAP estimator) of a posterior measure. They established that under general Banach space priors, the posterior distribution satisfies a Lipschitz continuity condition with respect to the observed data in the Hellinger metric. This result is crucial for our framework, as the variance term in (14) , ∑|𝛼 |≥1 ‖(𝑢 )𝛼 ‖2, acts as a strongly convex regularizer in the probability space. Furthermore, Chen et al. proved that such formulations exhibit posterior contraction , meaning that as the observational noise vanishes (or the amount of data increases), the probability mass of the solution concentrates around the true parameter value. This theoretical guarantee justifies the use of Equation (14) not merely as a heuristic, but as a well-posed mathematical problem where the stochastic "variance penalty" ensures the stability of the reconstruction even when the forward operator is non-linear. 
+
+## 4. Classical examples of differential operators 
+
+4.1. Stochastic differential equations 
+
+Suppose that a process 𝑋 𝑡 is given by the stochastic differential equation (SDE) 
+
+𝑑𝑋 (𝑡 ) = 𝑓 (𝑋 𝑡 )𝑑𝑡 + 𝜎 (𝑋 (𝑡 )) 𝑑𝐵 𝑡 , (15) 
+
+𝑋 (0) = 𝑥 0.
+
+We assume that the functions 𝑓 and 𝜎 satisfy suitable assumptions to ensure the existence and uniqueness of a solution (see Oksendal (2013) for instance). In addition, since we are looking to estimate some parameters from the   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 7 of 23
+
+Parameter Estimation in SDEs via WCE and SGD 
+
+SDE (15) then we will make explicit the dependence of the functions 𝑓 and 𝜎 on some parameters. More precisely, we suppose that 𝑓 (𝑥 ) = 𝑓 (𝑥 ; 𝜃 1) and 𝜎 (𝑥 ) = 𝜎 (𝑥, 𝜃 2). Here, (𝜃 1, 𝜃 2), are the parameters involved for the inverse problem. The SDE (15) corresponds to the case where the operator  is an ordinary differential operator. We assume the following. 
+
+Hypothesis 3. The functions 𝑓 and 𝜎 can we written as 
+
+𝑓 (𝑥 ; Θ) = 𝐹 (𝑥 )𝑔 1(𝜃 1); 𝜎 (𝑥 ; Θ) = Γ( 𝑥 )𝑔 2(𝜃 2),
+
+with 𝑔 1, 𝑔 2 being differentiable functions with respect to the parameters 𝜃 1 and 𝜃 2, respectively. Note that since we are interested in estimating the parameters 𝜃 1 and 𝜃 2 we assume that the functions 𝑔 1(𝜃 1) and 𝑔 2(𝜃 2)
+
+are independent of time and deterministic. 
+
+4.1.1. Wiener Chaos expansion for the SDE 
+
+In this section, we present a procedure to obtain the propagator for the SDE (15). We know that the solution 𝑋 
+
+belongs to the space 𝐿 2(Ω; [0 , 𝑇 ]) then, we can write the solution as in (65): 
+
+𝑋 (𝑡 ) = ∑
+
+> 𝑚 ∈
+
+𝑋 𝑚 (𝑡 )𝜉 𝑚 (16) where 𝑋 𝑚 (𝑡 ) = 𝔼 (𝑋 (𝑡 )𝜉 𝑚 
+
+), and we are using the notation from the appendix. Thus, we have 
+
+𝔼 
+
+[(
+
+𝑋 (𝑡 )
+
+)
+
+𝜉 𝑚 
+
+]
+
+= 𝔼 
+
+[(
+
+𝑥 0 + ∫
+
+> 𝑡
+> 0
+
+𝑓 (𝑋 (𝑠 )) 𝑑𝑠 + ∫
+
+> 𝑡
+> 0
+
+𝜎 (𝑋 (𝑠 )) 𝑑𝐵 (𝑠 )
+
+)
+
+𝜉 𝑚 
+
+]
+
+= 𝔼 
+
+[
+
+𝑥 0𝜉 𝑚 
+
+]
+
++ 𝔼 
+
+[(
+
+∫
+
+> 𝑡
+> 0
+
+𝑓 (𝑋 (𝑠 )) 𝑑𝑠 
+
+)
+
+𝜉 𝑚 
+
+]
+
++ 𝔼 
+
+[(
+
+∫
+
+> 𝑡
+> 0
+
+𝜎 (𝑋 (𝑠 )) 𝑑𝐵 (𝑠 )
+
+)
+
+𝜉 𝑚 
+
+]
+
+= 𝑥 0𝕀 |𝑚 |=0 + ∫
+
+> 𝑡
+> 0
+
+𝑔 1(𝜃 1)𝔼 
+
+[
+
+𝐹 (𝑋 (𝑠 )) 𝜉 𝑚 
+
+]
+
+𝑑𝑠 + 𝔼 
+
+[(
+
+∫
+
+> 𝑡
+> 0
+
+𝜎 (𝑋 (𝑠 )) 𝑑𝐵 (𝑠 )
+
+)
+
+𝜉 𝑚 
+
+]
+
+= 𝑥 0𝕀 |𝑚 |=0 + 𝑔 1(𝜃 1) ∫
+
+> 𝑡
+> 0
+
+𝐹 𝑚 (𝑋 (𝑠 )) 𝑑𝑠 + 𝑔 2(𝜃 2)𝔼 
+
+[(
+
+∫
+
+> 𝑡
+> 0
+
+Γ( 𝑋 (𝑠 )) 𝑑𝐵 (𝑠 )
+
+)
+
+𝜉 𝑚 
+
+]
+
+. (17) For the last integral in (17) we will use the results from the appendix and Hypothesis 3. Indeed, we know that the integrand is adapted to the generated filtration 𝑡 generated by the noise 𝐵 (𝑡 ), 0 ≤ 𝑡 ≤ 𝑇 . Thus, the Skorohod integral is reduced to the usual Itô stochastic integral. In other words, we can write the following 
+
+∫
+
+> 𝑡
+> 0
+
+Γ( 𝑋 (𝑠 )) 𝑑𝐵 𝑠 = 𝛿 
+
+(
+
+Γ( 𝑋 (⋅)) 𝕀 [0 ,𝑡 ](⋅)
+
+)
+
+Thus, using this expression and (71) we get 
+
+𝔼 
+
+[(
+
+∫
+
+> 𝑡
+> 0
+
+Γ( 𝑋 (𝑠 )) 𝑑𝐵 𝑠 
+
+)
+
+𝜉 𝑚 
+
+]
+
+= 𝔼 
+
+(
+
+𝛿 
+
+(
+
+Γ( 𝑋 (⋅)) 𝕀 [0 ,𝑡 ](⋅)
+
+)
+
+𝜉 𝑚 
+
+)
+
+= 𝔼 
+
+(⟨Γ( 𝑋 (⋅)) 𝕀 [0 ,𝑡 ](⋅), 𝐷𝜉 𝑚 
+
+⟩
+
+> ℍ
+
+)
+
+= 𝔼 
+
+[
+
+∫
+
+> 𝑡
+> 0
+
+Γ( 𝑋 (𝑠 )) 𝐷𝜉 𝑚 𝑑𝑠 
+
+]
+
+=
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )𝔼 
+
+[
+
+𝜉 𝑚 −(𝑖 )𝜎 (𝑋 (𝑠 )) 
+
+]
+
+𝑑𝑠 
+
+=
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝑚 −(𝑖 )(𝑋 (𝑠 )) 𝑑𝑠 (18) Plugging together (17) - (18) we have 
+
+𝑋 𝑚 (𝑡 ) = 𝑥 0𝕀 {|𝑚 |=0} + 𝑔 1(𝜃 1) ∫
+
+> 𝑡
+> 0
+
+𝐹 𝑚 (𝑋 (𝑠 )) 𝑑𝑠 + 𝑔 2(𝜃 2)
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝑚 −(𝑖 )(𝑋 (𝑠 )) 𝑑𝑠 (19) 
+
+F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 8 of 23 Parameter Estimation in SDEs via WCE and SGD 
+
+Remark 4. Note that depending of every SDE one is interested in approximating using the WCE, the equations (19) will be in fact a system of coupled ordinary differential equations. Such a system is called the propagator and can be solved iteratively (see Lototsky and Rozovsky (2017) for instance). Some examples are: 
+
+• 𝐹 (𝑥 ) = 𝛼 0𝑥 and Γ( 𝑥 ) = 𝛼 1 + 𝛼 2𝑥 , then, if 𝛼 1 = 0 , 𝛼 2 > 0 then we get the geometric Brownian motion, and when 
+
+𝛼 1 > 0,𝛼 2 = 0 we recover the OU process. 
+
+• 𝐹 (𝑥 ) = 𝑥 (1 − 𝑥 ) and Γ( 𝑥 ) = 𝛼 1𝑥 , we obtain a multiplicative (affine) logistic SDE. 
+
+4.1.2. Inverse problem for the SDE 
+
+Let us to write 𝑋 (𝑡 ; Θ) instead of 𝑋 (𝑡 ), just to denote the dependence on the parameters, recall that Θ = ( 𝜃 1, 𝜃 2).We define the objective function, 𝑢 ∶ ℝ2 → ℝ, as 
+
+𝑢 (Θ) ∶= 𝔼 
+
+(
+
+1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[𝑋 𝑘 (𝑡 ; Θ) − ̂𝑥 𝑘 (𝑡 )] 2𝑑𝑡 
+
+)
+
+, (20) where Θ = ( 𝜃 1, 𝜃 2) are the parameters to be estimated and 𝑋 𝑘 (𝑡 ; Θ) is the SDE with initial condition 𝑋 𝑘 (0; Θ) = ̂𝑥 𝑘 (0) .̂𝑥 𝑘 (𝑡 ) is the 𝑘 observed trajectory along time [0 , 𝑇 ], and we assume that we have 𝑁 trajectories, and we will use them to estimate the parameters Θ.We now use the spectral representation (16) in (20). 
+
+𝑢 (Θ) = 𝔼 
+
+(
+
+1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[ ∑ 
+
+> 𝑚 ∈
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) 𝜉 𝑚 −̂𝑥 𝑘 (𝑡 )
+
+]2
+
+𝑑𝑡 
+
+)
+
+= 1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+𝔼 
+
+([ ∑ 
+
+> 𝑚 ∈
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) 𝜉 𝑚 −̂𝑥 𝑘 (𝑡 )
+
+]2)
+
+𝑑𝑡 
+
+= 1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+𝔼 
+
+([
+
+𝑋 𝑘  
+
+> 𝟎
+
+(𝑡 ; Θ) − ̂𝑥 𝑘 (𝑡 )
+
+]
+
++
+
+[ ∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) 𝜉 𝑚 
+
+])2
+
+𝑑𝑡 
+
+= 1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝑘  
+
+> 𝟎
+
+(𝑡 ; Θ) − ̂𝑥 𝑘 (𝑡 )
+
+]2
+
+𝑑𝑡 + 1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑙 =1
+
+∫
+
+> 𝑇
+> 0
+
+∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+[
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) 
+
+]2
+
+𝑑𝑡. (21) where in the last step we have used the fact that {𝜉 𝑚 } is a basis for the space 𝐿 2(Ω) .
+
+Remark 5. Observe that from (21) we can reinterpret the function 𝑢 (Θ) as 
+
+𝑢 (Θ) = Square errors between the observations and the mean of 𝑋 
+
++ Variance of the process 𝑋. (22) 
+
+Remark 6. We rewrite equation (19) as follows, to underline the dependence on the parameters Θ = ( 𝜃 1, 𝜃 2), that is 
+
+𝑋 𝑚 (𝑡 ; Θ) = 𝑥 0𝕀 {|𝑚 |=0} + 𝑔 1(𝜃 1) ∫
+
+> 𝑡
+> 0
+
+𝐹 𝑚 (𝑋 (𝑠 ; Θ)) 𝑑𝑠 + 𝑔 2(𝜃 2)
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝑚 −(𝑖 )(𝑋 (𝑠 ; Θ)) 𝑑𝑠 (23) 
+
+Remark 7. It is worth noting that by employing the WCE, the original stochastic minimization problem is effectively reformulated as a deterministic optimization task. Consequently, the objective function is now evaluated through the evolution of the deterministic propagator equations. 
+
+4.2. Stochastic partial differential equations 
+
+We now present the case when the operator  corresponds to a partial differential equation. We follow Lototsky and Rozovskii (2006a) (see also Lototsky and Rozovskii (2006b), or the book Lototsky and Rozovsky (2017) for a more general type of SPDEs). We will use the notation and the version of the Wiener-chaos from the appendix. Let (𝑉 , 𝐻, 𝑉 ′) be a normal triple of Hilbert spaces so that 𝑉 ↪ 𝐻 ↪ 𝑉 ′ with both embeddings continuous.   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 9 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+We focus on the following stochastic equation 
+
+𝑑𝑋 (𝑡 ) = 𝐴𝑋 (𝑡 ) 𝑑𝑡 + 𝜎 ∑
+
+> 𝑘 ≥1
+
+𝐺 𝑘 (𝑋 (𝑡 )) 𝑑𝐵 𝑘 (𝑡 ), (24) subject to a suitable boundary and initial conditions. Here, the operator 𝐴 is a linear operator from 𝑉 to 𝑉 ′.  is a Hilbert space of the form 𝐿 2() with  being a bounded and smooth enough domain in ℝ𝑑 . In addition, {𝐵 𝑘 (⋅)} is a sequence of independent standard Wiener process, defined on a stochastic basis (Ω ,  , {𝑡 }𝑡 ≥0, ℙ) that satisfies the usual assumptions. We know that a solution of SPDE (24) is given as follows. An 𝑡 -adapted process 𝑋 ∈ 𝐿 2(𝑊 ; 𝐿 2((0 , 𝑇 ); 𝑉 )) is called a square integrable solution of (24) if, for every 𝑣 ∈ 𝑉 , there exists a measurable subset Ω′ of Ω with 𝑃 (Ω ′) = 1 ,so that, for all 0 ≤ 𝑡 ≤ 𝑇 , the equality 
+
+⟨𝑋 (𝑡 ), 𝑣 ⟩ 
+
+> 
+
+= ⟨𝑋 (0) , 𝑣 ⟩ 
+
+> 
+
++ ∫
+
+> 𝑡
+> 0
+
+⟨𝐴𝑋 (𝑠 ), 𝑣 ⟩ 
+
+> 
+
+𝑑𝑠 + ∑ 
+
+> 𝑘 ≥1
+
+∫
+
+> 𝑡
+> 0
+
+⟨𝐺 𝑘 (𝑋 (𝑠 )) , 𝑣 ⟩ 
+
+> 
+
+𝑑𝐵 𝑘 (𝑠 )
+
+holds on Ω′.Furthermore, in Lototsky and Rozovskii (2006a) the author present the following result. An 𝑡 -adapted process 𝑋 
+
+is a square integrable solution of (24) is and only if 
+
+𝑋 (𝑡 ) = ∑
+
+> 𝛼 ∈
+
+𝑋 𝛼 𝜉 𝛼 
+
+so that the Fourier-Hermite coefficients 𝑋 𝛼 satisfy a suitable integrability condition and solves a system of coupled PDEs, so-called the propagator (see Th. 3.4 in Lototsky and Rozovskii (2006a)). Indeed, 𝑋 𝛼 solves 
+
+𝑋 𝛼 (𝑡 ) = 𝑋 (0) 𝕀 |𝛼 |=0 + ∫
+
+> 𝑡
+> 0
+
+𝐴𝑋 𝛼 (𝑠 ) 𝑑𝑠 + ∑
+
+> 𝑖,𝑘
+
+√𝛼 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝐺 𝑘 (𝑋 𝛼 −(𝑖 )(𝑠 )) 𝑒 𝑖 (𝑠 ) 𝑑𝑠. (25) Thus, we could write the solution of the SPDE (24) using the WCE as 
+
+𝑋 (𝑡 ) = ∑
+
+> 𝛼 ∈
+
+𝑋 𝛼 (𝑡 ) 𝜉 𝑚 (26) where 𝑋 𝛼 (𝑡 ) solves the system (25) for 𝛼 ∈  .
+
+4.2.1. Inverse problem for the SPDE 
+
+We write by 𝑋 (𝑡 ; Θ) = 𝑋 (𝑡 ) to stand out the dependence of the SPDE of some parameters that one could be interested. For instance, if we consider a stochastic heat equation, we could be interested in estimate the diffusivity parameter, besides the diffusion parameter. As before, we define the objective function, 𝑢 ∶ ℝ2 → ℝ, as 
+
+𝑢 (Θ) ∶= 𝔼 
+
+(
+
+1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[𝑋 𝑘 (𝑡 ; Θ) − ̂𝑥 𝑘 (𝑡 )] 2𝑑𝑡 
+
+)
+
+, (27) where ̂𝑥 𝑘 (𝑡 ) is the 𝑘 realization of the SPDE along time [0 , 𝑇 ], and we assume that we have 𝑁 of them. We use the spectral representation (26) in (27) and, as before, we obtain 
+
+𝑢 (Θ) = 1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝑘  
+
+> 𝟎
+
+(𝑡 ; Θ) − ̂𝑥 𝑙 (𝑡 )
+
+]2
+
+𝑑𝑡 + 1
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑙 =1
+
+∫
+
+> 𝑇
+> 0
+
+∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+[
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) 
+
+]2
+
+𝑑𝑡. (28) which is a well-posed problem since we recognize the Tikhonov–Phillips regularized solution for some deterministic problem.   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 10 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+## 5. Learning parameters for SDEs 
+
+5.1. Stochastic differential equations 
+
+Suppose that a process 𝑋 (𝑡 ) is given by the stochastic differential equation (SDE) 
+
+𝑑𝑋 (𝑡 ) = 𝑓 (𝑋 (𝑡 )) 𝑑𝑡 + 𝜎 (𝑋 (𝑡 )) 𝑑𝐵 𝑡 , (29) 
+
+𝑋 (0) = 𝑥 0.
+
+We assume that the functions 𝑓 and 𝜎 satisfy suitable assumptions to ensure the existence and uniqueness of a solution (see Oksendal (2013) for instance). In particular, we will assume that 𝑋 ∈ 𝐿 2(Ω; [0 , 𝑇 ]) . In addition, since we are looking to estimate some parameters from the SDE (15) then we will make explicit the dependence of the functions 𝑓 and 𝜎 on some parameters. More precisely, we suppose that 𝑓 (𝑥 ) = 𝑓 (𝑥 ; 𝜃 1) and 𝜎 (𝑥 ) = 𝜎 (𝑥, 𝜃 2). Here, 
+
+(𝜃 1, 𝜃 2), are the parameters we are interested in. Using the Hypotheses 3 this, we have that 
+
+𝜕𝑓 (𝑥 ; Θ) 
+
+𝜕𝜃 2
+
+= 𝜕𝜎 (𝑥, Θ) 
+
+𝜕𝜃 1
+
+= 0 . (30) Note that since we are interested in estimating the parameters 𝜃 1 and 𝜃 2, thus we assume that the functions 𝑔 1(𝜃 1)
+
+and 𝑔 2(𝜃 2) are independent of time and deterministic. 
+
+5.2. Wiener Chaos expansion for the SDE 
+
+It is recalled that the SDE (15) admits the following representation: 
+
+𝑋 (𝑡 ) = ∑
+
+> 𝑚 ∈
+
+𝑋 𝑚 (𝑡 )𝜉 𝑚 (31) where 𝑋 𝑚 (𝑡 ) = 𝔼 (𝑋 (𝑡 )𝜉 𝑚 
+
+), solves 
+
+𝑋 𝑚 (𝑡 ) = 𝑥 0𝕀 {|𝑚 |=0} + 𝑔 1(𝜃 1) ∫
+
+> 𝑡
+> 0
+
+𝐹 𝑚 (𝑋 (𝑠 )) 𝑑𝑠 + 𝑔 2(𝜃 2)
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝑚 −(𝑖 )(𝑋 (𝑠 )) 𝑑𝑠 (32) 
+
+5.3. Learning parameters using the WCE 
+
+From this point we write 𝑋 (𝑡 ; Θ) instead of 𝑋 (𝑡 ), to denote the dependence on the parameters, recall that 
+
+Θ = ( 𝜃 1, 𝜃 2).We are interested in estimating the parameters Θ = ( 𝜃 1, 𝜃 2) using the stochastic gradient descent (SGD) method (see Buduma et al. (2022) or Ketkar (2017) for instance) The SGD method usually estimates the parameters by minimizing an objective function. Suppose that we have observed 𝑁 trajectories of the process 𝑋 in the interval [0 , 𝑇 ] and denote the 𝑘 -th trajectory by ̂𝑥 𝑘 (𝑡 ).We will assume that, for 𝑇 > 0, we have observed ̂𝑥 𝑘 (𝑡 ) in the interval [0 , 𝑇 ] in times 0 = 𝑡 0 < 𝑡 1 … , 𝑡 𝑛 = 𝑇 with 
+
+𝑛 large enough such that, for 𝑖 = 1 , … , 𝑛 , Δ𝑛 ∶= 𝑡 𝑖 − 𝑡 𝑖 −1 = 𝑇 𝑛 is close to zero. Define the quadratic variation of ̂𝑥 𝑘 (𝑡 ), up to time 𝑡 , as 
+
+⟨̂𝑥 𝑘 ,̂𝑥 𝑘 ⟩𝑡 ∶= 
+
+> 𝑛 ∗
+
+∑
+
+> 𝑖 =1
+
+[𝑥 𝑘 (𝑡 𝑖 ) − 𝑥 𝑘 (𝑡 𝑖 −1 )] 2.
+
+where 𝑛 ∗ is such that 𝑡 𝑛 ∗ ≤ 𝑡 < 𝑡 𝑛 ∗+1 .In a similar vein, we also define the process 
+
+⟨̂𝑥 𝑘 ⟩2 
+
+> 𝑡
+
+∶= Δ𝑛 
+
+2
+
+> 𝑛 ∗
+
+∑
+
+> 𝑖 =1
+
+(
+
+[𝑥 𝑘 (𝑡 𝑖 )] 2 + [ 𝑥 𝑘 (𝑡 𝑖 −1 )] 2)
+
+≈ ∫
+
+> 𝑡
+> 0
+
+[𝑥 𝑘 (𝑡 )] 2𝑑𝑡. 
+
+We recall the objective function , also called the loss function ,̂𝑢 ∶ ℝ 𝑝 → ℝ, as   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 11 of 23
+
+Parameter Estimation in SDEs via WCE and SGD ̂𝑢 (Θ) ∶= 𝔼 
+
+(
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 (𝑡 ; Θ) − 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+̂𝑥 𝑘 (𝑡 )
+
+]2
+
+𝑑𝑡 
+
+)
+
+, (33) where Θ = ( 𝜃 1, … , 𝜃 𝑝 ) are the parameters to be estimated and 𝑋 (𝑡 ; Θ) is the SDE with initial condition 𝑋 (0; Θ) = ̂𝑥 (0) which is the initial condition for all the observed trajectories. By recalling (21) we have ̂𝑢 (Θ) = ∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ) − 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+̂𝑥 𝑘 (𝑡 )
+
+]2
+
+𝑑𝑡 + ∫
+
+> 𝑇
+> 0
+
+∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+[
+
+𝑋 𝑚 (𝑡 ; Θ) 
+
+]2
+
+𝑑𝑡. (34) However, for numerical purposes the expression (28) is not useful to estimate the diffusion parameter; thus we propose the following modification of the functional ̂𝑢 . We define 
+
+𝑢 (Θ) = 
+
+(
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ) − 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+̂𝑥 𝑘 (𝑡 )
+
+]2
+
+𝑑𝑡 
+
+)
+
++
+
+(
+
+∫
+
+> 𝑇
+> 0
+
+[ ∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+[
+
+𝑋 𝑚 (𝑡 ; Θ) 
+
+]2
+
+− 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+⟨̂𝑥 𝑘 ,̂𝑥 𝑘 ⟩𝑡 
+
+⟨̂𝑥 𝑘 ⟩2
+
+> 𝑡
+
+]2
+
+𝑑𝑡 
+
+)
+
+(35) This paper will address the case of 𝑝 = 2 , which means we will estimate two parameters, however, transitioning to the general case is a straightforward process. 
+
+Remark 8. It’s important to highlight that the recent modification in the last term, ensures the model’s energy fluctuations align with the empirical quadratic variation observed in the data. 
+
+Remark 9. To underline the dependence on the parameters Θ = ( 𝜃 1, 𝜃 2), we rewrite the Equation (19) as follows, 
+
+𝑋 𝑚 (𝑡 ; Θ) = 𝑥 0𝕀 {|𝑚 |=0} + 𝑔 1(𝜃 1) ∫
+
+> 𝑡
+> 0
+
+𝐹 𝑚 (𝑋 (𝑠 ; Θ)) 𝑑𝑠 + 𝑔 2(𝜃 2)
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝑚 −(𝑖 )(𝑋 (𝑠 ; Θ)) 𝑑𝑠 (36) 
+
+Remark 10. Observe that by using the WCE we have now the problem of minimizing the function 𝑢 is now equivalent to minimizing a deterministic set of equations (35), which is derived from the propagator. At this point we calculate the gradient of the function 𝑢 ∶ ℝ2 → ℝ which is defined at the point Θ = ( 𝜃 1, 𝜃 2) as 
+
+𝑉 (Θ) = ∇ 𝑢 (Θ) = 
+
+[ 𝜕𝑢 𝜕𝜃 1
+
+(Θ) 
+
+> 𝜕𝑢 𝜕𝜃 2
+
+(Θ) 
+
+]
+
+.
+
+Thus, we write the partial derivative from the last expression and we have that for 𝑗 = 1 , 2 they are 
+
+𝜕𝑢 𝜕𝜃 𝑗 
+
+(Θ) = 2 
+
+(
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ) − 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+̂𝑥 𝑘 (𝑡 )
+
+]
+
+⋅ 𝜕𝑋 𝟎 (𝑡 ; Θ) 
+
+𝜕𝜃 𝑗 
+
+𝑑𝑡 
+
+)
+
++ 4 
+
+(
+
+∫
+
+> 𝑇
+> 0
+
+[ ∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+[
+
+𝑋 𝑚 (𝑡 ; Θ) 
+
+]2
+
+− 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+⟨̂𝑥 𝑘 ,̂𝑥 𝑘 ⟩𝑡 
+
+⟨̂𝑥 𝑘 ⟩2
+
+> 𝑡
+
+]
+
+⋅ ∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+𝑋 𝐦 (𝑡 ; Θ) 𝜕𝑋 𝐦 (𝑡 ; Θ) 
+
+𝜕𝜃 𝑗 
+
+𝑑𝑡 
+
+)
+
+(37) For any 𝑚 ∈  we calculate 𝜕𝑋 𝑘 𝑚 (𝑡 ;Θ) 
+
+> 𝜕𝜃 𝑗
+
+from (36). At this point we use the Hypothesis 3; more precisely, we use (30), this let us 
+
+F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 12 of 23 Parameter Estimation in SDEs via WCE and SGD 
+
+𝜕𝑋 𝑘 𝑚 (𝑡 ; Θ) 
+
+𝜕𝜃 1
+
+= 𝑔 ′1(𝜃 1) ∫
+
+> 𝑡
+> 0
+
+𝑋 𝑘 (𝑠 ; Θ)) 𝑑𝑠 + 𝑔 1(𝜃 1) ∫
+
+> 𝑡
+> 0
+
+𝜕𝐹 𝑚 (𝑋 𝑘 (𝑠 ; Θ)) 
+
+𝜕𝜃 1
+
+𝑑𝑠 (38) 
+
+𝜕𝑋 𝑘 𝑚 (𝑡 ; Θ) 
+
+𝜕𝜃 2
+
+= 𝑔 ′2(𝜃 2)
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝑚 −(𝑖 )(𝑋 𝑘 (𝑠 ; Θ)) 𝑑𝑠 + 𝑔 2(𝜃 2)
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 ) 𝜕 Γ𝑚 −(𝑖 )(𝑋 𝑘 (𝑠 ; Θ)) 
+
+𝜕𝜃 2
+
+𝑑𝑠 (39) Then, using (30) we obtain the partial derivatives of u: 
+
+𝜕𝑢 𝜕𝜃 1
+
+(Θ) = 2 𝑔 ′1(𝜃 1) ∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ) − 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+̂𝑥 𝑘 (𝑡 )
+
+]
+
+⋅
+
+(
+
+∫
+
+> 𝑡
+> 0
+
+𝐹 𝟎 (𝑋 𝑘 (𝑠 ; Θ)) 𝑑𝑠 
+
+)
+
+𝑑𝑡 
+
++ 2 𝑔 1(𝜃 1) ∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ) − 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+̂𝑥 𝑘 (𝑡 )
+
+]
+
+⋅
+
+(
+
+∫
+
+> 𝑡
+> 0
+
+𝜕𝐹 𝟎 (𝑋 𝑘 (𝑠 ; Θ)) 
+
+𝜕𝜃 1
+
+𝑑𝑠 
+
+)
+
+𝑑𝑡 
+
++ 2 𝑔 ′1(𝜃 1)
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[ ∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+[
+
+𝑋 𝑚 (𝑡 ; Θ) 
+
+]2
+
+− 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+⟨̂𝑥 𝑘 ,̂𝑥 𝑘 ⟩𝑡 
+
+⟨̂𝑥 𝑘 ⟩2
+
+> 𝑡
+
+]
+
+⋅
+
+(
+
+∫
+
+> 𝑡
+> 0
+
+𝐹 𝑚 (𝑋 𝑘 (𝑠 ; Θ)) 𝑑𝑠 
+
+)
+
+𝑑𝑡 
+
++ 2 𝑔 1(𝜃 1)
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[ ∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+[
+
+𝑋 𝑚 (𝑡 ; Θ) 
+
+]2
+
+− 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+⟨̂𝑥 𝑘 ,̂𝑥 𝑘 ⟩𝑡 
+
+⟨̂𝑥 𝑘 ⟩2
+
+> 𝑡
+
+]
+
+⋅
+
+(
+
+∫
+
+> 𝑡
+> 0
+
+𝜕𝐹 𝑚 (𝑋 𝑘 (𝑠 ; Θ)) 
+
+𝜕𝜃 1
+
+𝑑𝑠 
+
+)
+
+𝑑𝑡, 
+
+(40) and 
+
+𝜕𝑢 𝜕𝜃 2
+
+(Θ) = 𝑔 ′2(𝜃 2) 2
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝑘  
+
+> 𝟎
+
+(𝑡 ; Θ) − ̂𝑥 𝑘 (𝑡 )
+
+]
+
+⋅
+
+( ∞∑
+
+> 𝑖 =1
+
+√
+
+0 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝟎 −(𝑖 )(𝑋 𝑘 (𝑠 ; Θ)) 𝑑𝑠 
+
+)
+
+𝑑𝑡 
+
++ 𝑔 2(𝜃 2) 2
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝑘  
+
+> 𝟎
+
+(𝑡 ; Θ) − ̂𝑥 𝑘 (𝑡 )
+
+]
+
+⋅
+
+( ∞∑
+
+> 𝑖 =1
+
+√
+
+0 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 ) 𝜕 Γ𝟎 −(𝑖 )(𝑋 𝑘 (𝑠 ; Θ)) 
+
+𝜕𝜃 2
+
+𝑑𝑠 
+
+)
+
+𝑑𝑡 
+
++ 𝑔 ′2(𝜃 2) 2
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) ⋅
+
+( ∞∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝑚 −(𝑖 )(𝑋 𝑘 (𝑠 ; Θ)) 𝑑𝑠 
+
+)
+
+𝑑𝑡 
+
++ 𝑔 2(𝜃 2) 2
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) ⋅
+
+( ∞∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 ) 𝜕 Γ𝑚 −(𝑖 )(𝑋 𝑘 (𝑠 ; Θ)) 
+
+𝜕𝜃 2
+
+𝑑𝑠 
+
+)
+
+𝑑𝑡 
+
+= 𝑔 ′2(𝜃 2) 2
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) ⋅
+
+( ∞∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 )Γ 𝑚 −(𝑖 )(𝑋 𝑘 (𝑠 ; Θ)) 𝑑𝑠 
+
+)
+
+𝑑𝑡 
+
++ 𝑔 2(𝜃 2) 2
+
+𝑁 
+
+> 𝑁
+
+∑ 
+
+> 𝑘 =1
+
+∫
+
+> 𝑇
+> 0
+
+∑ 
+
+> {𝑚 ∈∶|𝑚 |≥1}
+
+𝑋 𝑘 𝑚 (𝑡 ; Θ) ⋅
+
+( ∞∑
+
+> 𝑖 =1
+
+√𝑚 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑖 (𝑠 ) 𝜕 Γ𝑚 −(𝑖 )(𝑋 𝑘 (𝑠 ; Θ)) 
+
+𝜕𝜃 2
+
+𝑑𝑠 
+
+)
+
+𝑑𝑡. (41) (42) It is well-known that 𝑢 (Θ) decreases fastest if one goes from, an initial, Θ ∈ ℝ2, in the direction of the negative Gradient of 𝑢 at Θ − ∇ 𝑢 (Θ) (see for instance Chong and Zak (2004)). Thus, it follows that it is possible to start with a guess Θ0 ∈ ℝ2 and consider the sequence 
+
+Θ𝑘 +1 = Θ 𝑘 − 𝛾 ∇𝑢 (Θ 𝑘 ),
+
+for a small enough step size or learning rate 𝛾 ∈ ℝ+. Then, 𝑢 (Θ 𝑘 ) ≥ 𝑢 (Θ 𝑘 +1 )
+
+We will consider 𝛾 as in the Barzilai–Borwein method (see Fletcher (2005) ): 
+
+F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 13 of 23 Parameter Estimation in SDEs via WCE and SGD 
+
+𝛾 𝑘 =
+
+|||(Θ𝑘 − Θ 𝑘 −1 
+
+)𝑇 [∇𝑢 (Θ 𝑘 ) − ∇ 𝑢 (Θ 𝑘 −1 )]|||‖‖∇𝑢 (Θ 𝑘 ) − ∇ 𝑢 (Θ 𝑘 −1 )‖‖2
+
+With some additional hypotheses and this choice of 𝛾 , we have that the convergence to a local minimum can be guaranteed. (see Chong and Zak (2004), Tan et al. (2016), Garrigos and Gower (2024)). 
+
+5.3.1. Convergence of Stochastic Gradient 
+
+To ensure convergence using the Barzilai–Borwein method, certain hypotheses must be satisfied. Let the objective function be defined as the empirical risk 𝑢 (Θ) = 1
+
+> 𝑁
+
+∑𝑁 𝑖 =1 𝑢 𝑖 (Θ) . For the SGD-BB algorithm to converge, each component 𝑢 𝑖 must satisfy the following properties: 1. The function 𝑢 𝑖 is 𝜇 -strongly convex, i.e., there exists 𝜇 > 0 such that for all Θ, Λ:
+
+𝑢 𝑖 (Θ) ≥ 𝑢 𝑖 (Λ) + ∇ 𝑢 𝑖 (Λ) 𝑇 (Θ − Λ) + 𝜇 
+
+2 ‖Θ − Λ ‖22.
+
+2. The gradient of 𝑢 𝑖 is 𝐿 -Lipschitz continuous, i.e., there exists 𝐿 > 0 such that: 
+
+‖∇𝑢 𝑖 (Θ) − ∇ 𝑢 𝑖 (Λ) ‖2 ≤ 𝐿 ‖Θ − Λ ‖2.
+
+First, observe that the core component of the objective function, given by the 𝐿 2 error of the mean trajectory: 
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ) − 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+̂𝑥 𝑘 (𝑡 )
+
+]2
+
+𝑑𝑡, 
+
+is convex, a property that follows from the separation of parameters established in Hypotheses 3. Furthermore, since the full objective functional 𝑢 (Θ) incorporates Tikhonov regularization, the problem becomes strictly strongly convex, as proven in Theorem 1 (see also (Garrigos and Gower, 2024, Lemma 2.12)). To verify the Lipschitz condition for the gradient, we introduce the notation ̄̂ 𝑥 (𝑡 ) = 1
+
+> 𝑁
+
+∑𝑁 𝑘 =1 ̂𝑥 𝑘 (𝑡 ). Evaluating the difference of the gradients for two distinct parameter vectors Θ1 and Θ2 yields: 
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ 1) − ̄̂ 𝑥 (𝑡 )
+
+] 𝜕𝑋 𝟎 (𝑡 ; Θ 1)
+
+𝜕𝜃 𝑗 
+
+𝑑𝑡 − ∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ 2) − ̄̂ 𝑥 (𝑡 )
+
+] 𝜕𝑋 𝟎 (𝑡 ; Θ 2)
+
+𝜕𝜃 𝑗 
+
+𝑑𝑡 
+
+= ∫
+
+> 𝑇
+> 0
+
+([
+
+𝑋 𝟎 (𝑡 ; Θ 1) − ̄̂ 𝑥 (𝑡 )
+
+][ 𝜕𝑋 𝟎 (𝑡 ; Θ 1)
+
+𝜕𝜃 𝑗 
+
+− 𝜕𝑋 𝟎 (𝑡 ; Θ 2)
+
+𝜕𝜃 𝑗 
+
+]
+
++
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ 1) − 𝑋 𝟎 (𝑡 ; Θ 2)
+
+] 𝜕𝑋 𝟎 (𝑡 ; Θ 2)
+
+𝜕𝜃 𝑗 
+
+)
+
+𝑑𝑡. (43) From Equation (43), it becomes evident that we must impose the hypothesis that 𝑋 𝟎 has continuous second-order derivatives with respect to Θ, and that the parameter space Θ is constrained to a compact, bounded interval. Under these conditions, 𝑋 𝟎 and its derivatives are bounded. Consequently, both the difference of the states |||𝑋 𝟎 (Θ 1)− 𝑋 𝟎 (Θ 2)|||
+
+and the difference of their derivatives can be strictly bounded by a constant multiple of ‖Θ1 − Θ 2‖2. By applying the triangle inequality and the Cauchy-Schwarz inequality to the integral, the gradient of the objective function satisfies the 𝐿 -Lipschitz condition. Combining this with the strong convexity induced by the regularization, we guarantee convergence to a local minimum, as established in (Tan et al., 2016, Theorem 3.8). Finally, the strong convexity of the regularized objective function 𝑢 implies that any local minimum is uniquely the global minimum. Therefore, the sequence generated by the stochastic gradient descent is mathematically guaranteed to converge to the global optimum of the parameter space. 
+
+## 6. Numerical experiments 
+
+In this section, we provide a numerical simulation of SDEs using its Wiener-chaos expansion as was described in previous sections. Indeed, solving the system given by Equations (19) , and (36), we fixed the coefficients for the Wiener-chaos expansion of the stochastic processes 𝑋 .An algorithm to solve the system given in (36) is presented in the appendix.   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 14 of 23
+
+Parameter Estimation in SDEs via WCE and SGD 
+
+Algorithm 1 Gradient Descent 
+
+Require: {𝑥 𝑘 }𝑁 𝑘 =1 trajectories of the Process observed in the interval [0 , 𝑇 ] in times 0 = 𝑡 0 < 𝑡 1 … , 𝑡 𝑛 = 𝑇 and ̃ 𝜃 10 
+
+as first estimation of 𝜃 1 
+
+> 1:
+
+Calculate ̃𝜎 = 1
+
+> 𝑁
+
+∑𝑁 𝑘 =1     
+
+> ⟨̂𝑥 𝑘 ,̂ 𝑥 𝑘 ⟩𝑡
+> ⟨̂𝑥 𝑘 ⟩2
+> 𝑡
+> 2:
+
+Initialize Θ2 = Θ 1 − ∇ 𝑢 (Θ 1), where Θ1 =
+
+[̃𝜃 10 ̃𝜎 
+
+]
+
+. 
+
+> 3:
+
+while 𝑚 ≤ 𝑚 max do  
+
+> 4:
+
+Calculate Θ𝑘 +1 = Θ 𝑘 − 𝛾 𝑘 ∇𝑢 (Θ 𝑘 ), where 𝛾 𝑘 =
+
+> |||
+
+(Θ𝑘 −Θ 𝑘 −1 )𝑇 [∇𝑢 (Θ 𝑘 )−∇ 𝑢 (Θ 𝑘 −1 )]|||
+
+‖∇𝑢 (Θ 𝑘 )−∇ 𝑢 (Θ 𝑘 −1 )‖2 
+
+> 5:
+
+end while  
+
+> 6:
+
+return Θ𝑚 max 
+
+Algorithm 2 Gradient Descent for OU process 
+
+Require: {𝑥 𝑘 }𝑁 𝑘 =1 trajectories of the Process observed in the interval [0 , 𝑇 ] in times 0 = 𝑡 0 < 𝑡 1 … , 𝑡 𝑛 = 𝑇 and ̃ 𝜃 10 
+
+as first estimation of 𝜃 1 
+
+> 1:
+
+Calculate ̃𝜎 = 1
+
+> 𝑁
+
+∑𝑁 𝑘 =1     
+
+> ⟨̂𝑥 𝑘 ,̂ 𝑥 𝑘 ⟩𝑡
+> ⟨̂𝑥 𝑘 ⟩2
+> 𝑡
+> 2:
+
+Initialize Θ2 = Θ 1 − ∇ 𝑢 (Θ 1), where Θ1 = [̃ 𝜃 10 
+
+]. 
+
+> 3:
+
+while 𝑚 ≤ 𝑚 max do  
+
+> 4:
+
+Calculate Θ𝑘 +1 = Θ 𝑘 − 𝛾 𝑘 ∇𝑢 (Θ 𝑘 ), where 𝛾 𝑘 =
+
+> |||
+
+(Θ𝑘 −Θ 𝑘 −1 )𝑇 [∇𝑢 (Θ 𝑘 )−∇ 𝑢 (Θ 𝑘 −1 )]|||
+
+‖∇𝑢 (Θ 𝑘 )−∇ 𝑢 (Θ 𝑘 −1 )‖2 
+
+> 5:
+
+end while  
+
+> 6:
+
+return Θ𝑚 max 
+
+6.1. A toy example 
+
+Set the Hilbert space  = 𝐿 2(0 , 𝑇 ) and consider the Ornstein-Uhlenbeck (OU) process given by the SDE 
+
+𝑑𝑥 (𝑡 ) = − 𝑎𝑥 (𝑡 )𝑑𝑡 + 𝜎𝑑𝐵 (𝑡 ), with initial condition 𝑥 (0) = 𝑥 0, (44) We have its integral representation 
+
+𝑥 (𝑡 ) = 𝑥 0 − 𝑎 ∫
+
+> 𝑡
+> 0
+
+𝑥 (𝑠 )𝑑𝑠 + 𝜎 ∫
+
+> 𝑡
+> 0
+
+𝑑𝐵 (𝑠 ). (45) Observe that in this case 𝜃 1 = 𝑎 and 𝜃 2 = 𝜎 . Furthermore, 
+
+𝑓 (𝑥 ∶ 𝜃 1) = − 𝜃 1𝑥 and 𝜎 (𝑥 ; 𝜃 2) = 𝜃 2
+
+With suitable assumptions we have that 𝑥 ∈ 𝐿 2(Ω ,  , ℙ), this implies that we can write 
+
+𝑥 (𝑡 ) = ∑
+
+> 𝛼 ∈
+
+𝑋 𝛼 (𝑡 )𝜉 𝛼 , with 𝑋 𝛼 (𝑡 ) = 𝔼 (𝑥 (𝑡 ) 𝜉 𝛼 ),
+
+thus, using (71) we get 
+
+𝑋 𝛼 (𝑡 ) = 𝔼 
+
+[( 
+
+𝑥 0 − 𝑎 ∫
+
+> 𝑡
+> 0
+
+𝑥 (𝑠 )𝑑𝑠 + 𝜎 ∫
+
+> 𝑡
+> 0
+
+𝑑𝐵 (𝑠 )
+
+)
+
+𝜉 𝛼 
+
+]
+
+= 𝑥 0𝕀 |𝛼 |=0 − 𝑎 ∫
+
+> 𝑡
+> 0
+
+𝔼 
+
+(
+
+𝑥 (𝑠 )𝑑𝑠𝜉 𝛼 
+
+)
+
++ 𝜎 𝔼 
+
+[( 
+
+∫
+
+> 𝑡
+> 0
+
+𝑑𝐵 (𝑠 )
+
+)
+
+𝜉 𝛼 
+
+]
+
+= 𝑥 0𝕀 |𝛼 |=0 − 𝑎 ∫
+
+> 𝑡
+> 0
+
+𝑋 𝛼 (𝑠 )𝑑𝑠 + 𝜎 𝔼 
+
+[⟨𝕀 [0 ,𝑡 ](⋅), 𝐷𝜉 𝛼 
+
+⟩
+
+> 
+
+]
+
+F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 15 of 23 Parameter Estimation in SDEs via WCE and SGD 
+
+= 𝑥 0𝕀 |𝛼 |=0 − 𝑎 ∫
+
+> 𝑡
+> 0
+
+𝑋 𝛼 (𝑠 )𝑑𝑠 + 𝜎 ∫
+
+> 𝑡
+> 0∞
+
+∑
+
+> 𝑖,𝑗 =1
+
+√𝛼 𝑖,𝑗 𝔼 (𝜉 𝛼 −(𝑖,𝑗 )
+
+)𝑑𝑠 
+
+= 𝑥 0𝕀 |𝛼 |=0 − 𝑎 ∫
+
+> 𝑡
+> 0
+
+𝑋 𝛼 (𝑠 )𝑑𝑠 + 𝜎𝑡 
+
+> ∞
+
+∑
+
+> 𝑖,𝑗 =1
+
+√𝛼 𝑖,𝑗 𝕀 |𝛼 −(𝑖,𝑗 )|=0 . (46) From this expression, we now calculate the propagator for the following three cases |𝛼 | = 0 , |𝛼 | = 1 and |𝛼 | > 1.For |𝛼 | = 0 denote the propagator as 𝑋 0 = 𝑋 |𝛼 |=0 , observe that in this case the indicator function 𝕀 |𝛼 −(𝑖,𝑗 )|=0 is equal to zero, then from (46) we have the ordinary differential equation 
+
+𝑑𝑋 0(𝑡 )
+
+𝑑𝑡 = − 𝑎𝑋 0(𝑡 ),
+
+with initial condition 𝑥 0. This means that the solution 𝑋 0(𝑡 ) is 
+
+𝑋 0(𝑡 ) = 𝑥 0 exp(− 𝑎𝑡 ). (47) For the case |𝛼 | = 1 denote the propagator as 𝑋 1 = 𝑋 |𝛼 |=1 .Then, from (46) and given that |𝛼 | = 1 then we have √𝛼 𝑖 = 1 for some 𝑖 , thus we can write for such 𝑖 𝑑𝑋 1(𝑡 )
+
+𝑑𝑡 = − 𝑎𝑋 1(𝑡 ) + 𝜎 
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝛼 𝑖 𝑒 𝑖 (𝑡 )𝕀 {𝑖 =1} 𝕀 {|𝛼 −(𝑖 )|=0} 
+
+= − 𝑎𝑋 1(𝑡 ) + 𝜎𝑒 𝑖 (𝑡 ) (48) where the ODE has zero initial condition. Thus, we have that 
+
+𝑋 1𝑖 (𝑡 ) = 𝜎𝑒 −𝑎𝑡 
+
+∫
+
+> 𝑡
+> 0
+
+𝑒 𝑎𝑠 𝑒 𝑖 (𝑠 )𝑑𝑠. (49) For the case |𝛼 | > 1 we have the ODE with zero initial condition 
+
+𝑑𝑋 𝛼 (𝑡 )
+
+𝑑𝑡 = − 𝑎𝑋 𝛼 (𝑡 ), (50) with the trivial solution 𝑋 𝛼 (𝑡 ) ≡ 0.This implies that the WCE for the OU process could be written as 
+
+𝑥 (𝑡 ) = ∑
+
+> 𝛼 ∈
+
+𝑋 𝛼 (𝑡 )𝜉 𝛼 = 𝑋 0(𝑡 ) + 
+
+> ∞
+
+∑
+
+> 𝑘 =1
+
+𝑋 1𝑘 (𝑡 )𝜉 𝛼 𝑘 with 𝜉 𝛼 𝑘 ∶= ∫
+
+> 𝑇
+> 0
+
+𝑒 𝑘 (𝑠 )𝑑𝐵 (𝑠 ) (51) 
+
+6.2. SGD for the OU process 
+
+For the OU process we will use the function 
+
+𝑢 (Θ) = 
+
+(
+
+∫
+
+> 𝑇
+> 0
+
+[
+
+𝑋 𝟎 (𝑡 ; Θ) − 1
+
+𝑁 
+
+> 𝑁
+
+∑
+
+> 𝑘 =1
+
+̂𝑥 𝑘 (𝑡 )
+
+]2
+
+𝑑𝑡 
+
+)
+
+(52) to estimate the drift parameter. 
+
+F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 16 of 23 Parameter Estimation in SDEs via WCE and SGD 
+
+6.2.1. OU Process Results Parameters Initial condition Final Estimation 
+
+𝛼 = 1 .7, 𝜎 = 0 .15 ̃ 𝛼 0 = 2 ,̃𝜎 = 0 .1331 ̃ 𝛼 𝑛 = 1 .71562 ̃𝛼 0 = 0 .5,̃𝜎 = 0 .1331 ̃ 𝛼 𝑛 = 1 .66387 ̃𝛼 0 = 1 .01 ,̃𝜎 = 0 .1331 ̃ 𝛼 𝑛 = 1 .71266 
+
+𝛼 = 0 .29 , 𝜎 = 0 .1̃ 𝛼 0 = 2 ,̃𝜎 = 0 .08801 ̃ 𝛼 𝑛 = 0 .289461 ̃𝛼 0 = 0 .5,̃𝜎 = 0 .08801 ̃ 𝛼 𝑛 = 0 .289451 ̃𝛼 0 = 0 .37 ,̃𝜎 = 0 .08801 ̃ 𝛼 𝑛 = 0 .289462 
+
+𝛼 = 1 .26 , 𝜎 = 0 .076 ̃ 𝛼 0 = 1 .55 ,̃𝜎 = 0 .06833 ̃ 𝛼 𝑛 = 1 .23858 ̃𝛼 0 = 0 .8,̃𝜎 = 0 .06833 ̃ 𝛼 𝑛 = 1 .23354 ̃𝛼 0 = 0 .45 ,̃𝜎 = 0 .06833 ̃ 𝛼 𝑛 = 1 .2315 
+
+## 7. Applications to some SDEs 
+
+7.1. Geometric Brownian motion 
+
+Consider the SDE 
+
+𝑑𝑋 𝑡 = 𝛼𝑋 𝑡 𝑑𝑡 + 𝜎𝑋 𝑡 𝑑𝑊 𝑡 . (53) with 𝑋 0 = 𝑥 0. The process solution of this equation is called the Geometric Brownian Motion (GBM) (see Oksendal (2013) for a review of this process). This process serves as the canonical model for continuous-time stochastic processes where the variable is constrained to be strictly positive, most notably in the modeling of asset prices within mathematical finance. It was famously adopted by Samuelson (1965) and later underpinned the Black-Scholes option pricing framework Black and Scholes (1973). We have the unknown parameters 𝛼 and 𝜎 , and we want to estimate them. We employ the Wiener chaos method utilizing a truncation of the WCE with 𝐿 = 1 , 000 and 𝑝 = 8 .Following Delgado-Vences et al. (2024) the propagator for this SDE is calculated as follows. For the case when 
+
+|𝑚 | = 0 , we denote by 𝑋 0 the solution of the propagator which solves the differential equation 
+
+𝑋 0(𝑡 ) = 𝑥 0 + 𝑎 ∫
+
+> 𝑡
+> 0
+
+𝑋 0(𝑠 )𝑑𝑠, which is given by 𝑋 0(𝑡 ) = 𝑥 0 exp( 𝑎𝑡 ). (54) For the case |𝑚 | ≥ 1 and using the vectors from Table 5 in Delgado-Vences et al. (2024), 𝑋 𝑖 𝑚 satisfies 
+
+𝑋 𝑖 𝑚 (𝑡 ) = 𝑎 ∫
+
+> 𝑡
+> 0
+
+𝑋 𝑖 𝑚 (𝑠 )𝑑𝑠 + 𝜎 ∑
+
+> 𝑗
+
+√
+
+𝑚 𝑖 𝑗 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑗 (𝑠 ) 𝑋 𝑖 𝑚 −(𝑗 )(𝑠 ) 𝑑𝑠, (55) where 𝑚 𝑖 −(𝑗 ) is the 𝑖 -th vector with the 𝑗 -th entry minus 12. We should numerically solve this system of coupled ODEs, in increasing order of |𝑚 |.
+
+7.2. Stochastic logistic equation 
+
+The classical logistic growth model, originally proposed by Verhulst, describes the dynamics of a population 𝑁 (𝑡 )
+
+constrained by a carrying capacity 𝐾 . For any positive initial condition 𝑃 (0) > 0, the population monotonically approaches the equilibrium state, 𝐾 , ensuring persistence. However, biological systems are inevitably subject to environmental fluctuations—such as temperature variations or resource availability—that render the growth rate time-dependent and stochastic. To model this, the parameter 𝑟 is typically perturbed by a white noise term, 𝑟 → 𝑟 + 𝜎̇𝐵 (𝑡 ),where 𝜎 denotes the noise intensity and ̇ 𝐵 (𝑡 ) is Gaussian white noise. This transformation leads to the Stochastic Logistic Differential Equation (56) which is interpreted in the Itô sense: 
+
+𝑑𝑃 (𝑡 ) = 𝑟 𝑃 (𝑡 )
+
+[
+
+1 − 𝑃 (𝑡 )
+
+]
+
+𝑑𝑡 + 𝜎𝑃 (𝑡 )𝑑𝐵 (𝑡 ), 𝑡 > 0
+
+𝑃 (0) = 𝑝 0.
+
+⎫⎪⎬⎪⎭
+
+(56)     
+
+> 2see the definition of 𝑚 −(𝑗 )in (70)
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 17 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+where 𝑟 represents the intrinsic growth rate. In addition, the diffusion term 𝜎𝑃 (𝑡 )𝑑𝐵 (𝑡 ) is multiplicative (linear in 
+
+𝑃 (𝑡 )), reflecting that environmental noise has a greater absolute impact on larger populations while vanishing when the population is zero (an absorbing state). We seek to estimate the parameters 𝑟 and 𝜎 using the proposed method. As before, we calculate the propagator following Delgado-Vences et al. (2024). We denote by 𝑃 0 the solution for the case |𝑚 | = 0 . Thus, 𝑃 0 solves the differential equation 
+
+𝑃 0(𝑡 ) = 𝑝 0 + 𝑟 ∫
+
+> 𝑡
+> 0
+
+𝑃 0(𝑠 )[1 − 𝑃 0(𝑠 )]𝑑𝑠, (57) which has as a solution 
+
+𝑃 0(𝑡 ) = 𝑝 0
+
+1 + 1− 𝑝 0
+
+> 𝑝 0
+
+𝑒 −𝑟𝑡 
+
+. (58) We now consider the case where |𝑚 | = 1 , and we will use the vectors from Table 5 in Delgado-Vences et al. (2024). Here we will apply a truncation as follows. For the non-linear logistic drift, the exact Galerkin projection of the quadratic term 𝑃 2 
+
+> 𝑡
+
+onto the 𝑗 -th chaos mode introduces the third-order structure tensor 𝑐 𝑖𝑘𝑗 = 𝔼 [𝜉 𝑖 𝜉 𝑘 𝜉 𝑗 ].While 𝑐 𝑖𝑘𝑗 vanishes exactly when the sum of the polynomial degrees is odd, it yields non-zero contributions for even-order combinations. However, the products of higher-order purely stochastic coefficients ( 𝑃 𝑖 𝑃 𝑘 ) are typically negligible compared to the mean-field cross-terms ( 2𝑃 1𝑃 𝑗 ). To maintain computational tractability and avoid the curse of dimensionality associated with the 3D tensor, we employ a standard first-order truncation for the non-linear interactions, approximating the drift of 𝑑𝑃 𝑗 as ≈ 𝛼𝑃 𝑗 (1 − 2 𝑃 0). This linearized approximation effectively captures the macro-scale biological saturation while preserving the efficiency of the SGD algorithm. Thus 𝑃 𝑖 𝑚 satisfies 
+
+𝑃 𝑖 𝑚 (𝑡 ) = 𝑟 ∫
+
+> 𝑡
+> 0
+
+𝑃 𝑖 𝑚 (𝑠 )[1 − 2 𝑃 0(𝑠 )]𝑑𝑠 + 𝜎 ∑ 
+
+> 𝑗
+
+∫
+
+> 𝑡
+> 0
+
+𝑒 𝑗 (𝑠 ) 𝑃 𝑖 𝑚 𝑖 −(𝑗 )(𝑠 ) 𝑑𝑠, (59) where 𝑚 𝑖 −(𝑗 ) is the 𝑖 -th vector with the 𝑗 -th entry minus 1.Finally, for the case with |𝑚 | > 1 and using the vectors from Table 5 in Delgado-Vences et al. (2024), 𝑃 𝑖 𝑚 satisfies 
+
+𝑃 𝑖 𝑚 (𝑡 ) = 𝑟 ∫
+
+> 𝑡
+> 0
+
+𝑃 𝑖 𝑚 (𝑠 )[1 − 2 𝑃 0(𝑠 )]𝑑𝑠 + 𝜎 ∑
+
+> 𝑗
+
+√
+
+𝑚 𝑖 𝑗 ∫
+
+> 𝑡
+> 0
+
+𝑒 𝑗 (𝑠 ) 𝑃 𝑖 𝑚 −(𝑗 )(𝑠 ) 𝑑𝑠, (60) where 𝑚 𝑖 𝑗 denotes the 𝑗 -th entry of the 𝑖 -th vector. We observe, as in the precedent example, that the functions 𝑃 𝑖 𝑚 (𝑡 ) with |𝑚 | ≥ 1 will be solved numerically using expressions (59) and (60) in increasing order. 
+
+7.3. Numerical examples 
+
+We present a concise overview of the numerical findings for each example discussed in the previous section. 
+
+7.3.1. Geometric Results 
+
+Parameters Initial condition Final Estimation 
+
+𝛼 = 0 .35 , 𝜎 = 0 .17 ̃ 𝛼 0 = 0 .4,̃𝜎 = 0 .151048 ̃ 𝛼 𝑛 = 0 .364751 ,̃𝜎 𝑛 = 0 .168444 ̃𝛼 0 = 0 .2,̃𝜎 = 0 .151048 ̃ 𝛼 𝑛 = 0 .364814 ,̃𝜎 𝑛 = 0 .156101 ̃𝛼 0 = 0 .11 ,̃𝜎 = 0 .151048 ̃ 𝛼 𝑛 = 0 .364836 ,̃𝜎 𝑛 = 0 .156445 
+
+𝛼 = 0 .63 , 𝜎 = 0 .06 ̃ 𝛼 0 = 0 .4,̃𝜎 = 0 .056324 ̃ 𝛼 𝑛 = 0 .638756 ,̃𝜎 𝑛 = 0 .0560588 ̃𝛼 0 = 0 .2,̃𝜎 = 0 .056324 ̃ 𝛼 𝑛 = 0 .641096 ,̃𝜎 𝑛 = 0 .0559717 ̃𝛼 0 = 0 .8,̃𝜎 = 0 .056324 ̃ 𝛼 𝑛 = 0 .638752 ,̃𝜎 𝑛 = 0 .055874 
+
+𝛼 = 0 .9, 𝜎 = 0 .11 ̃ 𝛼 0 = 0 .4,̃𝜎 = 0 .10435 ̃ 𝛼 𝑛 = 0 .917715 ,̃𝜎 𝑛 = 0 .0956571 ̃𝛼 0 = 0 .25 ,̃𝜎 = 0 .10435 ̃ 𝛼 𝑛 = 0 .987138 ,̃𝜎 𝑛 = 0 .0826281 ̃𝛼 0 = 0 .55 ,̃𝜎 = 0 .10435 ̃ 𝛼 𝑛 = 0 .914632 ,̃𝜎 𝑛 = 0 .0972363   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 18 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+7.3.2. Logistic Results 
+
+Parameters Initial condition Final Estimation 
+
+𝛼 = 0 .68 , 𝜎 = 0 .09 ̃ 𝛼 0 = 0 .55 ,̃𝜎 = 0 .0810549 ̃ 𝛼 𝑛 = 0 .673395 ,̃𝜎 𝑛 = 0 .0832877 ̃𝛼 0 = 0 .95 ,̃𝜎 = 0 .0810549 ̃ 𝛼 𝑛 = 0 .675159 ,̃𝜎 𝑛 = 0 .0840031 ̃𝛼 0 = 0 .12 ,̃𝜎 = 0 .0810549 ̃ 𝛼 𝑛 = 0 .674867 ,̃𝜎 𝑛 = 0 .0898092 
+
+𝛼 = 0 .3, 𝜎 = 0 .05 ̃ 𝛼 0 = 1 .01 ,̃𝜎 = 0 .0443604 ̃ 𝛼 𝑛 = 0 .319553 ,̃𝜎 𝑛 = 0 .0447231 ̃𝛼 0 = 0 .1,̃𝜎 = 0 .0443604 ̃ 𝛼 𝑛 = 0 .302488 ,̃𝜎 𝑛 = 0 .096654 ̃𝛼 0 = 0 .5,̃𝜎 = 0 .0443604 ̃ 𝛼 𝑛 = 0 .302418 ,̃𝜎 𝑛 = 0 .0646823 
+
+𝛼 = 1 .2, 𝜎 = 0 .2̃ 𝛼 0 = 0 .57 ,̃𝜎 = 0 .179743 ̃ 𝛼 𝑛 = 1 .21095 ,̃𝜎 𝑛 = 0 .256058 ̃𝛼 0 = 0 .67 ,̃𝜎 = 0 .179743 ̃ 𝛼 𝑛 = 1 .21411 ,̃𝜎 𝑛 = 0 .243503 ̃𝛼 0 = 0 .95 ,̃𝜎 = 0 .179743 ̃ 𝛼 𝑛 = 1 .21081 ,̃𝜎 𝑛 = 0 .235354 
+
+## 8. Application to Empirical Data 
+
+In this section, we demonstrate the practical applicability and versatility of our parameter estimation framework by utilizing two distinct real-world datasets. First, we validate the method on financial market data using a canonical linear model, the Geometric Brownian Motion (GBM). Subsequently, we apply the algorithm to characterize individual biological growth, employing the non-linear stochastic logistic differential equation. This dual application highlights the algorithm’s robustness across different domains, scaling, and underlying stochastic dynamics. 
+
+8.1. Empirical Validation: S&P 500 Index 
+
+To assess the practical applicability and robust performance of the proposed stochastic gradient descent (SGD) approach coupled with the Wiener Chaos Expansion (WCE), we initially applied the methodology to empirical financial market data. The dataset selected consists of daily adjusted closing prices for the S&P 500 index ( ̂GSPC), representing a proxy for the broad US equity market. Based on quantitative finance standards, the underlying dynamics were modeled using a Geometric Brownian Motion (GBM) specification. The observed period spans a full calendar year, from January 1, 2017, to December 31, 2017. This interval was selected to provide a sufficiently noisy real-world scenario to test the algorithm’s learning capabilities, yet remain within a standard stable GBM regime. Consistent with the procedure used for synthetic data, the volatility parameter ( 𝜎 ) was pre-estimated analytically via standard Maximum Likelihood Estimation (MLE) of the log-returns. Subsequently, the WCE-SGD algorithm was deployed to learn the drift parameter ( 𝜇 ) by minimizing the functional error between the expansion propagator and the empirical trajectory. The visual results of this validation are presented in Figure 2. As illustrated, the methodology yields an accurate reconstruction of the market dynamics. The empirical trajectory of the S&P 500 index is remarkably contained within the 95% confidence bands generated by the simulations based on the WCE-learned parameters. Furthermore, the numerical convergence of 𝜇 showed excellent agreement with the benchmark MLE value ( ̂𝜇 = 0 .1589636 with the WCE, and ̂ 𝜇 𝑀𝐿𝐸 = 0 .1725922 ). Consequently, the method is considered to function with high precision on contrasted real-world datasets, successfully capturing the stochastic and deterministic components of the underlying linear process. 
+
+8.2. Empirical Validation: Microbial Growth Dynamics 
+
+Having validated the approach on a linear model, we now extend the application to a highly non-linear system where multi-trajectory data is available. 
+
+8.2.1. Data Acquisition and Scientific Relevance 
+
+The biological dataset, integrated into the growthcurver R package,Sprouffske and Wagner (2016); Sprouffske (2020), comprises high-resolution microbial growth curves obtained via automated spectrophotometry. The raw data were recorded using a 96-well microtiter plate reader, which measures the Optical Density at 600 nm ( 𝑂𝐷 600 ) at regular intervals over a 24-hour period. This experimental setup allows for the simultaneous monitoring of multiple replicates, capturing the complete life cycle of the microbial population, including the lag, exponential, and stationary phases. The primary utility of this dataset is to provide a robust framework for the computational modeling of population dynamics. By applying non-linear regression models (such as the logistic growth equation), researchers can derive   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 19 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+critical kinetic parameters, namely the carrying capacity ( 𝐾 ), the intrinsic growth rate ( 𝛼 ), and the initial population size ( 𝑃 0). 
+
+8.2.2. Parameter Estimation via WCE-SGD 
+
+Modeling this biological phenomenon requires addressing the intrinsic multiplicative noise and the non-linear saturation limit ( 𝐾 ). To isolate the stochastic dynamics from the spatial scale, we implemented a hybrid estimation strategy. First, a deterministic standardization was performed. The cross-well mean trajectory of the raw optical density data was computed, and a standard Levenberg-Marquardt Non-Linear Least Squares (NLS) algorithm was utilized to estimate the empirical carrying capacity ( ̂𝐾 ) and the initial population state. The entire dataset was then normalized by dividing it by ̂ 𝐾 , mapping the dynamic state variable 𝑋 𝑡 strictly to the domain [0 , 1] , which mathematically stabilizes the stochastic logistic equation 𝑑𝑋 𝑡 = 𝛼𝑋 𝑡 (1 − 𝑋 𝑡 )𝑑𝑡 + 𝜎𝑋 𝑡 𝑑𝑊 𝑡 .Second, the volatility parameter ( 𝜎 ) was evaluated analytically by computing the mean quadratic variation across all individual normalized well trajectories. This captures the true experimental stochasticity. Finally, the WCE-SGD algorithm was deployed on the normalized mean trajectory to estimate the intrinsic growth rate ( 𝛼 ). To prevent numerical instability during optimization, the Barzilai-Borwein step size was constrained using dynamic dampening (gradient clipping), ensuring smooth convergence to the global minimum despite the non-linear topology of the objective functional. The outcomes, presented in Figure 3, confirm that the estimated parameters successfully reconstruct the experi-mental behavior. By re-scaling the simulations back to the original biological limits ( 𝐾 ), the model accurately reflects both the deterministic macroscopic trend (the sigmoidal drift) and the microscopic biological variance observed across the wells. 
+
+## 9. Concluding Remarks 
+
+In this work, we have developed and validated a novel computational framework for the inverse problem of parameter estimation in Stochastic Differential Equations (SDEs). The core innovation of our approach lies in the integration of the Wiener Chaos Expansion (WCE) with Stochastic Gradient Descent (SGD), which effectively transforms the challenge of stochastic parameter learning into a deterministic optimization problem. By projecting the solution of the SDE onto the Wiener chaos space, we decomposed the stochastic trajectory into a system of deterministic ordinary differential equations, referred to as the propagator . This spectral decomposition allowed us to construct a robust objective function that simultaneously targets the deterministic trend (via the zeroth-order chaos mode) and the stochastic fluctuations (via higher-order modes and quadratic variation). Consequently, we were able to decouple the estimation of drift and diffusion parameters, addressing a common numerical difficulty in stochastic inverse problems. The numerical experiments conducted on a diverse set of synthetic benchmarks (including the Ornstein-Uhlenbeck process, Geometric Brownian Motion, and the Stochastic Logistic Equation) demonstrated the algorithm’s versatility and convergence properties. In all cases, the proposed method successfully recovered the underlying parameters with high accuracy, even in the presence of multiplicative noise and non-linearities. Crucially, the extension of this framework to empirical data underscores its practical utility for modeling complex real-world systems. By accurately identifying the drift and volatility components of the S&P 500 index within a real-market context, the WCE-SGD approach proved its efficacy in capturing financial market stochasticity. Furthermore, its application to high-resolution microbial growth data demonstrated the method’s capacity to handle non-linear biological saturation limits and intrinsic experimental variance using the stochastic logistic model. These dual validations confirm that the methodology represents a significant theoretical advancement in spectral decomposition and offers a computationally efficient alternative for parameter learning. While its performance is demonstrated here through specific examples in ecology, biology, and finance, the underlying framework is fundamentally versatile and applicable across a broad spectrum of scientific disciplines where stochastic modeling is required. Future research will prioritize the extension of this methodology to a broader range of high-frequency financial instruments, further refining the coupling between the WCE and SGD under volatile market conditions. Additionally, we aim to develop a robust numerical implementation of the Stochastic Partial Differential Equation (SPDE) framework introduced in Section 4.2.   
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 20 of 23 Parameter Estimation in SDEs via WCE and SGD
+
+Another key avenue of exploration involves the application of this approach to higher-dimensional systems and coupled SDEs. In such contexts, the inherent scalability of the SGD-WCE framework is expected to offer substantial computational advantages and improved tractability over traditional Maximum Likelihood Estimation (MLE) or computationally intensive Bayesian inference methods. 
+
+## 10. Software and Codes 
+
+The numerical experiments have been implemented in on an average laptop (ASUS Vivobook X512DA with Processor AMD Ryzen 5 3500U and Radeon Graphics, 1200 Mhz, 4 Cores, 8 Logical Processors). The code can be found under the following link: https://github.com/JJulianPavon/GradientDescentSDE 
+
+## A. Background on Malliavin Calculus and Wiener-chaos expansion 
+
+For the sake of completeness, this section reviews the fundamental concepts of Malliavin calculus and the Wiener chaos expansion utilized in this work. For a comprehensive treatment, we refer the reader to the classical book of Nualart (2006). 
+
+A.1. Gaussian Probability Space and Wiener Chaos 
+
+Let ℌ = 𝐿 2([0 , 𝑇 ]) be a separable Hilbert space with inner product ⟨⋅, ⋅⟩ℌ and norm ‖ ⋅ ‖ℌ. We consider an isonormal Gaussian process 𝑊 = { 𝑊 (ℎ) ∶ ℎ ∈ ℌ} defined on a complete probability space (Ω ,  , ℙ). This implies that 𝑊 is a centered Gaussian family of random variables satisfying the isometry property: 
+
+𝔼 [𝑊 (ℎ)𝑊 (𝑔 )] = ⟨ℎ, 𝑔 ⟩ℌ, ∀ℎ, 𝑔 ∈ ℌ. (61) We assume that  is the 𝜎 -algebra generated by 𝑊 . In our specific setting, 𝑊 (ℎ) is the Wiener integral 𝑊 (ℎ) = 
+
+∫ 𝑇  
+
+> 0
+
+ℎ(𝑡 )𝑑𝑊 𝑡 , where 𝑊 𝑡 is a standard Brownian motion. To construct an orthogonal basis for 𝐿 2(Ω ,  , ℙ), we employ the Hermite polynomials defined by: 
+
+𝐻 𝑛 (𝑥 ) = (−1) 𝑛 
+
+√𝑛 !
+
+𝑒 𝑥 2∕2 𝑑 𝑛 
+
+𝑑𝑥 𝑛 
+
+(
+
+𝑒 −𝑥 2∕2 )
+
+, 𝑛 ≥ 0, (62) with 𝐻 0(𝑥 ) = 1 . Let {𝑒 𝑖 }𝑖 ≥1 be an orthonormal basis of ℌ. We define the set of multi-indices of finite length as: 
+
+ = { 𝛼 = ( 𝛼 1, 𝛼 2, … ) ∶ 𝛼 𝑖 ∈ ℕ ∪ {0} , |𝛼 | ∶= 
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+𝛼 𝑖 < ∞} . (63) For any multi-index 𝛼 ∈  , we define the Fourier-Hermite functional 𝜉 𝛼 as: 
+
+𝜉 𝛼 =
+
+> ∞
+
+∏
+
+> 𝑖 =1
+
+𝐻 𝛼 𝑖 (𝑊 (𝑒 𝑖 )) . (64) It is a classical result (see (Nualart, 2006, Prop 1.1.1)) that the family {𝜉 𝛼 ∶ 𝛼 ∈  } forms a complete orthonormal basis for 𝐿 2(Ω ,  , ℙ). Consequently, any square-integrable random variable 𝐹 ∈ 𝐿 2(Ω) admits a unique Wiener Chaos Expansion :
+
+𝐹 = ∑
+
+> 𝛼 ∈
+
+𝐹 𝛼 𝜉 𝛼 , where 𝐹 𝛼 = 𝔼 [𝐹 𝜉 𝛼 ]. (65) The subspace spanned by {𝜉 𝛼 ∶ |𝛼 | = 𝑛 } is called the 𝑛 -th Wiener chaos 𝑛 , and we have the decomposition 
+
+𝐿 2(Ω) = ⨁∞ 
+
+> 𝑛 =0
+
+𝑛 .
+
+Remark 11. Useful properties of this decomposition include: 1. Expectation: 𝔼 [𝐹 ] = 𝐹 0 (since 𝔼 [𝜉 𝛼 ] = 0 for |𝛼 | > 0). 2. Isometry: 𝔼 [𝐹 2] = ∑𝛼 ∈ 𝐹 2 
+
+> 𝛼
+
+.3. Variance: Var (𝐹 ) = ∑{𝛼 ∶|𝛼 |≥1} 𝐹 2 
+
+> 𝛼
+
+.  
+
+> F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 21 of 23
+
+Parameter Estimation in SDEs via WCE and SGD 
+
+A.2. The Malliavin Derivative 
+
+Let  denote the set of smooth random variables of the form: 
+
+𝐹 = 𝑓 (𝑊 (ℎ1), … , 𝑊 (ℎ𝑛 )) , (66) where 𝑓 ∈ 𝐶 ∞ 
+
+> 𝑝
+
+(ℝ𝑛 ) (smooth functions with polynomial growth) and ℎ𝑖 ∈ ℌ. The Malliavin derivative 𝐷𝐹 is defined as the ℌ-valued random variable: 
+
+𝐷𝐹 =
+
+> 𝑛
+
+∑
+
+> 𝑖 =1
+
+𝜕 𝑖 𝑓 (𝑊 (ℎ1), … , 𝑊 (ℎ𝑛 )) ℎ𝑖 . (67) We denote by 𝐷 𝑡 𝐹 the realization of 𝐷𝐹 at time 𝑡 . The operator 𝐷 is closable from 𝐿 𝑝 (Ω) to 𝐿 𝑝 (Ω; ℌ). We define the Sobolev space 𝔻 1,2 as the closure of  under the norm: 
+
+‖𝐹 ‖21,2 = 𝔼 [|𝐹 |2] + 𝔼 [‖𝐷𝐹 ‖2
+
+> ℌ
+
+]. (68) Crucially, the derivative of a basis element 𝜉 𝛼 acts as a lowering operator: 
+
+𝐷 𝑡 𝜉 𝛼 =
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝛼 𝑖 𝑒 𝑖 (𝑡 )𝜉 𝛼 −(𝑖 ), (69) where 𝛼 −(𝑖 ) is the multi-index with the 𝑖 -th component reduced by one: 
+
+𝛼 −(𝑖 ) ∶= ( 𝛼 1, … , 𝛼 𝑖 −1 , 𝛼 𝑖 − 1 , 𝛼 𝑖 +1 , …) if 𝛼 𝑖 ≥ 1, (70) and is undefined otherwise. 
+
+A.3. The Skorohod Integral 
+
+The divergence operator 𝛿 , also known as the Skorohod integral , is the adjoint of the Malliavin derivative 𝐷 . Its domain, Dom (𝛿 ) ⊂ 𝐿 2(Ω; ℌ), consists of processes 𝑢 such that: |𝔼 [⟨𝐷𝐹 , 𝑢 ⟩ℌ]| ≤ 𝐶 ‖𝐹 ‖𝐿 2(Ω) , ∀𝐹 ∈ 𝔻 1,2. For 
+
+𝑢 ∈ Dom (𝛿 ), the random variable 𝛿 (𝑢 ) is characterized by the duality relationship: 
+
+𝔼 [𝐹 𝛿 (𝑢 )] = 𝔼 [⟨𝐷𝐹 , 𝑢 ⟩ℌ], ∀𝐹 ∈ 𝔻 1,2. (71) A fundamental result (see Nualart (2006)) connects the Skorohod integral to the classical Itô integral: if a process 
+
+𝑢 ∈ 𝐿 2(Ω × [0 , 𝑇 ]) is adapted to the filtration generated by the Brownian motion, then 𝑢 ∈ Dom (𝛿 ) and 𝛿 (𝑢 ) coincides with the Itô integral: 
+
+𝛿 (𝑢 ) = ∫
+
+> 𝑇
+> 0
+
+𝑢 (𝑡 )𝑑𝑊 𝑡 . (72) This connection allows us to derive the Wiener chaos expansion for solutions of SDEs. Specifically, using the duality property (71) and the derivative formula (69), the projection of a stochastic integral onto the chaos mode 𝛼 is given by: 
+
+𝔼 
+
+[( 
+
+∫
+
+> 𝑡
+> 0
+
+𝑢 (𝑠 )𝑑𝑊 𝑠 
+
+)
+
+𝜉 𝛼 
+
+]
+
+= 𝔼 ∫
+
+> 𝑡
+> 0
+
+𝑢 (𝑠 )𝐷 𝑠 𝜉 𝛼 𝑑𝑠 =
+
+> ∞
+
+∑
+
+> 𝑖 =1
+
+√𝛼 𝑖 ∫
+
+> 𝑡
+> 0
+
+𝔼 [𝑢 (𝑠 )𝜉 𝛼 −(𝑖 )]𝑒 𝑖 (𝑠 )𝑑𝑠. (73) This identity is the cornerstone for deriving the deterministic propagator system used in this paper. 
+
+## References 
+
+> Beck, A., 2017. First-Order Methods in Optimization. MOS-SIAM Series on Optimization, SIAM, Philadelphia. doi: 10.1137/1.9781611974997 .Black, F., Scholes, M., 1973. The pricing of options and corporate liabilities. Journal of Political Economy 81, 637–654. Bottou, L., 2010. Large-scale machine learning with stochastic gradient descent, in: Proceedings of COMPSTAT’2010, Springer. pp. 177–186.
+
+F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 22 of 23 Parameter Estimation in SDEs via WCE and SGD 
+
+Bottou, L., Curtis, F.E., Nocedal, J., 2018. Optimization methods for large-scale machine learning. SIAM Review 60, 223–311. doi: 10.1137/ 16M1080173 .Buduma, N., Buduma, N., Papa, J., 2022. Fundamentals of deep learning. " O’Reilly Media, Inc.". Chen, D., Li, J., Zhang, Y., 2024. A posterior contraction for bayesian inverse problems in banach spaces. Inverse Problems 40, 045011. doi: 10.1088/1361-6420/ad278e .Chong, E.K., Zak, S.H., 2004. An introduction to optimization. John Wiley & Sons. Da Prato, G., Zabczyk, J., 1992. Stochastic equations in infinite dimensions. volume 44 of Encyclopedia of Mathematics and its Applications .Cambridge University Press, Cambridge. URL: https://doi.org/10.1017/CBO9780511666223 , doi: 10.1017/CBO9780511666223 .Delgado-Vences, F., Salcedo-Varela, G.A., Baltazar-Larios, F., 2024. Simulating diffusion bridges using the wiener chaos expansion. arXiv preprint arXiv:2401.06248 . Engl, H.W., Hanke, M., Neubauer, A., 1996a. Regularization of Inverse Problems. volume 375. Kluwer Academic Publishers, Dordrecht. Engl, H.W., Hanke, M., Neubauer, A., 1996b. Regularization of inverse problems. volume 375. Springer Science & Business Media. Fletcher, R., 2005. On the barzilai-borwein method, in: Optimization and control with applications. Springer, pp. 235–256. Garrigos, G., Gower, R.M., 2024. Handbook of convergence theorems for (stochastic) gradient methods. URL: https://arxiv.org/abs/2301. 11235 , arXiv:2301.11235 .Hasanoğlu, A.H., Romanov, V.G., 2021. Introduction to inverse problems for differential equations. Springer. Isakov, V., 2006. Inverse problems for partial differential equations. Springer. Kabanikhin, S.I., 2011. Inverse and Ill-Posed Problems: Theory and Applications. De Gruyter, Berlin. Kaipio, J.P., Somersalo, E., 2005. Statistical and computational inverse problems. Springer. Ketkar, N., 2017. Deep learning with Python. Springer. Landweber, L., 1951. An iteration formula for fredholm integral equations of the first kind. American Journal of Mathematics 73, 615–624. Lototsky, S.V., Rozovskii, B., 2006a. Wiener chaos solutions of linear stochastic evolution equations. Annals of Probability 34, 638–662. Lototsky, S.V., Rozovskii, B.L., 2006b. Stochastic differential equations: A wiener chaos approach, in: From Stochastic Calculus to Mathematical Fi-nance: The Shiryaev Festschrift. Springer Berlin Heidelberg, Berlin, Heidelberg. chapter 23, pp. 433–506. doi: 10.1007/978-3-540-30788-4_ 23 .Lototsky, S.V., Rozovsky, B.L., 2017. Stochastic partial differential equations. Springer. Lu, S., Pereverzev, S.V., 2013. Regularization theory for ill-posed problems: selected topics. volume 58. Walter de Gruyter. Needell, D., Ward, R., Srebro, N., 2014. Stochastic gradient descent, weighted sampling, and the randomized kaczmarz algorithm. Mathematical Programming 155, 549–573. Nesterov, Y., 1983. A method of solving a convex programming problem with convergence rate 𝑜 (1∕ 𝑘 2). Soviet Mathematics Doklady 27, 372–376. Nualart, D., 2006. The Malliavin calculus and related topics. volume 1995. Springer. Oksendal, B., 2013. Stochastic differential equations: an introduction with applications. Springer Science & Business Media. Reich, S., Cotter, C., 2015. Probabilistic Forecasting and Bayesian Data Assimilation. Cambridge University Press, Cambridge. doi: 10.1017/ CBO9781107706804 .Robbins, H., Monro, S., 1951. A stochastic approximation method. The Annals of Mathematical Statistics 22, 400–407. Samuelson, P.A., 1965. Rational theory of warrant pricing. Industrial Management Review 6, 13–31. Sprouffske, K., 2020. growthcurver: Simple Metrics to Summarize Growth Curves. URL: https://CRAN.R-project.org/package= growthcurver . r package version 0.3.1. Sprouffske, K., Wagner, A., 2016. Growthcurver: an r package for obtaining interpretable metrics from microbial growth curves. BMC Bioinformatics 17, 172. URL: https://doi.org/10.1186/s12859-016-1016-7 , doi: 10.1186/s12859-016-1016-7 .Strohmer, T., Vershynin, R., 2009. A randomized kaczmarz algorithm with exponential convergence. Journal of Complexity 25, 14–25. Stuart, A.M., 2010. Inverse problems: a bayesian perspective. Acta numerica 19, 451–559. Tan, C., Ma, S., Dai, Y.H., Qian, Y., 2016. Barzilai-borwein step size for stochastic gradient descent, in: Proceedings of the 30th International Conference on Neural Information Processing Systems. Curran Associates Inc., Red Hook, NY, USA. NIPS’16, p. 685–693. Trémolet, Y., 2006. Accounting for an imperfect model in 4d-var. Quarterly Journal of the Royal Meteorological Society: A journal of the atmospheric sciences, applied meteorology and physical oceanography 132, 2483–2504. doi: 10.1256/qj.05.224 .
+
+F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 23 of 23 Parameter Estimation in SDEs via WCE and SGD 
+
+Figure 1: Convergence analysis of the Gradient Descent algorithm for estimating the drift parameter 𝛼 in the Geometric Brownian Motion and the OU process. The horizontal line indicates the ground truth value ( 𝛼 = 0 .9 for the GMB and 
+
+𝛼 = 1 .7 for the OU). Distinct markers represent the evolution of the parameter estimate starting from different 5 initial guesses. As shown, all trajectories converge rapidly toward the true value within approximately 6 iterations, demonstrating the robustness and stability of the Wiener Chaos-based optimization framework. 
+
+Figure 2: GBM Parameter Learning Validation on S&P 500 Index Data (2017). Comparison between the daily adjusted closing prices (solid black line) and stochastic simulations based on parameters learned via the proposed WCE-SGD method (̂𝜇 ≈ 0 .1590 ,̂ 𝜎 ≈ 0 .0674 ). The solid gray line represents the mean of 100 simulations, while the shaded blue area indicates the 95% empirical confidence interval. The close fit demonstrates the successful application of the methodology to noisy empirical financial data. F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 24 of 23 Parameter Estimation in SDEs via WCE and SGD 0.0 0.2 0.4 0.6       
+
+> 510 15 20 25
+> Time (h)
+> Optical Density (OD)
+> 10 Actual Trajectories Experimental Data Mean Simulation Mean
+> IC 95% Simulation
+
+SDE Logistic (Wiener Chaos) 
+
+Figure 3: Stochastic Logistic Parameter Learning on Microbial Growth Data. Comparison between empirical optical density trajectories (gray lines) from a 96-well microtiter plate and stochastic simulations driven by parameters learned via the WCE-SGD framework. The data was pre-standardized to estimate the carrying capacity 𝐾 . The methodology accurately captures both the asymmetrical, non-linear drift of the exponential phase and the inherent biological noise, encapsulating the individual trajectories within the 95% confidence bands (shaded area). F. Delgado-Vences et al.: Preprint submitted to Elsevier Page 25 of 23

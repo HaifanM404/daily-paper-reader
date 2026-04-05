@@ -1,0 +1,1352 @@
+Title: Physics-informed line-of-sight learning for scalable deterministic channel modeling
+
+URL Source: https://arxiv.org/pdf/2603.27976v1
+
+Published Time: Tue, 31 Mar 2026 01:52:56 GMT
+
+Number of Pages: 33
+
+Markdown Content:
+# Physics-informed line-of-sight learning for scalable deterministic channel modeling 
+
+Xiucheng Wang 1, Junxi Huang 1, Conghao Zhou 1* ,Xuemin Shen 2, Nan Cheng 1* 
+
+> 1*
+
+School of Telecommunications Engineering, Xidian University, No. 2 South Taibai Road, Xi’an, 710071, Shaanxi, China. 
+
+> 2
+
+Department of Electrical and Computer Engineering, University of Waterloo, 200 University Avenue West, Waterloo, N2L 3G1, Ontario, Canada. *Corresponding author(s). E-mail(s): conghao.zhou@ieee.org; dr.nan.cheng@ieee.org; Contributing authors: xcwang 1@stu.xidian.edu.cn; 24012100067@stu.xidian.edu.cn; sshen@uwaterloo.ca; 
+
+Abstract 
+
+Deterministic channel modeling maps a physical environment to its site-specific electromagnetic response. Ray tracing produces complete multi-dimensional channel information but remains prohibitively expensive for area-wide deploy-ment. We identify line-of-sight (LoS) region determination as the dominant bottleneck. To address this, we propose D 2LoS, a physics-informed neural net-work that reformulates dense pixel-level LoS prediction into sparse vertex-level visibility classification and projection point regression, avoiding the spectral bias at sharp boundaries. A geometric post-processing step enforces hard physical constraints, yielding exact piecewise-linear boundaries. Because LoS compu-tation depends only on building geometry, cross-band channel information is obtained by updating material parameters without retraining. We also construct RayVerse-100, a ray-level dataset spanning 100 urban scenarios with per-ray complex gain, angle, delay, and geometric trajectory. Evaluated against rigor-ous ray tracing ground truth, D 2LoS achieves 3.28 dB mean absolute error in received power, 4.65 ◦ angular spread error, and 20.64 ns delay spread error, while accelerating visibility computation by over 25 ×.
+
+Keywords: Deterministic channel modeling, radio map, line-of-sight, 6G native-AI. 
+
+1
+
+> arXiv:2603.27976v1 [cs.IT] 30 Mar 2026
+
+## 1 Introduction 
+
+Deterministic channel modeling maps a physical environment to its exact electro-magnetic response. It provides site-specific channel state information (CSI) for 6G network optimization [1], digital twin construction [2, 3], and physical-layer AI appli-cations [4–6]. Unlike stochastic models that discard spatial structure by design [7–9], deterministic approaches preserve the gain, angle, delay, and geometric trajectory of every propagation path [10]. This level of detail is essential for coherent beamform-ing [11, 12], MIMO channel matrix construction [13], and beam management in dense urban deployments [14, 15]. However, generating such complete channel information at area-wide scale remains an open challenge. Ray tracing (RT) is the only method that produces multi-dimensional channel parameters in a single computation [10, 16], yet its cost is prohibitive for large-scale deployment [17]. This tension between infor-mation completeness and computational scalability motivates the search for efficient alternatives. Existing learning-based approaches address only fragments of this problem [18–21]. Link-level methods predict point-to-point channel parameters from local features but cannot produce spatial coverage maps [22]. Area-level radio map (RM) construction methods provide coverage predictions, yet most focus on received power alone [23]. Recent efforts have explored angular and delay profile estimation, but each dimen-sion requires a separately trained model at considerable cost. Meanwhile, available datasets offer either aggregate path-loss maps or dominant-path summaries [21, 24]. A few datasets provide per-path angle and delay parameters, but explicit geomet-ric ray trajectories remain absent [24, 25]. This gap between what AI-driven network optimization demands and what current methods deliver remains unresolved. We make two key observations that guide our approach. First, the computational bottleneck of RT lies not in the multi-bounce path search but in the preceding line-of-sight (LoS) preprocessing step [26, 27]. For a scenario with m building vertices, the classical rotational sweep algorithm requires O(m log m) operations per transmitter [28]. The subsequent path search operates on precomputed visibility adjacency via bounded-depth graph traversal, whose per-query cost is substantially lower [29, 30]. Second, in a 2D environment of polygonal obstacles, the LoS boundary seen from any point source is piecewise-linear. Each boundary segment is defined by a visible building vertex and its projection onto a farther building edge. These two observations suggest a natural decomposition: the network predicts sparse vertex-level attributes, and the sharp boundary is reconstructed analytically. Here we introduce D 2LoS 1, a physics-informed neural network that addresses the LoS bottleneck through vertex-level geometric decomposition. We also release RayVerse-100 2, a ray-level dataset spanning 100 diverse urban scenarios with per-ray complex gain, angle, delay, and complete geometric trajectory. The main contributions are as follows. 1. We reformulate LoS map prediction from dense pixel-level classification into sparse vertex-level visibility classification and projection point regression. This formulation 
+
+> 1Code is available at https://github.com/UNIC-Lab/D2LoS.
+> 2Dataset is available at https://github.com/UNIC-Lab/RayVerse.
+
+2avoids the spectral bias of neural networks at sharp LoS boundaries. Combined with a geometric post-processing step that enforces hard physical constraints, D 2LoS reduces per-transmitter preprocessing complexity from O(m log m) to O(M log M +
+
+n), where M is the number of boundary vertices with M ≪ m and n is the number of evaluation points. In typical urban scenarios, M log M ≪ n, yielding an effective cost of O(n). 2. Because LoS computation depends only on building geometry, it is inherently frequency-independent. Once geometric ray paths are determined, cross-band chan-nel information is obtained by updating material parameters through uniform theory of diffraction (UTD) [31] formulations without retraining. This enables uni-fied multi-dimensional radio map construction covering received signal strength (RSS), angular power spectrum (APS), and power delay profile (PDP) from a single pipeline. 3. We construct RayVerse-100, a ray-level dataset spanning 100 diverse urban sce-narios. Each record captures per-ray complex gain, angle of arrival (AoA), angle of departure (AoD), propagation delay, and complete geometric trajectory with 3D reflection-point coordinates. To our knowledge, this is the first open dataset providing explicit per-ray geometric trajectories at this scale. We also provide post-processing interfaces for coherent superposition, MIMO channel matrix synthesis, and cross-band CSI generation. 4. Evaluated against rigorous RT ground truth on unseen test scenarios, D 2LoS achieves 3.28 dB mean absolute error in RSS, 4.65 ◦ angular spread error, and 20.64 ns delay spread error, while accelerating visibility computation by over 25 ×.
+
+## 2 Results 
+
+We evaluate D 2LoS on the RayVerse-100 dataset against three baselines. No-Geom removes the geometric post-processing from D 2LoS and uses raw neural network pre-dictions directly. RadioUNet is a U-Net architecture that predicts pixel-level LoS maps. RMTransformer is a vision transformer variant designed for radio map estimation. All methods receive the same input and are trained on the same LoS corpus. The ground truth is produced by exact rotational sweep ray tracing with UTD field computation. For each evaluation point, the top-8 rays ranked by path gain are retained. 
+
+D2LoS achieves high-fidelity multi-dimensional radio maps 
+
+D2LoS consistently outperforms all baselines across three channel dimensions. In received signal strength (RSS) prediction, D 2LoS achieves a mean absolute error (MAE) of 3.28 dB and a Pearson correlation of 0.954 averaged over 100 test scenarios (Table 1). The closest baseline, No-Geom, yields an MAE of 12.65 dB and a correla-tion of 0.647. RadioUNet and RMTransformer produce MAEs exceeding 32 dB with correlations below 0.18, indicating near-complete failure in spatial power prediction. The advantage extends to angular and delay domains. For the angular power spectrum (APS), D 2LoS achieves an angular spread error of 4.65 ◦ and a shape cosine similar-ity of 0.892 (Table 2). For the power delay profile (PDP), D 2LoS achieves a delay spread error of 20.64 ns and a K-factor error of 2.23 dB (Table 3). In both domains, 3Table 1 : Received signal strength prediction accuracy across 100 test scenarios. 
+
+Six metrics are reported as mean ± standard deviation over all scenarios in RayVerse-100. D2LoS achieves the lowest error and highest correlation across all metrics. No-Geom denotes D2LoS without geometric post-processing. RadioUNet and RMTransformer are pixel-level LoS prediction baselines. Bold values indicate the best performance.                                                                             
+
+> Metric D2LoS No-Geom RadioUNet RMTransformer Bias (dB) -1.69 ±3.82 -2.96 ±11.76 -6.78 ±26.30 -26.60 ±28.39 MAE (dB) 3.28 ±3.82 12.65 ±10.01 32.80 ±11.87 40.85 ±15.98 RMSE (dB) 7.28 ±4.57 19.92 ±11.27 40.12 ±11.38 48.11 ±15.42 MSE (dB 2)73.93 ±174.32 523.75 ±725.86 1738.76 ±1120.59 2552.54 ±1616.15 NMSE 0.0088 ±0.0297 0.0826 ±0.1481 0.2695 ±0.2756 0.4789 ±0.4912 Correlation 0.9537 ±0.0603 0.6473 ±0.3076 0.1350 ±0.2824 0.1708 ±0.3084
+
+Table 2 : Angular power spectrum prediction accuracy. Four metrics are reported as the mean over all evaluation points across 100 test scenarios. Angular spread (AS) absolute error and mean direction of arrival (MDoA) absolute error measure first-order angular statistics. Shape cosine and shape RMSE quantify the similarity between predicted and ground-truth APS pro-files.                     
+
+> Metric D2LoS No-Geom RadioUNet RMTransformer AS Abs. Err. (deg) 4.65 11.80 22.91 23.37 MDoA Abs. Err. (deg) 17.07 37.72 70.09 74.64 Shape Cosine 0.8924 0.6667 0.3158 0.2902 Shape RMSE 0.0035 0.0090 0.0170 0.0177
+
+RadioUNet and RMTransformer yield shape cosine values below 0.32. These low val-ues indicate that their predicted angular and delay profiles bear little resemblance to the ground truth. Fig. 1 provides a qualitative comparison across four representative scenarios. D 2LoS reproduces both the LoS regions near the transmitter and the shadow boundaries behind buildings. No-Geom captures the coarse spatial pattern but produces blurred transitions at building edges. RadioUNet and RMTransformer fail to reconstruct meaningful spatial structures. RadioUNet generates near-uniform power distributions that lose all shadow boundary detail. RMTransformer produces narrow beam-like arti-facts that do not correspond to any physical propagation pattern. These qualitative observations are consistent with the quantitative metrics in Tables 1–3. 4Table 3 : Power delay profile prediction accuracy. Six metrics are reported as the mean over all evaluation points across 100 test scenarios. Delay spread (DS) and median delay capture temporal dispersion. K-factor error reflects the dominant-to-scattered path ratio accuracy. Effective count measures the number of resolvable multipath components.                             
+
+> Metric D2LoS No-Geom RadioUNet RMTransformer DS Abs. Err. (ns) 20.64 46.11 90.93 97.94 Median Delay Abs. Err. (ns) 47.91 126.67 245.72 237.56
+> K-factor Abs. Err. (dB) 2.23 4.61 8.77 9.41 Effective Count Abs. Err. 4.88 11.82 26.78 26.48 Shape Cosine 0.6434 0.4610 0.1743 0.1407 Shape RMSE 0.0327 0.0496 0.0743 0.0763
+
+Geometric post-processing is critical for boundary-sensitive metrics 
+
+To isolate the contribution of geometric post-processing, we compare D 2LoS with its ablated variant No-Geom. This variant uses raw neural network predictions without edge snapping or ray-edge intersection refinement. The impact of removing this step is substantial across all three channel dimensions. In RSS, the MAE increases from 3.28 to 12.65 dB and the correlation drops from 0.954 to 0.647 (Table 1). In the angular domain, the APS shape cosine decreases from 0.892 to 0.667, and the mean direction of arrival error grows from 17.07 ◦ to 37.72 ◦ (Table 2). In the delay domain, the degradation is even more pronounced. The PDP shape cosine drops from 0.643 to 0.461, and the median delay error increases from 47.91 to 126.67 ns (Table 3). These results confirm that geometric post-processing is not a marginal refinement but a critical component of the pipeline. The qualitative comparisons reinforce these findings. In the APS curves (Fig. 2), No-Geom preserves the dominant arrival directions but introduces noticeable errors in secondary peaks. In the PDP curves (Fig. 3), No-Geom exhibits shifted peak posi-tions and attenuated late-arriving components. These shifts indicate that boundary inaccuracies propagate into systematic path length errors in the downstream ray trac-ing. The delay domain shows a larger relative degradation than the angular domain. This asymmetry arises because a small boundary shift may preserve the approximate arrival angle of a reflected path while directly altering the total propagation distance. The resulting delay errors accumulate across multiple bounces. This pattern is con-sistent across all 100 test scenarios, as confirmed by the violin distributions in Fig. 5 and Fig. 6. 
+
+Pixel-level baselines fail at LoS boundary reconstruction 
+
+RadioUNet and RMTransformer both formulate LoS prediction as dense pixel-level image-to-image translation. Their performance collapses across all channel dimensions. In RSS prediction, RadioUNet achieves a correlation of only 0.135 and RMTransformer 5GT RadioUNet D2Los No-Geom RMTransformer Fig. 1 : Qualitative comparison of RSS radio maps across four representa-tive scenarios. Each row corresponds to one scenario from the RayVerse-100 test set. Columns from left to right: ground truth (GT), D 2LoS, No-Geom, RadioUNet [23], and RMTransformer [32]. D 2LoS reproduces the spatial power distribution with high fidelity. No-Geom captures the coarse pattern but exhibits blurred boundaries. RadioUNet and RMTransformer fail to reconstruct meaningful spatial structures. achieves 0.171 (Table 1). These values indicate that the predicted power maps are nearly uncorrelated with the ground truth. The violin distributions in Fig. 4 further reveal heavy-tailed error distributions with large inter-scenario variance. Some sce-narios produce biases exceeding −50 dB, corresponding to order-of-magnitude power prediction errors. The failure is equally severe in the angular and delay domains. Both baselines yield APS shape cosine values below 0.32 (Table 2) and PDP shape cosine values below 0.18 (Table 3). These shape cosine values indicate that the predicted profiles are essentially random with respect to the ground truth. The qualitative results reveal the underlying cause. The APS curves in Fig. 2 show noisy angular profiles with incorrect peak positions and power levels for both baselines. The PDP curves in Fig. 3 exhibit spurious peaks and incorrect power floors, partic-ularly at large delays where reflected and diffracted paths dominate. The RSS maps in Fig. 1 further illustrate this failure mode. RadioUNet produces heavily smoothed maps that erase all shadow boundary detail. RMTransformer generates narrow beam-like artifacts unrelated to physical propagation. These patterns are consistent with the spectral bias of neural networks, which favors low-frequency functions during train-ing. The resulting blurred LoS boundaries remove the sharp spatial transitions that define shadow regions in urban environments. This spectral bias is the fundamental reason why pixel-level formulations cannot reconstruct the fine-grained LoS structure required for accurate channel modeling. 6GT No-Geom D2Los RadioUNet RMTransformer Fig. 2 : Qualitative comparison of angular power spectra at selected receiver locations. Each row corresponds to one receiver position from a different test sce-nario. The horizontal axis is the azimuth arrival angle and the vertical axis is the received power in dBm. D 2LoS closely tracks the ground truth. No-Geom preserves dominant arrival directions but introduces errors in secondary peaks. RadioUNet and RMTransformer produce noisy angular profiles with incorrect peak positions. 
+
+Per-ray angular information enables post-hoc beam pattern integration 
+
+A key advantage of ray-level output is that arbitrary transmit antenna patterns can be applied after the propagation simulation without re-execution. For each retained ray, the framework stores the AoD in both azimuth and elevation. A directional antenna gain Gant (ϕAoD , θ AoD ) is then multiplied onto each ray’s complex field before power summation. This produces beam-specific RSS, APS, and PDP maps from the same underlying ray data. We demonstrate this capability with a 15 ◦ half-power beamwidth pattern. Fig. 7 shows the resulting RSS maps for the same four scenarios as Fig. 1. The directional pattern concentrates energy along the boresight and suppresses off-axis multipath components. D 2LoS accurately captures this directional filtering effect. It preserves both the beam footprint and the shadow structure behind buildings. No-Geom produces blurred beam edges due to inaccurate LoS boundaries. RadioUNet and RMTransformer fail to generate physically meaningful directional power distributions. The quantitative evaluation in Fig. 8 confirms these observations across all three channel dimensions. D 2LoS maintains compact, low-error distributions consistent with the omnidirectional results. The performance ranking among methods is preserved after beam integration. This indicates that applying a directional pattern does not amplify the relative errors introduced by LoS prediction inaccuracy. Additional results with 30 ◦, 45 ◦, and 60 ◦ beamwidths are provided in the Supplementary Information 7GT No-Geom D2Los RadioUNet RMTransformer Fig. 3 : Qualitative comparison of power delay profiles at selected receiver locations. Each row corresponds to one receiver position from a different test scenario. The horizontal axis is the propagation delay in nanoseconds and the vertical axis is the received power in dBm. D 2LoS accurately reproduces the delay-domain structure. No-Geom exhibits shifted peak positions. RadioUNet and RMTransformer produce delay profiles with spurious peaks at large delays. and show the same trend. This post-hoc integration capability is unavailable to conven-tional radio map methods that output only aggregate received power. Such methods do not preserve per-ray angular information and therefore cannot apply antenna patterns or evaluate beam-specific coverage after the fact. The ray-level output of D 2LoS thus offers a practical advantage for beam management and antenna deployment planning in 6G systems. 
+
+D2LoS accelerates visibility computation 
+
+We compare the end-to-end processing time of D 2LoS against the traditional RT pipeline. The traditional pipeline uses the rotational sweep algorithm for LoS prepro-cessing. Both pipelines share the same breadth-first search (BFS) path search [33] and UTD field computation backend. All experiments are conducted on a single NVIDIA RTX Pro 6000 GPU. Fig. 9a shows the per-scenario processing time for ten test maps. The traditional pipeline requires 15 to 48 min per scenario, while D 2LoS completes the same computation in under 1 min. The speedup factors range from 25 × to 71 ×,with the variation attributable to differences in scenario complexity. Fig. 9b shows the cumulative distribution across all test scenarios. The median processing time is 0.5 min for D 2LoS and 24.9 min for the traditional pipeline, representing a median speedup of approximately 50 ×.8D 2LoS            
+
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 20
+> 40
+> 60
+> 80
+> a) MAE (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 75
+> 50
+> 25
+> 0
+> 25
+> 50
+> b) Bias (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> c) NMSE
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> d) Correlation
+> D2LoS No-Geom RadioUNet RMTransformer
+
+Fig. 4 : Distribution of RSS prediction errors across 100 test scenarios. Violin plots show the per-scenario distribution of six metrics: a) MAE, b) RMSE, c) bias, 
+
+d) MSE, e) NMSE, and f ) Pearson correlation. Black diamonds indicate the mean. D2LoS exhibits both the lowest mean error and the smallest variance. RadioUNet and RMTransformer show wide distributions with heavy tails. This acceleration is achieved without sacrificing output completeness. The D 2LoS pipeline produces the same ray-level output format as the traditional pipeline. Each ray stores complex gain, AoA, AoD, propagation delay, and complete geometric trajectory with 3D reflection-point coordinates. Fig. 9c shows the cumulative distribution of the total ray count per scenario. The D 2LoS distribution closely matches the ground truth, confirming that the learned LoS prediction preserves the ray-level completeness of the full RT pipeline. Each ray is fully characterized for downstream applications, including coherent superposition, MIMO channel matrix synthesis, and cross-band CSI generation. The combination of over 25 × speedup and full ray-level output makes D2LoS a practical drop-in replacement for the LoS preprocessing stage in existing RT workflows. 
+
+## 3 Discussion 
+
+The results demonstrate that accurate LoS prediction is sufficient to produce high-fidelity multi-dimensional radio maps. In the ray tracing pipeline, LoS determination serves as the gating step for all downstream computations. A correct LoS map ensures that both the direct path and the first-level vertices of the BFS visibility tree are correctly identified. When LoS boundaries are inaccurate, errors propagate multiplicatively through the multi-bounce path search, corrupting all channel dimen-sions simultaneously. This mechanism explains why geometric post-processing has a 9D 2LoS            
+
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 20
+> 40
+> 60
+> a) AS Abs Err (deg)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 50
+> 100
+> 150
+> b) MDoA Abs Err (deg)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> c) APS Shape Cosine
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.000
+> 0.005
+> 0.010
+> 0.015
+> 0.020
+> 0.025
+> 0.030
+> d) APS Shape RMSE
+> D2LoS No-Geom RadioUNet RMTransformer
+
+Fig. 5 : Distribution of APS prediction errors across 100 test scenarios. 
+
+Violin plots show: a) angular spread error, b) MDoA error, c) APS shape cosine, and 
+
+d) APS shape RMSE. D 2LoS achieves concentrated low-error distributions. The No-Geom variant shows moderate degradation. RadioUNet and RMTransformer produce near-random angular predictions. stronger impact on delay-domain metrics than on angular-domain metrics: a small boundary shift may preserve the approximate arrival angle of a reflected path, but it directly alters the total propagation distance, producing systematic delay errors that accumulate across multiple bounces. The complete failure of RadioUNet and RMTransformer highlights a fundamental limitation of pixel-level LoS prediction. Neural networks exhibit spectral bias, favoring low-frequency functions during training. The resulting blurred LoS boundaries remove the sharp shadow edges that define urban multipath structure. D 2LoS circumvents this by predicting sparse vertex attributes instead of dense pixel maps. Binary visi-bility labels and approximate projection coordinates are both low-frequency targets. The sharp LoS boundary is then reconstructed analytically, preserving the geometric precision that downstream ray tracing requires. A key advantage of the LoS-based decomposition is its inherent frequency inde-pendence. The LoS computation depends only on building geometry, not on carrier frequency. Frequency enters solely through the UTD interaction coefficients, which can be updated without re-executing visibility computation or path search. This dis-tinguishes D 2LoS from existing radio map methods that require retraining for each frequency band. Furthermore, the per-ray angular output enables post-hoc antenna pattern integration, as demonstrated by the beam-specific results across 15 ◦, 30 ◦, 45 ◦,and 60 ◦ beamwidths. The ability to evaluate arbitrary beam patterns from a single 10 D 2LoS            
+
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 50
+> 100
+> 150
+> 200
+> 250
+> 300
+> a) DS Abs Err (ns)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 200
+> 400
+> 600
+> 800
+> b) Median Delay Abs Err (ns)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> c) K-factor Abs Err (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> d) PDP Shape Cosine
+> D2LoS No-Geom RadioUNet RMTransformer
+
+Fig. 6 : Distribution of PDP prediction errors across 100 test scenarios. 
+
+Violin plots show: a) delay spread error, b) median delay error, c) K-factor error, d) 
+
+effective count error, e) PDP shape cosine, and f ) PDP shape RMSE. D 2LoS maintains compact error distributions. The gap between D 2LoS and No-Geom is larger in the delay domain than in the angular domain. ray tracing computation provides substantial time savings for antenna deployment planning in multi-band 6G systems. The RayVerse-100 dataset provides ray-level ground truth that existing datasets do not offer. Neither RadioMapSeer nor DeepMIMO exposes explicit per-ray geo-metric trajectories with 3D reflection-point coordinates. This trajectory information is essential for environment-aware beam tracking, RIS placement optimization, and radar-communication co-design. Several limitations should be noted. The 2.5D building model introduces errors for complex rooftop geometries. The 2D ×2D decomposition excludes over-rooftop diffrac-tion paths. The evaluation is conducted at street-level height (1.5 m) and retains only the top-8 rays per point. The geometric post-processing uses a fixed search radius that may benefit from adaptive scaling. Future work will extend the building model, incor-porate over-rooftop diffraction, and integrate measured channel data through transfer learning to bridge the gap between simulation and real-world deployment. 
+
+## 4 Methods 
+
+Environment representation and problem formulation 
+
+The propagation environment is encoded as a top-down binary occupancy map 
+
+E ∈ { 0, 1}H×W with H = W = 257 pixels at a spatial resolution of ∆ r = 1 m. 11 GT RadioUNet D2Los No-Geom RMTransformer Fig. 7 : RSS radio maps with a 15 ◦ directional beam pattern. The same sce-narios as Fig. 1 are shown after post-hoc beam integration. D 2LoS accurately captures the directional filtering effect, preserving both the beam footprint and shadow struc-ture. RadioUNet and RMTransformer fail to produce meaningful directional patterns. D 2LoS                                    
+
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 20
+> 40
+> 60
+> 80
+> a) MAE (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 40
+> 20
+> 0
+> 20
+> 40
+> 60
+> 80
+> b) Bias (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> c) NMSE
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.50
+> 0.25
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> d) Correlation
+> D2LoS No-Geom RadioUNet RMTransformer D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 20
+> 40
+> 60
+> a) AS Abs Err (deg)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 50
+> 100
+> 150
+> b) MDoA Abs Err (deg)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> c) APS Shape Cosine
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.000
+> 0.005
+> 0.010
+> 0.015
+> 0.020
+> 0.025
+> 0.030
+> d) APS Shape RMSE
+> D2LoS No-Geom RadioUNet RMTransformer D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 50
+> 100
+> 150
+> 200
+> 250
+> a) DS Abs Err (ns)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 200
+> 400
+> 600
+> 800
+> b) Median Delay Abs Err (ns)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> c) K-factor Abs Err (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> d) PDP Shape Cosine
+> D2LoS No-Geom RadioUNet RMTransformer
+
+Fig. 8 : Prediction accuracy with a 15 ◦ half-power beamwidth antenna pat-tern. Violin plots show per-scenario error distributions after beam pattern integration using per-ray AoD. Left: RSS metrics. Center: APS metrics. Right: PDP metrics. D2LoS maintains compact, low-error distributions consistent with the omnidirectional results. Additional beamwidths (30 ◦, 45 ◦, 60 ◦) are provided in the Supplementary Information. Building footprints are extracted from OpenStreetMap (OSM) and approximated as quadrilateral prisms. The vertices of each footprint polygon serve as candidate reflec-tion and diffraction points. Per-building heights are obtained from OSM attributes when available; a default value of 20 m is assigned otherwise. Given a transmitter at ps = ( xs, y s), the goal is to determine a binary LoS map 
+
+L ∈ { 0, 1}H×W , where L(xr , y r) = 1 indicates that pixel ( xr, y r) is visible from ps.The network input is a 257 × 257 × 4 tensor comprising: the binary occupancy map 12 630 631 632 633 634 635 636 637 638 639                
+
+> Map ID
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> Processing Time (min)
+> 69×
+> 57×
+> 47×
+> 37×
+> 25×
+> 67×
+> 58×
+> 71×
+> 43×
+> 29×
+> a)
+> Traditional Pipeline
+> D2LoS (Ours)
+> 010 20 30 40 50
+> Processing Time (min)
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Cumulative Probability
+> 24.9 0.5
+> b)
+> Traditional Pipeline
+> D2LoS (Ours)
+> 0.0 0.5 1.0 1.5 2.0 2.5 3.0
+> Total Ray Count 1e7
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Cumulative Probability
+> c)
+> GT
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+
+Fig. 9 : Computational efficiency comparison between D 2LoS and the tra-ditional RT pipeline. a) Per-scenario processing time for ten test maps. Speedup factors range from 25 × to 71 ×. b) Cumulative distribution of processing time. The median is 0.5 min for D 2LoS and 24.9 min for the traditional pipeline. c) Cumulative distribution of the total ray count per scenario. All experiments use a single NVIDIA RTX Pro 6000 GPU. 
+
+E, a Gaussian-blurred transmitter location heatmap HTx with σ = 3 pixels, and two spatial coordinate grids Xcoord and Ycoord .The ray tracing pipeline is decomposed into two stages (Fig. 10): LoS preprocessing, which determines mutual visibility among all geometric primitives, and BFS multi-bounce path search, which enumerates valid propagation paths. D 2LoS replaces the LoS preprocessing stage while preserving the standard path search and UTD field computation backend. 
+
+Vertex-level LoS reformulation 
+
+In a 2D environment composed of polygonal obstacles, the LoS region boundary as seen from a point source ps is piecewise-linear. Each linear segment is defined by a building vertex vi visible from ps and its projection point vproj 
+
+i on a more distant building edge. The projection point is computed via ray casting: a ray from ps passes through vi and extends until it first intersects a building edge ej that is farther from 
+
+ps and not parallel to the ray: 
+
+vproj 
+
+i = ps + t∗
+
+i · (vi − ps), t∗
+
+i = min 
+
+j
+
+t > 1 (ps + t · di) ∈ ej , di × nej̸ = 0 , (1) where di = vi − ps and nej is the direction vector of edge ej .Two prediction targets are defined for each building vertex vi: a binary visibility label ci ∈ { 0, 1} indicating whether vi is visible from ps, and the projection point coordinates ˆ vproj 
+
+i = (ˆ xproj 
+
+i , ˆyproj 
+
+i ), defaulting to vi for non-boundary vertices. All M
+
+building vertices are predicted simultaneously, avoiding the need to pre-select which vertices determine the LoS boundary. The network predicts low-frequency attributes rather than a dense high-frequency boundary map. The sharp LoS boundary is reconstructed analytically from the predicted vertex attributes in the post-processing stage. 13 Environment Encoding 
+
+OSM (OpenStreetMap) 
+
+a Network Input   
+
+> 2D Occupancy
+> Grid
+> 2D Occupancy
+> 257 ×257
+> Binary Map
+> OSM (OpenStreetMap)
+> Architecture Map
+
+Learned Visibility 
+
+D2Los Core 
+
+Vertex Level Decomposition 
+
+> U-Net
+> Visibility
+> Classification
+> Projection
+> Coordinate map
+
+Physical Refinement 
+
+Geometric Post-processing 
+
++ LoS Map  
+
+> Raw predict point
+> Snapped to the nearest edge
+> Refined point resulted by
+> ray-edge intersection
+> 2D occupancy
+> grid
+> LoS map
+
+Channel Computation 
+
+RT Backend + 
+
+Multi-Dimensional Output 
+
+… …         
+
+> K=4
+> BFS visibility tree Rx Tx
+> RSS Heatmap
+> MIMO Channel
+> APS
+> PDP
+> unified multi-dimensional D2Los Core
+> Vertex Level Decomposition
+> O(m logm )Complexity Timeline O(n)
+> Corss-band: update 𝐀 𝐀
+> ′𝐀 ,𝐀 𝐀
+
+Fig. 10 : Overview of the D 2LoS framework. The pipeline takes a binary occu-pancy map and transmitter position as input. The D 2LoS network predicts vertex-level visibility and projection coordinates. Geometric post-processing enforces physical con-straints to produce an exact LoS map. A BFS path search and UTD field computation yield per-ray channel parameters. Cross-band information is obtained by updating material parameters without re-executing visibility computation. 
+
+Network architecture and loss function 
+
+We employ a U-Net encoder-decoder with two modifications at the bottleneck layer. Atrous spatial pyramid pooling (ASPP) applies dilated convolutions with rates 
+
+{1, 6, 12 , 18 } to capture occlusion effects at multiple spatial scales. Spectral feature modulation follows the Fourier neural operator (FNO) paradigm: spatial features are transformed to the frequency domain via real FFT, modulated by learned complex-valued weights, and transformed back via inverse FFT. This provides a global receptive field in a single layer and captures long-range shadow connectivity that local convolutions cannot efficiently model. The decoder produces two output heads via sub-pixel upsampling with coordinate attention: a visibility classification map ˆM ∈ [0 , 1] H×W and normalised projection coordinates ˆP ∈ [0 , 1] H×W ×2. During inference, predictions are extracted at known building vertex pixel locations, effectively implementing sparse vertex-level prediction through a dense network architecture. The composite loss function is 
+
+Ltotal = LFocal + λ1LDice + λ2LMaskedL1 . (2) Focal loss with γ = 2 .0 addresses class imbalance between visible and occluded vertices. Dice loss with λ1 = 1 .0 enforces spatial connectivity of predicted LoS regions. The 14 coordinate regression head uses a masked L1 loss computed only at building-vertex pixels: 
+
+LMaskedL1 =
+
+P ∥ ˆP − P GT ∥1 · 1(M GT > 0.5) 
+
+P 1(M GT > 0.5) , (3) ensuring that representational capacity concentrates on geometrically meaningful boundary regions. We set λ2 = 20 .0 based on hyperparameter search. 
+
+Geometric post-processing and 3D extension 
+
+Raw neural network predictions contain residual regression errors in the projection coordinates. We exploit the physical constraint that projection points must lie on building edges through a two-step refinement. In Step 1, for each predicted projection point ˆ vproj  
+
+> i
+
+, the nearest building edge e∗
+
+> j
+
+within a search radius Rsearch = 5 m is identified. In Step 2, the intersection of the ray from ps through vertex vi with edge e∗ 
+
+> j
+
+is computed: 
+
+vrefined  
+
+> i
+
+= ps + t∗(vi − ps), t∗ = (a − ps) × (b − a)(vi − ps) × (b − a) , (4) where a and b are the endpoints of e∗ 
+
+> j
+
+. The refined point is accepted if t∗ > 1 and the intersection lies within the edge segment; otherwise, the raw prediction is retained. A global path-clearance check verifies that the refined ray does not intersect other buildings. The complete LoS map is reconstructed by selecting boundary vertices Vbnd =
+
+{vi | ci = 1 , vrefined 
+
+> i
+
+̸ = vi}, constructing segments [ vi, vrefined  
+
+> i
+
+], sorting them angularly with respect to ps, taking the union of unobstructed angular sectors, and rasterising onto the grid to produce ˆL ∈ { 0, 1}H×W .To extend to 3D visibility, we adopt the 2D ×2D decomposition: LoS 3D (ps, pr) ≈ LoS 2D-H (ps, pr) ∧ LoS 2D-V (ps, pr). (5) The horizontal check LoS 2D-H is computed by D 2LoS. The vertical check LoS 2D-V eval-uates whether the elevation angle of the direct path clears the heights of all intervening buildings. Under the 2.5D extruded prism model, this decomposition is mathematically exact (Supplementary Theorem S3). The transmitter and receiver heights are input parameters; the current evaluation uses htx = hrx = 1 .5 m. Over-rooftop diffraction paths are excluded from the current framework, as discussed in the limitations. 
+
+Ray tracing backend 
+
+With LoS relationships determined, an N -ary visibility tree is constructed rooted at the transmitter. Vertex-to-vertex LoS adjacency is precomputed once per scenario using the exact rotational sweep algorithm. D 2LoS provides transmitter-to-vertex vis-ibility, forming the first level of the tree. Multi-bounce paths are enumerated via breadth-first search (BFS) with a maximum depth of K = 4, covering up to four combined reflections and diffractions. The search is executed with GPU-parallel graph traversal. 15 For each valid path, the complex electric field is computed as the product of inter-action coefficients and free-space propagation factors along all segments. Interaction coefficients include Fresnel reflection coefficients and UTD diffraction coefficients fol-lowing the Luebbers lossy-dielectric extension. Two numerical stability mechanisms are applied: an envelope clamp ensuring that diffracted field magnitude does not exceed half the incident field, and a forward-scatter smoothing for deflection angles below 30 ◦ (Supplementary Theorem S2 and Supplementary Remark 1). Default material parameters at the reference frequency of 3.5 GHz are ϵ′ 
+
+> r
+
+= 5 .31 and σ = 0 .0326 S/m. At each evaluation point, all arriving rays are ranked by path gain and the top 
+
+Nray = 8 rays are retained, capturing over 98% of the total received energy across all scenarios. Each retained ray stores: complex gain, AoA and AoD in azimuth and elevation, propagation delay, complete geometric trajectory with 3D interaction-point coordinates, interaction type at each point, and material index of each interacting surface. The RSS output is computed via incoherent power summation over all retained rays. Because per-ray phase information is fully preserved, coherent superposition is available through the post-processing interface. The geometric ray paths are frequency-independent. To obtain channel information at a different carrier frequency, users specify the target frequency and correspond-ing material parameters ϵ′ 
+
+> r
+
+(f ) and σ(f ). The framework re-evaluates all interaction coefficients along the stored geometric trajectories without re-executing visibility com-putation or path search. Similar to [34], the narrowband MIMO channel matrix for an Nt × Nr array system is 
+
+H(f ) = 
+
+> Nray
+
+X
+
+> p=1
+
+αp aR(θR,p , ϕ R,p ) aHT (θT,p , ϕ T,p ) e−j2πf τ p , (6) where αp is the complex path gain, τp is the delay, and aR, aT are the receive and transmit array steering vectors. 
+
+Dataset construction and training configuration 
+
+To train D 2LoS, we extracted 701 urban topographies from OSM covering diverse building densities and street layouts. Each environment is rasterised into a 257 × 257 grid. For each scenario, multiple transmitter positions are sampled and the ground-truth LoS map and projection point coordinates are computed using the exact rotational sweep algorithm. The 701 scenarios are strictly partitioned: scenarios 0–630 for training and validation, and scenarios 631–700 as a completely unseen test set. To provide ray-level ground truth for end-to-end evaluation, we constructed RayVerse-100 by selecting 100 scenarios from geographically distinct regions. For each scenario, the full RT pipeline is executed: exact LoS computation, BFS path enumera-tion with K = 4, and UTD field computation at every grid point. The output contains the top-8 per-ray multipath parameters. The RayVerse-100 scenarios are drawn from the test partition to ensure no overlap with D 2LoS training data. Built on UTD, the dataset exposes open material parameter interfaces for cross-band CSI generation. 16 Post-processing interfaces for coherent superposition, MIMO channel matrix synthesis, and antenna pattern integration are provided. D2LoS is trained on NVIDIA RTX 4090 and A100 GPUs using AdamW with a cosine annealing learning rate schedule. The initial learning rate is 1 .8×10 −3, the batch size is 64, and training runs for 120 epochs. All metrics reported in Tables 1–3 are computed as mean ± standard deviation over the 100 independent test scenarios. No scenario in the test set overlaps with the training data geographically or topologically. 
+
+## Supplementary Theorem S1: Complexity Analysis of D2LoS 
+
+Theorem 1 (Computational complexity reduction) Given m building vertices and n evalua-tion points, D 2LoS reduces the per-transmitter LoS preprocessing complexity from O(m log m+
+
+n) to O(M log M + n), where M is the number of predicted boundary vertices. In typical urban scenarios, M ≪ m and M log M ≪ n, so the effective per-transmitter cost is O(n).Under GPU parallelisation with sufficient cores, the wall-clock time is bounded by a constant independent of both m and n.Proof Classical baseline. The rotational sweep algorithm computes the complete LoS polygon for a single transmitter in O(m log m): all m edges are sorted angularly and swept. Evaluation of n receiver points against this polygon costs O(n) via angular binary search. The total per-transmitter cost is O(m log m + n). 
+
+D2LoS cost decomposition. D2LoS replaces the O(m log m) polygon construction with three operations. 
+
+Step 1: CNN inference. The network processes a fixed H × W input tensor with H =
+
+W = 257. For a U-Net with L layers each of bounded filter size, the computation cost is 
+
+O(L · H · W ). Since L, H, and W are all fixed constants independent of m and n, the total inference cost is a constant CCNN .
+
+Step 2: Geometric post-processing. For each of the M predicted boundary vertices, we identify the nearest building edge within a search radius Rsearch . We assume a uniform grid-based spatial index is precomputed for each scenario in O(|E|) time, where |E| is the total number of building edges. Given this index, each query retrieves at most k candidate edges, where k ≤ πR 2search · ρedge and ρedge is the maximum local edge density. Since ρedge is bounded by the building geometry and Rsearch is a fixed constant, k is bounded by a constant independent of m. Each ray-edge intersection test costs O(1). The total cost of geometric post-processing is therefore O(M · k) = O(M ). 
+
+Step 3: LoS boundary rasterisation. The M boundary segments are sorted angularly with respect to ps in O(M log M ). The sorted boundary is then rasterised onto the H × W grid by scanline traversal in O(n), where n = H × W . The total rasterisation cost is O(M log M + n). 
+
+Total cost. Combining the three steps: 
+
+TD2LoS = CCNN + O(M ) + O(M log M + n) = O(M log M + n). (S1) In typical urban scenarios, m ≈ 1500–3000 and M ≈ 20–80 (i.e., only 2–5% of build-ing vertices lie on the LoS boundary for a given transmitter). Therefore M log M ≤ 80 ×
+
+log 2(80) ≈ 506, while n = 257 2 = 66 ,049. Since M log M ≪ n, the effective complexity sim-plifies to O(n), compared with O(m log m + n) for the classical method. The improvement factor in the polygon construction step is m log m/ (M log M ) ≥ 30 × for typical values. 
+
+17 GPU parallelisation. The three steps parallelise as follows. CNN inference maps to tensor-core parallelism with wall-clock time determined by network depth, not spatial resolution. This is a constant TCNN on any modern GPU. The M edge-snapping and ray-edge inter-section operations are independent and execute in O(1) wall-clock time with M parallel threads. Angular sorting of M elements can be performed via parallel merge sort in O(log 2 M )wall-clock time. The n point-in-polygon evaluations are independent; each tests membership against the sorted angular boundary in O(log M ) via binary search. With n parallel threads, this step has O(log M ) wall-clock time. The total wall-clock time under GPU parallelisation is: 
+
+Twall = TCNN + O(1) + O(log 2 M ) + O(log M ) = O(TCNN + log 2 M ). (S2) Since both TCNN and log 2 M are bounded constants independent of m and n, the wall-clock time per transmitter is O(1) with respect to the scenario size. □
+
+## Supplementary Theorem S2: UTD Numerical Stability and Field Continuity 
+
+Theorem 2 (Pointwise diffracted field bound and shadow boundary continuity) Consider the Luebbers UTD diffraction coefficient D for a lossy dielectric wedge with exterior angle 
+
+nπ . The following properties hold: (a) At the shadow boundary ( ϕ − ϕ′ = π), the diffracted field satisfies |Ed| = 0 .5 · | Ei|,ensuring that the total field Etotal = Ei + Ed is continuous across the boundary. (b) For all observation angles, |D| is bounded above by its value at the shadow boundary. Therefore, the envelope clamp |D|max = 0 .5 does not alter the physical solution and serves only as a numerical safeguard. Proof Part (a): Shadow boundary limit. 
+
+The Luebbers UTD diffraction coefficient consists of four terms: 
+
+D =
+
+> 4
+
+X
+
+> i=1
+
+Di, Di = −e−jπ/ 4
+
+2n√2πk Ci · cot 
+
+ π + βi
+
+2n
+
+
+
+F
+
+
+
+kL i a+(βi)
+
+
+
+, (S3) where βi ∈ { ϕ − ϕ′, ϕ + ϕ′} with appropriate sign combinations, Ci ∈ { 1, 1, R 0, R n} are the face reflection coefficients, and F (X) = 2 j√X e jX R ∞√X e−jt 2
+
+dt is the Fresnel transition function. At the incident shadow boundary where β1 = ϕ − ϕ′ → π, the cotangent factor in 
+
+D1 has a pole: cot   π+β1
+
+> 2n
+
+ → ∞ . Simultaneously, the transition function argument satisfies 
+
+a+(β1) → 0, so F (kL 1 a+(β1)) → 0. Applying L’Hˆ opital’s rule to the product: lim  
+
+> β1→π
+
+cot 
+
+ π + β1
+
+2n
+
+
+
+F
+
+
+
+kL 1 a+(β1)
+
+
+
+= n
+
+r 2πk L1
+
+ejπ/ 4. (S4) Substituting back into D1 and multiplying by the free-space spreading factor √L1/(4 πd )yields |E(1)  
+
+> d
+
+| → 0.5 · | Ei| at the shadow boundary. The remaining terms D2, D3, D4 involve 
+
+ϕ + ϕ′ combinations that do not produce poles at ϕ − ϕ′ = π and contribute finite corrections. Their sum preserves the total limit of 0 .5 · | Ei| by the standard UTD continuity condition, which requires the total field to equal 0 .5 · Ei at the shadow boundary by construction of the Fresnel transition function. 
+
+Part (b): Global bound. 
+
+18 Away from the shadow boundary, a+(βi) > 0 and the Fresnel transition function satisfies 
+
+|F (X)| ≤ 1 for all X ≥ 0, with |F (X)| → 1 as X → ∞ . Meanwhile, the cotangent factors remain bounded when βi is away from ±nπ . The product | cot( ·) · F (·)| achieves its maximum at the shadow boundary where the L’Hˆ opital limit applies, and decreases monotonically as the observation angle moves away from the boundary. This monotonic decay is a well-known property of the UTD diffraction coefficient for convex wedges with n ≥ 1 (see Kouyoumjian and Pathak, Proc. IEEE, 1974). Therefore, |D(ϕ)| ≤ | D(ϕ = ϕ′ + π)| for all observation angles ϕ. The envelope clamp 
+
+|D|max = 0 .5 does not clip any physically correct solution. It acts solely as a guard against floating-point overflow when cot( ·) and F (·) are evaluated independently near the shadow boundary, where their product is finite but each factor individually diverges. 
+
+Numerical implementation. In floating-point arithmetic, finite-precision cancellation in the transition function F (X) for small X can produce spurious large values before the product is formed. The envelope clamp provides a post-hoc correction: 
+
+|Eclamped  
+
+> d
+
+| = min  |Ecomputed  
+
+> d
+
+|, 0.5 · | Ei|. (S5) This ensures that numerical artifacts do not violate the physical bound established in Part (b). 
+
+□
+
+Remark 1 (Forward-scatter smoothing) For near-grazing forward scattering with deflection angle 0 < θ < 30 ◦, the four UTD cotangent terms partially cancel, producing a small net diffraction coefficient with rapid oscillation due to the competing signs of D1–D4. These oscil-lations are sensitive to small perturbations in wedge geometry and are not reliably reproduced in discretised building models where edge positions are known only to pixel-level precision (∆ r = 1 m). We replace the oscillatory solution with a monotonic linear attenuation in the log domain: 
+
+Lsmooth (θ) = 6 .02 + 30 − 6.02 30 ◦ · (30 ◦ − θ) [dB] , θ ∈ [0 ◦, 30 ◦]. (S6) At θ = 30 ◦, Lsmooth = 6 .02 dB, matching the UTD envelope clamp and ensuring C0 conti-nuity. At θ = 0 ◦, Lsmooth = 30 dB, reflecting the physical expectation of strong attenuation for forward-diffracted rays. This smoothing is a modelling choice validated by the end-to-end RSS accuracy reported in the main text. 
+
+## Supplementary Theorem S3: Geometric Validity of 2D ×2D Decomposition 
+
+Theorem 3 (Exactness of 2D ×2D LoS decomposition) Consider a set of buildings 
+
+{B1, . . . , B N } under the 2.5D model, where each building is an extruded right prism Bi =
+
+Pi ×[0 , h i] with non-overlapping footprints ( Pi ∩Pj = ∅ for i̸ = j), polygonal footprint Pi, and height hi > 0. For any transmitter ps = ( xs, y s, h tx ) and receiver pr = ( xr , y r , h rx ) located outside all buildings, the full 3D direct-path LoS test is equivalent to: 
+
+LoS 3D (ps, pr ) = LoS 2D -H(ps, pr ) ∧ LoS 2D -V(ps, pr ), (S7) 
+
+where LoS 2D -H is the horizontal intersection test on the 2D projected ray and LoS 2D -V is the vertical elevation test against building heights. This equivalence holds with zero approximation error. 
+
+19 Proof Setup. Let R3D (t) =  r2D (t), z (t) parameterise the direct ray from ps to pr with 
+
+t ∈ [0 , 1], where r2D (t) = (1 − t)( xs, y s) + t(xr , y r ) and z(t) = (1 − t) htx + t h rx . Note that 
+
+z(t) is linear and therefore monotonic or constant over any sub-interval. 
+
+Necessary and sufficient condition for occlusion. The ray is occluded by building Bi if and only if there exists t∗ ∈ (0 , 1) such that R3D (t∗) ∈ Bi. By the Cartesian product structure 
+
+Bi = Pi × [0 , h i], this decomposes as: 
+
+∃ t∗ ∈ (0 , 1) : r2D (t∗) ∈ Pi ∧ 0 ≤ z(t∗) ≤ hi. (S8) 
+
+Case 1: No horizontal intersection. If r2D (t) /∈ Pi for all t ∈ (0 , 1), then no t∗ satisfying Eq. (S8) exists, and the ray clears Bi. No vertical check is needed. 
+
+Case 2: Horizontal intersection exists. Suppose the 2D projected ray intersects Pi. The intersection consists of one or more intervals [ tin , t out ] ⊂ (0 , 1). The ray is inside Bi in the vertical dimension if and only if z(t∗) ≤ hi for some t∗ ∈ [tin , t out ]. Since z(t) is linear, its minimum over [ tin , t out ] is min  z(tin ), z (tout ). The condition z(t∗) ≥ 0 is always satisfied since htx > 0 and hrx > 0. Therefore, the ray clears Bi vertically if and only if: min  z(tin ), z (tout ) > h i. (S9) 
+
+Global LoS condition. The ray has a clear LoS if and only if it clears every building. Since the footprints are non-overlapping, the horizontal intersection tests are independent across buildings. The global condition is: LoS 3D =
+
+> N
+
+^
+
+> i=1
+
+h  r2D (t) /∈ Pi, ∀t ∈ (0 , 1) | {z }
+
+> no horizontal intersection
+
+∨ min  z(ti
+
+> in
+
+), z (ti
+
+> out
+
+) > h i
+
+| {z }
+
+> clears rooftop
+
+i
+
+. (S10) This is precisely the conjunction of LoS 2D-H and LoS 2D-V . The decomposition introduces no approximation because: 
+
+1. Each building Bi is a Cartesian product of a 2D footprint and a 1D height interval, making horizontal and vertical dimensions separable. 2. The ray height z(t) is linear, so its extremum over any interval is attained at an endpoint. 3. Building footprints are non-overlapping, so per-building tests are independent. 
+
+Therefore Eq. (S7) holds exactly under the stated assumptions. □
+
+Remark 2 (Non-convex footprints) When a building footprint Pi is non-convex, the horizon-tal ray-footprint intersection may consist of multiple disjoint intervals {[t(k)in , t (k)out ]}Kk=1 . The vertical check in Eq. (S9) is then applied independently to each interval. The decomposi-tion remains exact because the linearity of z(t) and the Cartesian product structure hold regardless of footprint convexity. 
+
+Remark 3 (Limitations of the 2.5D assumption) The 2.5D prism assumption requires each building to have a uniform height hi. This does not hold for buildings with complex rooftop geometries such as pitched roofs, domes, or rooftop equipment. In such cases, the actual rooftop surface is a function hi(x, y ) rather than a constant, and the vertical check in Eq. (S9) must be replaced by: min 
+
+> t∈[tin ,t out ]
+
+z(t) − hi
+
+ r2D (t) > 0, (S11) which cannot be evaluated from endpoint values alone when hi(x, y ) is non-linear. The approximation error is bounded by max (x,y )∈Pi |hi(x, y ) − ¯hi|, where ¯hi is the uniform height used in the 2.5D model. 
+
+20 Supplementary Results: Beam Pattern Integration 
+
+The main text demonstrates post-hoc beam pattern integration with a 15 ◦ half-power beamwidth. Here we provide the complete set of results across four beamwidths (15 ◦, 30 ◦, 45 ◦, 60 ◦) and supplementary qualitative comparisons. In all cases, the antenna gain pattern Gant (ϕAoD , θ AoD ) is applied to per-ray AoD after the ray tracing computation, without re-executing visibility determination or path search. 
+
+15 ◦ beamwidth: qualitative APS and PDP 
+
+The main text presents 15 ◦ beam RSS maps and quantitative violin distributions. Supplementary Figs. 1 and 2 show the corresponding APS and PDP qualitative com-parisons. The narrow 15 ◦ beam acts as a stringent test of per-ray AoD accuracy: small angular errors in the predicted rays are amplified by the sharp beam roll-off, caus-ing misclassified rays to be either strongly attenuated or incorrectly retained. D 2LoS reproduces the beam-filtered APS profiles with correct dominant peak positions and sidelobe suppression. In the PDP domain, the narrow beam removes most off-axis multipath, leaving only a few dominant delay components. D 2LoS captures both their positions and relative power levels, whereas RadioUNet and RMTransformer produce delay profiles that bear no resemblance to the ground truth. GT No-Geom D2Los RadioUNet RMTransformer 
+
+Fig. 1 : APS comparison with a 15 ◦ beam pattern. The directional pattern narrows the angular spread and amplifies the dominant arrival direction. D 2LoS repro-duces the beam-filtered angular profile. No-Geom preserves the general shape but introduces secondary peak errors. RadioUNet and RMTransformer produce profiles unrelated to the ground truth. 21 GT No-Geom D2Los RadioUNet RMTransformer Fig. 2 : PDP comparison with a 15 ◦ beam pattern. The beam pattern sup-presses off-axis multipath, reducing the number of resolvable delay components. D 2LoS correctly captures this filtering effect. RadioUNet and RMTransformer produce delay profiles with incorrect power levels and spurious peaks. 
+
+30 ◦ beamwidth 
+
+Increasing the beamwidth to 30 ◦ admits more off-axis multipath into the received signal. This relaxes the angular selectivity compared to the 15 ◦ case, making the beam-filtered channel closer to the omnidirectional baseline. As shown in Fig. 3, D2LoS maintains compact error distributions across all three channel dimensions. The RSS MAE remains within 1 dB of the omnidirectional result, and the APS shape cosine stays above 0.85. No-Geom shows moderate degradation, while RadioUNet and RMTransformer continue to produce heavy-tailed error distributions. The qualitative RSS maps (Fig. 4) confirm that D 2LoS preserves the wider beam footprint and shadow boundaries. The APS and PDP curves (Figs. 5 and 6) show that D 2LoS tracks both the dominant and secondary multipath components under the 30 ◦ beam. 
+
+45 ◦ beamwidth 
+
+At 45 ◦ beamwidth, the directional filtering becomes mild and the beam-specific chan-nel approaches the omnidirectional case. Fig. 7 shows that the error distributions for D2LoS are nearly identical to the omnidirectional violin plots in the main text. This is expected: when the beam is wide enough to capture most multipath components, angular errors in individual rays have limited impact on the aggregated metrics. The RSS maps (Fig. 8) show only subtle differences from the omnidirectional maps, pri-marily at the beam edges where slight power attenuation is visible. The APS and PDP curves (Figs. 9 and 10) closely match the omnidirectional results for D 2LoS, 22 D 2LoS                                    
+
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 20
+> 40
+> 60
+> 80
+> a) MAE (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 40
+> 20
+> 0
+> 20
+> 40
+> 60
+> 80
+> b) Bias (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> c) NMSE
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.50
+> 0.25
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> d) Correlation
+> D2LoS No-Geom RadioUNet RMTransformer D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 20
+> 40
+> 60
+> a) AS Abs Err (deg)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 50
+> 100
+> 150
+> b) MDoA Abs Err (deg)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> c) APS Shape Cosine
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.000
+> 0.005
+> 0.010
+> 0.015
+> 0.020
+> 0.025
+> 0.030
+> d) APS Shape RMSE
+> D2LoS No-Geom RadioUNet RMTransformer D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 50
+> 100
+> 150
+> 200
+> 250
+> 300
+> a) DS Abs Err (ns)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 200
+> 400
+> 600
+> 800
+> b) Median Delay Abs Err (ns)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> c) K-factor Abs Err (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> d) PDP Shape Cosine
+> D2LoS No-Geom RadioUNet RMTransformer
+
+Fig. 3 : Prediction accuracy with a 30 ◦ beam pattern. D2LoS maintains com-pact, low-error distributions across RSS, APS, and PDP metrics, consistent with the 15 ◦ case. while RadioUNet and RMTransformer remain unable to produce physically meaningful outputs regardless of beamwidth. 
+
+60 ◦ beamwidth 
+
+The 60 ◦ beamwidth represents the widest tested configuration and the mildest direc-tional filtering. As shown in Fig. 11, D 2LoS retains low-error, compact distributions that are effectively indistinguishable from the omnidirectional case. The RSS maps (Fig. 12) differ from the omnidirectional maps primarily in a slight overall power offset due to the finite antenna gain. The APS and PDP curves (Figs. 13 and 14) con-firm that D 2LoS accuracy is independent of beamwidth. Taken together with the 15 ◦
+
+results, these findings demonstrate that the per-ray angular information produced by D2LoS is sufficiently accurate to support beam-specific analysis from narrow pencil beams to near-omnidirectional patterns, all from a single ray tracing computation. 
+
+## 1 Data availability 
+
+Data is available at https://github.com/UNIC-Lab/RayVerse. 23 GT RadioUNet D2Los No-Geom RMTransformer Fig. 4 : RSS radio maps with a 30 ◦ beam pattern. The wider beam produces broader spatial coverage compared to the 15 ◦ case. D 2LoS preserves both the beam footprint and shadow structure. 
+
+## 2 Code availability 
+
+Data is available at https://github.com/UNIC-Lab/D2LoS. 
+
+## References 
+
+[1] Zheng, Y., Chen, J.: A radio map approach for reduced pilot csi tracking in massive mimo networks. IEEE Transactions on Signal Processing (2025) [2] Wang, X., Zheng, P., Cheng, N., Sun, R., Chen, J., Tao, K., Yin, Z., Liu, Z., Zeng, Y.: Radiodiff-turbo: Lightweight generative large electromagnetic model for wire-less digital twin construction. In: IEEE INFOCOM 2025 - IEEE Conference on Computer Communications Workshops (INFOCOM WKSHPS), pp. 1–6 (2025). https://doi.org/10.1109/INFOCOMWKSHPS65812.2025.11152929 [3] Wang, X., Zhang, Q., Cheng, N., Sun, R., Li, Z., Cui, S., Shen, X.: Radiodiff-
+
+k2: Helmholtz equation informed generative diffusion model for multi-path aware radio map construction. IEEE J. Sel. Areas Commun. 44 , 2318–2333 (2026) https: //doi.org/10.1109/JSAC.2025.3641105 [4] Zeng, Y., Chen, J., Xu, J., Wu, D., Xu, X., Jin, S., Gao, X., Gesbert, D., Cui, S., Zhang, R.: A tutorial on environment-aware communications via channel knowledge map for 6G. IEEE Commun. Surveys Tuts. 26 (3), 1478–1519 (2024) 24 GT No-Geom D2Los RadioUNet RMTransformer Fig. 5 : APS comparison with a 30 ◦ beam pattern. D2LoS closely tracks the ground truth angular profile under the wider beam. [5] Wang, Z., Zhang, J., Du, H., Niyato, D., Cui, S., Ai, B., Debbah, M., Letaief, K.B., Poor, H.V.: A tutorial on extremely large-scale MIMO for 6G: Fundamentals, signal processing, and applications. IEEE Commun. Surveys Tuts. 26 (3), 1560– 1605 (2024) [6] Liu, B., Gao, S., Liu, X., Cheng, X., Yang, L.: Wifo: Wireless foundation model for channel prediction. Science China Information Sciences 68 (6), 162302 (2025) [7] Eyceoz, T., Duel-Hallen, A., Hallen, H.: Deterministic channel modeling and long range prediction of fast fading mobile radio channels. IEEE Communications Letters 2(9), 254–256 (2002) [8] Khuwaja, A.A., Chen, Y., Zhao, N., Alouini, M.-S., Dobbins, P.: A survey of channel modeling for uav communications. IEEE Communications Surveys & Tutorials 20 (4), 2804–2821 (2018) [9] Kammoun, A., Khanfir, H., Altman, Z., Debbah, M., Kamoun, M.: Preliminary results on 3d channel modeling: From theory to standardization. IEEE Journal on Selected Areas in Communications 32 (6), 1219–1229 (2014) [10] Deschamps, G.A.: Ray techniques in electromagnetics. Proc. IEEE 60 (9), 1022– 1035 (1972) [11] Tang, J., Bian, D., Li, G., Hu, J., Cheng, J.: Optimization Method of Dynamic Beam Position for LEO Beam-Hopping Satellite Communication Systems. IEEE Access 9, 57578–57588 (2021) 25 GT No-Geom D2Los RadioUNet RMTransformer Fig. 6 : PDP comparison with a 30 ◦ beam pattern. The wider beam retains more multipath components than the 15 ◦ case. D 2LoS reproduces the delay structure accurately. [12] Ha, T.N., Romero, D., L´ opez-Valcarce, R.: Radio maps for beam alignment in mmwave communications with location uncertainty. In: 2024 IEEE 99th Vehicular Technology Conference (VTC2024-Spring), pp. 1–7 (2024). IEEE [13] Oh, S., Myung, N.-H.: MIMO channel estimation method using ray-tracing propagation model. Electronics Lett. 40 (21), 1 (2004) [14] Chen, W., Chen, J.: Learning blockage and reflection geometry for mimo beam map construction. In: ICC 2025-IEEE International Conference on Communica-tions, pp. 2321–2326 (2025). IEEE [15] Hoffmann, M., Kryszkiewicz, P.: Beam management driven by radio environ-ment maps in o-ran architecture. In: 2023 IEEE International Conference on Communications Workshops (ICC Workshops), pp. 54–59 (2023). IEEE [16] Hoydis, J., A¨ ıt Aoudia, F., Cammerer, S., Nimier-David, M., Binder, N., Marcus, G., Keller, A.: Sionna rt: Differentiable ray tracing for radio propagation mod-eling. In: 2023 IEEE Globecom Workshops (GC Wkshps), pp. 317–321 (2023). IEEE [17] He, D., Ai, B., Guan, K., Wang, L., Zhong, Z., K¨ urner, T.: The design and appli-cations of high-performance ray-tracing simulation platform for 5g and beyond wireless communications: A tutorial. IEEE communications surveys & tutorials 
+
+21 (1), 10–27 (2018) 26 D 2LoS                                    
+
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 20
+> 40
+> 60
+> a) MAE (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 40
+> 20
+> 0
+> 20
+> 40
+> 60
+> b) Bias (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> c) NMSE
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.50
+> 0.25
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> d) Correlation
+> D2LoS No-Geom RadioUNet RMTransformer D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 20
+> 40
+> 60
+> a) AS Abs Err (deg)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 50
+> 100
+> 150
+> b) MDoA Abs Err (deg)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> c) APS Shape Cosine
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.000
+> 0.005
+> 0.010
+> 0.015
+> 0.020
+> 0.025
+> 0.030
+> d) APS Shape RMSE
+> D2LoS No-Geom RadioUNet RMTransformer D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 50
+> 100
+> 150
+> 200
+> 250
+> 300
+> a) DS Abs Err (ns)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 200
+> 400
+> 600
+> 800
+> b) Median Delay Abs Err (ns)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> c) K-factor Abs Err (dB)
+> D2LoS
+> No-Geom
+> RadioUNet
+> RMTransformer
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> d) PDP Shape Cosine
+> D2LoS No-Geom RadioUNet RMTransformer
+
+Fig. 7 : Prediction accuracy with a 45 ◦ beam pattern. Error distributions are nearly identical to the omnidirectional results, confirming that the wide beam captures most multipath energy. [18] Wang, X., Tao, K., Cheng, N., Yin, Z., Li, Z., Zhang, Y., Shen, X.: RadioD-iff: An effective generative diffusion model for sampling-free dynamic radio map construction. Ieee Trans. Cognit. Commun. Networking, Early Access, 1–13 (2024) [19] Zhang, S., Wijesinghe, A., Ding, Z.: Rme-gan: A learning framework for radio map estimation based on conditional generative adversarial network. IEEE Internet Things J. 10 (20), 18016–18027 (2023) [20] Wang, X., Yuan, T., Cao, Y., Cheng, N., Sun, R., Zhuang, W.: iradiodiff: Physics-informed diffusion model for indoor radio map construction and localization. In: ICC 2026 - IEEE International Conference on Communications, pp. 1–6 (2026) [21] Xiucheng Wang, N.C. Yuhao Pan: A tutorial on learning-based radio map construction: Data, paradigms, and physics-awarenes. arXiv preprint arXiv:2603.17499 (2026) [22] Guo, J., Wen, C.-K., Jin, S., Li, G.Y.: Overview of deep learning-based csi feed-back in massive mimo systems. IEEE Transactions on Communications 70 (12), 27 GT RadioUNet D2Los No-Geom RMTransformer Fig. 8 : RSS radio maps with a 45 ◦ beam pattern. The coverage pattern is close to omnidirectional with mild directional shaping at the beam edges. 8017–8045 (2022) [23] Levie, R., Yapar, C ¸ ., Kutyniok, G., Caire, G.: RadioUNet: Fast radio map estima-tion with convolutional neural networks. IEEE Trans. Wireless Commun. 20 (6), 4001–4015 (2021) [24] Wang, X., Zhang, Q., Cheng, N., Chen, J., Zhang, Z., Li, Z., Cui, S., Shen, X.: Radiodiff-3d: A 3d × 3d radio map dataset and generative diffusion based benchmark for 6g environment-aware communication. IEEE Trans. Netw. Sci. Eng. 13 , 3773–3789 (2026) https://doi.org/10.1109/TNSE.2025.3590545 [25] Yapar, C ¸ ., Levie, R., Kutyniok, G., Caire, G.: Real-time outdoor localization using radio maps: A deep learning approach. IEEE Transactions on Wireless Communications 22 (12), 9703–9717 (2023) https://doi.org/10.1109/TWC.2023. 3273202 [26] Wolfle, G., Gschwendtner, B.E., Landstorfer, F.M.: Intelligent ray tracing-a new approach for field strength prediction in microcells. In: 1997 IEEE 47th Vehicular Technology Conference. Technology in Motion, vol. 2, pp. 790–7942 (1997). https: //doi.org/10.1109/VETEC.1997.600437 [27] Long, K., Wang, W., Wu, Y., Liu, Y.: A fast ray tracing algorithm for urban areas. In: 2022 IEEE 10th Asia-Pacific Conference on Antennas and Propa-gation (APCAP), pp. 1–2 (2022). https://doi.org/10.1109/APCAP56600.2022. 10069838 28 GT No-Geom D2Los RadioUNet RMTransformer Fig. 9 : APS comparison with a 45 ◦ beam pattern. D2LoS closely matches the ground truth. The wider beam preserves most angular features from the omnidirec-tional case. [28] Choi, H., Oh, J., Chung, J., Alexandropoulos, G.C., Choi, J.: Withray: A versatile ray-tracing simulator for smart wireless environments. IEEE Access 11 , 56822– 56845 (2023) [29] Valenzuela, R.: A ray tracing approach to predicting indoor wireless transmission. In: IEEE 43rd Vehicular Technology Conference, pp. 214–218 (1993). IEEE [30] Yang, C.-F., Wu, B.-C., Ko, C.-J.: A ray-tracing method for modeling indoor wave propagation and penetration. IEEE transactions on Antennas and Propagation 
+
+46 (6), 907–919 (1998) [31] Tsingos, N., Funkhouser, T., Ngan, A., Carlbom, I.: Modeling acoustics in virtual environments using the uniform theory of diffraction. In: Proceedings of the 28th Annual Conference on Computer Graphics and Interactive Techniques, pp. 545– 552 (2001) [32] Li, Y., Zhang, C., Wang, W., Huang, Y.: Rmtransformer: Accurate radio map construction and coverage prediction. In: 2025 IEEE 101st Vehicular Technology Conference (VTC2025-Spring), pp. 1–5 (2025). IEEE [33] Beamer, S., Asanovi´ c, K., Patterson, D.: Direction-optimizing breadth-first search. Scientific Programming 21 (3-4), 137–148 (2013) [34] Alkhateeb, A.: Deepmimo: A generic deep learning dataset for millimeter wave and massive mimo applications. arXiv preprint arXiv:1902.06435 (2019) 29 GT No-Geom D2Los RadioUNet RMTransformer Fig. 10 : PDP comparison with a 45 ◦ beam pattern. The delay profile is close to the omnidirectional case. D 2LoS maintains accurate reproduction of multipath struc-ture. 30 D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0
+
+20 
+
+40 
+
+60 
+
+a) MAE (dB) 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+40 
+
+20 
+
+0
+
+20 
+
+40 
+
+60 
+
+b) Bias (dB) 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+c) NMSE 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0.50 
+
+0.25 
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+d) Correlation 
+
+D 2LoS No-Geom RadioUNet RMTransformer D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0
+
+20 
+
+40 
+
+60 
+
+a) AS Abs Err (deg) 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0
+
+50 
+
+100 
+
+150 
+
+b) MDoA Abs Err (deg) 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+c) APS Shape Cosine 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0.000 
+
+0.005 
+
+0.010 
+
+0.015 
+
+0.020 
+
+0.025 
+
+0.030 
+
+d) APS Shape RMSE 
+
+D 2LoS No-Geom RadioUNet RMTransformer D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0
+
+50 
+
+100 
+
+150 
+
+200 
+
+250 
+
+300 
+
+a) DS Abs Err (ns) 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0
+
+200 
+
+400 
+
+600 
+
+800 
+
+b) Median Delay Abs Err (ns) 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0
+
+5
+
+10 
+
+15 
+
+20 
+
+25 
+
+30 
+
+c) K-factor Abs Err (dB) 
+
+D 2LoS 
+
+No-Geom 
+
+RadioUNet 
+
+RMTransformer 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0 
+
+d) PDP Shape Cosine 
+
+D 2LoS No-Geom RadioUNet RMTransformer Fig. 11 : Prediction accuracy with a 60 ◦ beam pattern. Error distributions are effectively indistinguishable from the omnidirectional case, confirming robustness across all tested beamwidths. 31 GT RadioUNet D2Los No-Geom RMTransformer Fig. 12 : RSS radio maps with a 60 ◦ beam pattern. D2LoS accurately reproduces the near-omnidirectional coverage with mild directional shaping. GT No-Geom D2Los RadioUNet RMTransformer 
+
+Fig. 13 : APS comparison with a 60 ◦ beam pattern. The angular profile is close to the omnidirectional case. D 2LoS maintains full accuracy. 32 GT No-Geom D2Los RadioUNet RMTransformer Fig. 14 : PDP comparison with a 60 ◦ beam pattern. Delay structure matches the omnidirectional case closely. D 2LoS reproduces it accurately. 33
