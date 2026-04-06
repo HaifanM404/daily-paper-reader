@@ -1,0 +1,1578 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-04-06T20:32:27.361980+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 44,
+    "deep_cap": 7,
+    "deep_selected": 29,
+    "quick_candidates": 58,
+    "quick_skim_target": 12,
+    "quick_selected": 12
+  },
+  "deep_dive": [
+    {
+      "id": "2603.27496v1",
+      "source": "arxiv",
+      "title": "Learnable Viscosity Modulation in Physics-Informed Neural Networks for Incompressible Flow Reconstruction",
+      "abstract": "Accurately and stably solving the incompressible Navier--Stokes equations with physics-informed neural networks (PINNs) remains challenging, particularly for sparse or noisy observations and for flow regimes in which the local balance among convection, diffusion, and pressure is difficult to capture. To address this issue, we propose a framework, denoted as LVM-PINN, which incorporates a learnable viscosity modulation (LVM) mechanism into the PINN residual. Specifically, the model predicts a spatiotemporal scalar field that is embedded directly into the viscous diffusion term of the momentum equations, thereby enabling adaptive modulation of the local dissipation strength during training. This modification improves optimization stability while enhancing the representation of complex flow structures. The effect of the proposed mechanism is further examined through a controlled ablation setting with an otherwise unchanged network architecture, as well as through comparisons with GRU- and residual-attention-based backbone baselines. Numerical experiments on two-dimensional benchmark problems, including the Kovasznay flow and two manufactured forcing flows, show that the proposed framework yields more stable training behavior and more accurate flow reconstruction under sparse and noisy data conditions.",
+      "authors": [
+        "Ke Xu",
+        "Ze Tao",
+        "Fujun Liu"
+      ],
+      "primary_category": "physics.flu-dyn",
+      "categories": [
+        "physics.flu-dyn"
+      ],
+      "published": "2026-03-29T03:23:28+00:00",
+      "link": "https://arxiv.org/pdf/2603.27496v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "physics-informed neural networks for incompressible flow",
+      "llm_evidence_cn": "用于不可压缩流的物理信息神经网络",
+      "llm_evidence": "用于不可压缩流的物理信息神经网络",
+      "canonical_evidence": "用于不可压缩流的物理信息神经网络",
+      "llm_tldr_en": "Introduces a learnable viscosity modulation mechanism to improve PINN performance in solving Navier-Stokes equations.",
+      "llm_tldr_cn": "引入可学习的粘度调节机制，以提高PINN求解纳维-斯托克斯方程的性能。",
+      "llm_tldr": "引入可学习的粘度调节机制，以提高PINN求解纳维-斯托克斯方程的性能。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.27929v1",
+      "source": "arxiv",
+      "title": "Physics-Guided Transformer (PGT): Physics-Aware Attention Mechanism for PINNs",
+      "abstract": "Reconstructing continuous physical fields from sparse, irregular observations is a central challenge in scientific machine learning, particularly for systems governed by partial differential equations (PDEs). Existing physics-informed methods typically enforce governing equations as soft penalty terms during optimization, often leading to gradient imbalance, instability, and degraded physical consistency under limited data. We introduce the Physics-Guided Transformer (PGT), a neural architecture that embeds physical structure directly into the self-attention mechanism. Specifically, PGT incorporates a heat-kernel-derived additive bias into attention logits, encoding diffusion dynamics and temporal causality within the representation. Query coordinates attend to these physics-conditioned context tokens, and the resulting features are decoded using a FiLM-modulated sinusoidal implicit network that adaptively controls spectral response. We evaluate PGT on the one-dimensional heat equation and two-dimensional incompressible Navier-Stokes systems. In sparse 1D reconstruction with 100 observations, PGT achieves a relative L2 error of 5.9e-3, significantly outperforming both PINNs and sinusoidal representations. In the 2D cylinder wake problem, PGT uniquely achieves both low PDE residual (8.3e-4) and competitive relative error (0.034), outperforming methods that optimize only one objective. These results demonstrate that embedding physics within attention improves stability, generalization, and physical fidelity under data-scarce conditions.",
+      "authors": [
+        "Ehsan Zeraatkar",
+        "Rodion Podorozhny",
+        "Jelena Tešić"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-03-30T00:55:32+00:00",
+      "link": "https://arxiv.org/pdf/2603.27929v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "physics-aware attention mechanism for PINNs",
+      "llm_evidence_cn": "用于PINN的物理感知注意力机制",
+      "llm_evidence": "用于PINN的物理感知注意力机制",
+      "canonical_evidence": "用于PINN的物理感知注意力机制",
+      "llm_tldr_en": "Introduces a Physics-Guided Transformer that embeds physical structure into attention.",
+      "llm_tldr_cn": "引入了一种将物理结构嵌入注意力机制的物理引导Transformer。",
+      "llm_tldr": "引入了一种将物理结构嵌入注意力机制的物理引导Transformer。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.27936v1",
+      "source": "arxiv",
+      "title": "Deflation-PINNs: Learning Multiple Solutions for PDEs and Landau-de Gennes",
+      "abstract": "Nonlinear Partial Differential Equations (PDEs) are ubiquitous in mathematical physics and engineering. Although Physics-Informed Neural Networks (PINNs) have emerged as a powerful tool for solving PDE problems, they typically struggle to identify multiple distinct solutions, since they are designed to find one solution at a time. To address this limitation, we introduce Deflation-PINNs, a novel framework that integrates a deflation loss with an architecture based on PINNs and Deep Operator Networks (DeepONets). By incorporating a deflation term into the loss function, our method systematically forces the Deflation-PINN to seek and converge upon distinct finitely many solution branches. We provide theoretical evidence on the convergence of our model and demonstrate the efficacy of Deflation-PINNs through numerical experiments on the Landau-de Gennes model of liquid crystals, a system renowned for its complex energy landscape and multiple equilibrium states. Our results show that Deflation-PINNs can successfully identify and characterize multiple distinct crystal structures.",
+      "authors": [
+        "Sean Disarò",
+        "Ruma Rani Maity",
+        "Aras Bacho"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA",
+        "cs.LG"
+      ],
+      "published": "2026-03-30T01:09:00+00:00",
+      "link": "https://arxiv.org/pdf/2603.27936v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:DDI",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "integrates deflation loss with PINNs and DeepONets for PDEs",
+      "llm_evidence_cn": "将紧缩损失与PINNs和DeepONets结合用于偏微分方程",
+      "llm_evidence": "将紧缩损失与PINNs和DeepONets结合用于偏微分方程",
+      "canonical_evidence": "将紧缩损失与PINNs和DeepONets结合用于偏微分方程",
+      "llm_tldr_en": "Introduces Deflation-PINNs to identify multiple distinct solutions for nonlinear partial differential equations.",
+      "llm_tldr_cn": "引入Deflation-PINNs框架，用于识别非线性偏微分方程的多个不同解。",
+      "llm_tldr": "引入Deflation-PINNs框架，用于识别非线性偏微分方程的多个不同解。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.27936v2",
+      "source": "arxiv",
+      "title": "Deflation-PINNs: Learning Multiple Solutions for PDEs and Landau-de Gennes",
+      "abstract": "Nonlinear Partial Differential Equations (PDEs) are ubiquitous in mathematical physics and engineering. Although Physics-Informed Neural Networks (PINNs) have emerged as a powerful tool for solving PDE problems, they typically struggle to identify multiple distinct solutions, since they are designed to find one solution at a time. To address this limitation, we introduce Deflation-PINNs, a novel framework that integrates a deflation loss with an architecture based on PINNs and Deep Operator Networks (DeepONets). By incorporating a deflation term into the loss function, our method systematically forces the Deflation-PINN to seek and converge upon distinct finitely many solution branches. We provide theoretical evidence on the convergence of our model and demonstrate the efficacy of Deflation-PINNs through numerical experiments on the Landau-de Gennes model of liquid crystals, a system renowned for its complex energy landscape and multiple equilibrium states. Our results show that Deflation-PINNs can successfully identify and characterize multiple distinct crystal structures.",
+      "authors": [
+        "Sean Disarò",
+        "Ruma Rani Maity",
+        "Aras Bacho"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA",
+        "cs.LG"
+      ],
+      "published": "2026-03-30T01:09:00+00:00",
+      "link": "https://arxiv.org/pdf/2603.27936v2",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:DDI",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "Physics-Informed Neural Networks for finding multiple solutions to nonlinear PDEs",
+      "llm_evidence_cn": "用于寻找非线性PDE多个解的物理信息神经网络",
+      "llm_evidence": "用于寻找非线性PDE多个解的物理信息神经网络",
+      "canonical_evidence": "用于寻找非线性PDE多个解的物理信息神经网络",
+      "llm_tldr_en": "Combines PINNs with deflation loss to systematically identify multiple distinct solutions for nonlinear PDEs.",
+      "llm_tldr_cn": "将PINN与紧缩损失结合，系统地识别非线性偏微分方程的多个不同解分支。",
+      "llm_tldr": "将PINN与紧缩损失结合，系统地识别非线性偏微分方程的多个不同解分支。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.28932v1",
+      "source": "arxiv",
+      "title": "A Unified Multiscale Auxiliary PINN Framework for Generalized Phonon Transport",
+      "abstract": "Nanoscale thermal transport is governed by the phonon Boltzmann transport equation (BTE). However, simulating the sub-continuum dynamics remains computationally prohibitive due to the high dimensionality of the phase space and the intrinsic nonlinearity of the scattering collision operator. Traditional numerical solvers and standard physics-informed neural networks (PINNs) inherently struggle with these integro-differential equations due to deterministic quadrature limitations, artificial thermalization introduced by the relaxation time approximation (RTA), and multiscale spectral bias. This work introduces a multiscale auxiliary physics-informed neural network (MTNet) to solve the generalized equation of phonon radiative transfer (GEPRT). By leveraging an auxiliary formulation, this mesh-free framework recasts the GEPRT into a fully differential system, enabling the analytical evaluation of scattering operators via automatic differentiation and facilitating scalable multi-GPU parallelization. To circumvent optimization stiffness, the architecture employs a decoupled, shallow neural network explicitly constrained by radiative equilibrium. MTNet is validated by simulating steady-state cross-plane transport in a silicon thin film, successfully capturing ballistic-diffusive regimes and characteristic boundary slips across extreme temperature gradients ($ΔT = 100$ K) beyond the standard linearization approach. Furthermore, we show that our framework successfully solves a geometric inverse problem in a slab geometry, retrieving the unknown slab thickness based only on interface temperature constraints in the mesoscopic regime. Ultimately, MTNet establishes a robust, fully differentiable foundation for predicting high-fidelity kinetic transport and extracting material properties in next-generation nanostructures.",
+      "authors": [
+        "Roberto Riganti",
+        "Luca Dal Negro"
+      ],
+      "primary_category": "cond-mat.mes-hall",
+      "categories": [
+        "cond-mat.mes-hall"
+      ],
+      "published": "2026-03-30T19:11:13+00:00",
+      "link": "https://arxiv.org/pdf/2603.28932v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "multiscale auxiliary PINN framework for transport equations",
+      "llm_evidence_cn": "用于输运方程的多尺度辅助物理信息神经网络框架",
+      "llm_evidence": "用于输运方程的多尺度辅助物理信息神经网络框架",
+      "canonical_evidence": "用于输运方程的多尺度辅助物理信息神经网络框架",
+      "llm_tldr_en": "Develops a multiscale auxiliary PINN (MTNet) to solve generalized phonon radiative transfer equations.",
+      "llm_tldr_cn": "开发了一种多尺度辅助物理信息神经网络（MTNet）来求解广义声子辐射传热方程。",
+      "llm_tldr": "开发了一种多尺度辅助物理信息神经网络（MTNet）来求解广义声子辐射传热方程。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.29237v1",
+      "source": "arxiv",
+      "title": "Stochastic Dimension Implicit Functional Projections for Exact Integral Conservation in High-Dimensional PINNs",
+      "abstract": "Enforcing exact macroscopic conservation laws, such as mass and energy, in neural partial differential equation (PDE) solvers is computationally challenging in high dimensions. Traditional discrete projections rely on deterministic quadrature that scales poorly and restricts mesh-free formulations like PINNs. Furthermore, high-order operators incur heavy memory overhead, and generic optimization often lacks convergence guarantees for non-convex conservation manifolds. To address this, we propose the Stochastic Dimension Implicit Functional Projection (SDIFP) framework. Instead of projecting discrete vectors, SDIFP applies a global affine transformation to the continuous network output. This yields closed-form solutions for integral constraints via detached Monte Carlo (MC) quadrature, bypassing spatial grid dependencies. For scalable training, we introduce a doubly-stochastic unbiased gradient estimator (DS-UGE). By decoupling spatial sampling from differential operator subsampling, the DS-UGE reduces memory complexity from $\\mathcal{O}(M \\times N_{\\mathcal{L}})$ to $\\mathcal{O}(N \\times |\\mathcal{I}|)$. SDIFP mitigates sampling variance, preserves solution regularity, and maintains $\\mathcal{O}(1)$ inference efficiency, providing a scalable, mesh-free approach for solving conservative high-dimensional PDEs.",
+      "authors": [
+        "Zhangyong Liang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "math.NA"
+      ],
+      "published": "2026-03-31T04:07:51+00:00",
+      "link": "https://arxiv.org/pdf/2603.29237v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "exact conservation in high-dimensional PINNs",
+      "llm_evidence_cn": "高维PINN中的精确守恒",
+      "llm_evidence": "高维PINN中的精确守恒",
+      "canonical_evidence": "高维PINN中的精确守恒",
+      "llm_tldr_en": "Introduces a framework for enforcing exact macroscopic conservation laws in high-dimensional neural PDE solvers.",
+      "llm_tldr_cn": "提出了一种在高维神经PDE求解器中强制执行精确宏观守恒律的框架。",
+      "llm_tldr": "提出了一种在高维神经PDE求解器中强制执行精确宏观守恒律的框架。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.29249v1",
+      "source": "arxiv",
+      "title": "A Unified Weighted-Loss Physics-Informed Neural Network for Boundary Layer Problems in Singularly Perturbed PDEs",
+      "abstract": "Singularly perturbed partial differential equations arise in many applications, including magnetohydrodynamic duct flows, chemical reaction transport systems, and Poisson Boltzmann electrostatics. These problems are characterized by sharp boundary layers and pronounced multiscale behavior, posing significant challenges for numerical methods. Existing approaches, particularly machine learning based methods, often rely on explicit asymptotic decompositions or specialized architectures, increasing implementation complexity and leading to optimization imbalance in stiff regimes. In this work, we propose a unified learning framework based on a weighted loss formulation within the standard physics informed neural network setting. The proposed method requires only prior knowledge of the boundary layer thickness, while the boundary layer locations are automatically identified during training. The resulting formulation avoids problem specific architectural modifications and remains applicable across different equation types. Numerical experiments on both scalar and coupled reaction diffusion and convection diffusion reaction systems, defined on regular and irregular domains, demonstrate robust performance for boundary layer thickness as small as $10^{-10}$ while maintaining high solution accuracy.",
+      "authors": [
+        "Wei-Fan Hu",
+        "Shi-Xiang Zhong",
+        "Po-Wen Hsieh",
+        "Chung-Kai Chen",
+        "Te-Sheng Lin"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA"
+      ],
+      "published": "2026-03-31T04:18:26+00:00",
+      "link": "https://arxiv.org/pdf/2603.29249v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "physics-informed neural network for singularly perturbed PDEs",
+      "llm_evidence_cn": "针对奇异摄动偏微分方程的物理信息神经网络",
+      "llm_evidence": "针对奇异摄动偏微分方程的物理信息神经网络",
+      "canonical_evidence": "针对奇异摄动偏微分方程的物理信息神经网络",
+      "llm_tldr_en": "Proposes a unified weighted-loss PINN framework to solve boundary layer problems in complex PDEs.",
+      "llm_tldr_cn": "提出一种统一的加权损失PINN框架，用于解决复杂偏微分方程中的边界层问题。",
+      "llm_tldr": "提出一种统一的加权损失PINN框架，用于解决复杂偏微分方程中的边界层问题。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00948v1",
+      "source": "arxiv",
+      "title": "Physics-informed neural networks for solving two-phase flow problems with moving interfaces",
+      "abstract": "In this paper, a meshfree method using physics-informed neural networks (PINNs) is developed for solving two-phase flow problems with moving interfaces, where two immiscible fluids bearing different material properties, are separated by a dynamically evolving interface and interact with each other through interface conditions. Two kinds of distinct scenarios of interface motion are addressed: the prescribed interface motion whose moving velocity is explicitly given, and the solution-driven interface motion whose evolution is determined by the velocity field of two-phase flow. Based upon piecewise deep neural networks and spatiotemporal sampling points/training set in each fluid subdomain, the proposed PINNs framework reformulates the two-phase flow moving interface problem as a least-squares (LS) minimization problem, which involves all residuals of governing equations, interface conditions, boundary conditions and initial conditions. Furthermore, approximation properties of the proposed PINNs approach are analyzed rigorously for the presented two-phase flow model by employing the Reynolds transport theorem in evolving domains, moreover, a comprehensive error estimation is provided to account for additional complexities introduced by the moving interface and the coupling between fluid dynamics and interface evolution. Numerical experiments are carried out to illustrate the effectiveness of the proposed PINNs approach for various configurations of two-phase flow moving interface problems, and to validate the theoretical findings as well. A practical guidance is thus provided for an efficient training set distribution when applying the proposed PINNs approach to two-phase flow moving interface problems in practice.",
+      "authors": [
+        "Qijia Zhai",
+        "Pengtao Sun",
+        "Xiaoping Xie",
+        "Xingwen Zhu",
+        "Chen-Song Zhang"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA"
+      ],
+      "published": "2026-04-01T14:24:58+00:00",
+      "link": "https://arxiv.org/pdf/2604.00948v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "physics-informed neural networks for solving PDEs",
+      "llm_evidence_cn": "用于求解偏微分方程的物理信息神经网络",
+      "llm_evidence": "用于求解偏微分方程的物理信息神经网络",
+      "canonical_evidence": "用于求解偏微分方程的物理信息神经网络",
+      "llm_tldr_en": "Develops PINNs for solving two-phase flow problems with moving interfaces in fluid dynamics.",
+      "llm_tldr_cn": "开发了用于解决流体动力学中具有移动界面的两相流问题的PINN方法。",
+      "llm_tldr": "开发了用于解决流体动力学中具有移动界面的两相流问题的PINN方法。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01449v2",
+      "source": "arxiv",
+      "title": "When AI Gets it Wrong: Reliability and Risk in AI-Assisted Medication Decision Systems",
+      "abstract": "Artificial intelligence (AI) systems are increasingly integrated into healthcare and pharmacy workflows, supporting tasks such as medication recommendations, dosage determination, and drug interaction detection. While these systems often demonstrate strong performance under standard evaluation metrics, their reliability in real-world decision-making remains insufficiently understood. In high-risk domains such as medication management, even a single incorrect recommendation can result in severe patient harm. This paper examines the reliability of AI-assisted medication systems by focusing on system failures and their potential clinical consequences. Rather than evaluating performance solely through aggregate metrics, this work shifts attention towards how errors occur and what happens when AI systems produce incorrect outputs. Through a series of controlled, simulated scenarios involving drug interactions and dosage decisions, we analyse different types of system failures, including missed interactions, incorrect risk flagging, and inappropriate dosage recommendations. The findings highlight that AI errors in medication-related contexts can lead to adverse drug reactions, ineffective treatment, or delayed care, particularly when systems are used without sufficient human oversight. Furthermore, the paper discusses the risks of over-reliance on AI recommendations and the challenges posed by limited transparency in decision-making processes. This work contributes a reliability-focused perspective on AI evaluation in healthcare, emphasising the importance of understanding failure behavior and real-world impact. It highlights the need to complement traditional performance metrics with risk-aware evaluation approaches, particularly in safety-critical domains such as pharmacy practice.",
+      "authors": [
+        "Khalid Adnan Alsayed"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-04-01T22:53:17+00:00",
+      "link": "https://arxiv.org/pdf/2604.01449v2",
+      "tags": [
+        "keyword:DDI",
+        "query:DDI"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "reliability in drug interaction detection systems",
+      "llm_evidence_cn": "药物相互作用检测系统的可靠性",
+      "llm_evidence": "药物相互作用检测系统的可靠性",
+      "canonical_evidence": "药物相互作用检测系统的可靠性",
+      "llm_tldr_en": "Evaluates the reliability and clinical risks of AI systems used for drug interaction detection and medication.",
+      "llm_tldr_cn": "评估用于药物相互作用检测和用药的AI系统的可靠性与临床风险。",
+      "llm_tldr": "评估用于药物相互作用检测和用药的AI系统的可靠性与临床风险。",
+      "llm_tags": [
+        "query:ddi"
+      ],
+      "matched_query_tag": "query:ddi",
+      "matched_query_text": "drug interaction prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01835v1",
+      "source": "arxiv",
+      "title": "Goal oriented error estimation for adaptive sampling of PINNS",
+      "abstract": "Physics-Informed Neural Networks (PINNs) are mesh-free approaches for the numerical approximation of partial differential equations, where a neural network is trained by minimizing a loss function derived from the governing equations and boundary conditions. The Deep Ritz method can be interpreted as a particular variational form of a PINN, where the loss corresponds to the minimization of an energy functional associated with a symmetric positive definite problem.   In this work, we study the approximation of the Laplace equation using both the classical PINN formulation and its variational counterpart, the Deep Ritz method, with the objective of accurately estimating prescribed goal functionals. When standard sampling strategies, such as uniform or loss-based sampling, are employed during training, the convergence of the functional error and the attained minimal functional value can be slow.   To address this issue, we introduce a functional-oriented importance sampling strategy that can be applied to both PINNs and the Deep Ritz method. The key ingredient is the construction of a reliable and accurate estimator for the error in a given quantity of interest. This estimator is derived using concepts from the Dual Weighted Residual (DWR) framework and is implemented entirely within the neural network setting. It is then used to adaptively guide the sampling of training points in the computational domain, focusing computational effort on regions that have the strongest influence on the functional value.   Numerical experiments demonstrate that the proposed adaptive sampling strategy significantly accelerates the convergence of the functional error and improves the minimization of the target functional during training for both PINN and Deep Ritz formulations.",
+      "authors": [
+        "Medard Govoeyi",
+        "Thomas Richter"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA"
+      ],
+      "published": "2026-04-02T09:47:11+00:00",
+      "link": "https://arxiv.org/pdf/2604.01835v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "adaptive sampling and error estimation for Physics-Informed Neural Networks (PINNs)",
+      "llm_evidence_cn": "物理信息神经网络(PINNs)的自适应采样和误差估计",
+      "llm_evidence": "物理信息神经网络(PINNs)的自适应采样和误差估计",
+      "canonical_evidence": "物理信息神经网络(PINNs)的自适应采样和误差估计",
+      "llm_tldr_en": "Studies goal-oriented error estimation for adaptive sampling in PINNs and Deep Ritz methods.",
+      "llm_tldr_cn": "研究了PINNs和Deep Ritz方法中用于自适应采样的目标导向误差估计。",
+      "llm_tldr": "研究了PINNs和Deep Ritz方法中用于自适应采样的目标导向误差估计。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.28073v1",
+      "source": "arxiv",
+      "title": "SIMR-NO: A Spectrally-Informed Multi-Resolution Neural Operator for Turbulent Flow Super-Resolution",
+      "abstract": "Reconstructing high-resolution turbulent flow fields from severely under-resolved observations is a fundamental inverse problem in computational fluid dynamics and scientific machine learning. Classical interpolation methods fail to recover missing fine-scale structures, while existing deep learning approaches rely on convolutional architectures that lack the spectral and multiscale inductive biases necessary for physically faithful reconstruction at large upscaling factors. We introduce the Spectrally-Informed Multi-Resolution Neural Operator (SIMR-NO), a hierarchical operator learning framework that factorizes the ill-posed inverse mapping across intermediate spatial resolutions, combines deterministic interpolation priors with spectrally gated Fourier residual corrections at each stage, and incorporates local refinement modules to recover fine-scale spatial features beyond the truncated Fourier basis. The proposed method is evaluated on Kolmogorov-forced two-dimensional turbulence, where $128\\times128$ vorticity fields are reconstructed from extremely coarse $8\\times8$ observations representing a $16\\times$ downsampling factor. Across 201 independent test realizations, SIMR-NO achieves a mean relative $\\ell_2$ error of $26.04\\%$ with the lowest error variance among all methods, reducing reconstruction error by $31.7\\%$ over FNO, $26.0\\%$ over EDSR, and $9.3\\%$ over LapSRN. Beyond pointwise accuracy, SIMR-NO is the only method that faithfully reproduces the ground-truth energy and enstrophy spectra across the full resolved wavenumber range, demonstrating physically consistent super-resolution of turbulent flow fields.",
+      "authors": [
+        "Muhammad Abid",
+        "Omer San"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "physics.flu-dyn"
+      ],
+      "published": "2026-03-30T06:17:27+00:00",
+      "link": "https://arxiv.org/pdf/2603.28073v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "hierarchical operator learning for turbulent flow",
+      "llm_evidence_cn": "湍流的层级算子学习",
+      "llm_evidence": "湍流的层级算子学习",
+      "canonical_evidence": "湍流的层级算子学习",
+      "llm_tldr_en": "A spectrally-informed neural operator for high-resolution reconstruction of turbulent flow fields.",
+      "llm_tldr_cn": "一种用于湍流场高分辨率重建的光谱信息神经算子。",
+      "llm_tldr": "一种用于湍流场高分辨率重建的光谱信息神经算子。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "operator learning in PDE contexts",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.28932v2",
+      "source": "arxiv",
+      "title": "A Unified Multiscale Auxiliary PINN Framework for Generalized Phonon Transport",
+      "abstract": "Nanoscale thermal transport is governed by the phonon Boltzmann transport equation (BTE). However, simulating the sub-continuum dynamics remains computationally prohibitive due to the high dimensionality of the phase space and the intrinsic nonlinearity of the scattering collision operator. Traditional numerical solvers and standard physics-informed neural networks (PINNs) inherently struggle with these integro-differential equations due to deterministic quadrature limitations, artificial thermalization introduced by the relaxation time approximation (RTA), and multiscale spectral bias. This work introduces a multiscale auxiliary physics-informed neural network (MTNet) to solve the generalized equation of phonon radiative transfer (GEPRT). By leveraging an auxiliary formulation, this mesh-free framework recasts the GEPRT into a fully differential system, enabling the analytical evaluation of scattering operators via automatic differentiation and facilitating scalable multi-GPU parallelization. To circumvent optimization stiffness, the architecture employs a decoupled, shallow neural network explicitly constrained by radiative equilibrium. MTNet is validated by simulating steady-state cross-plane transport in a silicon thin film, successfully capturing ballistic-diffusive regimes and characteristic boundary slips across extreme temperature gradients ($ΔT = 100$ K) beyond the standard linearization approach. Furthermore, we show that our framework successfully solves a geometric inverse problem in a slab geometry, retrieving the unknown slab thickness based only on interface temperature constraints in the mesoscopic regime. Ultimately, MTNet establishes a robust, fully differentiable foundation for predicting high-fidelity kinetic transport and extracting material properties in next-generation nanostructures.",
+      "authors": [
+        "Roberto Riganti",
+        "Luca Dal Negro"
+      ],
+      "primary_category": "cond-mat.mes-hall",
+      "categories": [
+        "cond-mat.mes-hall"
+      ],
+      "published": "2026-03-30T19:11:13+00:00",
+      "link": "https://arxiv.org/pdf/2603.28932v2",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "multiscale auxiliary PINN for phonon transport equations",
+      "llm_evidence_cn": "用于声子传输方程的多尺度辅助PINN",
+      "llm_evidence": "用于声子传输方程的多尺度辅助PINN",
+      "canonical_evidence": "用于声子传输方程的多尺度辅助PINN",
+      "llm_tldr_en": "Develops a multiscale auxiliary PINN framework to solve complex integro-differential phonon transport equations.",
+      "llm_tldr_cn": "开发了一种多尺度辅助PINN框架，用于求解复杂的声子输运积分微分方程。",
+      "llm_tldr": "开发了一种多尺度辅助PINN框架，用于求解复杂的声子输运积分微分方程。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.29264v1",
+      "source": "arxiv",
+      "title": "Lie Generator Networks for Nonlinear Partial Differential Equations",
+      "abstract": "Linear dynamical systems are fully characterized by their eigenspectra, accessible directly from the generator of the dynamics. For nonlinear systems governed by partial differential equations, no equivalent theory exists. We introduce Lie Generator Network--Koopman (LGN-KM), a neural operator that lifts nonlinear dynamics into a linear latent space and learns the continuous-time Koopman generator ($L_k$) through a decomposition $L_k = S - D_k$, where $S$ is skew-symmetric representing conservative inter-modal coupling, and $D_k$ is a positive-definite diagonal encoding modal dissipation. This architectural decomposition enforces stability and enables interpretability through direct spectral access to the learned dynamics. On two-dimensional Navier--Stokes turbulence, the generator recovers the known dissipation scaling and a complete multi-branch dispersion relation from trajectory data alone with no physics supervision. Independently trained models at different flow regimes recover matched gauge-invariant spectral structure, exposing a gauge freedom in the Koopman lifting. Because the generator is provably stable, it enables guaranteed long-horizon stability, continuous-time evaluation at arbitrary time, and physics-informed cross-viscosity model transfer.",
+      "authors": [
+        "Shafayeth Jamil",
+        "Rehan Kapadia"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "physics.flu-dyn"
+      ],
+      "published": "2026-03-31T04:59:56+00:00",
+      "link": "https://arxiv.org/pdf/2603.29264v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Neural operator for learning nonlinear partial differential equations via Koopman generator",
+      "llm_evidence_cn": "通过Koopman生成器学习非线性偏微分方程的神经算子",
+      "llm_evidence": "通过Koopman生成器学习非线性偏微分方程的神经算子",
+      "canonical_evidence": "通过Koopman生成器学习非线性偏微分方程的神经算子",
+      "llm_tldr_en": "Introduces Lie Generator Networks to lift nonlinear PDE dynamics into a linear latent space for interpretability.",
+      "llm_tldr_cn": "引入李生成器网络，将非线性PDE动力学提升到线性潜空间，以实现可解释性和稳定性。",
+      "llm_tldr": "引入李生成器网络，将非线性PDE动力学提升到线性潜空间，以实现可解释性和稳定性。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "operator learning in PDE contexts",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.29264v2",
+      "source": "arxiv",
+      "title": "Lie Generator Networks for Nonlinear Partial Differential Equations",
+      "abstract": "Linear dynamical systems are fully characterized by their eigenspectra, accessible directly from the generator of the dynamics. For nonlinear systems governed by partial differential equations, no equivalent theory exists. We introduce Lie Generator Network-Koopman (LGN-KM), a neural operator that lifts nonlinear dynamics into a linear latent space and learns the continuous-time Koopman generator ($L_k$) through a decomposition $L_k = S - D_k$, where $S$ is skew-symmetric representing conservative inter-modal coupling, and $D_k$ is a positive-definite diagonal encoding modal dissipation. This architectural decomposition enforces stability and enables interpretability through direct spectral access to the learned dynamics. On two-dimensional Navier--Stokes turbulence, the generator recovers the known dissipation scaling and a complete multi-branch dispersion relation from trajectory data alone with no physics supervision. Independently trained models at different flow regimes recover matched gauge-invariant spectral structure, exposing a gauge freedom in the Koopman lifting. Because the generator is provably stable, it enables guaranteed long-horizon stability, continuous-time evaluation at arbitrary time, and physics-informed cross-viscosity model transfer.",
+      "authors": [
+        "Shafayeth Jamil",
+        "Rehan Kapadia"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "physics.flu-dyn"
+      ],
+      "published": "2026-03-31T04:59:56+00:00",
+      "link": "https://arxiv.org/pdf/2603.29264v2",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Neural operator for nonlinear partial differential equations using Koopman generator",
+      "llm_evidence_cn": "用于非线性偏微分方程的Koopman生成器神经算子",
+      "llm_evidence": "用于非线性偏微分方程的Koopman生成器神经算子",
+      "canonical_evidence": "用于非线性偏微分方程的Koopman生成器神经算子",
+      "llm_tldr_en": "Introduces LGN-KM, a neural operator that lifts nonlinear PDE dynamics into a linear latent space.",
+      "llm_tldr_cn": "引入LGN-KM神经算子，将非线性PDE动力学提升到线性潜空间以实现可解释建模。",
+      "llm_tldr": "引入LGN-KM神经算子，将非线性PDE动力学提升到线性潜空间以实现可解释建模。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "operator learning in PDE contexts",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00132v1",
+      "source": "arxiv",
+      "title": "Predicting Wave Reflection and Transmission in Heterogeneous Media via Fourier Operator-Based Transformer Modeling",
+      "abstract": "We develop a machine learning (ML) surrogate model to approximate solutions to Maxwell's equations in one dimension, focusing on scenarios involving a material interface that reflects and transmits electro-magnetic waves. Derived from high-fidelity Finite Volume (FV) simulations, our training data includes variations of the initial conditions, as well as variations in one material's speed of light, allowing for the model to learn a range of wave-material interaction behaviors. The ML model autoregressively learns both the physical and frequency embeddings in a vision transformer-based framework. By incorporating Fourier transforms in the latent space, the wave number spectra of the solutions aligns closely with the simulation data. Prediction errors exhibit an approximately linear growth over time with a sharp increase at the material interface. Test results show that the ML solution has adequate relative errors below $10\\%$ in over $75$ time step rollouts, despite the presence of the discontinuity and unknown material properties.",
+      "authors": [
+        "Zhe Bai",
+        "Hans Johansen"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-03-31T18:37:56+00:00",
+      "link": "https://arxiv.org/pdf/2604.00132v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Fourier operator-based transformer for Maxwell's equations",
+      "llm_evidence_cn": "基于傅里叶算子的Transformer用于麦克斯韦方程组",
+      "llm_evidence": "基于傅里叶算子的Transformer用于麦克斯韦方程组",
+      "canonical_evidence": "基于傅里叶算子的Transformer用于麦克斯韦方程组",
+      "llm_tldr_en": "Develops a transformer-based surrogate model using Fourier transforms to solve wave equations in media.",
+      "llm_tldr_cn": "开发了一种基于Transformer和傅里叶变换的代理模型，用于求解介质中的波动方程。",
+      "llm_tldr": "开发了一种基于Transformer和傅里叶变换的代理模型，用于求解介质中的波动方程。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "applications of transformer models in computational physics for PDEs",
+      "matched_requirement_id": "req-15",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.00689v1",
+      "source": "arxiv",
+      "title": "Performance of Neural and Polynomial Operator Surrogates",
+      "abstract": "We consider the problem of constructing surrogate operators for parameter-to-solution maps arising from parametric partial differential equations, where repeated forward model evaluations are computationally expensive. We present a systematic empirical comparison of neural operator surrogates, including a reduced-basis neural operator trained with $L^2_μ$ and $H^1_μ$ objectives and the Fourier neural operator, against polynomial surrogate methods, specifically a reduced-basis sparse-grid surrogate and a reduced-basis tensor-train surrogate. All methods are evaluated on a linear parametric diffusion problem and a nonlinear parametric hyperelasticity problem, using input fields with algebraically decaying spectral coefficients at varying rates of decay $s$. To enable fair comparisons, we analyze ensembles of surrogate models generated by varying hyperparameters and compare the resulting Pareto frontiers of cost versus approximation accuracy, decomposing cost into contributions from data generation, setup, and evaluation. Our results show that no single method is universally superior. Polynomial surrogates achieve substantially better data efficiency for smooth input fields ($s \\geq 2$), with convergence rates for the sparse-grid surrogate in agreement with theoretical predictions. For rough inputs ($s \\leq 1$), the Fourier neural operator displays the fastest convergence rates. Derivative-informed training consistently improves data efficiency over standard $L^2_μ$ training, providing a competitive alternative for rough inputs in the low-data regime when Jacobian information is available at reasonable cost. These findings highlight the importance of matching the surrogate methodology to the regularity of the problem as well as accuracy demands and computational constraints of the application.",
+      "authors": [
+        "Josephine Westermann",
+        "Benno Huber",
+        "Thomas O'Leary-Roseberry",
+        "Jakob Zech"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "math.NA"
+      ],
+      "published": "2026-04-01T09:46:25+00:00",
+      "link": "https://arxiv.org/pdf/2604.00689v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "neural operator surrogates for parametric PDEs",
+      "llm_evidence_cn": "参数化偏微分方程的神经算子代理",
+      "llm_evidence": "参数化偏微分方程的神经算子代理",
+      "canonical_evidence": "参数化偏微分方程的神经算子代理",
+      "llm_tldr_en": "Compares neural and polynomial operator surrogates for solving parametric partial differential equations.",
+      "llm_tldr_cn": "比较了用于求解参数化偏微分方程的神经算子和多项式算子代理模型。",
+      "llm_tldr": "比较了用于求解参数化偏微分方程的神经算子和多项式算子代理模型。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "operator learning in PDE contexts",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01242v1",
+      "source": "arxiv",
+      "title": "Diffusion models with physics-guided inference for solving partial differential equations",
+      "abstract": "Diffusion models have recently emerged as powerful stochastic frameworks for high-dimensional inference and generation. However, existing applications to partial differential equations (PDEs) predominantly rely on physics-informed training strategies, which tightly couple learning with specific governing equations and limit generalization across problem settings. In this work, we propose a diffusion model with physics-guided inference for solving PDEs, in which the diffusion model is trained using standard data-driven procedures, while physical laws are incorporated exclusively during the reverse inference stage. The reverse diffusion dynamics is guided by a PDE residual energy function, combined with Gaussian smoothing and explicit boundary enforcement, yielding a physically consistent stochastic iteration that is independent of the training process. From a numerical standpoint, the proposed framework can be interpreted as a diffusion-inspired implicit solver that converges to the PDE solution even when initialized from random noise and perturbed by stochastic fluctuations. The method is validated on classical PDE equation such as Poisson, Diffusion, and Burgers equations with varying coefficients. Numerical results demonstrate robust convergence, high accuracy, and strong generalization without retraining, highlighting the proposed framework as a unified alternative to classical numerical solvers and physics-informed neural networks.",
+      "authors": [
+        "Yi Bing",
+        "Liu Jia",
+        "Fu Jinyang",
+        "Peng Xiang"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA",
+        "physics.comp-ph"
+      ],
+      "published": "2026-03-31T01:18:54+00:00",
+      "link": "https://arxiv.org/pdf/2604.01242v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "diffusion models with physics-guided inference for solving PDEs",
+      "llm_evidence_cn": "物理引导推理的扩散模型求解PDE",
+      "llm_evidence": "物理引导推理的扩散模型求解PDE",
+      "canonical_evidence": "物理引导推理的扩散模型求解PDE",
+      "llm_tldr_en": "Integrates physical laws into the reverse inference stage of diffusion models to solve PDEs.",
+      "llm_tldr_cn": "将物理定律整合到扩散模型的反向推理阶段，以实现偏微分方程的求解。",
+      "llm_tldr": "将物理定律整合到扩散模型的反向推理阶段，以实现偏微分方程的求解。",
+      "llm_tags": [
+        "query:pde-llm:composite"
+      ],
+      "matched_query_tag": "query:pde-llm:composite",
+      "matched_query_text": "Papers central to 利用大语言模型解偏微分方程(PDEs)的论文, especially work that connects or combines: physics-informed neural networks for PDEs; large language model applications in partial differential equations; scientific machine learning for PDEs; operator learning in PDE contexts; discovering PDEs from data using language models; methods for solving partial differential equations using large language models; neural network approaches to PDEs with language model integration; AI techniques for discovering and solving differential equations; applications of transformer models in computational physics for PDEs.",
+      "matched_requirement_id": "req-composite-pde-llm",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01335v1",
+      "source": "arxiv",
+      "title": "Bias Inheritance in Neural-Symbolic Discovery of Constitutive Closures Under Function-Class Mismatch",
+      "abstract": "We investigate the data-driven discovery of constitutive closures in nonlinear reaction-diffusion systems with known governing PDE structures. Our objective is to robustly recover diffusion and reaction laws from spatiotemporal observations while avoiding the common pitfall where low residuals or short-horizon predictions are conflated with physical recovery. We propose a three-stage neural-symbolic framework: (1) learning numerical surrogates under physical constraints using a noise-robust weak-form-driven objective; (2) compressing these surrogates into restricted interpretable symbolic families (e.g., polynomial, rational, and saturation forms); and (3) validating the symbolic closures through explicit forward re-simulation on unseen initial conditions. Extensive numerical experiments reveal two distinct regimes. Under matched-library settings, weak polynomial baselines behave as correctly specified reference estimators, showing that neural surrogates do not uniformly outperform classical bases. Conversely, under function-class mismatch, neural surrogates provide necessary flexibility and can be compressed into compact symbolic laws with minimal rollout degradation. However, we identify a critical \"bias inheritance\" mechanism where symbolic compression does not automatically repair constitutive bias. Across various observation regimes, the true error of the symbolic closure closely tracks that of the neural surrogate, yielding a bias inheritance ratio near one. These findings demonstrate that the primary bottleneck in neural-symbolic modeling lies in the initial numerical inverse problem rather than the subsequent symbolic compression. We underscore that constitutive claims must be rigorously supported by forward validation rather than residual minimization alone.",
+      "authors": [
+        "Hanbing Liang",
+        "Ze Tao",
+        "Fujun Liu"
+      ],
+      "primary_category": "cs.CE",
+      "categories": [
+        "cs.CE",
+        "cs.LG"
+      ],
+      "published": "2026-04-01T19:39:04+00:00",
+      "link": "https://arxiv.org/pdf/2604.01335v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "neural-symbolic discovery of reaction-diffusion PDEs",
+      "llm_evidence_cn": "反应扩散偏微分方程的神经常微分发现",
+      "llm_evidence": "反应扩散偏微分方程的神经常微分发现",
+      "canonical_evidence": "反应扩散偏微分方程的神经常微分发现",
+      "llm_tldr_en": "A neural-symbolic framework for discovering constitutive laws in nonlinear reaction-diffusion PDE systems.",
+      "llm_tldr_cn": "一种用于发现非线性反应扩散偏微分方程系统中本构律的神经常微分框架。",
+      "llm_tldr": "一种用于发现非线性反应扩散偏微分方程系统中本构律的神经常微分框架。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "AI techniques for discovering and solving differential equations",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01349v1",
+      "source": "arxiv",
+      "title": "PI-JEPA: Label-Free Surrogate Pretraining for Coupled Multiphysics Simulation via Operator-Split Latent Prediction",
+      "abstract": "Reservoir simulation workflows face a fundamental data asymmetry: input parameter fields (geostatistical permeability realizations, porosity distributions) are free to generate in arbitrary quantities, yet existing neural operator surrogates require large corpora of expensive labeled simulation trajectories and cannot exploit this unlabeled structure. We introduce \\textbf{PI-JEPA} (Physics-Informed Joint Embedding Predictive Architecture), a surrogate pretraining framework that trains \\emph{without any completed PDE solves}, using masked latent prediction on unlabeled parameter fields under per-sub-operator PDE residual regularization. The predictor bank is structurally aligned with the Lie--Trotter operator-splitting decomposition of the governing equations, dedicating a separate physics-constrained latent module to each sub-process (pressure, saturation transport, reaction), enabling fine-tuning with as few as 100 labeled simulation runs. On single-phase Darcy flow, PI-JEPA achieves $1.9\\times$ lower error than FNO and $2.4\\times$ lower error than DeepONet at $N_\\ell{=}100$, with 24\\% improvement over supervised-only training at $N_\\ell{=}500$, demonstrating that label-free surrogate pretraining substantially reduces the simulation budget required for multiphysics surrogate deployment.",
+      "authors": [
+        "Brandon Yee",
+        "Pairie Koh"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.CE",
+        "physics.comp-ph"
+      ],
+      "published": "2026-04-01T20:02:56+00:00",
+      "link": "https://arxiv.org/pdf/2604.01349v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Physics-informed pretraining for multiphysics simulation without completed PDE solves",
+      "llm_evidence_cn": "无需完整PDE求解的物理信息多物理场模拟预训练",
+      "llm_evidence": "无需完整PDE求解的物理信息多物理场模拟预训练",
+      "canonical_evidence": "无需完整PDE求解的物理信息多物理场模拟预训练",
+      "llm_tldr_en": "Introduces PI-JEPA for label-free surrogate pretraining in multiphysics simulations using PDE residuals.",
+      "llm_tldr_cn": "引入PI-JEPA框架，利用PDE残差在无标签数据上进行多物理场模拟的代理模型预训练。",
+      "llm_tldr": "引入PI-JEPA框架，利用PDE残差在无标签数据上进行多物理场模拟的代理模型预训练。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "scientific machine learning for PDEs",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01719v1",
+      "source": "arxiv",
+      "title": "Mixed Consistent PINNs for Elliptic Obstacle Problems with Stability Analysis",
+      "abstract": "We propose a consistent physics-informed neural networks (CPINNs) framework for elliptic obstacle problems formulated as variational inequalities. The method is based on a mixed loss functional that is rigorously aligned with the stability structure of the underlying problem and incorporates obstacle constraints through a consistent treatment of the associated Lagrange multiplier. Relying on optimal recovery theory under Besov regularity assumptions, we establish near-optimal convergence rates for the simultaneous reconstruction of the solution and the multiplier from pointwise interior and boundary data. To enable practical implementation, we construct discrete counterparts of the continuous stability norms and duality pairings, leading to fully computable and theoretically justified training losses. Numerical experiments on benchmark obstacle problems demonstrate the accuracy, stability, and robustness of the proposed approach, and highlight its clear advantages over standard PINNs.",
+      "authors": [
+        "Arbaz Khan",
+        "Kent-Andre Mardal",
+        "Shiv Mishra"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA"
+      ],
+      "published": "2026-04-02T07:35:12+00:00",
+      "link": "https://arxiv.org/pdf/2604.01719v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Consistent physics-informed neural networks for elliptic obstacle problems",
+      "llm_evidence_cn": "用于椭圆障碍问题的相容物理信息神经网络",
+      "llm_evidence": "用于椭圆障碍问题的相容物理信息神经网络",
+      "canonical_evidence": "用于椭圆障碍问题的相容物理信息神经网络",
+      "llm_tldr_en": "Proposes a consistent PINN framework for solving variational inequalities in PDE contexts with stability analysis.",
+      "llm_tldr_cn": "提出了一种相容的PINN框架，用于解决PDE背景下的变分不等式并进行稳定性分析。",
+      "llm_tldr": "提出了一种相容的PINN框架，用于解决PDE背景下的变分不等式并进行稳定性分析。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01800v1",
+      "source": "arxiv",
+      "title": "Deep learning accelerated solutions of incompressible Navier-Stokes equations on non-uniform Cartesian grids",
+      "abstract": "The pressure Poisson equation (PPE) represents the primary computational bottleneck in fractional step methods for incompressible flow simulations, requiring iterative solutions of large-scale linear systems. We previously introduced HyDEA, a hybrid approach to accelerate the PPE solution process. However, its current implementation is limited to uniform Cartesian grids. Accurately resolving complex flow dynamics near solid boundaries requires local grid refinement, yet extending the original HyDEA to non-uniform Cartesian grids is fundamentally challenging, as its standard convolution operators are inherently ill-suited for processing data with spatially varying resolutions. To address this limitation, we adopt the Mesh-Conv (MConv) operator, which explicitly incorporates grid spacing information into convolution operations. Specifically, MConv operator replaces a subset of the standard convolution operators within the U-Net-based branch network of the deep operator network, with the necessary grid spacing information computed via a novel multi-level distance vector map construction strategy. Building upon this enhanced architecture, the framework seamlessly extends to simulate flows interacting with solid structures using a decoupled immersed boundary projection method. Furthermore, by training exclusively on fabricated linear systems rather than conventional flow-dependent datasets, the model generalizes effortlessly across diverse immersed obstacle geometries with fixed neural network weights. Benchmark results demonstrate that the MConv-based HyDEA significantly outperforms both standalone preconditioned conjugate gradient methods and the standard convolution-based HyDEA in convergence performance on strongly non-uniform Cartesian grids. The robustness and generalizability of the MConv-based HyDEA underscore its potential for real-world computational fluid dynamics applications.",
+      "authors": [
+        "Heming Bai",
+        "Dong Zhang",
+        "Shengze Cai",
+        "Xin Bian"
+      ],
+      "primary_category": "physics.flu-dyn",
+      "categories": [
+        "physics.flu-dyn"
+      ],
+      "published": "2026-04-02T09:13:54+00:00",
+      "link": "https://arxiv.org/pdf/2604.01800v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "deep learning accelerated solutions of Navier-Stokes equations",
+      "llm_evidence_cn": "深度学习加速纳维-斯托克斯方程求解",
+      "llm_evidence": "深度学习加速纳维-斯托克斯方程求解",
+      "canonical_evidence": "深度学习加速纳维-斯托克斯方程求解",
+      "llm_tldr_en": "Develops a deep learning approach to accelerate pressure Poisson equation solutions on non-uniform grids.",
+      "llm_tldr_cn": "开发了一种深度学习方法，用于加速非均匀网格上的压力泊松方程求解。",
+      "llm_tldr": "开发了一种深度学习方法，用于加速非均匀网格上的压力泊松方程求解。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "scientific machine learning for PDEs",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01961v1",
+      "source": "arxiv",
+      "title": "Generalization Bounds and Statistical Guarantees for Multi-Task and Multiple Operator Learning with MNO Networks",
+      "abstract": "Multiple operator learning concerns learning operator families $\\{G[α]:U\\to V\\}_{α\\in W}$ indexed by an operator descriptor $α$. Training data are collected hierarchically by sampling operator instances $α$, then input functions $u$ per instance, and finally evaluation points $x$ per input, yielding noisy observations of $G[α][u](x)$. While recent work has developed expressive multi-task and multiple operator learning architectures and approximation-theoretic scaling laws, quantitative statistical generalization guarantees remain limited. We provide a covering-number-based generalization analysis for separable models, focusing on the Multiple Neural Operator (MNO) architecture: we first derive explicit metric-entropy bounds for hypothesis classes given by linear combinations of products of deep ReLU subnetworks, and then combine these complexity bounds with approximation guarantees for MNO to obtain an explicit approximation-estimation tradeoff for the expected test error on new (unseen) triples $(α,u,x)$. The resulting bound makes the dependence on the hierarchical sampling budgets $(n_α,n_u,n_x)$ transparent and yields an explicit learning-rate statement in the operator-sampling budget $n_α$, providing a sample-complexity characterization for generalization across operator instances. The structure and architecture can also be viewed as a general purpose solver or an example of a \"small'' PDE foundation model, where the triples are one form of multi-modality.",
+      "authors": [
+        "Adrien Weihs",
+        "Hayden Schaeffer"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-04-02T12:23:35+00:00",
+      "link": "https://arxiv.org/pdf/2604.01961v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:DDI",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "statistical guarantees for multiple operator learning",
+      "llm_evidence_cn": "多算子学习的统计保证",
+      "llm_evidence": "多算子学习的统计保证",
+      "canonical_evidence": "多算子学习的统计保证",
+      "llm_tldr_en": "Provides generalization bounds and statistical guarantees for Multiple Neural Operator (MNO) architectures.",
+      "llm_tldr_cn": "为多神经算子（MNO）架构提供泛化界限和统计保证。",
+      "llm_tldr": "为多神经算子（MNO）架构提供泛化界限和统计保证。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "operator learning in PDE contexts",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.01968v1",
+      "source": "arxiv",
+      "title": "Revisiting Conservativeness in Fluid Dynamics: Failure of Non-Conservative PINNs and a Path-Integral Remedy",
+      "abstract": "The choice between conservative and non-conservative formulations is a fundamental dilemma in CFD. While non-conservative forms offer intuitive modeling in primitive variables, they typically produce erroneous shock speeds. This paper critically analyzes these formulations, contrasting classical failures against the capabilities of Physics-Informed Neural Networks (PINNs).   Using the Adaptive Weight and Viscosity (PINNs-AWV) architecture, we evaluate cases ranging from shallow water equations to unsteady 1D and 2D Euler equations. Results reveal a significant dichotomy: while PINNs-AWV restores physical fidelity in scalar and steady systems, standard non-conservative PINNs fail in unsteady systems like the Sod shock tube. We demonstrate this failure stems from non-vanishing source terms introduced by viscous regularization, which violate the Rankine--Hugoniot jump conditions.    To resolve this, we implement a path-integral framework based on Dal Maso--LeFloch--Murat (DLM) theory. By incorporating path-consistent losses in PINNs (PI-PINN) and using path-conservative numerical schemes, we successfully recover correct shock speeds within non-conservative frameworks. Our results prove the path-integral approach provides a rigorous mathematical bridge for physical accuracy in both classical and machine learning solvers, enabling primitive-variable formulations in transient, high-speed simulations.",
+      "authors": [
+        "Arun Govind Neelan",
+        "Ferdin Sagai Don Bosco",
+        "Naveen Sagar Jarugumalli",
+        "Suresh Balaji Vedarethinam"
+      ],
+      "primary_category": "physics.flu-dyn",
+      "categories": [
+        "physics.flu-dyn",
+        "math.NA"
+      ],
+      "published": "2026-04-02T12:32:03+00:00",
+      "link": "https://arxiv.org/pdf/2604.01968v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Analysis of Physics-Informed Neural Networks (PINNs) for fluid dynamics equations",
+      "llm_evidence_cn": "流体动力学方程的物理信息神经网络(PINNs)分析",
+      "llm_evidence": "流体动力学方程的物理信息神经网络(PINNs)分析",
+      "canonical_evidence": "流体动力学方程的物理信息神经网络(PINNs)分析",
+      "llm_tldr_en": "Analyzes failures of non-conservative PINNs in fluid dynamics and proposes a path-integral remedy.",
+      "llm_tldr_cn": "分析了非守恒PINN在流体动力学中的失效问题，并提出了一种路径积分补救方法。",
+      "llm_tldr": "分析了非守恒PINN在流体动力学中的失效问题，并提出了一种路径积分补救方法。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02124v1",
+      "source": "arxiv",
+      "title": "Variationally mimetic operator network approach to transient viscous flows",
+      "abstract": "The Variationally Mimetic Operator Network (VarMiON) approach is a machine learning technique, originally developed to predict the solution of elliptic differential problems, that combines operator networks with a structure inherited from the variational formulation of the equations. We investigate the capabilities of this method in the context of viscous flows, by extending its formulation to vector-valued unknown fields and with a particular emphasis on the space-time approximation context necessary to deal with transient flows. As a first step, we restrict attention to the regime of low-to-moderate Reynolds numbers, in which the Navier--Stokes equations can be linearized to give the time-dependent Stokes problem for incompressible fluids. The details of the method as well as its performance are illustrated in three paradigmatic flow geometries where we obtain a very good agreement between the VarMiON predictions and reference finite-element solutions.",
+      "authors": [
+        "Laura Rinaldi",
+        "Giulio Giuseppe Giusteri"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA",
+        "physics.flu-dyn"
+      ],
+      "published": "2026-04-02T14:58:33+00:00",
+      "link": "https://arxiv.org/pdf/2604.02124v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Variationally mimetic operator network for solving viscous flow differential problems",
+      "llm_evidence_cn": "用于求解粘性流微分问题的变分模拟算子网络",
+      "llm_evidence": "用于求解粘性流微分问题的变分模拟算子网络",
+      "canonical_evidence": "用于求解粘性流微分问题的变分模拟算子网络",
+      "llm_tldr_en": "Extends VarMiON operator networks to solve transient viscous flow problems using variational formulations.",
+      "llm_tldr_cn": "扩展VarMiON算子网络，利用变分形式解决瞬态粘性流问题。",
+      "llm_tldr": "扩展VarMiON算子网络，利用变分形式解决瞬态粘性流问题。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "operator learning in PDE contexts",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02601v1",
+      "source": "arxiv",
+      "title": "WGFINNs: Weak formulation-based GENERIC formalism informed neural networks'",
+      "abstract": "Data-driven discovery of governing equations from noisy observations remains a fundamental challenge in scientific machine learning. While GENERIC formalism informed neural networks (GFINNs) provide a principled framework that enforces the laws of thermodynamics by construction, their reliance on strong-form loss formulations makes them highly sensitive to measurement noise. To address this limitation, we propose weak formulation-based GENERIC formalism informed neural networks (WGFINNs), which integrate the weak formulation of dynamical systems with the structure-preserving architecture of GFINNs. WGFINNs significantly enhance robustness to noisy data while retaining exact satisfaction of GENERIC degeneracy and symmetry conditions. We further incorporate a state-wise weighted loss and a residual-based attention mechanism to mitigate scale imbalance across state variables. Theoretical analysis contrasts quantitative differences between the strong-form and the weak-form estimators. Mainly, the strong-form estimator diverges as the time step decreases in the presence of noise, while the weak-form estimator can be accurate even with noisy data if test functions satisfy certain conditions. Numerical experiments demonstrate that WGFINNs consistently outperform GFINNs at varying noise levels, achieving more accurate predictions and reliable recovery of physical quantities.",
+      "authors": [
+        "Jun Sur Richard Park",
+        "Auroni Huque Hashim",
+        "Siu Wun Cheung",
+        "Youngsoo Choi",
+        "Yeonjong Shin"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "math.DS"
+      ],
+      "published": "2026-04-03T00:30:25+00:00",
+      "link": "https://arxiv.org/pdf/2604.02601v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:DDI",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "weak formulation-based scientific machine learning for PDEs",
+      "llm_evidence_cn": "基于弱形式的PDE科学机器学习",
+      "llm_evidence": "基于弱形式的PDE科学机器学习",
+      "canonical_evidence": "基于弱形式的PDE科学机器学习",
+      "llm_tldr_en": "Enhances robustness in discovering governing equations using weak formulation GFINNs.",
+      "llm_tldr_cn": "利用弱形式GFINNs增强了发现控制方程的鲁棒性。",
+      "llm_tldr": "利用弱形式GFINNs增强了发现控制方程的鲁棒性。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "scientific machine learning for PDEs",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.02663v1",
+      "source": "arxiv",
+      "title": "A Numerical Method for Coupling Parameterized Physics-Informed Neural Networks and FDM for Advanced Thermal-Hydraulic System Simulation",
+      "abstract": "Severe accident analysis using system-level codes such as MELCOR is indispensable for nuclear safety assessment, yet the computational cost of repeated simulations poses a significant bottleneck for parametric studies and uncertainty quantification. Existing surrogate models accelerate these analyses but depend on large volumes of simulation data, while physics-informed neural networks (PINNs) enable data-free training but must be retrained for every change in problem parameters. This study addresses both limitations by developing the Parameterized PINNs coupled with FDM (P2F) method, a node-assigned hybrid framework for MELCOR's Control Volume Hydrodynamics/Flow Path (CVH/FP) module. In the P2F method, a parameterized Node-Assigned PINN (NA-PINN) accepts the water-level difference, initial velocity, and time as inputs, learning a solution manifold so that a single trained network serves as a data-free surrogate for the momentum conservation equation across all flow paths without retraining. This PINN is coupled with a finite difference method (FDM) solver that advances the mass conservation equation at each time step, ensuring exact discrete mass conservation while replacing the iterative nonlinear momentum solve with a single forward pass. Verification on a six-tank gravity-driven draining scenario yields a water level mean absolute error of $7.85 \\times 10^{-5}$ m and a velocity mean absolute error of $3.21 \\times 10^{-3}$ m/s under the nominal condition with $Δt = 1.0$ s. The framework maintains consistent accuracy across time steps ranging from 0.2 to 1.0 s and generalizes to five distinct initial conditions, all without retraining or simulation data. This work introduces a numerical coupling methodology for integrating parameterized PINNs with FDM within a nuclear thermal-hydraulic system code framework.",
+      "authors": [
+        "Jeesuk Shin",
+        "Donggyun Seo",
+        "Sihyeong Yu",
+        "Joongoo Jeon"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "math.NA"
+      ],
+      "published": "2026-04-03T02:50:58+00:00",
+      "link": "https://arxiv.org/pdf/2604.02663v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Parameterized Physics-Informed Neural Networks for system simulation",
+      "llm_evidence_cn": "用于系统模拟的参数化物理信息神经网络",
+      "llm_evidence": "用于系统模拟的参数化物理信息神经网络",
+      "canonical_evidence": "用于系统模拟的参数化物理信息神经网络",
+      "llm_tldr_en": "Develops a hybrid framework coupling parameterized PINNs with FDM for efficient thermal-hydraulic simulation.",
+      "llm_tldr_cn": "开发了一种将参数化PINN与FDM耦合的混合框架，用于高效的热工水力模拟。",
+      "llm_tldr": "开发了一种将参数化PINN与FDM耦合的混合框架，用于高效的热工水力模拟。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.03034v1",
+      "source": "arxiv",
+      "title": "Learning Contractive Integral Operators with Fredholm Integral Neural Operators",
+      "abstract": "We generalize the framework of Fredholm Neural Networks, to learn non-expansive integral operators arising in Fredholm Integral Equations (FIEs) of the second kind in arbitrary dimensions. We first present the proposed Fredholm Integral Neural Operators (FREDINOs), for FIEs and prove that they are universal approximators of linear and non-linear integral operators and corresponding solution operators. We furthermore prove that the learned operators are guaranteed to be contractive, thereby strictly satisfying the mathematical property required for the convergence of the fixed point scheme. Finally, we also demonstrate how FREDINOs can be used to learn the solution operator of non-linear elliptic PDEs, via a Boundary Integral Equation (BIE) formulation. We assess the proposed methodology numerically, via several benchmark problems: linear and non-linear FIEs in arbitrary dimensions, as well as a non-linear elliptic PDE in 2D. Built on tailored mathematical/numerical analysis theory, FREDINOs offer high-accuracy approximations and interpretable schemes, making them well suited for scientific machine learning/numerical analysis computations.",
+      "authors": [
+        "Kyriakos C. Georgiou",
+        "Constantinos Siettos",
+        "Athanasios N. Yannacopoulos"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA",
+        "cs.LG"
+      ],
+      "published": "2026-04-03T13:42:59+00:00",
+      "link": "https://arxiv.org/pdf/2604.03034v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "learning solution operators for non-linear elliptic PDEs",
+      "llm_evidence_cn": "学习非线性椭圆偏微分方程的解算子",
+      "llm_evidence": "学习非线性椭圆偏微分方程的解算子",
+      "canonical_evidence": "学习非线性椭圆偏微分方程的解算子",
+      "llm_tldr_en": "Introduces Fredholm Integral Neural Operators to learn contractive operators for solving integral equations and PDEs.",
+      "llm_tldr_cn": "引入弗雷德霍姆积分神经算子，通过学习收缩算子来求解积分方程和偏微分方程。",
+      "llm_tldr": "引入弗雷德霍姆积分神经算子，通过学习收缩算子来求解积分方程和偏微分方程。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "operator learning in PDE contexts",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.03186v1",
+      "source": "arxiv",
+      "title": "High-Precision Phase-Shift Transferable Neural Networks for High-Frequency Function Approximation and PDE Solution",
+      "abstract": "Neural network based methods have emerged as a promising paradigm for scientific computing, yet they face critical bottlenecks in high frequency function approximation and partial differential equation (PDE) solving.",
+      "authors": [
+        "Xuyang Gao",
+        "Liang Chen",
+        "Minqiang Xu",
+        "Jing Niu"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA"
+      ],
+      "published": "2026-04-03T17:02:04+00:00",
+      "link": "https://arxiv.org/pdf/2604.03186v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Neural network methods for high-frequency function approximation and PDE solving",
+      "llm_evidence_cn": "用于高频函数逼近和PDE求解的神经网络方法",
+      "llm_evidence": "用于高频函数逼近和PDE求解的神经网络方法",
+      "canonical_evidence": "用于高频函数逼近和PDE求解的神经网络方法",
+      "llm_tldr_en": "Proposes phase-shift transferable neural networks to address bottlenecks in high-frequency PDE solving.",
+      "llm_tldr_cn": "提出了相移可迁移神经网络，以解决高频PDE求解中的瓶颈问题。",
+      "llm_tldr": "提出了相移可迁移神经网络，以解决高频PDE求解中的瓶颈问题。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "AI techniques for discovering and solving differential equations",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2604.03221v1",
+      "source": "arxiv",
+      "title": "Fast and Accurate Inverse Blood Flow Modeling from Minimal Cuff-Pressure Data via PINNs",
+      "abstract": "Accurate assessment of central hemodynamics is essential for diagnosis and risk stratification, yet it still relies largely on invasive measurements or on indirect reconstructions built from population-averaged transfer functions. While conventional methods are valuable in clinical practice, they face limitations, particularly in personalized medicine. Physics-informed methods address these by integrating physical principles, reducing the need for extensive data. In this work, a fully noninvasive, patient-specific framework is developed that combines a validated 1-D model of the systemic arterial tree with physics-informed neural networks (PINNs). This model performs the inverse solution of the flow and pressure fields within the arterial network, given minimal noninvasive measurements of pressure from a cuff reading and trains in 4000 iterations, at least 10x faster than the current state-of-the-art models due to several model enhancements. We validate the model predictions against our 1-D solver, yielding a near perfect correlation, and perform additional tests on a clinical dataset for the identification of important central hemodynamic parameters of cardiac output $CO$ and central systolic blood pressure $cSBP$, with correlations of $r=0.847$ and $r=0.951$, respectively. Moreover, the model is able to tune the patient-specific coefficients of the terminal resistance $R_T$ and compliance $C_T$ while training, treating them as learnable parameters. The inverse PINN model is able to solve the entire tree of 8 arteries with a single network, costing 5-10 minutes of computational time. This significant performance boost compared to traditional iterative inverse methods holds promise towards applications of personalized cardiac output monitoring and hemodynamic assessment via noninvasive approaches like wearable devices.",
+      "authors": [
+        "Sokratis J. Anagnostopoulos",
+        "Georgios Rovas",
+        "Lydia Aslanidou",
+        "Vasiliki Bikia",
+        "Nikolaos Stergiopulos"
+      ],
+      "primary_category": "physics.comp-ph",
+      "categories": [
+        "physics.comp-ph"
+      ],
+      "published": "2026-04-03T17:47:31+00:00",
+      "link": "https://arxiv.org/pdf/2604.03221v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Uses physics-informed neural networks (PINNs) for solving inverse blood flow modeling",
+      "llm_evidence_cn": "使用物理信息神经网络 (PINNs) 解决逆向血流建模问题",
+      "llm_evidence": "使用物理信息神经网络 (PINNs) 解决逆向血流建模问题",
+      "canonical_evidence": "使用物理信息神经网络 (PINNs) 解决逆向血流建模问题",
+      "llm_tldr_en": "Develops a patient-specific framework using PINNs to solve inverse flow and pressure fields in arterial models.",
+      "llm_tldr_cn": "开发了一个结合PINNs的患者特化框架，用于求解动脉模型中的逆向流量和压力场。",
+      "llm_tldr": "开发了一个结合PINNs的患者特化框架，用于求解动脉模型中的逆向流量和压力场。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2603.27442v1",
+      "source": "arxiv",
+      "title": "Interpretable Physics Extraction from Data for Linear Dynamical Systems using Lie Generator Networks",
+      "abstract": "When the system is linear, why should learning be nonlinear? Linear dynamical systems, the analytical backbone of control theory, signal processing and circuit analysis, have exact closed-form solutions via the state transition matrix. Yet when system parameters must be inferred from data, recent neural approaches offer flexibility at the cost of physical guarantees: Neural ODEs provide flexible trajectory approximation but may violate physical invariants, while energy preserving architectures do not natively represent dissipation essential to real-world systems. We introduce Lie Generator Networks (LGN), which learn a structured generator A and compute trajectories directly via matrix exponentiation. This shift from integration to exponentiation preserves structure by construction. By parameterizing A = S - D (skew-symmetric minus positive diagonal), stability and dissipation emerge from the underlying architecture and are not introduced during training via the loss function. LGN provides a unified framework for linear conservative, dissipative, and time-varying systems. On a 100-dimensional stable RLC ladder, standard derivative-based least-squares system identification can yield unstable eigenvalues. The unconstrained LGN yields stable but physically incorrect spectra, whereas LGN-SD recovers all 100 eigenvalues with over two orders of magnitude lower mean eigenvalue error than unconstrained alternatives. Critically, these eigenvalues reveal poles, natural frequencies, and damping ratios which are interpretable physics that black-box networks do not provide.",
+      "authors": [
+        "Shafayeth Jamil",
+        "Rehan Kapadia"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "eess.SY"
+      ],
+      "published": "2026-03-28T23:20:33+00:00",
+      "link": "https://arxiv.org/pdf/2603.27442v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Interpretable physics extraction and trajectory computation for dynamical systems",
+      "llm_evidence_cn": "动力系统的可解释物理提取与轨迹计算",
+      "llm_evidence": "动力系统的可解释物理提取与轨迹计算",
+      "canonical_evidence": "动力系统的可解释物理提取与轨迹计算",
+      "llm_tldr_en": "Proposes Lie Generator Networks to learn structured generators for linear dynamical systems from data.",
+      "llm_tldr_cn": "提出李生成器网络，从数据中学习线性动力系统的结构化生成器并直接计算轨迹。",
+      "llm_tldr": "提出李生成器网络，从数据中学习线性动力系统的结构化生成器并直接计算轨迹。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "AI techniques for discovering and solving differential equations",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.27922v1",
+      "source": "arxiv",
+      "title": "GEAKG: Generative Executable Algorithm Knowledge Graphs",
+      "abstract": "In the context of algorithms for problem solving, procedural knowledge -- the know-how of algorithm design and operator composition -- remains implicit in code, lost between runs, and must be re-engineered for each new domain. Knowledge graphs (KGs) have proven effective for organizing declarative knowledge, yet current KG paradigms provide limited support for representing procedural knowledge as executable, learnable graph structures. We introduce \\textit{Generative Executable Algorithm Knowledge Graphs} (GEAKG), a class of KGs whose nodes store executable operators, whose edges encode learned composition patterns, and whose traversal generates solutions. A GEAKG is \\emph{generative} (topology and operators are synthesized by a Large Language Model), \\emph{executable} (every node is runnable code), and \\emph{transferable} (learned patterns generalize zero-shot across domains). The framework is domain-agnostic at the engine level: the same three-layer architecture and Ant Colony Optimization (ACO)-based learning engine can be instantiated across domains, parameterized by a pluggable ontology (\\texttt{RoleSchema}). Two case studies -- sharing no domain-specific framework code -- provide concrete evidence for this framework hypothesis: (1)~Neural Architecture Search across 70 cross-dataset transfer pairs on two tabular benchmarks, and (2)~Combinatorial Optimization, where knowledge learned on the Traveling Salesman Problem transfers zero-shot to scheduling and assignment domains. Taken together, the results support that algorithmic expertise can be explicitly represented, learned, and transferred as executable knowledge graphs.",
+      "authors": [
+        "Camilo Chacón Sartori",
+        "José H. García",
+        "Andrei Voicu Tomut",
+        "Christian Blum"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.IR"
+      ],
+      "published": "2026-03-30T00:42:48+00:00",
+      "link": "https://arxiv.org/pdf/2603.27922v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Knowledge graphs synthesized by LLMs for procedural algorithm composition",
+      "llm_evidence_cn": "由LLM合成的用于程序算法组合的知识图谱",
+      "llm_evidence": "由LLM合成的用于程序算法组合的知识图谱",
+      "canonical_evidence": "由LLM合成的用于程序算法组合的知识图谱",
+      "llm_tldr_en": "Introduces GEAKG, where LLMs synthesize executable algorithm knowledge graphs for problem solving.",
+      "llm_tldr_cn": "引入GEAKG，利用大语言模型合成可执行算法知识图谱以解决复杂问题。",
+      "llm_tldr": "引入GEAKG，利用大语言模型合成可执行算法知识图谱以解决复杂问题。",
+      "llm_tags": [
+        "query:pde-llm:composite"
+      ],
+      "matched_query_tag": "query:pde-llm:composite",
+      "matched_query_text": "Papers central to 利用大语言模型解偏微分方程(PDEs)的论文, especially work that connects or combines: physics-informed neural networks for PDEs; large language model applications in partial differential equations; scientific machine learning for PDEs; operator learning in PDE contexts; discovering PDEs from data using language models; methods for solving partial differential equations using large language models; neural network approaches to PDEs with language model integration; AI techniques for discovering and solving differential equations; applications of transformer models in computational physics for PDEs.",
+      "matched_requirement_id": "req-composite-pde-llm",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.28288v1",
+      "source": "arxiv",
+      "title": "FI-KAN: Fractal Interpolation Kolmogorov-Arnold Networks",
+      "abstract": "Kolmogorov-Arnold Networks (KAN) employ B-spline bases on a fixed grid, providing no intrinsic multi-scale decomposition for non-smooth function approximation. We introduce Fractal Interpolation KAN (FI-KAN), which incorporates learnable fractal interpolation function (FIF) bases from iterated function system (IFS) theory into KAN. Two variants are presented: Pure FI-KAN (Barnsley, 1986) replaces B-splines entirely with FIF bases; Hybrid FI-KAN (Navascues, 2005) retains the B-spline path and adds a learnable fractal correction. The IFS contraction parameters give each edge a differentiable fractal dimension that adapts to target regularity during training. On a Holder regularity benchmark ($α\\in [0.2, 2.0]$), Hybrid FI-KAN outperforms KAN at every regularity level (1.3x to 33x). On fractal targets, FI-KAN achieves up to 6.3x MSE reduction over KAN, maintaining 4.7x advantage at 5 dB SNR. On non-smooth PDE solutions (scikit-fem), Hybrid FI-KAN achieves up to 79x improvement on rough-coefficient diffusion and 3.5x on L-shaped domain corner singularities. Pure FI-KAN's complementary behavior, dominating on rough targets while underperforming on smooth ones, provides controlled evidence that basis geometry must match target regularity. A fractal dimension regularizer provides interpretable complexity control whose learned values recover the true fractal dimension of each target. These results establish regularity-matched basis design as a principled strategy for neural function approximation.",
+      "authors": [
+        "Gnankan Landry Regis N'guessan"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "math.NA"
+      ],
+      "published": "2026-03-30T11:09:07+00:00",
+      "link": "https://arxiv.org/pdf/2603.28288v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Neural network architecture for non-smooth function approximation in scientific computing",
+      "llm_evidence_cn": "用于科学计算中非光滑函数逼近的神经网络架构",
+      "llm_evidence": "用于科学计算中非光滑函数逼近的神经网络架构",
+      "canonical_evidence": "用于科学计算中非光滑函数逼近的神经网络架构",
+      "llm_tldr_en": "Introduces FI-KAN, incorporating fractal interpolation into KAN for better multi-scale function approximation.",
+      "llm_tldr_cn": "引入FI-KAN，将分形插值融入KAN中，以提升对非光滑函数的多尺度逼近能力。",
+      "llm_tldr": "引入FI-KAN，将分形插值融入KAN中，以提升对非光滑函数的多尺度逼近能力。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "scientific machine learning for PDEs",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.28325v2",
+      "source": "arxiv",
+      "title": "Building evidence-based knowledge graphs from full-text literature for disease-specific biomedical reasoning",
+      "abstract": "Biomedical knowledge resources often either preserve evidence as unstructured text or compress it into flat triples that omit study design, provenance, and quantitative support. Here we present EvidenceNet, a framework and dataset for building disease-specific knowledge graphs from full-text biomedical literature. EvidenceNet uses a large language model (LLM)-assisted pipeline to extract experimentally grounded findings as structured evidence nodes, normalize biomedical entities, score evidence quality, and connect evidence records through typed semantic relations. We release two resources: EvidenceNet-HCC with 7,872 evidence records, 10,328 graph nodes, and 49,756 edges, and EvidenceNet-CRC with 6,622 records, 8,795 nodes, and 39,361 edges. Technical validation shows high component fidelity, including 98.3% field-level extraction accuracy, 100.0% high-confidence entity-link accuracy, 87.5% fusion integrity, and 90.0% semantic relation-type accuracy. In downstream evaluation, EvidenceNet improves internal and external retrieval-augmented question answering and retains structural signal for future link prediction and target prioritization. These results establish EvidenceNet as a disease-specific resource for evidence-aware biomedical reasoning and hypothesis generation.",
+      "authors": [
+        "Chang Zong",
+        "Sicheng Lv",
+        "Si-tu Xue",
+        "Huilin Zheng",
+        "Jian Wan",
+        "Lei Zhang"
+      ],
+      "primary_category": "cs.CE",
+      "categories": [
+        "cs.CE",
+        "cs.AI"
+      ],
+      "published": "2026-03-30T11:53:45+00:00",
+      "link": "https://arxiv.org/pdf/2603.28325v2",
+      "tags": [
+        "keyword:DDI",
+        "query:DDI"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "LLM-assisted knowledge graph for biomedical reasoning",
+      "llm_evidence_cn": "大语言模型辅助的生物医学推理知识图谱",
+      "llm_evidence": "大语言模型辅助的生物医学推理知识图谱",
+      "canonical_evidence": "大语言模型辅助的生物医学推理知识图谱",
+      "llm_tldr_en": "Builds disease-specific knowledge graphs from literature using LLMs to extract structured biomedical evidence.",
+      "llm_tldr_cn": "利用大语言模型从文献中提取结构化生物医学证据，构建疾病特异性知识图谱。",
+      "llm_tldr": "利用大语言模型从文献中提取结构化生物医学证据，构建疾病特异性知识图谱。",
+      "llm_tags": [
+        "query:ddi:composite"
+      ],
+      "matched_query_tag": "query:ddi:composite",
+      "matched_query_text": "Papers central to 请帮我查找有关基于学习的药物关联关系的论文, especially work that connects or combines: drug interaction prediction; deep learning models; association prediction models; computational approaches; machine learning for drug drug interaction; deep learning models in drug drug interaction.",
+      "matched_requirement_id": "req-composite-ddi",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.27950v1",
+      "source": "arxiv",
+      "title": "Scaling Atomistic Protein Binder Design with Generative Pretraining and Test-Time Compute",
+      "abstract": "Protein interaction modeling is central to protein design, which has been transformed by machine learning with applications in drug discovery and beyond. In this landscape, structure-based de novo binder design is cast as either conditional generative modeling or sequence optimization via structure predictors (\"hallucination\"). We argue that this is a false dichotomy and propose Proteina-Complexa, a novel fully atomistic binder generation method unifying both paradigms. We extend recent flow-based latent protein generation architectures and leverage the domain-domain interactions of monomeric computationally predicted protein structures to construct Teddymer, a new large-scale dataset of synthetic binder-target pairs for pretraining. Combined with high-quality experimental multimers, this enables training a strong base model. We then perform inference-time optimization with this generative prior, unifying the strengths of previously distinct generative and hallucination methods. Proteina-Complexa sets a new state of the art in computational binder design benchmarks: it delivers markedly higher in-silico success rates than existing generative approaches, and our novel test-time optimization strategies greatly outperform previous hallucination methods under normalized compute budgets. We also demonstrate interface hydrogen bond optimization, fold class-guided binder generation, and extensions to small molecule targets and enzyme design tasks, again surpassing prior methods. Code, models and new data will be publicly released.",
+      "authors": [
+        "Kieran Didi",
+        "Zuobai Zhang",
+        "Guoqing Zhou",
+        "Danny Reidenbach",
+        "Zhonglin Cao",
+        "Sooyoung Cha",
+        "Tomas Geffner",
+        "Christian Dallago",
+        "Jian Tang",
+        "Michael M. Bronstein",
+        "Martin Steinegger",
+        "Emine Kucukbenli",
+        "Arash Vahdat",
+        "Karsten Kreis"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-03-30T01:54:03+00:00",
+      "link": "https://arxiv.org/pdf/2603.27950v1",
+      "tags": [
+        "keyword:DDI",
+        "query:DDI"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "protein interaction modeling for drug discovery",
+      "llm_evidence_cn": "用于药物发现的蛋白质相互作用建模",
+      "llm_evidence": "用于药物发现的蛋白质相互作用建模",
+      "canonical_evidence": "用于药物发现的蛋白质相互作用建模",
+      "llm_tldr_en": "Proposes a generative method for protein binder design, enhancing drug discovery through interaction modeling.",
+      "llm_tldr_cn": "提出一种蛋白质结合剂生成的生成式方法，通过相互作用建模增强药物发现。",
+      "llm_tldr": "提出一种蛋白质结合剂生成的生成式方法，通过相互作用建模增强药物发现。",
+      "llm_tags": [
+        "query:ddi:composite"
+      ],
+      "matched_query_tag": "query:ddi:composite",
+      "matched_query_text": "Papers central to 请帮我查找有关基于学习的药物关联关系的论文, especially work that connects or combines: drug interaction prediction; deep learning models; association prediction models; computational approaches; machine learning for drug drug interaction; deep learning models in drug drug interaction.",
+      "matched_requirement_id": "req-composite-ddi",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.28458v1",
+      "source": "arxiv",
+      "title": "HISA: Efficient Hierarchical Indexing for Fine-Grained Sparse Attention",
+      "abstract": "Token-level sparse attention mechanisms, exemplified by DeepSeek Sparse Attention (DSA), achieve fine-grained key selection by scoring every historical token for each query using a lightweight indexer, and then computing attention only over the selected subset. While the downstream sparse attention scales efficiently, the indexer still scans the entire prefix for every query, introducing an O($L^2$) per-layer bottleneck that becomes prohibitive as context length grows. We propose HISA (Hierarchical Indexed Sparse Attention), a drop-in replacement for the indexer that transforms the search process from a flat token scan into a two-stage hierarchical procedure. First, a block-level coarse filter scores pooled block representatives to prune irrelevant regions. Then, a token-level refinement applies the original indexer only within the remaining candidate blocks. HISA preserves the exact token-level top-k sparsity pattern required by the downstream Sparse MLA operator and requires no additional training. On kernel-level benchmarks, HISA achieves a 2$\\times$ speedup at 32K context length and 4$\\times$ at 128K. On Needle-in-a-Haystack and LongBench, we directly replace the indexer in DeepSeek-V3.2 with HISA, without any fine-tuning. HISA closely matches the original DSA in quality while significantly outperforming block-sparse baselines. Moreover, the token selection sets produced by HISA and the original DSA exhibit a mean IoU greater than 99%, indicating that the efficiency gains come with virtually no impact on selection fidelity.",
+      "authors": [
+        "Yufei Xu",
+        "Fanxu Meng",
+        "Fan Jiang",
+        "Yuxuan Wang",
+        "Ruijie Zhou",
+        "Jiexi Wu",
+        "Zhixin Pan",
+        "Zhaohui Wang",
+        "Xiaojuan Tang",
+        "Wenjie Pei",
+        "Tongxuan Liu",
+        "Di yin",
+        "Xing Sun",
+        "Muhan Zhang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-03-30T13:59:51+00:00",
+      "link": "https://arxiv.org/pdf/2603.28458v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:DDI",
+        "query:PDE LLM"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "efficient hierarchical indexing for sparse attention",
+      "llm_evidence_cn": "稀疏注意力的效率分层索引",
+      "llm_evidence": "稀疏注意力的效率分层索引",
+      "canonical_evidence": "稀疏注意力的效率分层索引",
+      "llm_tldr_en": "Proposes a hierarchical indexing mechanism to accelerate sparse attention in large-scale models.",
+      "llm_tldr_cn": "提出一种分层索引机制，以加速大规模模型中的稀疏注意力计算。",
+      "llm_tldr": "提出一种分层索引机制，以加速大规模模型中的稀疏注意力计算。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "applications of transformer models in computational physics for PDEs",
+      "matched_requirement_id": "req-15",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.28328v1",
+      "source": "arxiv",
+      "title": "Physics-Informed Neural Networks for Predicting Hydrogen Sorption in Geological Formations: Thermodynamically Constrained Deep Learning Integrating Classical Adsorption Theory",
+      "abstract": "Accurate prediction of hydrogen sorption in fine-grained geological materials is essential for evaluating underground hydrogen storage capacity, assessing caprock integrity, and characterizing hydrogen migration in subsurface energy systems. Classical isotherm models perform well at the individual-sample level but fail when generalized across heterogeneous populations, with the coefficient of determination collapsing from 0.80-0.90 for single-sample fits to 0.09-0.38 for aggregated multi-sample datasets. We present a multi-scale physics-informed neural network framework that addresses this limitation by embedding classical adsorption theory and thermodynamic constraints directly into the learning process. The framework utilizes 1,987 hydrogen sorption isotherm measurements across clays, shales, coals, supplemented by 224 characteristic uptake measurements. A seven-category physics-informed feature engineering scheme generates 62 thermodynamically meaningful descriptors from raw material characterization data. The loss function enforces saturation limits, a monotonic pressure response, and Van't Hoff temperature dependence via penalty weighting, while a three-phase curriculum-based training strategy ensures stable integration of competing physical constraints. An architecture-diverse ensemble of ten members provides calibrated uncertainty quantification, with post-hoc temperature scaling achieving target prediction interval coverage. The optimized PINN achieves R2 = 0.9544, RMSE = 0.0484 mmol/g, and MAE = 0.0231 mmol/g on the held-out test set, with 98.6% monotonicity satisfaction and zero non-physical negative predictions. Physics-informed regularization yields a 10-15% cross-lithology generalization advantage over a well-tuned random forest under leave-one-lithology-out validation, confirming that thermodynamic constraints transfer meaningfully across geological boundaries.",
+      "authors": [
+        "Mohammad Nooraiepour",
+        "Mohammad Masoudi",
+        "Zezhang Song",
+        "Helge Hellevang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "physics.geo-ph"
+      ],
+      "published": "2026-03-30T11:59:36+00:00",
+      "link": "https://arxiv.org/pdf/2603.28328v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "physics-informed neural networks for geological predictions",
+      "llm_evidence_cn": "用于地质预测的物理信息神经网络",
+      "llm_evidence": "用于地质预测的物理信息神经网络",
+      "canonical_evidence": "用于地质预测的物理信息神经网络",
+      "llm_tldr_en": "Integrates classical adsorption theory into PINNs to predict hydrogen sorption in geological formations.",
+      "llm_tldr_cn": "将经典吸附理论整合到PINN中，以预测地质地层中的氢吸附。",
+      "llm_tldr": "将经典吸附理论整合到PINN中，以预测地质地层中的氢吸附。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "physics-informed neural networks for PDEs",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.27976v1",
+      "source": "arxiv",
+      "title": "Physics-informed line-of-sight learning for scalable deterministic channel modeling",
+      "abstract": "Deterministic channel modeling maps a physical environment to its site-specific electromagnetic response. Ray tracing produces complete multi-dimensional channel information but remains prohibitively expensive for area-wide deployment. We identify line-of-sight (LoS) region determination as the dominant bottleneck. To address this, we propose D$^2$LoS, a physics-informed neural network that reformulates dense pixel-level LoS prediction into sparse vertex-level visibility classification and projection point regression, avoiding the spectral bias at sharp boundaries. A geometric post-processing step enforces hard physical constraints, yielding exact piecewise-linear boundaries. Because LoS computation depends only on building geometry, cross-band channel information is obtained by updating material parameters without retraining. We also construct RayVerse-100, a ray-level dataset spanning 100 urban scenarios with per-ray complex gain, angle, delay, and geometric trajectory. Evaluated against rigorous ray tracing ground truth, D$^2$LoS achieves 3.28~dB mean absolute error in received power, 4.65$^\\circ$ angular spread error, and 20.64~ns delay spread error, while accelerating visibility computation by over 25$\\times$.",
+      "authors": [
+        "Xiucheng Wang",
+        "Junxi Huang",
+        "Conghao Zhou",
+        "Xuemin Shen",
+        "Nan Cheng"
+      ],
+      "primary_category": "cs.IT",
+      "categories": [
+        "cs.IT",
+        "eess.SY"
+      ],
+      "published": "2026-03-30T02:53:29+00:00",
+      "link": "https://arxiv.org/pdf/2603.27976v1",
+      "tags": [
+        "keyword:PDE LLM"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "physics-informed neural network for channel modeling",
+      "llm_evidence_cn": "用于信道建模的物理信息神经网络",
+      "llm_evidence": "用于信道建模的物理信息神经网络",
+      "canonical_evidence": "用于信道建模的物理信息神经网络",
+      "llm_tldr_en": "Proposes a physics-informed neural network for deterministic channel modeling and line-of-sight prediction.",
+      "llm_tldr_cn": "提出一种用于确定性信道建模和视距预测的物理信息神经网络。",
+      "llm_tldr": "提出一种用于确定性信道建模和视距预测的物理信息神经网络。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "scientific machine learning for PDEs",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.29090v1",
+      "source": "arxiv",
+      "title": "HCLSM: Hierarchical Causal Latent State Machines for Object-Centric World Modeling",
+      "abstract": "World models that predict future states from video remain limited by flat latent representations that entangle objects, ignore causal structure, and collapse temporal dynamics into a single scale. We present HCLSM, a world model architecture that operates on three interconnected principles: object-centric decomposition via slot attention with spatial broadcast decoding, hierarchical temporal dynamics through a three-level engine combining selective state space models for continuous physics, sparse transformers for discrete events, and compressed transformers for abstract goals, and causal structure learning through graph neural network interaction patterns. HCLSM introduces a two-stage training protocol where spatial reconstruction forces slot specialization before dynamics prediction begins. We train a 68M-parameter model on the PushT robotic manipulation benchmark from the Open X-Embodiment dataset, achieving 0.008 MSE next-state prediction loss with emerging spatial decomposition (SBD loss: 0.0075) and learned event boundaries. A custom Triton kernel for the SSM scan delivers 38x speedup over sequential PyTorch. The full system spans 8,478 lines of Python across 51 modules with 171 unit tests. Code: https://github.com/rightnow-ai/hclsm",
+      "authors": [
+        "Jaber Jaber",
+        "Osama Jaber"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.CV",
+        "cs.RO"
+      ],
+      "published": "2026-03-31T00:11:29+00:00",
+      "link": "https://arxiv.org/pdf/2603.29090v1",
+      "tags": [
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "state space models and transformers for continuous physics",
+      "llm_evidence_cn": "用于连续物理的状态空间模型和Transformer",
+      "llm_evidence": "用于连续物理的状态空间模型和Transformer",
+      "canonical_evidence": "用于连续物理的状态空间模型和Transformer",
+      "llm_tldr_en": "Presents a world model combining state space models and transformers for causal physics and event prediction.",
+      "llm_tldr_cn": "提出一种结合状态空间模型和Transformer的世界模型，用于因果物理和事件预测。",
+      "llm_tldr": "提出一种结合状态空间模型和Transformer的世界模型，用于因果物理和事件预测。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "scientific machine learning for PDEs",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.30007v1",
+      "source": "arxiv",
+      "title": "Learning the Exact Flux: Neural Riemann Solvers with Hard Constraints",
+      "abstract": "Godunov-type methods, which obtain numerical fluxes through local Riemann problems at cell interfaces, are among the most fundamental and widely used numerical methods in computational fluid dynamics. Exact Riemann solvers faithfully solve the underlying equations, but can be computationally expensive due to the iterative root-finding procedures they often require. Consequently, most practical computations rely on classical approximate Riemann solvers, such as Rusanov and Roe, which trade accuracy for computational speed.   Neural networks have recently shown promise as an alternative for approximating exact Riemann solvers, but most existing approaches are data-driven or impose weak constraints. This may result in problems with maintaining balanced states, symmetry breaking, and conservation errors when integrated into a Godunov-type scheme. To address these issues, we propose a hard-constrained neural Riemann solver (HCNRS) and enforce five constraints: positivity, consistency, mirror symmetry, Galilean invariance, and scaling invariance.   Numerical experiments are carried out for the shallow water and ideal-gas Euler equations on standard benchmark problems. In the absence of hard constraints, violations of the well-balanced property, mass conservation, and symmetry are observed. Notably, in the Euler implosion problem, the exact Riemann solver with MUSCL-Hancock captures the jet structure well, whereas the Rusanov flux is too diffusive and smears it out. HCNRS accurately reproduces the solution obtained by the exact Riemann solver. In contrast, an unconstrained neural formulation lacks mirror symmetry, which makes the solution depend on the choice of flux normal direction. As a result, the jet is either shifted or lost, along with diagonal symmetry.",
+      "authors": [
+        "Yucheng Zhang",
+        "Chayanon Wichitrnithed",
+        "Shukai Cai",
+        "Sourav Dutta",
+        "Kyle Mandli",
+        "Clint Dawson"
+      ],
+      "primary_category": "physics.comp-ph",
+      "categories": [
+        "physics.comp-ph",
+        "physics.flu-dyn"
+      ],
+      "published": "2026-03-31T17:01:45+00:00",
+      "link": "https://arxiv.org/pdf/2603.30007v1",
+      "tags": [
+        "keyword:DDI",
+        "keyword:PDE LLM",
+        "query:PDE LLM"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "neural network solvers for computational fluid dynamics equations",
+      "llm_evidence_cn": "用于计算流体动力学方程的神经网络求解器",
+      "llm_evidence": "用于计算流体动力学方程的神经网络求解器",
+      "canonical_evidence": "用于计算流体动力学方程的神经网络求解器",
+      "llm_tldr_en": "Introduces neural Riemann solvers with hard constraints for accurate computational fluid dynamics.",
+      "llm_tldr_cn": "引入了具有硬约束的神经 Riemann 求解器，用于精确的计算流体动力学模拟。",
+      "llm_tldr": "引入了具有硬约束的神经 Riemann 求解器，用于精确的计算流体动力学模拟。",
+      "llm_tags": [
+        "query:pde-llm"
+      ],
+      "matched_query_tag": "query:pde-llm",
+      "matched_query_text": "scientific machine learning for PDEs",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.28015v1",
+      "source": "arxiv",
+      "title": "What an Autonomous Agent Discovers About Molecular Transformer Design: Does It Transfer?",
+      "abstract": "Deep learning models for drug-like molecules and proteins overwhelmingly reuse transformer architectures designed for natural language, yet whether molecular sequences benefit from different designs has not been systematically tested. We deploy autonomous architecture search via an agent across three sequence types (SMILES, protein, and English text as control), running 3,106 experiments on a single GPU. For SMILES, architecture search is counterproductive: tuning learning rates and schedules alone outperforms the full search (p = 0.001). For natural language, architecture changes drive 81% of improvement (p = 0.009). Proteins fall between the two. Surprisingly, although the agent discovers distinct architectures per domain (p = 0.004), every innovation transfers across all three domains with <1% degradation, indicating that the differences reflect search-path dependence rather than fundamental biological requirements. We release a decision framework and open-source toolkit for molecular modeling teams to choose between autonomous architecture search and simple hyperparameter tuning.",
+      "authors": [
+        "Edward Wijaya"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-03-30T04:08:37+00:00",
+      "link": "https://arxiv.org/pdf/2603.28015v1",
+      "tags": [
+        "keyword:DDI",
+        "query:DDI"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Deep learning models for drug-like molecules and transformer design",
+      "llm_evidence_cn": "类药分子深度学习模型与Transformer设计",
+      "llm_evidence": "类药分子深度学习模型与Transformer设计",
+      "canonical_evidence": "类药分子深度学习模型与Transformer设计",
+      "llm_tldr_en": "Evaluates transformer architecture search for molecular sequences like SMILES and proteins.",
+      "llm_tldr_cn": "评估了针对SMILES和蛋白质等分子序列的Transformer架构搜索。",
+      "llm_tldr": "评估了针对SMILES和蛋白质等分子序列的Transformer架构搜索。",
+      "llm_tags": [
+        "query:ddi:composite"
+      ],
+      "matched_query_tag": "query:ddi:composite",
+      "matched_query_text": "Papers central to 请帮我查找有关基于学习的药物关联关系的论文, especially work that connects or combines: drug interaction prediction; deep learning models; association prediction models; computational approaches; machine learning for drug drug interaction; deep learning models in drug drug interaction.",
+      "matched_requirement_id": "req-composite-ddi",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.29608v1",
+      "source": "arxiv",
+      "title": "Learning Diagnostic Reasoning for Decision Support in Toxicology",
+      "abstract": "Acute poly-substance intoxication requires rapid, life-saving decisions under substantial uncertainty, as clinicians must rely on incomplete ingestion details and nonspecific symptoms. Effective diagnostic reasoning in this chaotic environment requires fusing unstructured, non-medical narratives (e.g. paramedic scene descriptions and unreliable patient self-reports or known histories), with structured medical data like vital signs. While Large Language Models (LLMs) show potential for processing such heterogeneous inputs, they struggle in this setting, often underperforming simple baselines that rely solely on patient histories. To address this, we present DeToxR (Decision-support for Toxicology with Reasoning), the first adaptation of Reinforcement Learning (RL) to emergency toxicology. We design a robust data-fusion engine for multi-label prediction across 14 substance classes based on an LLM finetuned with Group Relative Policy Optimization (GRPO). We optimize the model's reasoning directly using a clinical performance reward. By formulating a multi-label agreement metric as the reward signal, the model is explicitly penalized for missing co-ingested substances and hallucinating absent poisons. Our model significantly outperforms its unadapted base LLM counterpart and supervised baselines. Furthermore, in a clinical validation study, the model indicates a clinical advantage by outperforming an expert toxicologist in identifying the correct poisons (Micro-F1: 0.644 vs. 0.473). These results demonstrate the potential of RL-aligned LLMs to synthesize unstructured pre-clinical narratives and structured medical data for decision support in high-stakes environments.",
+      "authors": [
+        "Nico Oberländer",
+        "David Bani-Harouni",
+        "Tobias Zellner",
+        "Nassir Navab",
+        "Florian Eyer",
+        "Matthias Keicher"
+      ],
+      "primary_category": "cs.CL",
+      "categories": [
+        "cs.CL"
+      ],
+      "published": "2026-03-31T11:26:45+00:00",
+      "link": "https://arxiv.org/pdf/2603.29608v1",
+      "tags": [
+        "keyword:DDI",
+        "query:DDI"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "LLMs for decision support in toxicology and substance intoxication",
+      "llm_evidence_cn": "大语言模型用于毒理学和药物中毒决策支持",
+      "llm_evidence": "大语言模型用于毒理学和药物中毒决策支持",
+      "canonical_evidence": "大语言模型用于毒理学和药物中毒决策支持",
+      "llm_tldr_en": "Adapts RL to LLMs for diagnostic reasoning in acute poly-substance intoxication scenarios.",
+      "llm_tldr_cn": "将强化学习应用于大语言模型，用于急性多物质中毒场景的诊断推理。",
+      "llm_tldr": "将强化学习应用于大语言模型，用于急性多物质中毒场景的诊断推理。",
+      "llm_tags": [
+        "query:ddi:composite"
+      ],
+      "matched_query_tag": "query:ddi:composite",
+      "matched_query_text": "Papers central to 请帮我查找有关基于学习的药物关联关系的论文, especially work that connects or combines: drug interaction prediction; deep learning models; association prediction models; computational approaches; machine learning for drug drug interaction; deep learning models in drug drug interaction.",
+      "matched_requirement_id": "req-composite-ddi",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

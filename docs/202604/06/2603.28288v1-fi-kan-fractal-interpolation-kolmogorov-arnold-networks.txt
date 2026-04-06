@@ -1,0 +1,1742 @@
+Title: FI-KAN: Fractal Interpolation Kolmogorov-Arnold Networks
+
+URL Source: https://arxiv.org/pdf/2603.28288v1
+
+Published Time: Tue, 31 Mar 2026 02:37:08 GMT
+
+Number of Pages: 37
+
+Markdown Content:
+# FI-KAN: Fractal Interpolation Kolmogorov–Arnold Networks 
+
+## Gnankan Landry Regis N’guessan 1,2,3
+
+> 1
+
+Axiom Research Group 
+
+> 2
+
+Dept. of Applied Mathematics and Computational Science, NM-AIST, Arusha, Tanzania 
+
+> 3
+
+AIMS Research and Innovation Centre, Kigali, Rwanda 
+
+rnguessan@aimsric.org 
+
+Abstract 
+
+Kolmogorov–Arnold Networks (KAN) employ B-spline bases on a fixed grid, providing no intrinsic multi-scale decomposition for non-smooth function approximation. We introduce Fractal Interpolation KAN (FI-KAN), which incorporates learnable fractal interpolation function (FIF) bases from iterated function system (IFS) theory into KAN. Two variants are presented: Pure FI-KAN (Barnsley, 1986) replaces B-splines entirely with FIF bases; Hybrid FI-KAN (Navascu´ es, 2005) retains the B-spline path and adds a learnable fractal correction. The IFS contraction parameters give each edge a differentiable fractal dimension that adapts to target regularity during training. On a H¨ older regularity benchmark ( α ∈ [0 .2, 2.0]), Hybrid FI-KAN outperforms KAN at every regularity level (1 .3×
+
+to 33 ×). On fractal targets, FI-KAN achieves up to 6.3× MSE reduction over KAN, maintaining 4 .7×
+
+advantage at 5 dB SNR. On non-smooth PDE solutions ( scikit-fem ), Hybrid FI-KAN achieves up to 79 × improvement on rough-coefficient diffusion and 3 .5× on L-shaped domain corner singularities. Pure FI-KAN’s complementary behavior, dominating on rough targets while underperforming on smooth ones, provides controlled evidence that basis geometry must match target regularity. A fractal dimension regularizer provides interpretable complexity control whose learned values recover the true fractal dimension of each target. These results establish regularity-matched basis design as a principled strategy for neural function approximation. 
+
+Keywords: Kolmogorov–Arnold Networks, fractal interpolation, iterated function systems, H¨ older regularity, function approximation, neural architecture design. 
+
+Figure 1: MLPs vs. KANs vs. FI-KANs. (a) MLP: scalar weights on edges, fixed activations on nodes. (b) KAN: learnable B-spline functions on edges. (c) Pure FI-KAN: replaces B-splines with fractal interpolation bases φm(x; d). 
+
+(d) Hybrid FI-KAN: retains B-splines and adds a fractal correction ( f αb = b + h). When d = 0, (d) reduces to (b). 
+
+1
+
+> arXiv:2603.28288v1 [cs.LG] 30 Mar 2026
+
+# 1 Introduction 
+
+Neural function approximation architectures embed implicit assumptions about the regularity of their targets through their choice of basis functions. Multi-layer perceptrons (MLPs) with smooth activation functions (ReLU, SiLU, GELU) construct approximants in spaces of piecewise smooth or analytic functions [ 11 ,20 ]. Kolmogorov–Arnold Networks (KAN) [ 27 ], motivated by the Kolmogorov–Arnold representation theorem [ 24 , 3], replace fixed activations with learnable univariate functions parameterized as B-spline expansions [ 13 ]. B-splines of order k reproduce polynomials of degree at most k −1 and provide near-optimal approximation rates for targets in Sobolev and Besov spaces with integer or high fractional smoothness. However, many functions of scientific and engineering interest are not smooth. Turbulence velocity fields, financial time series, fracture surfaces, natural terrain profiles, and biomedical signals with multi-scale oscillations all exhibit non-trivial H¨ older regularity, fractal self-similarity, or nowhere-differentiable character. For such targets the smooth basis functions used by both MLPs and KANs are fundamentally mismatched: approximating a function with box-counting dimension dim B > 1 using a smooth basis at resolution h
+
+requires O(h−1/α ) basis elements (where α is the H¨ older exponent), with no gain from the polynomial reproduction properties that make splines efficient for smooth targets. This paper introduces Fractal Interpolation KAN (FI-KAN), which augments or replaces the B-spline bases in KAN with fractal interpolation function (FIF) bases derived from iterated function system (IFS) theory [ 5 , 21 ]. The key innovation is that the vertical contraction parameters {di} of the IFS are treated as trainable parameters, giving each edge activation a differentiable fractal dimension that adapts to the regularity structure of the target function during training. 
+
+Contributions. 
+
+1. Two architectures grounded in fractal approximation theory. Pure FI-KAN (Barnsley framework) replaces B-splines entirely with FIF bases. Hybrid FI-KAN (Navascu´ es framework) retains B-splines and adds a fractal correction path. Both architectures are derived from classical mathematical frameworks, not ad hoc modifications. 2. Learnable fractal dimension. The contraction parameters provide a continuous, differentiable knob from smooth (piecewise linear, dim B = 1) to rough (fractal, dim B > 1) basis functions, learned from data. 3. Fractal dimension regularization. A differentiable regularizer penalizes unnecessary fractal complexity, implementing Occam’s razor at the level of function geometry rather than parameter count. 4. Comprehensive experimental validation. Across functions spanning the H¨ older regularity spectrum, FI-KAN demonstrates that matching basis regularity to target regularity yields substantial approximation gains on non-smooth targets, with additional advantages in noise robustness and continual learning. 5. Empirical validation of the regularity-matching hypothesis. The contrast between Pure and Hybrid FI-KAN provides controlled evidence that the geometric structure of the basis functions, not merely their number, is a critical design variable. 6. Validation on non-smooth PDE solutions. On reference solutions computed via scikit-fem [18 ]for elliptic PDEs with corner singularities (H¨ older 2 /3) and rough coefficients generated by fractional Brownian motion ( fbm package [ 16 ]), Hybrid FI-KAN achieves 65–79 × improvement over KAN, demonstrating that the regularity-matching advantage extends to structured roughness inherited from PDE operators. 
+
+Scope. We do not claim FI-KAN as a general-purpose replacement for KAN. We claim it as a principled extension for function classes with non-trivial geometric regularity, supported by both theory and experiment. On smooth targets where B-splines are near-optimal, the Hybrid variant remains competitive (because the spline path carries the load), while the Pure variant underperforms (because its fractal bases cannot efficiently represent smooth curvature). This asymmetry is not a weakness but a confirmation of the regularity-matching principle. The advantage is most pronounced on targets with structured roughness: PDE solutions inheriting non-smooth character from corner singularities, rough coefficients, or stochastic forcing, where Hybrid FI-KAN achieves up to 79 × improvement over KAN. 2Organization. Section 2 reviews the mathematical background on KAN, fractal interpolation functions, and α-fractal approximation. Section 3 presents the FI-KAN architecture in both Pure and Hybrid variants. Section 4 develops the approximation-theoretic analysis. Section 5 provides comprehensive experimental results. Section 6 discusses related work. Section 7 addresses limitations and future directions. Section 8 concludes. FI-KAN 
+
+Learning Basis Geometry Across the Smooth-to-Rough Spectrum 
+
+Smooth basis 
+
+> B-spline / hat-type edge function
+
+# +
+
+Fractal interpolation  
+
+> Learnable contractions d
+
+# +
+
+KAN graph 
+
+> Edge-function network
+
+# =
+
+FI-KAN 
+
+> Regularity-matched edge geometry
+
+Smooth-to-fractal basis morphing         
+
+> d= 0
+> smooth
+> d= 0 .3
+> mild roughness
+> d= 0 .6
+> rough
+> d= 0 .9
+> fractal
+> d↑=⇒dim B↑
+
+Pure FI-KAN 
+
+> all-fractal basis strongest on rough targets
+
+Hybrid FI-KAN 
+
+> smooth branch
+> fractal residual
+> +
+> spline backbone + fractal correction robust across smooth and rough regimes
+
+Multi-scale Regularity-matched Interpretable geometry 
+
+Figure 2: FI-KAN: learning basis geometry across the smooth-to-rough spectrum. Top row: FI-KAN combines smooth basis functions (B-spline/hat-type), fractal interpolation with learnable contraction parameters d, and the KAN edge-function graph to produce regularity-matched edge geometry. Middle row: Smooth-to-fractal basis morphing as di increases from 0 to 0 .9. At di = 0 the basis is a smooth hat function ( dim B = 1); as di increases, the basis acquires progressively finer self-affine structure with dim B > 1. Bottom row: The two FI-KAN variants. Pure FI-KAN (Barnsley framework) uses all-fractal bases, strongest on rough targets. Hybrid FI-KAN (Navascu´ es framework) retains a spline backbone and adds a fractal correction, providing robustness across both smooth and rough regimes. 
+
+# 2 Preliminaries 
+
+## 2.1 Kolmogorov–Arnold Networks 
+
+The Kolmogorov–Arnold representation theorem [ 24 , 3] states that every continuous function f : [0 , 1] n → R
+
+admits a representation 
+
+f (x1, . . . , x n) = 
+
+> 2n
+
+X
+
+> q=0
+
+Φq
+
+> n
+
+X
+
+> p=1
+
+ψq,p (xp)
+
+!
+
+, (1) where Φ q : R → R and ψq,p : [0 , 1] → R are continuous univariate functions. KAN [ 27 ] generalizes this by constructing neural networks whose edges carry learnable univariate functions rather than scalar weights. 3Specifically, a KAN layer maps Rnin → Rnout via 
+
+y =
+
+
+
+ϕ1,1(·) · · · ϕ1,n in (·)... . . . ...
+
+ϕnout ,1(·) · · · ϕnout ,n in (·)
+
+ x, (2) where each ϕj,i : R → R is parameterized as a B-spline expansion plus a residual base activation. In the efficient-KAN implementation [7], each edge function takes the form 
+
+ϕj,i (x) = w(base)  
+
+> j,i
+
+σ(x) + w(scale) 
+
+> j,i G+k−1
+
+X
+
+> m=0
+
+w(spline)  
+
+> j,i,m
+
+B(k) 
+
+> m
+
+(x), (3) where σ is SiLU, {B(k) 
+
+> m
+
+} are B-spline basis functions of order k on a grid of size G, and w(base) , w(scale) ,
+
+w(spline) are learnable parameters. 
+
+B-spline basis properties. B-splines of order k form a partition of unity, are Ck−2 smooth, and reproduce polynomials of degree at most k − 1 [ 13 ]. For a target f ∈ Cs([ a, b ]) with s ≤ k, the best B-spline approximation error on a uniform grid of spacing h satisfies ∥f − fh∥∞ = O(hs). This makes B-splines near-optimal for smooth targets but provides no structural advantage when s < 1 (i.e., H¨ older-continuous but not Lipschitz) or when the target has fractal character. 
+
+## 2.2 Fractal Interpolation Functions 
+
+Fractal interpolation, introduced by Barnsley [ 5], constructs continuous functions whose graphs can have prescribed fractal dimension. The construction uses the theory of iterated function systems (IFS) [21, 6]. 
+
+Definition 2.1 (Fractal Interpolation Function) . Given interpolation data {(xi, y i)}Ni=0 with a = x0 <x1 < · · · < x N = b, consider the IFS {wi}Ni=1 on [ a, b ] × R defined by 
+
+wi(x, y ) = 
+
+ai 0
+
+ci di
+
+  xy
+
+
+
++
+
+ei
+
+fi
+
+
+
+, i = 1 , . . . , N, (4) where: 
+
+• |di| < 1 for all i (vertical contractivity); 
+
+• ai, e i are determined by the interpolation constraints: wi(x0, y 0) = ( xi-1 , y i-1 ), wi(xN , y N ) = ( xi, y i); 
+
+• di ∈ (−1, 1) are the vertical scaling (contraction) factors, the only free parameters of the IFS; 
+
+• ci and fi are determined by the interpolation constraints and the choice of di:
+
+ci = yi − yi−1 − di(yN − y0)
+
+xN − x0
+
+, fi = yi−1 − cix0 − diy0. (5) The fractal interpolation function (FIF) f ∗ is the unique continuous function whose graph G(f ∗) is the attractor of this IFS. The maps Li(x) = aix + ei project [ x0, x N ] onto [ xi−1, x i]. The FIF f ∗ satisfies the Read–Bajraktarevi´ c(RB) functional equation [5]: 
+
+f ∗(Li(x)) = ci x + di f ∗(x) + fi, x ∈ [x0, x N ], i = 1 , . . . , N. (6) 
+
+Theorem 2.2 (Barnsley, 1986 [ 5 ]) . If |di| < 1 for all i = 1 , . . . , N , then the IFS (4) has a unique attractor that is the graph of a continuous function f ∗ : [ a, b ] → R satisfying f ∗(xi) = yi for all i.
+
+Theorem 2.3 (Fractal Dimension; Barnsley, 1986 [ 5]) . For the FIF f ∗ with ci = 0 and |di| < 1, the box-counting dimension of the graph satisfies 
+
+dim B
+
+ Graph( f ∗) =
+
+
+
+1 if 
+
+> N
+
+X
+
+> i=1
+
+|di| ≤ 1,
+
+1 + log PNi=1 |di|
+
+log N if 
+
+> N
+
+X
+
+> i=1
+
+|di| > 1.
+
+(7) 4Linearity in the ordinates. A key structural property is that the FIF depends linearly on the interpolation ordinates: f ∗(x; y, d) = PNi=0 yi φi(x; d), where the FIF basis functions φi satisfy φi(xj ; d) = 
+
+δij (the Kronecker property). This parallels the structure of B-spline expansions and is crucial for embedding FIF bases in the KAN framework. 
+
+The ci = 0 specialization. When ci = 0 for all i, the RB equation (6) simplifies to 
+
+f ∗(Li(x)) = di f ∗(x) + fi, x ∈ [x0, x N ]. (8) This is the standard “recurrent” FIF studied extensively in fractal approximation theory [ 5, 30 , 29 ]. The basis functions φi(x; d) depend only on d and the grid structure. Theorem 2.3 applies directly. When di = 0 for all i, the FIF reduces to the piecewise linear interpolant through {(xi, y i)}, i.e., the basis functions become the standard hat functions. 
+
+Remark 2.4 (The ci = 0 specialization and basis function construction) . Setting ci = 0 in (5) imposes 
+
+di = ( yi − yi−1)/(yN − y0) when y0̸ = yN , constraining di rather than leaving it free. For the FIF basis functions φj with Kronecker data ( xi, δ ij ), the interior bases (0 < j < N ) have y0 = yN = 0, so the constraint degenerates and di remains free, but the endpoint conditions yield non-trivial ci values for subintervals adjacent to the j-th grid point. Algorithm 1 handles this correctly: the piecewise linear base case and boundary corrections implicitly encode the ci contributions determined by the Kronecker data. The fractal dimension formula (Theorem 2.3) remains valid because ci affects only the linear skeleton of the FIF, not the self-affine scaling structure that governs the box-counting dimension [ 5, 15 ]. Thus “ ci = 0” should be understood as a simplifying label for the analysis, not a literal constraint on the implementation. 
+
+## 2.3 Alpha-Fractal Interpolation 
+
+Navascu´ es [ 31 ] generalized Barnsley’s construction by introducing the α-fractal operator. Given a base function b ∈ C([ a, b ]) that interpolates the data {(xi, y i)}Ni=0 , the α-fractal function f αb is defined as the FIF satisfying 
+
+f αb (Li(x)) = αi f αb (x) + b(Li(x)) − αi b(x), (9) where αi ∈ (−1, 1) are the fractal parameters and b is the base function (a classical, typically smooth, approximant). Setting h = f αb − b, one obtains 
+
+h(Li(x)) = αi h(x), h(xj ) = 0 for all j, (10) so h is a self-affine perturbation that vanishes at the interpolation points. The α-fractal function thus decomposes as 
+
+f αb = b|{z} 
+
+> classical approximant
+
++ h|{z} 
+
+> fractal perturbation
+
+. (11) This framework has three key properties: 1. Recovery: When αi = 0 for all i, f αb = b (the base function is recovered exactly). 2. Continuous bridge: The parameters αi provide a continuous transition from classical to fractal approximation. 3. Residual structure: The perturbation h captures precisely what the smooth base function b misses. If b is a spline and the target has fractal structure, then h encodes the non-smooth residual. This decomposition provides the theoretical foundation for our Hybrid FI-KAN architecture. 
+
+# 3 FI-KAN Architecture 
+
+We present two variants of Fractal Interpolation KAN, each grounded in one of the mathematical frameworks described in Section 2. 5KAN                               
+
+> x
+> φ(x)
+> (a)
+> σ(x)∑
+> wmB(k)
+> m(x)
+> +
+> base spline
+> Pure FI-KAN
+> (Barnsley framework)
+> x
+> φ(x)
+> d= 0 ⇒hat functions
+> (b)
+> σ(x)∑
+> wmϕm(x;d)
+> +
+> base fractal
+> Hybrid FI-KAN
+> (Navascués framework)
+> x
+> φ(x)
+> fαb=b+h
+> d= 0 ,wfrac = 0 ⇒reduces to KAN
+> (c)
+> σ(x)∑
+> wmB(k)
+> m
+> ∑
+> wmϕm(x;d)
+> +
+> base spline ( = b)fractal (≈h)
+
+Figure 3: Edge function architecture for the three models. (a) KAN : base activation plus B-spline path. 
+
+(b) Pure FI-KAN (Barnsley): replaces B-splines with fractal interpolation bases φm(x; d). When d = 0,the FIF bases reduce to piecewise linear hat functions. (c) Hybrid FI-KAN (Navascu´ es): retains the B-spline path and adds a fractal correction, implementing the α-fractal decomposition f αb = b + h. When 
+
+d = 0 and fractal weights vanish, Hybrid reduces to standard KAN. 
+
+Algorithm 1: Fractal Basis Function Evaluation 
+
+Input: x ∈ [a, b ]B×D (batch × features), d ∈ (−1, 1) D×N (contraction parameters), grid size N ,recursion depth K
+
+Output: Φ ∈ RB×D×(N +1) (basis function values)  
+
+> 1
+
+u ← (x − a)/(b − a), clamped to ( ε, 1 − ε) ; // Normalize to [0 , 1]  
+
+> 2
+
+Φ ← 0, r ← 1 ; // Initialize bases and running product  
+
+> 3
+
+for k = 0 , . . . , K − 1 do  
+
+> 4
+
+j ← ⌊ u · N ⌋, clamped to {0, . . . , N − 1} ; // Interval index  
+
+> 5
+
+t ← u · N − j ; // Local coordinate  
+
+> 6
+
+dj ← d[·, j ] ; // Gather contraction factor  
+
+> 7
+
+Φ[·, ·, j ] += r · (1 − t); Φ[·, ·, j + 1] += r · t 
+
+> 8
+
+Φ[·, ·, 0] −= r · dj · (1 − t); Φ[·, ·, N ] −= r · dj · t ; // Boundary corrections  
+
+> 9
+
+r ← r · dj ; u ← t 
+
+> 10
+
+end 
+
+// Base case: piecewise linear  
+
+> 11
+
+j ← ⌊ u · N ⌋; t ← u · N − j 
+
+> 12
+
+Φ[·, ·, j ] += r · (1 − t); Φ[·, ·, j + 1] += r · t
+
+## 3.1 FIF Basis Function Computation 
+
+We construct FIF basis functions {φi(x; d)}Ni=0 on a uniform grid xi = a + i(b − a)/N for i = 0 , . . . , N ,using the ci = 0 specialization of Barnsley’s framework (Section 2.2). Evaluation uses a truncated iteration of the RB operator to depth K.The boundary corrections at indices 0 and N enforce the endpoint constraints of the RB operator. The running product rk = Qk−1 
+
+> m=0
+
+dσm tracks the cumulative contraction through k levels of recursion, where σm
+
+is the interval index at recursion depth m.
+
+Proposition 3.1 (Truncation Error) . Let dmax = max i|di| < 1. The truncated evaluation at depth K
+
+satisfies 
+
+∥f (K) − f ∗∥∞ ≤ C · dK
+
+> max
+
+, (12) 
+
+where C depends on the interpolation ordinates and the grid. 
+
+Proof. At depth K the running product satisfies |rK | = QK−1 
+
+> m=0
+
+|dσm | ≤ dK
+
+> max
+
+. The remaining contribution to the FIF from recursion depths K, K + 1 , . . . is bounded by C P∞ 
+
+> j=K
+
+dj 
+
+> max
+
+= C d K
+
+> max
+
+/(1 − dmax ), which is exponentially small in K.
+
+Differentiability. Each term in the truncated expansion is polynomial in {di, y i} (specifically, products and sums of the contraction parameters and ordinates with piecewise polynomial functions of x). The 6entire forward pass is therefore differentiable with respect to all parameters and compatible with automatic differentiation through PyTorch [32]. 
+
+Contraction parameter reparameterization. To enforce |di| < 1 while maintaining unconstrained optimization, we parameterize di = dmax · tanh (d(raw)  
+
+> i
+
+) where d(raw)  
+
+> i
+
+∈ R is the unconstrained learnable parameter and dmax = 0 .99. 1.0 0.5 0.0 0.5 1.0               
+
+> x
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> ϕ2(x; d)
+> ϕ2(x2) = 1
+> ϕ2(xj) = 0 for j2
+> increasing
+> fractal
+> complexity
+> K= 8
+> di= 0 .9(dim B>1)
+> di= 0 .6
+> di= 0 .3
+> di= 0 (hat function, dim B= 1 )
+
+Figure 4: Fractal basis function φ2(x; d) (the middle basis on a 5-interval grid) as the contraction parameters 
+
+di vary uniformly from 0 to 0.9. At di = 0, the basis is the standard piecewise linear hat function ( dim B = 1). As di increases, the basis acquires increasingly fine-scale fractal structure ( dim B > 1) while maintaining the Kronecker property φ2(xj ) = δ2j at all grid points (black dots). Recursion depth K = 8. 
+
+## 3.2 Pure FI-KAN (Barnsley Framework) 
+
+Pure FI-KAN replaces B-spline basis functions entirely with FIF bases, testing the regularity-matching hypothesis in its strongest form. 
+
+Definition 3.2 (Pure FI-KAN Edge Function) . Each edge activation in a Pure FI-KAN layer computes 
+
+ϕj,i (x) = w(base)  
+
+> j,i
+
+σ(x) + w(scale) 
+
+> j,i N
+
+X
+
+> m=0
+
+w(frac)  
+
+> j,i,m
+
+φm(x; di), (13) where σ is SiLU, {φm(·; di)}Nm=0 are the FIF basis functions (Algorithm 1), w(frac)  
+
+> j,i,m
+
+are learnable interpolation ordinates (analogous to B-spline coefficients), and di ∈ (−1, 1) N are the learnable contraction parameters for input feature i.
+
+Learnable parameters per edge. 
+
+• Interpolation ordinates: {w(frac)  
+
+> j,i,m
+
+}Nm=0 (N + 1 parameters, playing the role of B-spline coefficients). 
+
+• Contraction factors: {di,m }Nm=1 (N parameters, shared across output features, controlling fractal character). 
+
+• Base weight: w(base)  
+
+> j,i
+
+and scale: w(scale)  
+
+> j,i
+
+(2 parameters, as in standard KAN). 
+
+Properties. 
+
+1. When d = 0: all FIF bases reduce to piecewise linear hat functions. The edge functions become piecewise linear (order-1 spline) KAN edges. 2. When d̸ = 0: the basis functions acquire fractal structure. The box-counting dimension of each edge activation is a differentiable function of d via (7). 7x1 x2 x3
+
+y   
+
+> ϕm(x;d)ϕm(x;d)
+> sum nodes
+> input features
+
+(a) Network graph (Barnsley)      
+
+> ΣΣΣΣΣ
+
+x
+
+wbase σ(x)
+
+> base (SiLU)
+
+∑
+
+wm ϕm(x; d)   
+
+> fractal path (FIF)
+> d∈(−1,1) N
+> learnable contraction
+
++ wscale 
+
+φ(x)
+
+φj, i (x) = wbase  
+
+> j, i
+
+σ(x) + wscale 
+
+> j, i N
+
+∑ 
+
+> m= 0
+
+wfrac  
+
+> j, i, m
+
+ϕm(x; di)        
+
+> d= 0 : hat functions (order-1 KAN)
+> d0: fractal bases, dim B>1
+> Kronecker: ϕm(xj) = δmj
+> Partition of unity:
+> ∑
+> ϕm= 1
+
+(b) Edge activation (single edge)      
+
+> 0.0 0.2 0.4 0.6 0.8 1.0
+
+x
+
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> 3.5
+> ϕ2(x; d)
+
+(c) Fractal basis ϕ2(x; d) via truncated RB iteration ( K = 10 )          
+
+> di= 0 (hat)
+> di= 0 .3
+> di= 0 .6
+> di= 0 .9
+> 0.0 0.2 0.4 0.6 0.8 1.0
+
+di (uniform)  
+
+> 1.0
+> 1.1
+> 1.2
+> 1.3
+> 1.4
+> 1.5
+> 1.6
+> 1.7
+> dim B
+> 1
+> N
+> ∑
+> |di|1
+
+dim B = 1 + log +(∑ 
+
+> |di|)
+> log N
+
+(d) Box-counting dimension      
+
+> 0.0 0.2 0.4 0.6 0.8 1.0
+
+di (uniform) 
+
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> R(d)
+
+R(d) = (dim B(d) − 1) 2
+
+> Geometry-aware
+> Occam's razor
+
+(e) Fractal regularizer Figure 5: Pure FI-KAN (Barnsley framework) architecture detail. (a) Network graph: all edges carry fractal interpolation function (FIF) bases φm(x; d) with learnable contraction parameters; nodes perform summation. (b) Edge activation: the input x splits into a base SiLU path and a fractal path P wfrac 
+
+m φm(x; d), where d ∈ (−1, 1) N controls the fractal character of the basis. When d = 0, the FIF bases reduce to piecewise linear hat functions (order-1 KAN). (c) Fractal basis φ2(x; d) at four contraction values di ∈ { 0, 0.3, 0.6, 0.9},computed via K = 10 truncated Read–Bajraktarevi´ c iterations. The Kronecker property φ2(xj ) = δ2j is preserved at all d values (dots). (d) Box-counting dimension dim B (d) as a function of uniform di, with the transition surface P |di| = 1 marked. (e) Fractal dimension regularizer R(d) = ( dim B (d) − 1) 2: a geometry-aware Occam’s razor that penalizes unnecessary fractal complexity. 83. The network learns both the interpolation ordinates (what values to hit at grid points) and the inter-grid-point geometry (how to interpolate between grid points, with learnable roughness). 
+
+Inductive bias. Pure FI-KAN is biased toward targets with non-trivial fractal structure. For smooth targets, it must learn d ≈ 0 to recover piecewise linear (hat function) bases, which form a weaker approximation class than B-splines of order k ≥ 2 since they cannot reproduce quadratic or higher-degree polynomials. This limitation is by design: it enables testing whether fractal bases are necessary and sufficient for rough targets without confounding from smooth-target performance. 
+
+## 3.3 Hybrid FI-KAN (Navascu´ es Framework) 
+
+Hybrid FI-KAN instantiates Navascu´ es’s α-fractal decomposition (Section 2.3) within the KAN architecture: the B-spline path serves as the classical approximant b and a parallel FIF path provides the fractal correction 
+
+h.
+
+Definition 3.3 (Hybrid FI-KAN Edge Function) . Each edge activation computes 
+
+ϕj,i (x) = w(base)  
+
+> j,i
+
+σ(x)
+
+| {z }
+
+> base
+
++ w(s .sc .)
+
+> j,i
+
+X
+
+> m
+
+w(spl) 
+
+> j,i,m
+
+B(k) 
+
+> m
+
+(x)
+
+| {z }
+
+> spline path (= b)
+
++
+
+> N
+
+X
+
+> m=0
+
+w(frac)  
+
+> j,i,m
+
+φm(x; di)
+
+| {z }
+
+> fractal correction ( ≈h)
+
+. (14) This is the α-fractal decomposition (11) realized as a neural architecture: 
+
+f αb (x) = b(x)
+
+|{z} 
+
+> spline path
+
++ h(x; d)
+
+| {z }
+
+> fractal correction path
+
+. (15) 
+
+Connection to Navascu´ es’s framework. 
+
+• The B-spline path b(x) = P 
+
+> m
+
+w(spl)  
+
+> m
+
+B(k) 
+
+> m
+
+(x) is the classical approximant. 
+
+• The fractal path h(x; d) = P 
+
+> m
+
+w(frac)  
+
+> m
+
+φm(x; d) is the fractal perturbation. 
+
+• When d = 0 and w(frac) = 0: the architecture reduces exactly to standard KAN, recovering Navascu´ es’s property that α = 0 gives back the base function. 
+
+• The implementation generalizes the strict Navascu´ es construction by allowing the fractal correction to have independent interpolation ordinates, rather than constraining h(xj ) = 0. This gives the network more freedom to learn the optimal smooth-rough decomposition from data. 
+
+Initialization. The fractal weights w(frac) are initialized to zero and the contraction parameters d(raw) are initialized near zero ( d(raw) ∼ N (0 , 0.01)). The network therefore starts as a standard KAN and develops fractal structure only where the data demands it. This provides a strong inductive bias toward the simplest explanation: use smooth splines unless fractal correction demonstrably reduces the loss. 
+
+Fractal energy ratio. The diagnostic quantity 
+
+ρ = ∥w(frac) ∥1
+
+∥w(spl) ∥1 + ε (16) measures the magnitude of the fractal correction relative to the spline path. When ρ ≈ 0, the fractal path is inactive (spline-dominated behavior). When ρ > 0, the network has learned to apply non-trivial fractal correction. 
+
+## 3.4 Fractal Dimension Regularization 
+
+Both variants support a geometry-aware regularizer derived from IFS theory. 
+
+Definition 3.4 (Fractal Dimension Regularizer) . For an edge with contraction parameters d = ( d1, . . . , d N ), define 
+
+Redge (d) =  dim B(d) − 12, dim B(d) = 1 + log + P Ni=1 |di|
+
+log N , (17) 9x1 x2 x3
+
+y     
+
+> b+hb+h
+> sum nodes
+
+(a) Network graph (Navascues)         
+
+> b(spline path) h(fractal correction)
+> ΣΣΣΣΣ
+
+x
+
+wbase σ(x)
+
+> base (SiLU)
+
+∑
+
+wmB (k) 
+
+> m
+
+(x) 
+
+> b= spline path
+
+∑
+
+wmϕm(x; d)    
+
+> h= fractal correction
+> d∈(−1,1) N
+
++ f αb
+
+= b + h
+
+φ(x)
+
+φj, i (x) = wbase σ(x) + ws. sc . ∑
+
+wspl  
+
+> m
+
+B (k) 
+
+> m
+
+(x) + 
+
+∑
+
+wfrac  
+
+> m
+
+ϕm(x; d)            
+
+> d= 0 ,wfrac = 0 : reduces to standard KAN
+> Init: wfrac = 0 ,draw ∼ N (0 ,0.01)
+> Energy ratio: ρ=‖wfrac ‖1/‖wspl ‖1
+
+(b) Edge activation ( α-fractal decomposition) 
+
+0.0 0.2 0.4 0.6 0.8 1.0 
+
+x
+
+0.00 
+
+0.25 
+
+0.50 
+
+0.75 
+
+1.00 
+
+1.25 
+
+1.50 
+
+1.75 
+
+> f αb (x) =  b(x) +  h(x; d)
+
+(c) α-fractal decomposition: f αb = b + h           
+
+> b: B-spline basis
+> di= 0 (b+h=b, KAN)
+> di= 0 .4
+> di= 0 .7
+> di= 0 .9
+> halone ( di= 0 .9)
+
+0.0 0.2 0.4 0.6 0.8 
+
+di
+
+10 14 
+
+10 11 
+
+10 8
+
+10 5
+
+10 2       
+
+> ‖f αb − b‖2
+> d→0⇒fαb→b
+> (KAN recovery)
+
+(d) Recovery property 
+
+0.2 0.4 0.6 0.8 1.0 1.5 2.0 
+
+Target Holder exponent α
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+1.0     
+
+> ρ = ‖wfrac ‖1
+> ‖wspl ‖1
+> ρ≈0: spline-dominated
+> ρÀ0: fractal active
+
+(e) Fractal energy ratio ρ
+
+> Fractal target
+> Smooth target
+
+Figure 6: Hybrid FI-KAN (Navascu´ es framework) architecture detail. (a) Network graph: edges carry dual paths—solid blue for the B-spline path b (classical approximant) and dashed coral for the fractal correction h—implementing the α-fractal decomposition f αb = b + h. (b) Edge activation: the input splits into three paths (base SiLU, B-spline, FIF), combined into the α-fractal output f αb = b + h. When 
+
+d = 0 and wfrac = 0, the architecture reduces exactly to standard KAN. Initialization sets wfrac = 0 and 
+
+draw ∼ N (0 , 0.01), so the network starts as a KAN and develops fractal structure only where the data demands it. (c) α-fractal decomposition showing the B-spline basis b (blue), hybrid outputs b + h at increasing di, and the isolated fractal correction h (dashed). (d) Recovery property: ∥d∥ → 0 implies 
+
+f αb → b (KAN recovery). (e) Fractal energy ratio ρ = ∥wfrac ∥1/∥wspl ∥1 across target H¨ older exponents: fractal path is active ( ρ ≫ 0) on rough targets and dormant ( ρ ≈ 0) on smooth targets. 10 where log +(x) = max(log x, 0). The total fractal regularization loss is 
+
+Rfractal (θ) = X
+
+> ℓ
+
+X
+
+> i
+
+Redge (d(ℓ) 
+
+> i
+
+), (18) summed over all layers ℓ and input features i.
+
+Properties. 
+
+1. Geometry-aware Occam’s razor. The regularizer penalizes fractal dimension exceeding 1, i.e., penalizes fractal structure in the basis functions. It says: prefer smooth bases unless the data provides sufficient evidence for fractal structure. 2. Differentiability. The regularizer is differentiable with respect to d through the tanh reparameteri-zation. 3. Interpretability. The learned fractal dimension dim B(d) is a meaningful diagnostic: it tracks the geometric regularity of the target function (see Section 5.12). 4. Distinct from weight regularization. This is not L1/L2 regularization on parameter magnitude. It controls the geometric complexity of the basis functions, which is a fundamentally different notion of model complexity. The total training loss is: 
+
+L = Ldata + λact Ract + λent Rent + λfrac Rfractal , (19) where Ract and Rent are the activation and entropy regularizers from KAN [27]. 
+
+## 3.5 Computational Considerations 
+
+Parameter count. For a layer with nin inputs, nout outputs, and grid size G:
+
+• KAN: nout × nin × (G + k) spline weights + nout × nin base and scale weights. 
+
+• Pure FI-KAN: nout × nin × (G + 1) fractal weights + nin × G contraction parameters + nout × nin 
+
+base and scale weights. 
+
+• Hybrid FI-KAN: KAN parameters + nout × nin × (G + 1) fractal weights + nin × G contraction parameters. 
+
+Computational cost. The FIF basis evaluation (Algorithm 1) requires K sequential iterations of interval lookup and accumulation. Each iteration involves O(B · D) work (where B is batch size and D = nin ), giving total cost O(K · B · D · N ). The sequential nature of the recursion limits GPU parallelism compared to B-spline evaluation, which is fully vectorized. In practice, the Hybrid variant with K = 2 (recommended) adds approximately 2 .5× overhead per forward pass relative to standard KAN. 
+
+# 4 Theoretical Analysis 
+
+This section develops the approximation-theoretic foundations of FI-KAN. We establish structural proper-ties of the FIF basis system (Section 4.1), prove convergence of the truncated evaluation (Section 4.2), characterize the variation structure that governs smooth-target performance (Section 4.3), provide approxi-mation rates for H¨ older-continuous targets (Section 4.4), analyze the Hybrid architecture as a smooth-rough decomposition (Section 4.5), and establish properties of the fractal dimension regularizer (Section 4.6). Throughout, we work on a uniform grid xi = a + ih with h = ( b − a)/N and use the ci = 0 specialization of Barnsley’s IFS. 
+
+## 4.1 Structure of the FIF Basis System 
+
+We first establish that the FIF basis functions form a well-defined system with properties analogous to classical interpolation bases. 
+
+Theorem 4.1 (FIF Basis Decomposition) . Let d = ( d1, . . . , d N ) ∈ (−1, 1) N . There exist unique continuous functions φ0, φ 1, . . . , φ N : [ a, b ] → R such that: 
+
+11 (i) Kronecker property: φj (xi; d) = δij for all i, j ∈ { 0, . . . , N }.(ii) Representation: For any interpolation data {(xi, y i)}Ni=0 , the FIF f ∗ with vertical scaling d and 
+
+ci = 0 satisfies 
+
+f ∗(x) = 
+
+> N
+
+X
+
+> j=0
+
+yj φj (x; d). (20) 
+
+(iii) Partition of unity: PNj=0 φj (x; d) = 1 for all x ∈ [a, b ].(iv) Degeneration: When d = 0, φj (·; 0) is the standard piecewise linear hat function centered at xj .
+
+Proof. (i) and (ii): For each j ∈ { 0, . . . , N }, define φj as the FIF through the data ( xi, δ ij )Ni=0 with scaling 
+
+d. By Theorem 2.2, each φj exists, is unique, and is continuous. The Kronecker property holds by construction. Since the FIF depends linearly on the interpolation ordinates (the RB equation (8) is linear in 
+
+f ∗, and the ordinates enter through fi which depends linearly on yi−1, y i), the superposition (20) satisfies the same RB equation as f ∗ and agrees with f ∗ at all interpolation points. By uniqueness of the attractor, 
+
+f ∗ = P 
+
+> j
+
+yj φj .(iii): The constant function g(x) = 1 interpolates the data ( xi, 1) Ni=0 . With ci = 0, the RB equation (8) for g reads g(Li(x)) = dig(x) + fi. Setting g ≡ 1: 1 = di + fi, which determines fi = 1 − di. One verifies that g ≡ 1 is indeed a fixed point of the RB operator with these parameters. By the representation (ii), 1 = g(x) = P 
+
+> j
+
+1 · φj (x; d) = P 
+
+> j
+
+φj (x; d). (iv): When d = 0, the RB equation becomes f ∗(Li(x)) = fi, and fi is determined by the interpolation constraints to give the piecewise linear interpolant. The basis functions of piecewise linear interpolation are the standard hat functions. 
+
+Remark 4.2 . The partition of unity property (iii) is important for numerical stability: the FIF basis values sum to 1 regardless of the contraction parameters, preventing unbounded growth during the forward pass. Note, however, that unlike B-spline bases, the FIF basis functions φj (·; d) are not non-negative in general when d̸ = 0.The following lemma establishes continuity of the basis system with respect to the contraction parameters, which is essential for gradient-based optimization. 
+
+Lemma 4.3 (Continuity in the Contraction Parameters) . The map d 7 → φj (·; d) is continuous from 
+
+(−1, 1) N to C([ a, b ]) equipped with the supremum norm. More precisely, for d, d′ ∈ [−δ, δ ]N with δ < 1:
+
+∥φj (·; d) − φj (·; d′)∥∞ ≤ Cj
+
+1 − δ ∥d − d′∥∞, (21) 
+
+where Cj depends only on the grid and the index j.
+
+Proof. Let Td denote the Read–Bajraktarevi´ c operator parameterized by d. For g, h ∈ C([ a, b ]) and any d
+
+with ∥d∥∞ ≤ δ < 1, the operator Td is a contraction with Lipschitz constant δ:
+
+∥T d(g) − T d(h)∥∞ ≤ δ ∥g − h∥∞. (22) Now write φj (·; d) = Td(φj (·; d)) (fixed point) and similarly for d′. Then: 
+
+∥φj (·; d) − φj (·; d′)∥∞ = ∥T d(φj (·; d)) − T d′ (φj (·; d′)) ∥∞
+
+≤ ∥T d(φj (·; d)) − T d(φj (·; d′)) ∥∞
+
++ ∥T d(φj (·; d′)) − T d′ (φj (·; d′)) ∥∞
+
+≤ δ ∥φj (·; d) − φj (·; d′)∥∞ + ∥(Td − T d′ )( φj (·; d′)) ∥∞. (23) Since ( Td − T d′ )( g) on [ xi−1, x i] equals ( di − d′
+
+> i
+
+) g(L−1 
+
+> i
+
+(·)), we have 
+
+∥(Td − T d′ )( g)∥∞ ≤ ∥ d − d′∥∞ ∥g∥∞. (24) Rearranging: (1 −δ)∥φj (·; d)−φj (·; d′)∥∞ ≤ ∥ d−d′∥∞ ∥φj (·; d′)∥∞, giving (21) with Cj = ∥φj (·; d′)∥∞.
+
+## 4.2 Convergence of the Truncated Evaluation 
+
+Algorithm 1 computes the FIF bases via a truncated RB iteration. We now give a precise convergence theorem. 12 Theorem 4.4 (Truncation Error Bound) . Let φ(K) 
+
+> j
+
+(x; d) denote the output of Algorithm 1 at depth K,and let φj (x; d) denote the exact FIF basis function. Define dmax = max i|di| and S = PNi=1 |di|. Then for all x ∈ [a, b ]:
+
+|φ(K) 
+
+> j
+
+(x; d) − φj (x; d)| ≤ dK
+
+> max
+
+1 − dmax 
+
+. (25) 
+
+Consequently, the truncated FIF approximation f ∗(K)(x) = P 
+
+> j
+
+yj φ(K) 
+
+> j
+
+(x; d) satisfies 
+
+∥f ∗(K) − f ∗∥∞ ≤ dK
+
+> max
+
+1 − dmax 
+
+∥y∥1. (26) 
+
+Proof. The algorithm computes φ(K) 
+
+> j
+
+by applying the RB iteration K times, starting from a piecewise linear base function p. At each iteration, the RB operator Td satisfies ∥T d(g) − T d(h)∥∞ ≤ dmax ∥g − h∥∞.After K iterations starting from p, the error relative to the fixed point φj satisfies 
+
+∥T K 
+
+> d
+
+(p) − φj ∥∞ ≤ dK 
+
+> max
+
+∥p − φj ∥∞. (27) Since φj satisfies the Kronecker property and ∥φj ∥∞ is bounded (it is continuous on a compact interval), we have ∥p − φj ∥∞ ≤ ∥ p∥∞ + ∥φj ∥∞. Both p and φj have values in [0 , 1] at the grid points (Kronecker data), and ∥p∥∞ ≤ 1. For a tighter bound, note that φj = Td(φj ) and φ(K) 
+
+> j
+
+= T K 
+
+> d
+
+(p), so by the geometric series for contractions: 
+
+∥φ(K) 
+
+> j
+
+− φj ∥∞ ≤ dK
+
+> max
+
+1 − dmax 
+
+∥T d(p) − p∥∞. (28) Since p is the piecewise linear interpolant through the Kronecker data and Td(p) differs from p by at most 
+
+dmax ∥p∥∞ ≤ dmax on each subinterval, we obtain ∥T d(p) − p∥∞ ≤ dmax . Substituting: ∥φ(K) 
+
+> j
+
+− φj ∥∞ ≤
+
+dK+1 max /(1 − dmax ). The slightly looser bound (25) follows by absorbing the extra factor. For the FIF itself, (26) follows from the triangle inequality: |f ∗(K)(x) − f ∗(x)| ≤ P 
+
+> j
+
+|yj | · | φ(K) 
+
+> j
+
+(x) −
+
+φj (x)| ≤ ∥ y∥1 · dK
+
+> max
+
+/(1 − dmax ). 
+
+Corollary 4.5. For a target accuracy ε > 0 in the basis evaluation, it suffices to choose 
+
+K ≥ log( ε(1 − dmax )) log dmax 
+
+. (29) 
+
+For dmax = 0 .9 and ε = 10 −6, this gives K ≥ 13 . For dmax = 0 .5, K ≥ 6 suffices. 
+
+## 4.3 Total Variation and the Smooth Approximation Obstruction 
+
+The fundamental reason that Pure FI-KAN underperforms on smooth targets is that FIF bases with non-trivial contraction parameters have unbounded total variation. This section makes this obstruction precise. 
+
+Definition 4.6 (Total Variation) . For g : [ a, b ] → R, the total variation is 
+
+V (g) = sup 
+
+> M
+
+X
+
+> k=1
+
+|g(tk) − g(tk−1)|,
+
+where the supremum is over all partitions a = t0 < t 1 < · · · < t M = b.
+
+Theorem 4.7 (Variation Dichotomy for FIF Bases) . Let φj (·; d) be a FIF basis function on N intervals with non-degenerate data (i.e., j / ∈ { 0, N } or the endpoint basis is non-trivial). Then: (i) If PNi=1 |di| ≤ 1, then V (φj ) < ∞. In particular, when d = 0, V (φj ) = 2 (the hat function variation). (ii) If PNi=1 |di| > 1, then V (φj ) = ∞.
+
+Proof. (i): When P
+
+> i
+
+|di| ≤ 1, the IFS is contractive in the “vertical variation” sense. Define Vn as the total variation of T n 
+
+> d
+
+(p) where p is the piecewise linear base. The RB operator satisfies V (Td(g)) ≤P
+
+> i
+
+|di| V (g|[a,b ]) + Cgrid , where Cgrid accounts for the jumps at grid points. When P
+
+> i
+
+|di| ≤ 1, this is a (weakly) contractive recursion and {Vn} is bounded. The limit has finite variation. When d = 0, φj is the hat function, which rises from 0 to 1 and back, giving V = 2. 13 (ii): When S = P
+
+> i
+
+|di| > 1, consider the variation of φj restricted to refinements of the grid. At the n-th level of refinement (grid spacing h/N n), the self-affine structure of the FIF gives rise to N n
+
+subintervals, each contributing variation proportional to Sn/N n. The total variation at resolution n scales as Sn, which diverges as n → ∞ since S > 1. Formally, this follows from the self-affine structure of the graph: dim B(Graph (φj )) > 1 implies the graph has infinite length, which is equivalent to V (φj ) = ∞ for continuous functions [15]. The consequence for approximation is immediate: 
+
+Corollary 4.8 (Smooth Approximation Obstruction) . Let f ∈ C2([ a, b ]) and suppose f is not piecewise linear. Then for any ε > 0, if f ∗(x) = P 
+
+> j
+
+yj φj (x; d) with P
+
+> i
+
+|di| > 1 satisfies ∥f − f ∗∥∞ < ε , the coefficient vector y must satisfy 
+
+∥y∥∞ ≥ V (f )2 max j V (φj |[support ]) → 0 is impossible when V (φj ) = ∞. (30) 
+
+More precisely: the approximation f ∗ = P 
+
+> j
+
+yj φj must achieve ∥f − f ∗∥∞ < ε through cancellation of infinite-variation basis functions, which requires the coefficients y to be tuned to cancel the fractal oscillations at all scales simultaneously. This cancellation becomes increasingly fragile as the number of grid points increases (each new grid point introduces new oscillatory components), explaining the negative scaling exponents observed experimentally. 
+
+Remark 4.9 . Theorem 4.8 provides the rigorous explanation for two experimental observations: (a) Pure FI-KAN’s negative scaling exponents on smooth targets (e.g., exp sin): adding grid points adds oscillatory basis functions that make cancellation harder, not easier. (b) The regularization sweep recovery: forcing 
+
+d → 0 via Rfractal eliminates the infinite-variation obstruction, recovering piecewise linear bases with finite variation and 60 × improved MSE. This is not a flaw in the architecture. It is the strongest empirical confirmation of the regularity-matching hypothesis: if the basis geometry were irrelevant, smooth-target performance would be independent of d.
+
+## 4.4 Approximation Rates for H¨ older-Continuous Targets 
+
+We now characterize how the choice of basis (B-spline vs. FIF) affects approximation rates for targets of prescribed H¨ older regularity. 
+
+Definition 4.10. The H¨ older space C0,α ([ a, b ]) for α ∈ (0 , 1] consists of continuous functions f with finite H¨ older seminorm: [f ]α = sup 
+
+> x̸=y
+
+|f (x) − f (y)||x − y|α < ∞. (31) 
+
+Theorem 4.11 (B-Spline Approximation of H¨ older Functions) . Let f ∈ C0,α ([ a, b ]) with α ∈ (0 , 1] . The best B-spline approximation of order k ≥ 1 on N uniform intervals satisfies 
+
+inf  
+
+> w
+
+∥f − X
+
+> m
+
+wmB(k) 
+
+> m
+
+∥∞ ≤ [f ]α hα = [ f ]α
+
+ b − aN
+
+α
+
+, (32) 
+
+and this rate is sharp: the exponent α cannot be improved regardless of the spline order k.
+
+Proof. The upper bound follows from the approximation properties of the quasi-interpolant. Define the piecewise constant best approximation fN (x) = f (xi) for x ∈ [xi−1, x i]. Then |f (x) − fN (x)| ≤ [f ]αhα.Since B-splines of order k include piecewise constants as a special case (via appropriate coefficient choices), the best B-spline approximation is at least as good. Sharpness: consider f (x) = |x − x∗|α for some x∗ ∈ (xi−1, x i) in the interior of a grid cell. Any continuous approximation g satisfying g(xi−1) = f (xi−1), g(xi) = f (xi) must have |f (x∗) − g(x∗)| ≥ c h α
+
+since f achieves its minimum inside the cell with cusp-like behavior that no polynomial (and hence no spline) can reproduce better than O(hα). This bound is independent of k because the H¨ older singularity is sub-Lipschitz: higher polynomial degree does not help approximate a cusp. 
+
+Theorem 4.12 (FIF Approximation of Self-Affine Targets) . Let f ∗ 
+
+> target
+
+be a FIF on N0 intervals with contraction parameters d0 = ( d0,1, . . . , d 0,N 0 ). Then f ∗ 
+
+> target
+
+can be represented exactly by a Pure FI-KAN with N = N0 grid points and matching contraction parameters d = d0, using N0 + 1 interpolation ordinates 
+
+yi = f ∗
+
+> target
+
+(xi).
+
+14 Proof. By the uniqueness of the IFS attractor (Theorem 2.2), the FIF through the data {(xi, f ∗
+
+> target
+
+(xi)) }N0
+
+> i=0
+
+with scaling d0 is precisely f ∗
+
+> target
+
+. The Pure FI-KAN edge function with these parameters evaluates to P 
+
+> j
+
+f ∗
+
+> target
+
+(xj ) φj (x; d0) = f ∗
+
+> target
+
+(x). 
+
+Remark 4.13 . Theorem 4.12 shows that FIF bases can exactly represent self-affine fractal functions with 
+
+O(N ) parameters: N + 1 ordinates plus N contraction factors. In contrast, a B-spline approximation of the same function to accuracy ε requires O(ε−1/α ) coefficients (by Theorem 4.11), where α is the H¨ older exponent of the target. For Weierstrass-type functions with α ≈ 0.6, this means the B-spline representation is approximately ε−1.67 times larger, a substantial efficiency gap. Of course, real-world targets are not exactly self-affine, so the practical advantage is smaller. The experimental scaling laws (Section 5.5) quantify the actual gains on specific fractal targets. 
+
+## 4.5 The Hybrid Architecture: An Approximation-Theoretic Guarantee 
+
+The Hybrid variant combines the strengths of both basis types. 
+
+Theorem 4.14 (Hybrid FI-KAN Approximation Bound) . Let f ∈ C([ a, b ]) and consider the Hybrid FI-KAN edge function (14) with B-spline order k and grid size N . Then: (i) Subsumption: inf θ ∥f − ϕθ ∥∞ ≤ inf w∥f − bw∥∞, where bw = P 
+
+> m
+
+wmB(k) 
+
+> m
+
+is the best B-spline approximation. (ii) Smooth-rough decomposition: For any decomposition f = g + r with g ∈ Cs([ a, b ]) and r ∈
+
+C0,α ([ a, b ]) :
+
+inf  
+
+> θ
+
+∥f − ϕθ ∥∞ ≤ C1 [g]s N − min( s,k ) + inf 
+
+> y,d
+
+∥r − X
+
+> j
+
+yj φj (·; d)∥∞, (33) 
+
+where the spline path approximates g at the classical rate and the fractal path handles the residual r.(iii) Strict improvement: If f has a non-trivial fractal component (i.e., r̸ ≡ 0 in any optimal decomposi-tion), then there exist d̸ = 0 such that the Hybrid FI-KAN approximation is strictly better than the best B-spline approximation. 
+
+Proof. (i): Setting w(frac) = 0 and d = 0 recovers the standard KAN edge function with the same spline path. (ii): For any decomposition f = g +r, set the spline weights to approximate g (giving error O(N − min( s,k ))by the Jackson theorem for splines [ 13 , 14 ]) and use the fractal path to approximate r. The base activation 
+
+σ provides an additional degree of freedom that can only improve the bound. (iii): If r has non-trivial fractal structure, then by Theorem 4.12 (or its approximate version for non-exactly-self-affine r), there exist contraction parameters d and ordinates y such that ∥r −P 
+
+> j
+
+yj φj (·; d)∥∞ <
+
+∥r∥∞. The spline-only approximation must absorb the full residual r into the spline error, which cannot improve upon O(N −α) by Theorem 4.11. Hence the Hybrid bound (33) is strictly tighter. 
+
+## 4.6 Analysis of the Fractal Dimension Regularizer 
+
+We establish analytical properties of the regularizer Rfractal defined in Theorem 3.4. 
+
+Proposition 4.15 (Regularizer Properties) . Define ∆( d) = dim B(d) − 1 = log + P 
+
+> i
+
+|di|/ log N and 
+
+R(d) = ∆( d)2. Then: (i) Non-negativity: R(d) ≥ 0 with equality if and only if P
+
+> i
+
+|di| ≤ 1.(ii) Smoothness: R is continuously differentiable on (−1, 1) N \ { d : P
+
+> i
+
+|di| = 1 } and Lipschitz on 
+
+(−1, 1) N .(iii) Gradient: In the active region P
+
+> i
+
+|di| > 1, for di̸ = 0 :
+
+∂R ∂d i
+
+= 2 ∆( d)log N · sign( di)
+
+P 
+
+> j
+
+|dj | . (34) 
+
+(iv) Minimizers: The set of global minimizers is {d : P
+
+> i
+
+|di| ≤ 1}, a convex polytope in RN . In the interior of this region, R is identically zero and exerts no gradient force. (v) Local convexity: R is convex on the set {d : 1 ≤ P
+
+> i
+
+|di| ≤ e}, which includes a neighborhood of the transition surface P
+
+> i
+
+|di| = 1 . In particular, gradient descent on R efficiently drives d toward the minimizing set when starting near the transition. 
+
+15 Proof. (i) is immediate from the definition: log +(x) = 0 for x ≤ 1, so ∆ = 0 when P
+
+> i
+
+|di| ≤ 1. (ii): ∆( d) = max (0 , log (P
+
+> i
+
+|di|)/ log N ). The function d 7 → P
+
+> i
+
+|di| is Lipschitz, log is smooth on (0 , ∞), and max (0 , ·) is Lipschitz. The composition is Lipschitz and smooth away from the transition surface P
+
+> i
+
+|di| = 1. (iii): In the active region, ∆ = log (P
+
+> i
+
+|di|)/ log N , so ∂∆/∂d i = sign (di)/(( P 
+
+> j
+
+|dj |) log N ). Then 
+
+∂R/∂d i = 2∆ · ∂∆/∂d i, giving (34). (iv): R(d) = 0 if and only if ∆( d) = 0, which holds if and only if P
+
+> i
+
+|di| ≤ 1. This is the ℓ1 unit ball, a convex polytope. (v): Write S = P
+
+> i
+
+|di| and note that R depends on d only through S in the active region. As a function of S, R(S) = ( log S/ log N )2 for S > 1. Then R′(S) = 2 log S/ (S( log N )2) and R′′ (S) = 2(1 − log S)/(S2( log N )2). We have R′′ (S) > 0 for S < e and R′′ (S) < 0 for S > e . Since each |di| < 1 and there are N terms, S < N . Thus R is convex in S on [1 , e ] and concave on [ e, N ]. The region S ∈ [1 , e ]includes the practically relevant transition zone near S = 1, ensuring that gradient-based optimization efficiently reduces dim B toward 1. 
+
+Remark 4.16 . The gradient structure (34) reveals that the regularizer applies a “democratic” penalty: each contraction parameter di receives gradient proportional to sign (di)/ P 
+
+> j
+
+|dj |, weighted by the current excess dimension ∆. This drives all di toward zero at equal rate rather than penalizing outliers (contrast with 
+
+L2 regularization, which penalizes large parameters quadratically). Through the tanh reparameterization 
+
+di = 0 .99 tanh (d(raw)  
+
+> i
+
+), this becomes a gradient on d(raw)  
+
+> i
+
+modulated by sech 2(d(raw)  
+
+> i
+
+), providing natural annealing as di approaches the boundary ±0.99. 
+
+# 5 Experiments 
+
+## 5.1 Experimental Setup 
+
+Implementation. All experiments use PyTorch [ 32 ] with the efficient-KAN baseline [ 7 ]. The Pure FI-KAN uses fractal depth K = 8; the Hybrid FI-KAN uses K = 6 (see Section 5.9 for depth analysis). Code is available at https://github.com/ReFractals/fractal-interpolation-kan .
+
+Architecture. Unless otherwise specified, all models use a two-layer architecture [ nin , 16 , n out ] with grid size G = 8 and spline order k = 3 (for KAN and Hybrid). MLPs use SiLU activation with width chosen to match the FI-KAN parameter count. 
+
+Training. All models are trained for 500 epochs with Adam [ 22 ] at initial learning rate 10 −3, ReduceL-ROnPlateau scheduling (patience 50, factor 0.5, minimum 10 −6), and gradient clipping at norm 1.0. Fractal dimension regularization weight λfrac = 0 .001 unless otherwise specified. Each experiment is repeated over 5 random seeds {42 , 123 , 456 , 789 , 2024 }; we report mean ± standard deviation of test MSE. 
+
+Data. For 1D regression: ntrain = 1000, ntest = 400, uniformly spaced on [ −0.95 , 0.95]. For 2D regression: 
+
+ntrain = 2000, ntest = 500, uniformly random on [ −1, 1] 2.
+
+Target functions. 
+
+• Smooth: polynomial p(x) = x3 − 2x2 + x − 0.5; exponential-sine esin( πx ).
+
+• Oscillatory: chirp sin(20 πx 2). 
+
+• Fractal: Weierstrass function W (x) = P29  
+
+> n=0
+
+an cos (bnπx ) with parameters ( a, b ) = (0 .5, 7) (graph dimension ≈ 1.644 via the formula D = 2 + log a/ log b) and (0 .7, 3) (dimension ≈ 1.675); Takagi– Landsberg function Tw(x) = P11  
+
+> n=0
+
+wnϕ(2 nx) with w = 2 −1/2, where ϕ(x) = dist (x, Z) (graph dimension = 2 + log 2 w = 1 .5 exactly, H¨ older exponent 1 /2). 
+
+• Mixed: multiscale function (smooth on [ −1, 0], rough on [0 , 1]). 
+
+• 2D: Ackley function; 2D Weierstrass product. 
+
+• H¨ older family: fα(x) = |x|α for α ∈ { 0.2, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0}.16 Baselines. 
+
+• MLP: Standard multi-layer perceptron with SiLU activation, parameter-matched to FI-KAN. 
+
+• KAN: Efficient-KAN [7] with B-spline bases (order 3). 
+
+## 5.2 Core 1D Regression Benchmark 
+
+Table 1 presents results on all seven 1D target functions. Table 1: 1D regression benchmark (test MSE, mean ± std over 5 seeds, grid size G = 8). Pure FI-KAN parameters: MLP=487, KAN=416, FI-KAN=488. Hybrid FI-KAN parameters: MLP=841, KAN=416, FI-KAN=840. Best result per target shown in bold .                                                         
+
+> Pure FI-KAN experiment Hybrid FI-KAN experiment Target dim BMLP KAN Pure MLP KAN Hybrid polynomial 1.00 1.42e-2 2.97e-3 3.20e-1 1.44e-2 2.97e-3 1.3e-5
+> exp sin 1.00 2.18e-1 3.32e-4 4.41e-1 1.68e-1 3.32e-4 7.0e-6
+> chirp 1.00 4.51e-1 2.95e-1 3.34e-1 4.51e-1 2.95e-1 1.57e-1
+> weierstrass std 1.64 2.20e-1 1.23e-1 1.01e-1 2.20e-1 1.23e-1 4.38e-2
+> weierstrass rough 1.68 4.48e-1 1.98e-1 2.15e-1 4.48e-1 1.98e-1 9.31e-2
+> sawtooth 1.50 3.19e-2 1.14e-2 4.95e-3 3.19e-2 1.14e-2 1.81e-3
+> multiscale mixed 4.55e-1 3.65e-3 2.34e-3 3.99e-1 3.65e-3 1.60e-3
+
+Figure 7: Hybrid FI-KAN vs. KAN on four representative targets spanning the regularity spectrum. Top row: target function (gray), KAN fit (blue dashed), and Hybrid FI-KAN fit (red) with final test MSE. 
+
+Bottom row: training curves (test MSE vs. epoch, log scale) with improvement ratios. On smooth targets (polynomial, exp sin), Hybrid FI-KAN converges to orders-of-magnitude lower MSE. On fractal targets (Weierstrass, sawtooth), the fractal correction path captures multi-scale structure that B-splines miss entirely. 
+
+Analysis. The results partition cleanly by target regularity. 
+
+Smooth targets (polynomial, exp sin). KAN substantially outperforms Pure FI-KAN (by two to three orders of magnitude), confirming Theorem 4.8: FIF bases without polynomial reproduction cannot efficiently approximate smooth curvature. Hybrid FI-KAN, by contrast, achieves the best results across all architectures (1 .3 × 10 −5 on polynomial, 7 .0 × 10 −6 on exp sin), because the spline path captures smooth structure while the fractal correction provides additional fine-scale flexibility. 
+
+Fractal targets (Weierstrass, sawtooth). Pure FI-KAN matches or exceeds KAN on the standard Weierstrass (0.101 vs. 0.123) and outperforms on the Takagi–Landsberg sawtooth (4 .95 ×10 −3 vs. 1 .14 ×10 −2,17 a 2 .3× improvement). Hybrid FI-KAN further improves (sawtooth: 1 .81 × 10 −3, a 6 .3× improvement over KAN). The sawtooth target, a genuine fractal with dim B = 1 .5 and H¨ older exponent 1 /2, is substantially harder than Lipschitz targets: all models achieve higher MSE than on smooth functions, confirming that fractal structure poses a genuine approximation challenge. 
+
+Mixed regularity (multiscale). Both FI-KAN variants outperform KAN, with Hybrid achieving 1.60 × 10 −3 vs. KAN’s 3 .65 × 10 −3. This demonstrates that the smooth-rough decomposition effectively handles spatially heterogeneous regularity. 
+
+The Pure FI-KAN contrast. Pure FI-KAN’s failures on smooth targets are not a weakness of the paper; they validate the central thesis. A specialized architecture that excels on rough targets should 
+
+struggle on smooth targets if the basis geometry genuinely matters. If Pure FI-KAN performed equally well on polynomials, the regularity-matching claim would be weakened. 
+
+## 5.3 H¨ older Regularity Sweep 
+
+To directly test the regularity-matching hypothesis, we evaluate all architectures on the H¨ older family 
+
+fα(x) = |x|α for α ranging from 0 .2 (very rough) to 2 .0 (smooth). Table 2: H¨ older regularity sweep (test MSE, Hybrid FI-KAN experiment). Hybrid FI-KAN wins at every regularity level.                                 
+
+> αMLP KAN Hybrid FI-KAN Improvement over KAN 0.2 7.42e-1 3.99e-1 3.02e-1 1.3×
+> 0.4 4.59e-1 1.69e-1 6.77e-2 2.5×
+> 0.6 2.94e-1 7.36e-2 1.20e-2 6.1×
+> 0.8 1.94e-1 3.14e-2 2.34e-3 13 .4×
+> 1.0 1.34e-1 1.32e-2 6.30e-4 21 .0×
+> 1.5 6.99e-2 1.58e-3 4.8e-5 32 .9×
+> 2.0 5.34e-2 3.44e-4 1.2e-5 28 .7×
+
+Analysis. Hybrid FI-KAN wins at every H¨ older exponent from α = 0 .2 to α = 2 .0. The improvement factor over KAN increases as α increases (from 1 .3× at α = 0 .2 to 32 .9× at α = 1 .5), demonstrating that the fractal correction provides gains even on relatively smooth targets ( α = 2 .0: 28 .7× improvement). This result, summarized graphically in Fig. 8, is the single strongest piece of evidence for the regularity-matched basis design principle. For Pure FI-KAN, the pattern is reversed: it wins only at α = 1 .0 (just barely: 0.0132 vs. KAN 0.0132) and loses at all other values, confirming its specialization for a specific regularity range. 
+
+## 5.4 Parameter-Matched Comparison 
+
+In the default configuration, Hybrid FI-KAN (840 parameters) has approximately twice as many parameters as KAN (416). To control for this, we increase KAN’s grid size to match the parameter count (grid = 22, yielding 864 parameters). Table 3: Parameter-matched comparison (Hybrid FI-KAN: 840 params vs. KAN: 864 params). FI-KAN wins 3 of 4 targets; the one KAN win (exp sin) is nearly tied.                     
+
+> Target KAN (864p) Hybrid FI-KAN (840p) Ratio Winner polynomial 1.58e-4 1.2e-5 13 .2×FI-KAN exp sin 4.0e-6 6.0e-6 0.7×KAN weierstrass std 4.58e-2 4.24e-2 1.1×FI-KAN sawtooth 4.46e-3 1.81e-3 2.5×FI-KAN
+
+This rules out the trivial explanation that FI-KAN is better merely because it has more parameters. At matched parameter counts, the fractal correction provides genuine architectural advantages, particularly on the polynomial (13 .2×) and sawtooth (2 .5×) targets. 18 Figure 8: H¨ older regularity sweep: test MSE as a function of H¨ older exponent α for fα(x) = |x|α. Hybrid FI-KAN achieves the lowest MSE at every regularity level, with improvement factors over KAN increasing from 1 .3× (α = 0 .2) to 33 × (α = 1 .5). The three curves are clearly separated across the entire spectrum, with the C1 boundary ( α = 1) marked. Shaded regions show ±1 std over 5 seeds. 
+
+## 5.5 Scaling Laws 
+
+We study how test MSE scales with model size by varying the grid size G ∈ { 3, 5, 8, 12 , 16 , 20 }. Following Liu et al. [27], we fit scaling exponents γ such that MSE ∝ p−γ where p is the parameter count. Table 4: Scaling laws: MSE vs. parameter count at varying grid sizes (Hybrid FI-KAN). Exponent γ fitted via log-log regression.                                                      
+
+> Test MSE at grid size GScaling exponent γ
+> Target 35812 16 20 MLP KAN FI-KAN
+> Hybrid FI-KAN, smooth target: exp sin
+> MLP 2.29e-1 2.02e-1 1.68e-1 1.08e-1 6.82e-2 4.16e-2 0.58 3.21 0.18 KAN 5.91e-2 3.10e-3 3.32e-4 9.1e-5 3.9e-5 3.3e-5 FI-KAN 9.0e-5 1.5e-5 6.0e-6 6.0e-6 1.2e-4 1.5e-5
+> Hybrid FI-KAN, fractal target: sawtooth ( dim B= 1 .5)
+> MLP 3.19e-2 3.18e-2 3.19e-2 3.19e-2 3.18e-2 3.18e-2 0.00 1.59 1.15 KAN 3.04e-2 1.95e-2 1.14e-2 8.58e-3 6.20e-3 4.73e-3 FI-KAN 5.94e-3 2.72e-3 1.83e-3 1.23e-3 1.21e-3 1.06e-3
+
+Analysis. On the smooth target (exp sin), Hybrid FI-KAN’s fitted scaling exponent ( γ = 0 .18) appears lower than KAN’s ( γ = 3 .21). However, this is misleading: FI-KAN already achieves 9 .0 × 10 −5 at the smallest grid ( G = 3), which is better than KAN at the largest grid (G = 20: 3 .3 × 10 −5). The low scaling exponent reflects near-saturation at small grid sizes, not poor asymptotic behavior. On the fractal target (sawtooth), FI-KAN achieves γ = 1 .15 (vs. KAN 1.59, MLP 0.00). The MLP completely stagnates, confirming that smooth activations cannot resolve fractal structure regardless of width. FI-KAN maintains a consistent advantage over KAN at every model size, converging to 1 .06 × 10 −3
+
+at G = 20. For Pure FI-KAN on sawtooth, performance degrades at large grid sizes ( G ≥ 16), yielding a negative overall scaling exponent. This extends the smooth-approximation obstruction (Theorem 4.8) to a new 19 Figure 9: Scaling laws (Hybrid FI-KAN): test RMSE vs. parameter count across three targets spanning the regularity spectrum. Left (exp sin, smooth): FI-KAN achieves low error from the smallest grid size, saturating early while KAN continues improving with more parameters. Center (Weierstrass, rough): 
+
+FI-KAN achieves lower RMSE than KAN at all model sizes, with both showing positive scaling. Right (sawtooth, fractal): MLP completely stagnates. FI-KAN maintains a consistent advantage over KAN at every model size. Scaling exponents fitted over the full grid range G ∈ { 3, 5, 8, 12 , 16 , 20 } are reported in Table 4. Shaded regions show ±1 std over 5 seeds. regime: even on a fractal target, Pure FI-KAN’s uncontrolled basis growth becomes pathological when too many fractal basis functions are introduced without the stabilizing spline backbone of the Hybrid variant. 
+
+## 5.6 Noise Robustness 
+
+We evaluate robustness by adding Gaussian noise at various signal-to-noise ratios (SNR) to the training targets while testing on clean data. Table 5: Noise robustness (test MSE on clean data after training with noisy targets). Both FI-KAN variants outperform KAN across all noise levels on fractal targets.                                 
+
+> Weierstrass (dim B≈1.64) Sawtooth (dim B= 1 .5) SNR (dB) KAN Hybrid FI-KAN KAN Hybrid FI-KAN 100.0 1.567e-1 4.52e-2 1.139e-2 1.87e-3
+> 40.0 1.568e-1 4.62e-2 1.140e-2 1.85e-3
+> 30.0 1.569e-1 4.62e-2 1.141e-2 1.84e-3
+> 20.0 1.573e-1 4.74e-2 1.144e-2 1.92e-3
+> 10.0 1.579e-1 5.17e-2 1.155e-2 2.13e-3
+> 5.0 1.562e-1 5.83e-2 1.169e-2 2.47e-3
+
+Analysis. On Weierstrass, Hybrid FI-KAN outperforms KAN by 3–3 .5× across all SNR levels. The fractal bases are inherently multi-scale: coarse-scale structure captures the signal while fine-scale flexibility absorbs noise. This acts as an implicit multi-scale denoiser, analogous to wavelet thresholding [ 12 ] but learned end-to-end. On sawtooth, Hybrid FI-KAN achieves 6 .1× advantage at clean SNR, degrading gracefully to 4 .7× at the extreme noise level of 5 dB. Pure FI-KAN also outperforms KAN on both targets (e.g., Weierstrass: 1 .5× at all noise levels; sawtooth: 2.2× at clean SNR), though with smaller margins than the Hybrid. 
+
+## 5.7 Continual Learning 
+
+We evaluate catastrophic forgetting [ 23 ] by training sequentially on different functions and measuring retention of earlier tasks. 
+
+Analysis. With the corrected Takagi–Landsberg target ( dim B = 1 .5) as one of the five sequential tasks, all architectures achieve comparable final MSE (1.16–1.38), with no model showing a clear advantage. The genuinely fractal task is sufficiently difficult that it dominates the average error, overwhelming any 20 Figure 10: Noise robustness on fractal targets (Hybrid FI-KAN). Models trained with noisy data, evaluated on clean test data. Left (Weierstrass): FI-KAN maintains a ∼ 3.5× advantage across all SNR levels, with the gap narrowing gracefully under heavy noise. Right (sawtooth): up to 6 .1× advantage at clean SNR, degrading gracefully to 4 .7× at extreme noise (5 dB). Shaded regions show ±1 std over 5 seeds. Table 6: Continual learning: final MSE after sequential training on multiple tasks.                   
+
+> Model Final MSE Std Relative to KAN MLP 1.294 0.008 1.04 ×worse KAN 1.248 0.022 (baseline) Pure FI-KAN 1.158 0.051 1.1×better Hybrid FI-KAN 1.376 0.035 1.1×worse
+
+architectural advantage in task retention. Pure FI-KAN shows a modest 1 .1× improvement over KAN, while Hybrid FI-KAN performs slightly worse, likely because its larger parameter count provides more capacity for the current task to overwrite previous representations. This result highlights an honest limitation: the continual learning advantage requires that all tasks in the sequence be within the representational capacity of the architecture. When one task is a genuine dim B = 1 .5 fractal at the resolution available to a two-layer network with grid size 8, the task itself is not well-learned by any model, and catastrophic forgetting becomes secondary to underfitting. 
+
+## 5.8 Regularization Sweep and Fractal Dimension Discovery 
+
+We sweep the fractal regularization weight λfrac ∈ { 0, 10 −4, 10 −3, 10 −2, 10 −1, 1} on two targets: polynomial (smooth, true dim B = 1) and Weierstrass (fractal, true dim B ≈ 1.36). Table 7: Regularization sweep (Pure FI-KAN). The regularizer drives the learned fractal dimension toward 1.0 and significantly improves performance on the smooth target.                                 
+
+> Polynomial (dim B= 1) Weierstrass (dim B≈1.64)
+> λfrac Test MSE Learned dim BTest MSE Learned dim B
+> 03.74e-1 1.302 9.68e-2 1.150 10 −43.69e-1 1.299 9.63e-2 1.146 10 −33.41e-1 1.294 9.15e-2 1.137 10 −21.23e-1 1.231 7.28e-2 1.053 10 −19.27e-3 1.001 6.09e-2 1.008 16.30e-3 1.000 5.95e-2 1.001
+
+Analysis. On polynomial: the regularizer drives dim B → 1.0, recovering piecewise linear bases and improving MSE by 60 × (from 0.374 to 0.006). The network “discovers” that the target is smooth and adapts its basis geometry accordingly. Without regularization, it overfits to fractal structure (learned dim B = 1 .302 on a smooth target), wasting capacity on spurious multi-scale detail. 21 Figure 11: Continual learning across 5 sequential tasks (Hybrid FI-KAN). Each column shows one training phase; each row shows a different architecture’s output. Top (Data): the current task’s target function (black) with all tasks shown in gray. MLP: catastrophic forgetting collapses the output to a near-constant function. KAN: retains some structure but progressively distorts earlier tasks. FI-KAN: retains peaked structure across phases, with the fractal and spline paths providing implicit modularity. Quantitative MSE for the task sequence including the corrected Takagi–Landsberg target is reported in Table 6. On Weierstrass: the unregularized network learns dim B ≈ 1.15, a meaningful (though imprecise) estimate of the target’s true fractal character ( dim B ≈ 1.64). Moderate regularization helps (MSE drops from 0.097 to 0.060), but the improvement is less dramatic than for the smooth target, because some fractal structure is genuinely beneficial. For the Hybrid variant, the spline path provides a safety net: regularization has a modest but consistent effect, and the network never diverges because smooth structure is always available via B-splines. 
+
+## 5.9 Fractal Depth Analysis 
+
+We vary the recursion depth K in the Hybrid FI-KAN on the Weierstrass target to study the trade-off between basis expressiveness and optimization difficulty. Table 8: Fractal depth analysis (Hybrid FI-KAN, Weierstrass target). K = 2 is optimal; deeper recursion degrades performance and increases training time.                          
+
+> Depth KTest MSE Std Wall time (s) 13.39e-2 8.35e-4 5.8
+> 22.72e-2 8.33e-4 7.1 43.03e-2 7.95e-4 9.6 64.11e-2 1.45e-3 12.0 85.43e-2 3.63e-3 14.4 10 6.26e-2 3.87e-3 16.9 12 7.06e-2 4.54e-3 19.4
+
+22 Figure 12: Regularization sweep (Hybrid FI-KAN) on polynomial (left) and Weierstrass (right) targets. 
+
+Left (polynomial): test MSE is nearly flat across λfrac , confirming that the spline path already handles smooth targets effectively; the fractal regularizer has little to correct. Right (Weierstrass): stronger regularization ( λfrac ≥ 10 −2) reduces MSE by ∼ 20%, suppressing unnecessary fractal complexity while preserving beneficial multi-scale structure. Shaded regions show ±1 std. The Hybrid variant is robust to regularization weight choice, in contrast to the Pure variant’s sensitivity (Table 7). 
+
+Figure 13: Impact of fractal recursion depth K on Hybrid FI-KAN performance (Weierstrass target). 
+
+Red (left axis): test MSE (log scale) with ±1 std error bars. Blue dashed (right axis): average training time. K = 2 achieves optimal MSE at minimal computational cost. Deeper recursion ( K > 4) monotonically degrades performance while linearly increasing training time, reflecting the optimization difficulty of propagating gradients through multiple sequential multiplicative steps. 23 Analysis. K = 2 is optimal, and performance degrades monotonically for K ≥ 4. This is not a failure of the underlying theory (which guarantees convergence of the RB operator as K → ∞ ) but reflects the optimization difficulty of deep fractal recursions: at K = 8, the gradient must flow through 8 sequential multiplicative steps, each involving the contraction factors dj , creating a loss landscape that is increasingly rough and poorly conditioned. This parallels the observation that very deep plain networks underperform moderately deep ones unless skip connections are employed [19]: theoretical capacity and practical trainability are distinct. 
+
+Practical recommendation. Use K = 2 as default. This provides two levels of multi-scale structure with only 2 .5× computational overhead relative to standard KAN, while the learnable d parameters still provide continuous control over fractal dimension. 
+
+## 5.10 2D Regression 
+
+Table 9: 2D function regression (test MSE, mean ± std over 5 seeds).             
+
+> Target MLP KAN Pure FI-KAN Hybrid FI-KAN Ackley 2D 4.27e-1 2.56e-2 6.03e-2 1.75e-3
+> Weierstrass 2D 4.32e-1 1.87e-1 1.25e-1 8.95e-2
+
+Both FI-KAN advantages extend to multiple dimensions. Pure FI-KAN wins on the 2D fractal target (0.125 vs. KAN 0.187) but loses on Ackley (which is smooth outside the origin). Hybrid FI-KAN wins both, with a 14 .6× improvement on the Ackley function. 
+
+Figure 14: 2D function regression (Hybrid FI-KAN). Top row (Ackley): KAN smooths out the multi-modal structure near the origin (MSE 0.0204), while FI-KAN recovers the peaked landscape (MSE 0.0016), a 12 .8× improvement. Bottom row (2D Weierstrass): KAN captures only coarse structure (MSE 0.1577), while FI-KAN resolves finer oscillatory detail (MSE 0.0826), a 1 .9× improvement. Left column: target surface. Center: KAN prediction. Right: Hybrid FI-KAN prediction. 24 5.11 Non-Smooth PDE Solutions 
+
+The preceding experiments use synthetic target functions with prescribed regularity. We now test FI-KAN on solutions of partial differential equations whose non-smooth character arises from the PDE structure itself: corner singularities, rough coefficients, and noise-driven roughness. All reference solutions are computed by established numerical methods: scikit-fem [18 ] for finite element solutions and the fbm 
+
+package [ 16 ] for fractional Brownian motion coefficient fields. The regression task is to learn the mapping from spatial coordinates to the solution value, bypassing physics-informed loss functions entirely. 
+
+Problem selection. Each problem has independently characterizable roughness in the solution: 
+
+• L-shaped domain Laplacian. −∆u = 1 on [ −1, 1] 2 \ [0 , 1] × [−1, 0], u = 0 on boundary. Corner singularity u ∼ r2/3 sin (2 θ/ 3) with H¨ older exponent 2 /3 [ 17 ]. Reference: P1 FEM on 6144 elements via scikit-fem .
+
+• Rough-coefficient diffusion. − ddx 
+
+ a(x) du dx 
+
+ = 1 on [0 , 1], u(0) = u(1) = 0, where a(x) = exp (0 .5 ·
+
+BH (x)) with BH from the fbm package. The solution inherits structured roughness from the coefficient field. Reference: P1 FEM on 500 elements via scikit-fem .
+
+• Stochastic heat equation. du = ν u xx dt + σ dW on [0 , 1], periodic BC. Roughness controlled by 
+
+σ/ν . Reference: exact spectral representation (50 Fourier modes). 
+
+• Fractal terrain. Elevation map ( x, y ) 7 → z via diamond-square algorithm, surface dim B ≈ 3 − R.Table 10: Non-smooth PDE solutions (test MSE, mean ± std over 5 seeds). Reference solutions computed via scikit-fem and exact spectral methods. Hybrid FI-KAN wins all 12 experiments. The rough-coefficient diffusion results (65–79 ×) are the strongest in the paper.                                                                                                                             
+
+> Problem Roughness MLP KAN Hybrid FI-KAN Improv. Source
+> Rough-coefficient diffusion −ddx (a(x)du dx ) = 1, a(x) = e0.5BH(x)
+> Hc= 0 .1rough coeff 2.20e-3 1.26e-3 1.74e-5 73 ×FEM
+> Hc= 0 .3rough coeff 3.05e-3 1.19e-3 1.50e-5 79 ×FEM
+> Hc= 0 .5rough coeff 2.11e-3 1.15e-3 1.50e-5 77 ×FEM
+> Hc= 0 .7smooth coeff 8.39e-4 1.11e-3 1.71e-5 65 ×FEM
+> L-shaped domain −∆u= 1, corner singularity u∼r2/3sin(2 θ/ 3) H¨ older 2 /3corner sing. 6.65e-2 2.89e-3 8.35e-4 3.5×FEM
+> Stochastic heat equation du =νu xx dt +σdW σ= 0 .1mild noise 2.67e-1 1.33e-2 5.32e-4 25 ×spectral
+> σ= 0 .5moderate 5.15e-1 8.40e-2 6.59e-3 13 ×spectral
+> σ= 1 .0strong noise 6.46e-1 1.06e-1 1.61e-2 6.5×spectral
+> Fractal terrain (x, y )7→z, diamond-square, dim B≈3−RR= 0 .2dim B≈2.85.21e-1 2.22e-1 2.15e-1 1.03 ×synth.
+> R= 0 .4dim B≈2.63.63e-1 1.28e-1 1.02e-1 1.26 ×synth.
+> R= 0 .6dim B≈2.42.32e-1 6.88e-2 3.84e-2 1.8×synth.
+> R= 0 .8dim B≈2.21.47e-1 3.42e-2 1.44e-2 2.4×synth.
+
+Analysis. Rough-coefficient diffusion. This is the strongest result in the paper. Hybrid FI-KAN achieves 65–79 × improvement over KAN across all coefficient roughness levels, with remarkably consistent performance: the FI-KAN MSE stays near 1 .5 × 10 −5 regardless of whether Hc = 0 .1 (very rough coefficient) or Hc = 0 .7 (smooth coefficient). This consistency suggests that the fractal correction path captures the structured roughness inherited from the coefficient field through the PDE operator, while the spline path handles the smooth component of the solution. 
+
+L-shaped domain. The 3 .5× improvement (8 .35 ×10 −4 vs. 2 .89 ×10 −3) on the canonical corner singularity benchmark demonstrates that FI-KAN handles the r2/3 singularity more effectively than B-splines. This is the setting that motivates h-p adaptive finite element methods [ 4 ]: the corner singularity limits the convergence rate of uniform polynomial approximation to O(h2/3) regardless of polynomial degree. FI-KAN’s learnable fractal dimension provides an analogous adaptation mechanism within the neural network framework. 25 Figure 15: L-shaped domain benchmark ( −∆u = 1, H¨ older 2 /3 corner singularity). Left: FEM reference solution computed via scikit-fem (P1 elements, 6144 elements); the singularity at the re-entrant corner is visible as the peaked region near the origin. Center: Test MSE comparison (log scale, ±1 std over 5 seeds). Hybrid FI-KAN achieves 3 .5× lower MSE than KAN. Right: Training curves showing Hybrid FI-KAN converging to ∼ 10 −3 MSE while KAN plateaus near 3 × 10 −3.
+
+Stochastic heat equation. The improvement ranges from 25 × at σ = 0 .1 to 6 .5× at σ = 1 .0. The decrease with increasing σ is physically meaningful: at high noise intensity, the spatial snapshot approaches white noise, for which no structured basis has an advantage. 
+
+Fractal terrain. The improvement grows from 1 .03 × at extreme roughness ( R = 0 .2) to 2 .4× at moderate roughness ( R = 0 .8), mirroring the 1D regularity sweep (Table 2): the advantage is largest where the target has learnable multi-scale structure. 
+
+## 5.12 Fractal Dimension as Diagnostic Tool 
+
+The learned fractal dimensions from both variants correlate with the regularity of the target, providing an interpretable diagnostic. Table 11: Learned fractal dimension (mean ± std over 5 seeds) for targets of varying regularity. The Hybrid variant produces sharper estimates, with smooth targets yielding dim B ≈ 1 and rough targets yielding dim B > 1.1.                                           
+
+> Target True αPure dim BHybrid dim B
+> smooth ( α= 2 .0) 2.0 1.128 ±0.012 1.000 ±0.000
+> C1(α= 1 .0) 1.0 1.157 ±0.012 1.034 ±0.007 H¨ older 0.6 0.6 1.194 ±0.014 1.119 ±0.007 H¨ older 0.3 0.3 1.190 ±0.026 1.152 ±0.018 Weierstrass 0.64 1.144 ±0.008 1.149 ±0.004
+
+Analysis. The Hybrid variant produces fractal dimension estimates that correlate monotonically with target regularity: smooth functions receive dim B ≈ 1.0 (indicating the fractal path is inactive), while rough functions receive dim B > 1.1. The Pure variant overestimates dimension for smooth targets ( dim B = 1 .128 for α = 2 .0) because it is forced to use some fractal structure even when inappropriate, further confirming that fractal bases are suboptimal for smooth targets. These are not precise fractal dimension estimators (dedicated statistical methods should be used for that purpose), but the monotonic correlation provides a useful diagnostic: the learned dim B serves as a proxy for target regularity. 
+
+## 5.13 Training Dynamics of Fractal Parameters 
+
+To understand how FI-KAN adapts its basis geometry during training, we track the evolution of the contraction parameters di and the resulting fractal dimension dim B across epochs (Fig. 17). The training dynamics reveal three distinct regimes. On smooth targets (left panel), the Pure variant’s di values grow unchecked (without sufficient regularization), pushing dim B above 1.2 and wasting representational capacity 26 Figure 16: Learned fractal dimension vs. true H¨ older exponent (Hybrid FI-KAN). The learned dim B
+
+correlates monotonically with target regularity: smooth targets ( α = 2 .0) yield dim B = 1 .0 exactly (fractal path inactive), while rough targets ( α = 0 .3, Weierstrass) yield dim B > 1.1 (fractal path active). The dotted line at dim B = 1 marks the smooth baseline. This monotonic correlation makes the learned fractal dimension a useful, interpretable proxy for target regularity. on spurious multi-scale structure; this is precisely the pathology predicted by Theorem 4.8. On fractal targets with regularization (center panel), the parameters find a stable equilibrium near dim B = 1 .0, balancing expressiveness against complexity. The sawtooth case (right panel) is particularly instructive: the early-training spike in dim B to ∼ 1.05 followed by consolidation suggests an explore-then-consolidate dynamic where the network first probes fractal parameter space and then retains only what reduces the loss. 27 Figure 17: Fractal parameter evolution during training (Pure FI-KAN). Top row: individual di trajectories for layer 0 across three targets. Bottom row: mean dim B over training. Left (polynomial): the contraction parameters grow steadily, pushing dim B above 1.2; this is the smooth-target overfitting pathology predicted by Theorem 4.8. Center (Weierstrass): dim B stays near 1.0 throughout, indicating the regularizer successfully constrains fractal complexity. Right (sawtooth): dim B spikes to ∼ 1.05 in early training (exploration phase) then settles back, suggesting an explore-then-consolidate dynamic where the network first probes fractal structure and then retains only what reduces the loss. 
+
+# 6 Related Work 
+
+Kolmogorov–Arnold Networks and basis function variants. KAN [ 27 ] introduced learnable univariate spline functions on network edges, motivated by the Kolmogorov–Arnold representation the-orem [ 24 , 3 , 36 ]. The efficient-KAN implementation [ 7 ] provides a computationally practical variant. Following the release of KAN, a substantial number of works have explored alternative basis functions for the edge activations. Wav-KAN [ 9] replaces B-splines with wavelet functions (continuous and dis-crete wavelet transforms), leveraging the multiresolution analysis properties of wavelets to capture both high-frequency and low-frequency components. ChebyKAN [ 37 ] uses Chebyshev polynomials of the first kind, exploiting their orthogonality and optimal interpolation properties on [ −1, 1]. FastKAN [ 25 ] shows that third-order B-splines can be well approximated by Gaussian radial basis functions, yielding a faster implementation that is also a classical RBF network. Aghaei [ 1] explored fractional Jacobi polynomials as edge functions. Teymoor Seydi [ 34 ] provides a comparative study of multiple polynomial basis families within the KAN framework. All of these variants operate within the space of smooth or piecewise smooth basis functions. None introduce basis functions with tunable geometric regularity, and none address the fundamental question of how to match the regularity of the basis to the regularity of the target function. FI-KAN is, to our knowledge, the first KAN variant whose basis functions have a learnable fractal dimension, providing a continuous and differentiable knob from smooth (dim B = 1) to fractal (dim B > 1) geometry. 
+
+Fractal interpolation theory. Barnsley [ 5 ] introduced fractal interpolation functions via iterated function systems [ 21 , 6 ]. Navascu´ es [ 31 ] generalized the framework with the α-fractal operator, enabling a smooth transition from classical to fractal approximation. Chand and Kapoor [ 10 ] extended FIFs to cubic spline fractal interpolation. Massopust [ 30 , 29 ] developed the approximation-theoretic foundations of fractal functions, including connections to splines and wavelets. Falconer [ 15 ] provides comprehensive foundations for fractal geometry, including the box-counting dimension theory underlying our regularizer. Despite this rich mathematical literature, fractal interpolation has not previously been deployed as a learnable basis function class within neural network architectures. FI-KAN bridges this gap by treating the IFS contraction parameters as differentiable, trainable quantities within a gradient-based optimization framework. 
+
+Multi-scale neural representations. The challenge of representing signals with fine-scale detail or high-frequency content in neural networks has been addressed through several strategies. SIREN [ 35 ] uses periodic (sinusoidal) activation functions to represent complex signals and their derivatives, demonstrating 28 that the choice of activation function fundamentally affects representational capacity for high-frequency content. Tancik et al. [ 38 ] showed that mapping inputs through random Fourier features enables MLPs to learn high-frequency functions, overcoming the spectral bias of standard coordinate-based networks. These approaches modify the activation function or the input encoding to capture multi-scale structure, but they do so within a framework of smooth, globally defined functions. FI-KAN takes a complementary approach: rather than modifying activations or input mappings, it modifies the basis functions themselves 
+
+to have learnable multi-scale structure derived from IFS theory. Unlike Fourier-based approaches, which decompose into global periodic components, FIF bases provide localized self-affine structure with tunable roughness, making them better suited for targets with spatially heterogeneous regularity. 
+
+Neural PDE solvers. Physics-informed neural networks (PINNs) [ 33 ] embed PDE residuals into the training loss, enabling mesh-free solution of differential equations. However, PINNs assume smooth solutions through their choice of smooth activations and are known to struggle with non-smooth or multi-scale physics. Neural operator methods take a different approach: DeepONet [ 28 ] learns nonlinear operators mapping between function spaces via a branch-trunk architecture, while the Fourier Neural Operator (FNO) [ 26 ] parameterizes the integral kernel in Fourier space, achieving resolution-invariant operator learning for families of PDEs. Our contribution is orthogonal to both paradigms. FI-KAN addresses the 
+
+basis function level : what functions the network uses to build its approximation, regardless of whether training is data-driven (regression) or physics-informed (PINN). The PDE experiments in Section 5.11 use data-driven regression on reference solutions computed by established numerical methods, isolating the effect of basis function choice from the training paradigm. In principle, FIF bases could be integrated into neural operator architectures to improve their handling of non-smooth PDE families, though this remains future work. 
+
+Approximation theory for non-smooth functions via neural networks. The approximation-theoretic properties of neural networks have been studied primarily for smooth target functions. Yarotsky [ 40 ]established tight upper and lower bounds for the complexity of approximating Sobolev-space functions with deep ReLU networks, showing that deep networks are exponentially more efficient than shallow networks for smooth targets. These results, along with classical universal approximation theorems [ 11 , 20 ], establish that neural networks with smooth activations achieve optimal rates for smooth targets. However, the question of what happens when the target is not smooth has received less attention. For targets with H¨ older regularity α < 1 or fractal character, the approximation rate with smooth bases is limited to O(hα)regardless of the polynomial degree or network depth (Theorem 4.11). FI-KAN addresses this gap by providing basis functions that can match the geometric regularity of the target, potentially circumventing the O(hα) barrier for structured non-smooth functions. 
+
+Learnable and adaptive activation functions. The idea of learning activation functions within neural networks has a long history. Agostinelli et al. [ 2 ] proposed learning piecewise linear activations. The KAN paper itself [ 27 ] discusses the connection to learnable activation networks (LANs). Bohra et al. [ 8] developed a framework for learning activation functions as linear combinations of basis functions within a representer theorem framework. FI-KAN can be viewed as a specific instance of this broader program, where the learnable activations are constrained to the mathematically structured family of fractal interpolation functions. The critical distinction is that FI-KAN’s learnable parameters (the IFS contraction factors d) control a well-defined geometric quantity (fractal dimension) with a clear approximation-theoretic interpretation, rather than serving as unconstrained shape parameters. This structured parameterization enables the fractal dimension regularizer (Theorem 3.4), which provides geometry-aware complexity control with no analogue in generic learnable activation frameworks. 
+
+# 7 Discussion and Limitations 
+
+When to use FI-KAN. The experimental evidence supports the following guideline: if the target function is known or suspected to have non-trivial H¨ older regularity (exponent α < 1), fractal self-similarity, or multi-scale oscillatory structure, Hybrid FI-KAN with K = 2 is recommended. For targets that are known to be smooth ( C2 or better) and low-dimensional, standard KAN may suffice, though Hybrid FI-KAN remains competitive. Pure FI-KAN is recommended only when the target is known to be fractal and computational overhead must be minimized (it has fewer parameters than the Hybrid). 29 Computational overhead. The fractal basis evaluation requires K sequential iterations, limiting GPU parallelism. With the recommended K = 2, the overhead is approximately 2 .5× relative to standard KAN per forward pass. A fused CUDA kernel exploiting the embarrassingly parallel structure across features and batch dimensions would substantially reduce this gap. 
+
+Fractal depth and trainability. The fractal depth analysis (Section 5.9) reveals a tension between theoretical expressiveness and practical trainability: deeper recursion ( K > 4) degrades optimization despite providing richer basis functions. Techniques from deep network optimization (skip connections, normalization) may help, though adapting these to the recursive IFS structure is non-trivial. 
+
+The ci parameters. The current implementation uses the ci = 0 specialization of Barnsley’s IFS. Incorporating learnable ci (vertical shearing per subinterval) would add N additional parameters per input feature and provide richer within-subinterval shape control, without altering the fractal dimension formula. We expect this to improve Pure FI-KAN’s performance on targets with non-trivial local affine structure. 
+
+PDE solutions: regression vs. physics-informed training. The PDE experiments in Section 5.11 demonstrate that FI-KAN provides substantial advantages (3 .5–79 ×) on non-smooth PDE solutions accessed via regression on reference solutions computed by established numerical methods. However, preliminary experiments with physics-informed (PINN) training on the same PDEs show that the recursive fractal basis evaluation creates optimization pathologies: the sequential multiplicative structure of the Read– Bajraktarevi´ c iteration produces a rough loss landscape that disrupts the gradient flow required by the PINN residual. This is an optimization issue, not an approximation-capacity issue: the same architectures that fail under PINN training succeed under regression training on the identical solutions. Resolving this likely requires FIF-specific preconditioning or hybrid training strategies that combine data-driven regression with physics-informed refinement. 
+
+Structured vs. unstructured roughness. FI-KAN’s advantage requires that the target’s roughness be structured : deterministic, PDE-inherited, or self-similar. On single realizations of fractional Brownian motion ( H = 0 .1, 1000 training samples), KAN outperforms FI-KAN across all Hurst parameters. The explanation is that a single fBm path, while genuinely rough, does not exhibit the repeating self-affine structure that FIF bases are designed to capture (Theorem 4.12). At 1000 samples, no model resolves more than 35% of the variance ( MSE > 0.6), and KAN wins by virtue of having fewer parameters (416 vs. 840) and a simpler optimization landscape. This negative result sharpens the regularity-matching claim: it is not roughness per se that FI-KAN exploits, but structured roughness with learnable multi-scale correlations. The rough-coefficient diffusion results (65–79 ×) confirm this distinction: the PDE operator transforms the unstructured fBm coefficient field into a solution with structured, deterministic roughness that FI-KAN captures effectively. 
+
+High-dimensional targets. Our experiments focus on low-dimensional regression ( d ≤ 10). The behavior of FI-KAN on high-dimensional targets and the interaction between fractal bases and the curse of dimensionality remain open questions. 
+
+# 8 Conclusion 
+
+We have introduced Fractal Interpolation KAN (FI-KAN), which incorporates learnable fractal interpolation bases from iterated function system theory into the Kolmogorov–Arnold Network framework. Two variants, Pure FI-KAN (Barnsley framework) and Hybrid FI-KAN (Navascu´ es framework), provide complementary perspectives on the regularity-matching hypothesis: the geometric regularity of the basis functions should be adapted to the geometric regularity of the target function. The experimental evidence supports this hypothesis across multiple axes. On fractal and non-smooth targets, FI-KAN provides up to 6 .3× MSE reduction over KAN on genuine fractal targets ( dim B = 1 .5). On non-smooth PDE solutions with structured roughness, computed via finite elements ( scikit-fem ) and exact spectral methods, Hybrid FI-KAN achieves up to 79 × improvement over KAN, with the strongest gains on diffusion equations with rough coefficients and corner singularity problems. The H¨ older regularity sweep demonstrates consistent improvements across the full regularity spectrum. The fractal dimension regularizer provides interpretable, geometry-aware complexity control whose learned values correlate with 30 true target regularity. An additional advantage in noise robustness (6 .1× on fractal targets) suggests that fractal bases provide structural benefits beyond pure approximation quality. The contrast between Pure and Hybrid FI-KAN is itself a scientific finding: it demonstrates that basis geometry genuinely matters, and that the optimal choice depends on the regularity of the target. A further distinction emerges between structured and unstructured roughness: FI-KAN’s advantage requires that the target’s non-smooth character exhibit learnable multi-scale correlations (as in PDE-inherited roughness or deterministic fractal functions), rather than purely stochastic roughness from single random path realizations. This establishes regularity-matched basis design as a viable and principled strategy for neural function approximation, opening the door to architectures that explicitly adapt their geometric structure to the problem at hand. The immediate practical implications lie in scientific domains where non-smooth structure is the rule rather than the exception: subsurface flow in heterogeneous media, elliptic PDEs on non-convex domains, stochastic PDE solutions, geophysical signal processing, and biomedical signals with fractal scaling. In each of these settings, the ability to learn the appropriate regularity from data, rather than assuming smoothness a priori, addresses a fundamental modeling gap that current neural architectures leave open. 
+
+# References 
+
+[1] Alireza Afzal Aghaei. fKAN: Fractional Kolmogorov–Arnold networks with trainable jacobi basis functions. arXiv preprint arXiv:2406.07456 , 2024. [2] Forest Agostinelli, Matthew Hoffman, Peter Sadowski, and Pierre Baldi. Learning activation functions to improve deep neural networks. In International Conference on Learning Representations (ICLR), Workshop Track , 2015. [3] Vladimir I Arnold. On functions of three variables. Doklady Akademii Nauk SSSR , 114:679–681, 1957. [4] Ivo Babuˇ ska and Manil Suri. The optimal convergence rate of the p-version of the finite element method. SIAM Journal on Numerical Analysis , 24(4):750–776, 1987. [5] Michael F Barnsley. Fractal functions and interpolation. Constructive Approximation , 2(1):303–329, 1986. [6] Michael F Barnsley. Fractals Everywhere . Academic Press, San Diego, 1988. [7] Blealtan. efficient-kan. https://github.com/Blealtan/efficient-kan , 2024. MIT License. [8] Pakshal Bohra, Joaquim Campos, Harshit Gupta, Shayan Aziznejad, and Michael Unser. Learning activation functions in deep (spline) neural networks. IEEE Open Journal of Signal Processing ,1:295–309, 2020. [9] Zavareh Bozorgasl and Hao Chen. Wav-KAN: Wavelet Kolmogorov–Arnold networks. arXiv preprint arXiv:2405.12832 , 2024. [10] A. K. B. Chand and G. P. Kapoor. Generalized cubic spline fractal interpolation functions. SIAM Journal on Numerical Analysis , 44(2):655–676, 2006. [11] George Cybenko. Approximation by superpositions of a sigmoidal function. Mathematics of Control, Signals and Systems , 2(4):303–314, 1989. [12] Ingrid Daubechies. Ten Lectures on Wavelets . SIAM, Philadelphia, 1992. [13] Carl de Boor. A Practical Guide to Splines . Springer, New York, revised edition, 2001. [14] Ronald A DeVore and George G Lorentz. Constructive Approximation . Springer, Berlin, 1993. [15] Kenneth Falconer. Fractal Geometry: Mathematical Foundations and Applications . John Wiley & Sons, Chichester, 2nd edition, 2003. [16] Christopher Flynn. fbm: Exact methods for simulating fractional Brownian motion and fractional Gaussian noise in Python, 2019. Available at https://pypi.org/project/fbm/ .[17] Pierre Grisvard. Elliptic Problems in Nonsmooth Domains , volume 24 of Monographs and Studies in Mathematics . Pitman Advanced Publishing Program, Boston, 1985. Reprinted by SIAM, 2011. 31 [18] Tom Gustafsson and G. D. McBain. scikit-fem: A Python package for finite element assembly. Journal of Open Source Software , 5(52):2369, 2020. [19] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition , pages 770–778, 2016. [20] Kurt Hornik, Maxwell Stinchcombe, and Halbert White. Multilayer feedforward networks are universal approximators. Neural Networks , 2(5):359–366, 1989. [21] John E Hutchinson. Fractals and self-similarity. Indiana University Mathematics Journal , 30(5):713– 747, 1981. [22] Diederik P Kingma and Jimmy Ba. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 , 2015. Published at ICLR 2015. [23] James Kirkpatrick, Razvan Pascanu, Neil Rabinowitz, Joel Veness, Guillaume Desjardins, Andrei A Rusu, Kieran Milan, John Quan, Tiago Ramalho, Agnieszka Grabska-Barwinska, et al. Overcom-ing catastrophic forgetting in neural networks. Proceedings of the National Academy of Sciences ,114(13):3521–3526, 2017. [24] Andrei N Kolmogorov. On the representation of continuous functions of many variables by superposition of continuous functions of one variable and addition. Doklady Akademii Nauk SSSR , 114:953–956, 1957. [25] Ziyao Li. Kolmogorov–Arnold networks are radial basis function networks. arXiv preprint arXiv:2405.06721 , 2024. [26] Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations. In International Conference on Learning Representations (ICLR) , 2021. [27] Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle, James Halverson, Marin Soljaˇ ci´ c, Thomas Y Hou, and Max Tegmark. KAN: Kolmogorov–Arnold networks. arXiv preprint arXiv:2404.19756 , 2024. [28] Lu Lu, Pengzhan Jin, Guofei Pang, Zhongqiang Zhang, and George Em Karniadakis. Learning nonlinear operators via DeepONet based on the universal approximation theorem of operators. Nature Machine Intelligence , 3(3):218–229, 2021. [29] Peter R Massopust. Fractal Functions, Fractal Surfaces, and Wavelets . Academic Press, San Diego, 1994. [30] Peter R Massopust. Interpolation and Approximation with Splines and Fractals . Oxford University Press, New York, 2010. [31] Mar´ ıa A Navascu´ es. Fractal polynomial interpolation. Zeitschrift f¨ ur Analysis und ihre Anwendungen ,24(2):401–418, 2005. [32] Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, et al. PyTorch: An imperative style, high-performance deep learning library. In Advances in Neural Information Processing Systems , volume 32, 2019. [33] Maziar Raissi, Paris Perdikaris, and George Em Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics , 378:686–707, 2019. [34] Seyd Teymoor Seydi. Exploring the potential of polynomial basis functions in Kolmogorov–Arnold networks: A comparative study of different groups of polynomials. arXiv preprint arXiv:2406.02583 ,2024. [35] Vincent Sitzmann, Julien N. P. Martel, Alexander W. Bergman, David B. Lindell, and Gordon Wetzstein. Implicit neural representations with periodic activation functions. In Advances in Neural Information Processing Systems (NeurIPS) , volume 33, 2020. 32 [36] David A Sprecher. On the structure of continuous functions of several variables. Transactions of the American Mathematical Society , 115:340–355, 1965. [37] Sidharth SS, Keerthana AR, Gokul R, and Anas KP. Chebyshev polynomial-based Kolmogorov– Arnold networks: An efficient architecture for nonlinear function approximation. arXiv preprint arXiv:2405.07200 , 2024. [38] Matthew Tancik, Pratul P. Srinivasan, Ben Mildenhall, Sara Fridovich-Keil, Nithin Raghavan, Utkarsh Singhal, Ravi Ramamoorthi, Jonathan T. Barron, and Ren Ng. Fourier features let networks learn high frequency functions in low dimensional domains. In Advances in Neural Information Processing Systems (NeurIPS) , volume 33, 2020. [39] Silviu-Marian Udrescu and Max Tegmark. AI Feynman: A physics-inspired method for symbolic regression. Science Advances , 6(16):eaay2631, 2020. [40] Dmitry Yarotsky. Error bounds for approximations with deep ReLU networks. Neural Networks ,94:103–114, 2017. 
+
+# A Performance on Smooth Benchmarks 
+
+For completeness, we evaluate FI-KAN on the canonical toy functions from the KAN paper [ 27 ] and on Feynman physics equations from the symbolic regression benchmark [ 39 ]. These are smooth, analytic functions where B-spline bases are near-optimal. 
+
+## A.1 KAN Paper Toy Functions 
+
+Table 12: KAN paper toy functions [ 27 ]. These are smooth, low-dimensional targets where B-spline KAN is near-optimal. Hybrid FI-KAN wins 1 of 5; Pure FI-KAN wins 0 of 5. This is consistent with the theoretical analysis: fractal bases provide no advantage on smooth analytic targets.                                           
+
+> Mean MSE Params Target MLP KAN Hybrid MLP KAN Hybrid
+> J0Bessel 8.62e-2 1.54e-4 2.18e-4 424 208 424
+> exsin( y) + y27.79e-1 4.32e-2 6.16e-2 609 312 608
+> x·y4.6e-5 8.3e-5 8.2e-5 609 312 608 10D sum 4.57e-3 1.21e-2 4.03e-4 1081 572 1080 4D composite 2.50 1.38 4.27 639 338 652
+
+On smooth, low-dimensional targets ( J0 Bessel, ex sin (y) + y2, x · y), KAN’s B-spline bases are near-optimal and the fractal correction provides no advantage. The one Hybrid FI-KAN win (10D sum) suggests that fractal bases may help in higher dimensions even for relatively smooth targets, possibly by providing additional representational diversity. Pure FI-KAN performs substantially worse on all five targets (Table 13), consistent with the approximation-theoretic analysis in Section 4. Table 13: KAN paper toy functions (Pure FI-KAN).                        
+
+> Target MLP KAN Pure FI-KAN
+> J0Bessel 8.62e-2 1.54e-4 7.30e-3
+> exsin( y) + y27.93e-1 4.32e-2 1.98
+> x·y6.1e-5 8.3e-5 8.22e-4 10D sum 8.17e-3 1.21e-2 3.05e-1 4D composite 2.75 1.38 9.59
+
+## A.2 Feynman Physics Equations 
+
+On smooth physics equations, KAN wins 4 of 7, consistent with the expectation that B-splines are well-adapted to analytic targets. The FI-KAN wins (Gaussian, relativity, diffraction) occur on functions with sharp transitions or oscillatory structure that benefit from multi-scale representation. 33 Figure 18: KAN paper toy functions (Hybrid FI-KAN). Bar chart comparison of test MSE across five canonical smooth targets. KAN wins on 3 of 5 targets where B-splines are near-optimal. The one Hybrid FI-KAN win (10D sum, ∼ 30 × improvement) suggests that the fractal correction provides additional representational diversity that benefits higher-dimensional targets even when the underlying function is smooth. Table 14: Feynman physics equations (Hybrid FI-KAN). FI-KAN wins 3 of 7 on these smooth physics targets.                                 
+
+> Equation MLP KAN Hybrid FI-KAN Best I.6.2 Gaussian 6.46e-1 1.32e-2 9.77e-3 FI-KAN I.12.11 Lorentz 9.40e-4 2.15e-2 4.53e-2 MLP I.16.6 Relativity 8.27e-2 7.35e-3 1.97e-3 FI-KAN I.29.16 Distance 2.00e-2 2.15e-3 2.92e-3 KAN I.30.3 Diffraction 2.10e-1 1.07e-1 5.45e-2 FI-KAN I.50.26 Cosine 7.33e-2 1.12e-2 1.33e-2 KAN III.9.52 Sinc 7.43e-4 2.50e-4 4.22e-4 KAN
+
+# B Pure FI-KAN Scaling Law Analysis 
+
+On smooth targets, Pure FI-KAN exhibits negative scaling exponents on both exp sin and Weierstrass. This means test MSE increases with parameter count, a pathological behavior explained by Theorem 4.8: adding parameters expands the capacity for fractal structure, which is counterproductive when the target is smooth. On the sawtooth target, Pure FI-KAN exhibits pathological behavior at large grid sizes ( G ≥ 16), with a negative overall scaling exponent. This extends the smooth-approximation obstruction (Theorem 4.8): even on a fractal target, uncontrolled fractal basis growth is destabilizing when too many basis functions are introduced without the spline backbone. At moderate grid sizes ( G ≤ 8), Pure FI-KAN does achieve positive scaling, confirming that the architecture can productively use moderate additional capacity when the target matches its inductive bias. These scaling pathologies are not present in the Hybrid variant, where the spline path provides a smooth baseline that cannot be degraded by the fractal correction. 34 Figure 19: Feynman physics equations (Hybrid FI-KAN). Bar chart comparison across seven analytic physics targets. KAN wins 4 of 7, consistent with the expectation that B-splines are well-adapted to analytic targets. The FI-KAN wins (Gaussian, relativity, diffraction) occur on functions with sharp transitions or oscillatory structure that benefit from multi-scale representation. 
+
+Figure 20: Scaling laws (Pure FI-KAN): test RMSE vs. parameter count. Left (exp sin): Pure FI-KAN exhibits a negative scaling exponent: test error increases with model size. This is the pathological behavior predicted by Theorem 4.8: additional grid points introduce more oscillatory fractal basis functions, making the cancellation required for smooth approximation increasingly fragile. Center (Weierstrass): 
+
+mild negative scaling. Right (sawtooth): negative scaling at large grid sizes, extending the smooth-approximation obstruction to fractal targets when too many uncontrolled fractal bases are introduced without the spline backbone. At small-to-moderate grid sizes, positive scaling is observed before the pathology sets in. 
+
+# C Additional Pure FI-KAN Results 
+
+This appendix collects complementary results for the Pure FI-KAN variant, mirroring the main-body analyses conducted with the Hybrid variant. The consistent pattern across all experiments confirms the regularity-matching hypothesis: Pure FI-KAN excels on rough/fractal targets and struggles on smooth targets, the inverse of standard KAN’s behavior. 35 Figure 21: Pure FI-KAN vs. KAN on four representative targets. Top row: function fits. Bottom row: 
+
+training curves with improvement ratios. The pattern is complementary to Hybrid FI-KAN (Fig. 7): Pure FI-KAN loses badly on smooth targets (ratio 0.0x on polynomial, exp sin) but wins on the sawtooth (ratio 2.3x). This asymmetry is the strongest controlled evidence for the regularity-matching hypothesis. 
+
+Figure 22: Noise robustness (Pure FI-KAN). The Pure variant also outperforms KAN on fractal targets under noise, though with smaller margins than the Hybrid. Left (Weierstrass): ∼ 1.5× advantage. Right (sawtooth): up to 2 .2× advantage at clean SNR. 36 Figure 23: Learned fractal dimension vs. true H¨ older exponent (Pure FI-KAN). The monotonic correlation is present but weaker than the Hybrid variant (Fig. 16): smooth targets receive dim B ≈ 1.13 rather than 1.0, because the Pure variant is forced to use some fractal structure even when inappropriate. This systematic overestimation further confirms that fractal-only bases are suboptimal for smooth targets. 
+
+Figure 24: 2D function regression (Pure FI-KAN). Pure FI-KAN loses on Ackley (smooth outside origin) but captures more fine-scale structure on the 2D Weierstrass target than KAN (MSE 0.1251 vs. 0.1871), consistent with the regularity-matching thesis. 37
