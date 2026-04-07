@@ -1,0 +1,1768 @@
+Title: RBF-Generated Finite Difference Method Coupled with Quadratic Programming for Solving PDEs on Surfaces with Derivative Boundary Conditions
+
+URL Source: https://arxiv.org/pdf/2603.28035v1
+
+Published Time: Tue, 31 Mar 2026 01:37:30 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# RBF-G ENERATED FINITE DIFFERENCE METHOD COUPLED WITH 
+
+# QUADRATIC PROGRAMMING FOR SOLVING PDE S ON SURFACES WITH DERIVATIVE BOUNDARY CONDITIONS 
+
+A P REPRINT 
+
+Peng Chen 
+
+School of Information Science and Technology, ShanghaiTech University, Shanghai 201210, China 
+
+chenpeng2024@shanghaitech.edu.cn 
+
+Shixiao Willing Jiang ∗
+
+Institute of Mathematical Sciences, ShanghaiTech University, Shanghai 201210, China 
+
+jiangshx@shanghaitech.edu.cn 
+
+Rongji Li ∗
+
+School of Information Science and Technology, ShanghaiTech University, Shanghai 201210, China 
+
+lirj2022@shanghaitech.edu.cn 
+
+Qile Yan 
+
+School of Mathematics, University of Minnesota, 206 Church St SE, Minneapolis, MN 55455, USA 
+
+yan00082@umn.edu 
+
+March 31, 2026 
+
+ABSTRACT 
+
+Derivative boundary conditions introduce challenges for mesh-free discretizations of PDEs on surfaces, especially when the domain is represented by randomly sampled point clouds. The recently developed two-step tangent-space RBF-generated finite difference (RBF-FD) method provides high accuracy on closed surfaces. However, it may lose stability when applied directly to surface PDEs with derivative boundary conditions. To enhance numerical stability, we develop a mesh-free method that couples the two-step tangent-space RBF-FD discretization with a quadratic programming (QP) procedure to stabilize the operator approximation for interior points near boundaries. For boundary points, we construct restricted nearest-neighbor stencils biased in the co-normal direction and employ a constrained quadratic program to approximate outward co-normal derivatives. The resulting method avoids using ghost points and does not require quasi-uniform node distributions. We validate the approach on elliptic problems, eigenvalue problems, time-dependent diffusion equations, and elliptic interface problems on surfaces with boundary. Numerical experiments demonstrate stable performance and high-order accuracy across a variety of surfaces. 
+
+Keywords RBF-generated finite difference, Quadratic programming, Derivative boundary conditions, restricted 
+
+K -nearest neighbors, Randomly sampled point cloud data 
+
+> ∗
+
+Corresponding authors. 
+
+> arXiv:2603.28035v1 [math.NA] 30 Mar 2026
+
+A PREPRINT - M ARCH 31, 2026 
+
+1 Introduction 
+
+Partial differential equations on surfaces or manifolds arise across physics [ 45 ], biology [ 9 ], and image processing [ 49 ]. In many applications, the surface or manifold has a boundary, and Neumann or Robin conditions naturally encode fluxes, contact-line physics, and exchanges with a surrounding bulk medium. For instance, reaction–diffusion systems on evolving biological surfaces [ 4 ] model pattern formation in developmental biology and cell-scale morphogenesis, with boundary conditions representing no-flux constraints or regulated transport across edges. Closely related bulk–surface reaction–diffusion models [ 1 ] used in cell signaling impose Robin boundary conditions that couple bulk diffusion to surface reactions. More broadly, when the surface boundary has direct physical meaning, derivative boundary conditions can also encode geometric constraints and force balance. Examples include surface diffusion flow with contact-angle boundary conditions [ 3 ] and surfactant transport near moving contact lines [27], where an accurate boundary treatment is essential for capturing the correct dynamics. Many numerical methods have been developed for approximating solutions of PDEs on surfaces without or with boundaries. One major class consists of mesh-based methods. Given a triangular mesh approximating the domain, the surface finite element method (FEM) [ 8 ] provides a robust and efficient framework for discretizing PDEs directly on the mesh. Another major class consists of mesh-free methods, which are particularly effective when the domain is represented only by point cloud data, as in the setting considered in this paper. Examples of such mesh-free methods include radial basis function (RBF) methods [ 12 , 13 , 43 ], RBF-generated finite differences (RBF-FD) [ 46 , 11 , 28 , 42 ], generalized moving least squares (GMLS) [ 34 , 16 , 31 , 19 ], generalized finite difference methods (GFDM) [ 48 , 18 , 25 ], and graph-based approaches [32, 15], among others. Nonetheless, surfaces or manifolds with boundaries present additional challenges for kernel-based mesh-free discretizations. Because neighborhoods near the boundary are necessarily one-sided, constructing accurate and stable local discretizations becomes more difficult. In strong-form localized mesh-free collocation methods, this difficulty is particularly pronounced for Neumann boundary conditions, which are known to cause loss of robustness and ill-conditioning [ 37 ]. To address these challenges, a number of strategies have been proposed. One approach is the use of ghost points, where additional points are introduced outside the domain to impose derivative boundary conditions more accurately. Ghost points were introduced for global RBF collocation methods in Euclidean domains in [ 35 , 7 ], and related ideas were later extended to surfaces in [ 24 , 53 ]. However, ghost-point constructions on surfaces are substantially more involved, since they require both a reliable extension of the underlying geometry and accurate estimation of boundary normals or co-normals from point cloud data. Another approach is to improve stability through weak formulations. For example, [ 50 ] proposed an RBF-FD method in a least-squares setting and showed that it is significantly more robust than RBF-FD collocation method without ghost points. For unfitted node sets, additional constraint-based treatments of boundary conditions have also been proposed, including Lagrange multiplier formulations [ 41 ]. We note that quasi-uniform node distributions are typically assumed in these methods. The main contributions of this work are listed as follows. First, we extend our two-step RBF-FD method [ 30 ]to solve boundary value problems (BVPs) on surfaces represented by randomly sampled point clouds, thereby relaxing the need for quasi-uniform node distributions. Second, we introduce a quadratic-programming-based approach to compute stable operator weights for interior points near the boundary, addressing the ill-conditioning caused by one-sided stencils. This approach ensures stability while preserving the required consistency constraints. Third, a stable discretization of the derivative boundary condition is essential. Here we construct stencils for boundary points using restricted K -nearest neighbors, selected based on a weighted quadratic norm biased in the co-normal direction. Together with an auto-tuning strategy for K , we then apply a constraint quadratic optimization formulation to approximate the outward co-normal derivative at boundary points. Overall, these strategies yield a stable and robust estimator and are shown to be effective for several classes of surface PDE problems, including eigenvalue problems, time-dependent diffusion equations, and elliptic interface problems. Our resulting mesh-free approach avoids using ghost points, as ghost point extension is nontrivial on curved surfaces, especially for unknown surfaces. The paper is organized as follows. In Sec. 2, we provide a short review of the GMLS approach and the two-step tangent-space RBF-FD approach for approximating the Laplace-Beltrami operator. We then present a new RBF-FD framework coupled with quadratic-programming-based stabilization for interior points near the boundary of the surface. In Sec. 3, we present the discretization of outward co-normal derivatives at boundary points, and then describe how the interior and boundary discretizations are assembled for solving boundary value problems on surfaces. In Sec. 4, we provide supporting numerical examples for solving boundary value surface PDEs, particularly eigenvalue problems, linear diffusion equations, and elliptic interface problems. In Sec. 5, we conclude the paper with a summary and some open problems. 2A PREPRINT - M ARCH 31, 2026 
+
+2 Approximation of the Laplace–Beltrami operator on surfaces with boundaries 
+
+Let M be a two-dimensional surface embedded in R3 with boundary ∂M . Let TxM be the tangent space at an arbitrary point x ∈ M and let {t1 (x) , t2 (x)} be an orthonormal basis of the tangent space. Let u : M → R be a smooth function. Given a set of N (distinct) randomly sampled data points XM = {xi }Ni =1 on M and function values 
+
+u := (u(x1), . . . , u(xN )) ⊤ on XM . Among these N points, let the first NI points be interior points XI = {xi }NI  
+
+> i=1
+
+⊂ Int (M )and the last NB = N − NI points be boundary points XB = ©xj
+
+ªNj =NI +1 ⊂ ∂M . Hence we have XM = XI ∪ XB . In Sec. 2.1 and Sec. 2.2, we first briefly review the GMLS and the two-step RBF-FD methods for approximating functions on surfaces from the data points XM and the function values u. In Sec. 2.3, we review RBF-FD methods for approximating the Laplace–Beltrami operator at most interior points. In Sec. 2.4, we introduce a new quadratic programming approach to enhance the stability of the Laplace–Beltrami operator at the remaining interior points, which typically lie near the boundary of a surface. 
+
+2.1 Review of GMLS approaches on surfaces 
+
+The GMLS approach, which utilizes a set of local polynomials for function approximation, has been successfully used to solve PDEs on surfaces and manifolds [ 34 , 16 , 39 , 26 , 25 ]. For an interior base point x0 ∈ XI , we denote its 
+
+K -nearest neighbors in XM by Sx0 = ©x0, k ∈ XM
+
+ªKk=1, which is generally referred to as a "stencil". By definition, we have x0,1 = x0 for the base point. Let Pl 
+
+> x0
+
+denote the local polynomial space with degree up to l near the base point 
+
+x0, i.e., 
+
+Pl 
+
+> x0
+
+= span 
+
+n
+
+pα (θ (x)) : = θα1 
+
+> 1
+
+(x) θα2 
+
+> 2
+
+(x)
+
+¯¯¯ 0 ≤ | α| = α1 + α2 ≤ l
+
+o
+
+, (1) where θ (x) = (θ1(x), θ2(x)) is a projected Monge coordinate system for the local tangent space Tx0 M [ 40 , 44 , 34 , 26 , 16 ]with θi (x) = ti (x0) · (x − x0) for i = 1 , 2. Here, α = (α1, α2) ∈ N2 is the nonnegative integer exponent for powers of variables ( θ1(x), θ2(x)). By definition, the dimension of the space Pl 
+
+> x0
+
+is m = (l + 2)( l + 1)/2. Given the K (> m)-nearest neighbors and the K function values ux0 := (u(x0,1 ), ..., u(x0, K )) ⊤, we can find Ip ux0 ∈ Pl
+
+> x0
+
+to be the optimal solution of the moving least-squares problem: min   
+
+> Ipux0∈Pl
+> x0
+
+12
+
+> K
+
+X
+
+> k=1
+
+λk
+
+¡u(x0, k ) − (Ip ux0 )( x0, k )¢2 . (2) The solution to the above least-squares problem (2) is represented as (Ip ux0 )( x) : =
+
+> m
+
+X 
+
+> j=1
+
+b j pα( j ) (θ (x)) , x ∈ M , (3) where each coefficient b j corresponds to the j -th polynomial basis function pα( j ) (θ (x)) . The concatenated co-efficients are denoted by b = (b1, ..., bm )⊤ and then the moving least-squares problem (2) can be formulated in matrix-vector form as min 
+
+> b∈Rm
+
+12
+
+¡ux0 − P b¢⊤ Λ ¡ux0 − P b¢ , (4) where Λ = diag (λ1, · · · , λK ) ∈ RK ×K is the K × K symmetric positive-definite diagonal matrix and P is the K × m
+
+Vandermonde-type matrix with components Pk j = pα( j )
+
+¡θ ¡x0, k
+
+¢¢ for 1 ≤ k ≤ K , 1 ≤ j ≤ m. Thus, the coefficient b
+
+can be obtained by the normal equation: 
+
+b = (P ⊤ΛP )−1P ⊤Λux0 . (5) The above normal equation admits a unique solution if P has full column rank (rank( P ) = m). 
+
+Remark 2.1. GMLS is a regression technique for approximating functions by solving the least-squares problem with a weighted ℓ2-norm. In the literature, the diagonal element of the weight Λ is taken to be a positive weight function of the distance ∥x0, k − x0∥ (see e.g., [ 51 , 36 , 34 , 16 , 26 , 31 ]). Here, we used a so-called 1/ K weight function as reported in previous works [33, 34, 25, 31], since the diagonal weight, 
+
+Λ = diag( λ1, · · · , λK ), with diagonal entries λk =
+
+½ 1, if k = 11/ K , if k = 2, . . . , K , (6) 
+
+has been shown to enhance the numerical stability of the Laplace–Beltrami operator across various data sets, in particular, for randomly sampled data points or non-quasi-uniform data points. 
+
+3A PREPRINT - M ARCH 31, 2026 
+
+2.2 Review of two-step tangent-space RBF-FD approaches on surfaces 
+
+To approximate the Laplace–Beltrami operator on surfaces, a PHS+Poly interpolant of the function u was first considered in [47, 52, 26] by using the so-called tangent-space RBF-FD method: (Iφp ux0 ) ( x) : =
+
+> K
+
+X
+
+> k=1
+
+ak φ ¡∥θ (x) − θ ¡x0, k
+
+¢ ∥¢ +
+
+> m
+
+X 
+
+> j=1
+
+b j pα( j ) (θ (x)) , x ∈ M , (7) where φ is the Polyharmonic spline (PHS) function and ∥ · ∥ is the standard Euclidean norm in R2. By definition, we have θ ¡x0,1 
+
+¢ = θ (x0) = 0 as the center of the projected Monge coordinate system. The method is referred to as the tangent-space method since both the PHS radial function φ(·) and the polynomial pα( j )(·) are defined over the projected tangent-space Monge coordinate θ (x) . In contrast, for RBF-FD methods in most previous studies, the RBF interpolant was defined over the ambient Euclidean space (see e.g., [ 46 , 28 , 42 , 2 ]). We point out that there are two advantages for the tangent-space method. First, as noted in [ 26 ], it simplifies the calculation of the derivatives of interpolation functions as also discussed in Remark 3.4 of [ 30 ]. Second, the interpolant PKk=1 ak φ (·)+Pmj =1 b j pα( j ) (·)is approximating the local representation of the target function, that is, u ◦ θ−1. This is natural in differential geometry in order to take derivatives of a function on surfaces. Here, we only consider the radial function φ to be, Polyharmonic spline (PHS) : φ(r ) = r 2κ+1, (8) where the variable r is the radial distance and the PHS parameter κ ∈ N controls the smoothness of φ. For RBF-FD methods, the PHS function has been used together with polynomials in many studies (see e.g., [ 11 , 6 , 5 , 26 ]). PHS is attractive due to its absence of the shape parameter. Some other common choices of the radial φ include Gaussian function [ 10 ], inverse quadratic function [ 20 ], inverse multiquadric function [ 14 ] and Matérn class function [ 14 ]. These radial basis functions contain a shape parameter that controls the flatness of the RBF. In general, a small value of the shape parameter achieves better accuracy but also results in an ill-conditioned interpolation matrix. When the shape parameter is properly chosen, the local RBF-FD shows convergence [46, 28, 42, 2]. For the classical RBF-FD approach, the expansion coefficients, a = (a1, a2, · · · , aK )⊤ and b = (b1, b2, · · · , bm )⊤, are ob-tained by enforcing K interpolation conditions together with m additional moment conditions ensuring uniqueness, which can be written in matrix form as · Φ PP ⊤ 0
+
+¸ · ab
+
+¸
+
+=
+
+·ux0
+
+0
+
+¸
+
+, (9) where P ∈ RK ×m is defined in (4) and Φ = [φ ¡∥θ ¡x0, i
+
+¢ − θ ¡x0, j
+
+¢ ∥¢]Ki , j =1 ∈ RK ×K is the symmetric PHS matrix. For the PHS φ(r ) = r 2κ+1, the chosen parameter κ should be less than or equal to the polynomial degree l in (1) [ 23 , 51 , 26 ]so that Φ is conditionally positive definite on the subspace satisfying the m moment conditions in (9). If the stencil points satisfy rank( P ) = m, then the system (9) is non-singular and the PHS+Poly interpolant is well-posed. We recently consider a two-step tangent-space RBF-FD method [ 30 ] which takes exactly the same approximation space as that in equation (7), but approximates the interpolant coefficients a = (a1, a2, · · · , aK )⊤ and b = (b1, ..., bm )⊤
+
+in a different way. For the first step, we take the GMLS regression in (4) to approximate the function u and then the residual of GMLS becomes 
+
+sx0 := ux0 − (Ip ux0 )|Sx0 = ux0 − P b,where the operator ( Ip ux0 )( x) = Pmj =1 b j pα( j ) (θ (x)) is defined in (3) and the coefficient b is given in (5). For the second step, we fit the above residual sx0 by taking the PHS interpolant, 
+
+¡Iφsx0
+
+¢ (x) =
+
+> K
+
+X
+
+> k=1
+
+ak φ ¡∥θ (x) − θ ¡x0, k
+
+¢ ∥¢ , (10) and then the coefficient a = (a1, a2, · · · , aK )⊤ are determined by the interpolation condition, 
+
+Φa = sx0 = ux0 − P b = ux0 − P ¡P ⊤ΛP ¢−1 P ⊤Λux0 , (11) where Φ is given in (9). Numerically, we use the weighted ridge regression for the inverse of the PHS matrix Φ since 
+
+Φ might be singular (see Sec. 4.3 of [30]). Then the coefficient a can be computed by 
+
+a = Φ† ¡ux0 − P b¢ = Φ† ³
+
+I − P ¡P ⊤ΛP ¢−1 P ⊤Λ
+
+´
+
+ux0 , (12) where Φ† is the pseudoinverse of Φ given by 
+
+Φ† = ¡Φ⊤ΛΦ + δ2I¢−1 Φ⊤Λ, (13) 4A PREPRINT - M ARCH 31, 2026 with δ = 10 −5 being the regularization parameter for a stable and unique inverse of Φ. We also apply the normaliza-tion technique for stable computation (see Sec. 4.2 of [30]). Basically, the two-step RBF-FD is to regress the function ux0 using GMLS followed by fitting the residual sx0 using the PHS interpolant. GMLS captures the smooth, leading component of the Taylor expansion of u, while PHS compensates for the expansion’s remainder contained within the residual. As a result, the two-step RBF-FD method takes exactly the same PHS+Poly interpolant as in (7), (Iφp ux0 ) ( x) = (Iφsx0 ) ( x) + ¡Ip ux0
+
+¢ (x) : =
+
+> K
+
+X
+
+> k=1
+
+ak φ ¡∥θ (x) − θ ¡x0, k
+
+¢ ∥¢ +
+
+> m
+
+X 
+
+> j=1
+
+b j pα( j ) (θ (x)) , x ∈ M , (14) where the coefficients a and b are determined by (12) and (5), respectively. 
+
+2.3 RBF-FD approach for approximating the Laplace–Beltrami operator 
+
+We first review the results for approximating the Laplace–Beltrami using the RBF-FD method [ 46 , 11 , 28 , 26 , 30 ]. The Laplace–Beltrami operator at the interior base point x0 can be approximated using the RBF-FD, 
+
+∆M u (x0) ≈ ∆θ (Iφp ux0 ) ( x0) =
+
+Ã KX
+
+> k=1
+
+ak ∆θ φ ¡∥θ (x) − θ ¡x0, k
+
+¢ ∥¢ +
+
+> m
+
+X
+
+> s=1
+
+bs ∆θ pα(s) (θ (x)) 
+
+!¯ ¯¯¯¯x=x0
+
+, (15) where ∆θ = ∂2 
+
+> θ1θ1
+
++ ∂2 
+
+> θ2θ2
+
+. Here, the first term in (15) can be calculated as 
+
+∆θ φ ¡∥θ (x) − θ ¡x0, k
+
+¢ ∥¢ ¯ ¯x=x0 = ¡4κ2 + 4κ + 1¢ ∥θ (x0) − θ ¡x0, k
+
+¢ ∥2κ−1, (16) where the PHS φ ¡∥θ (x) − θ ¡x0, k
+
+¢ ∥¢ = ∥ θ (x) − θ ¡x0, k
+
+¢ ∥2κ+1 has been used. The second term in (15) can be calculated as 
+
+∆θ pα(s) (θ (x)) ¯¯x=x0 =
+
+½ 2, α(s) ∈ E,0, α(s) ∉ E, (17) where the index set E = ©(α1, α2) ∈ N2| (α1, α2) = (2, 0) or ( α1, α2) = (0, 2) ª. Substituting (16) and (17) into (15), we arrive at 
+
+∆M u (x0) ≈
+
+> K
+
+X
+
+> k=1
+
+ak
+
+¡4κ2 + 4κ + 1¢ ∥θ (x0) − θ ¡x0, k
+
+¢ ∥2κ−1
+
+| {z }  
+
+> (∆θφx0)a
+
++ X
+
+> {s|α(s)∈E}
+
+2bs
+
+|{z}   
+
+> (∆θpx0)b
+
+(18) where ∆θ φx0 ∈ R1×K with the kth entry given by (16) and ∆θ px0 ∈ R1×m with only two nonzero values of 2. Substitut-ing a in (12) and b in (5) into above equation, we obtain the Laplacian coefficients { wk }Kk=1 such that 
+
+∆M u (x0) ≈
+
+> K
+
+X
+
+> k=1
+
+wk u ¡x0, k
+
+¢ =
+
+³¡∆θ φx0
+
+¢ Φ†¡I − P ¡P ⊤ΛP ¢−1 P ⊤Λ¢ + ¡∆θ px0
+
+¢ ¡ P ⊤ΛP ¢−1 P ⊤Λ
+
+´
+
+ux0 . (19) 
+
+Example 2.2. In Sec. 2 and the following Sec. 3, we consider solving the Poisson equation ∆M u = f with a Robin boundary condition ∂u 
+
+> ∂n
+
++ u = h on a 2D semi-torus M embedded in R3 via the following map: 
+
+x := ¡x1, x2, x3¢ = ((2 + cos( ψ1)) cos( ψ2), (2 + cos( ψ1)) sin( ψ2), sin( ψ1)) ∈ M ⊂ R3, (20) 
+
+for 0 ≤ ψ1 < 2π and 0 ≤ ψ2 ≤ π, where (ψ1, ψ2) are the two intrinsic coordinates. The two boundaries are ψ2 = 0 and 
+
+ψ2 = π. The Riemannian metric is given by g (ψ1, ψ2) =
+
+μ 1 00 (2 + cos( ψ1)) 2
+
+¶
+
+. (21) 
+
+The data points are randomly sampled in the (ψ1, ψ2) parameter space following a uniform distribution and then mapped onto the surface M via (20) . In Sec. 2, we illustrate the consistency of the discrete operator obtained from Secs. 2.3 and 2.4 for approximating the Laplace–Beltrami operator ∆M . In the next section (Sec. 3), we will illustrate the consistency of derivative boundary conditions and the convergence of the numerical solutions. We set the analytic solution to be u = sin (ψ1) cos (ψ2 + π 
+
+> 4
+
+) and then calculate the source term as f := ∆M u , where the Laplace–Beltrami operator is defined as 
+
+∆M u = 1
+
+p|g |
+
+∂∂ψ i
+
+μp|g |g i j ∂u
+
+∂ψ j
+
+¶
+
+. (22) 
+
+We impose the Robin boundary condition and calculate h := ∂u 
+
+> ∂n
+
++ u at the two boundaries ψ2 = 0 and ψ2 = π. Finally, we solve for the approximate solution of the PDE subjected to the manufactured f and h. 
+
+5A PREPRINT - M ARCH 31, 2026 
+
+(a) RBF-FD without QP 0 /2 3 /2 2
+
+> 1
+
+0
+
+/2  
+
+> 2
+
+(b) RBF-FD with QP 0 /2 3 /2 2
+
+> 1
+
+0
+
+/2 
+
+> 2
+
+w1 < 0 and 3 w1 0 < 3 
+
+Figure 1: Poisson problems on 2D semi-torus in R3. Panels (a) and (b) show three types of interior points in intrinsic coordinates ( ψ1, ψ2) without and with quadratic programming, respectively: green dots satisfy both nearly diagonal dominance conditions, red crosses violate the first condition w1 < 0, and blue circles violate the second condition γ ≥ 3. The quadratic optimization approach completely eliminates points with w1 > 0 while only partially eliminating those with γ < 3. Here no boundary points are shown and all points shown are interior. The degree is 
+
+l = 4, the number of interior points is NI = 6240 and the number of boundary points is NB = 160. 
+
+(a) point away from boundary 0 10 20 
+
+> k-nearest neighbor
+> 1000
+> 500
+> 0
+> coefficient  wk
+
+(b) point near boundary, with w1 > 00 10 20 30 40 50  
+
+> k-nearest neighbor
+> 300
+> 200
+> 100
+> 0
+> 100
+> coefficient  wk
+
+(c) the same point as (b), using QP 0 10 20 30 40 50 
+
+> k-nearest neighbor
+> 2000
+> 1000
+> 0
+> 1000
+> coefficient  wk
+
+(d) point near boundary, ratio γ < 30 10 20 30 40  
+
+> k-nearest neighbor
+> 300
+> 200
+> 100
+> 0
+> 100
+> 200
+> coefficient  wk
+
+(e) the same point as (d), using QP 0 10 20 30 40 
+
+> k-nearest neighbor
+> 4000
+> 3000
+> 2000
+> 1000
+> 0
+> 1000
+> coefficient  wk
+
+Figure 2: Poisson problems on 2D semi-torus in R3. Comparison of Laplacian coefficients w1, . . . , wk for points away from and close to the boundary. (a) For most interior points (green dots in Fig. 1), both nearly diagonal dominance conditions ( w1 < 0 and γ ≥ 3) can be satisfied. However, for some points close to the boundary (red crosses in Fig. 1(a)), the first condition w1 < 0 may not be satisfied (panel (b)) for a certain range of K . After quadratic programming, w1 < 0 can be satisfied for all these points (panel (c)). For other points close to the boundary (blue circles in Figs. 1(a)(b)), the condition γ ≥ 3 may not be met (panel (d)). After quadratic programming, some points can be improved (panel (e)) whereas some points remain to be γ < 3. The degree is l = 4, the number of interior points is NI = 6240 and the number of boundary points is NB = 160. 6A PREPRINT - M ARCH 31, 2026 For the choice of K at each interior base point, we apply the auto-tuned K -nearest neighbors [ 30 ] such that the following two conditions are satisfied: 1. (Sign constraint). The Laplacian coefficient w1 at the base point x0 satisfies w1 < 0. 2. (Ratio constraint). The ratio γ := |w1|
+
+max 2≤k≤K |wk | satisfies γ ≥ 3 for each base point x0.We refer to these two conditions as nearly diagonal dominance conditions . The details of the auto-tuned K -nearest neighbors will be shown in the following Algorithm 1. We expect that the Laplacian matrix generated by the RBF-FD method is nearly diagonally dominant so that the algorithm provides a stable and convergent estimator. In our numerical implementation, we see from Fig. 1(a) that most points satisfy both nearly diagonal dominance conditions (green dots in Fig. 1(a)). However, we observe that some points, especially those close to the boundary, may fail to satisfy one of the two conditions for all values of K in a certain range (e.g. 20 ∼ 60) (red crosses and blue circles in Fig. 1(a)). Panels (a)(b)(d) in Fig. 2 show the Laplacian coefficients given by RBF-FD for the three types of points corresponding to green dots, red crosses, and blue circles in Fig. 1(a), respectively. We can see from Fig. 2(b) and Fig. 2(d) that the Laplacian coefficients fail to satisfy the first condition ( w1 < 0) and the second condition (γ ≥ 3), respectively. If these RBF-FD Laplacian coefficients are directly employed to solve the Poisson problem in Example 2.2, the resulting estimator will not be stable and the solution will not converge (as will be shown later in Sec. 3.4). To make the algorithm stable and convergent, we consider the following quadratic programming approach for points that violate either of the two nearly diagonal dominance conditions. 
+
+2.4 Quadratic programming (QP) approach for approximating the Laplace–Beltrami operator 
+
+In this section, we first review the equivalence between the GMLS approach and the quadratic programming with equality constraints [ 29 , 34 ]. We then introduce a new quadratic programming formulation that incorporates both equality and inequality constraints to enhance the stability. Let us now consider the following quadratic programming problem: find the Laplacian coefficients w1, . . . , wK for approximating ∆M u(x0) using PKk=1 wk u(x0, k )by minimizing a quadratic form min 
+
+> w1,..., wK
+> K
+
+X
+
+> k=1
+
+12
+
+w2
+
+> k
+
+λk
+
+,subject to the equality constraint, 
+
+> K
+
+X
+
+> k=1
+
+wk pα( j )(θ ¡x0, k
+
+¢) = ∆M pα( j )(θ (x0)), j = 1, . . . , m.The above quadratic optimization problem can be written in the compact matrix form, min  
+
+> w
+> 12
+
+w ⊤Λ−1w
+
+subject to P ⊤w = (∆θ px0 )⊤, (23) where ∆θ px0 = ¡∆M pα(1) (θ (x0)), . . . , ∆M pα(m)(θ (x0)) ¢ ∈ R1×m is defined in (18) and w = (w1, . . . , wK )⊤ ∈ RK ×1 is the Laplacian coefficient. The Lagrange dual function associated with the primal problem (23) is defined as, min 
+
+> w
+
+12 w ⊤Λ−1w +++ z⊤ ¡P ⊤w − (∆θ px0 )⊤¢ (24) where z ∈ Rm×1 is the Lagrange multiplier. Taking the derivative with w , we can find the minimizer is w = − ΛP z . By substituting w into (24), then the Lagrange dual problem is defined as max  
+
+> z
+
+− 12 z⊤P ⊤ΛP z − (∆θ px0 )z,and the solution to the dual problem is z = − ¡P ⊤ΛP ¢−1 (∆θ px0 )⊤. Then the Laplacian coefficient w can be calcu-lated by 
+
+w ⊤ = (∆θ px0 ) ¡P ⊤ΛP ¢−1 P ⊤Λ ∈ R1×K .This is equivalent to the GMLS formula as can be seen from the second term of Eq. (19). We now impose additional constraints to stabilize the Laplacian approximation for the points which cannot satisfy the two nearly diagonal dominance conditions. For those points, we consider the following quadratic optimization 7A PREPRINT - M ARCH 31, 2026 problem with additional inequality constraints: min  
+
+> w1,..., wK,C
+
+PKk=1
+
+12
+
+w2 
+
+> k
+
++C 2
+
+λk
+
+subject to PKk=1 wk pα( j )(θ ¡x0, k
+
+¢) = ∆M pα( j )(θ (x0)), j = 1, . . . , m,
+
+w1 ≤ − C ,
+
+wk ≥ − C , k = 2, . . . , K ,
+
+C ≥ 0. (25) For these inequality constraints, we relax the diagonal dominance restriction to allow that the Laplacian matrix to be close enough to a diagonally dominant matrix. This is expected to enhance the stability of approximation and improve the convergence of numerical solution. As a result, we construct the sparse Laplacian matrix LI ,M ∈ RNI ×N
+
+using an RBF-FD approach coupled with quadratic programming: for each interior node, we first attempt an auto-tuned K search to enforce nearly diagonal dominance. If this attempt fails, we then solve the QP formulation in (25) based on an appropriate stencil size K yielding nearly diagonal dominance or, otherwise, the largest ratio γ.We refer to this approach as RBF-FD-QP method and summarize the algorithm in Algorithm 1. 
+
+Algorithm 1 RBF-FD-QP using auto-tuned K for the Laplace–Beltrami operator  
+
+> 1:
+
+Input: A point cloud {xi }Ni =1 ⊂ M , bases of analytic tangent vectors at each node {t1(xi ), t2(xi )} Ni =1, the degree l of polynomials, the PHS smoothness parameter κ, and an initial K0 > m-nearest neighbors where m = (l +2)( l +1)/2 is the number of monomial basis functions ©θα|0 ≤ | α| ≤ l ª, the maximum number of nearest neighbors, Kmax . 
+
+> 2:
+
+Set LI ,M to be a sparse NI × N matrix with initial NI K0 nonzeros.  
+
+> 3:
+
+for i ∈ {1, 2, ..., NI } do  
+
+> 4:
+
+%%% RBF-FD for computing Laplacian weight  
+
+> 5:
+
+Set γ = 0, w1 = 0, K = K0. 
+
+> 6:
+
+while γ < 3 or w1 > 0 do  
+
+> 7:
+
+Find the K -nearest neighbors of the interior point xi , denoted by the stencil Sxi = {xi ,k }Kk=1. 
+
+> 8:
+
+Construct the K by m Vandermonde-type matrix P with entries Pk j = pα( j )
+
+¡θ ¡xi ,k
+
+¢¢ defined in (1).  
+
+> 9:
+
+Construct the K by K PHS matrix Φ with entries Φks = ∥ θ ¡xi ,k
+
+¢ − θ ¡xi ,s
+
+¢ ∥2κ+1. 
+
+> 10:
+
+Calculate the Laplacian coefficients { wk }Kk=1 by the formula in (19), (w1, . . . , wK ) = ¡∆θ φxi ,0 
+
+¢ Φ†¡I − P ¡P ⊤ΛP ¢−1 P ⊤Λ¢ + ¡∆θ pxi ,0 
+
+¢ ¡ P ⊤ΛP ¢−1 P ⊤Λ. 
+
+> 11:
+
+Calculate the ratio γ = |w1|   
+
+> max 2≤k≤K|wk|
+
+. 
+
+> 12:
+
+Increase the K by a small positive integer (e.g., 2).  
+
+> 13:
+
+if K ≥ Kmax then  
+
+> 14:
+
+Break.  
+
+> 15:
+
+end if  
+
+> 16:
+
+end while  
+
+> 17:
+
+%%% QP for computing Laplacian weight for point that violate the nearly diagonal dominance conditions.  
+
+> 18:
+
+Set K = K0. 
+
+> 19:
+
+while γ < 3 or w1 > 0 do  
+
+> 20:
+
+Solve the quadratic optimization problem (25).  
+
+> 21:
+
+if The problem (25) has a solution and γ ≥ 3 then  
+
+> 22:
+
+Break.  
+
+> 23:
+
+else if The problem (25) has a solution and K < Kmax then  
+
+> 24:
+
+Record the current values of ( w1, . . . , wK ), γ and K . 
+
+> 25:
+
+Increase the K by a small positive integer (e.g., 2).  
+
+> 26:
+
+else  
+
+> 27:
+
+Let ( w1, . . . , wK ) be the Laplacian weights for the recorded K that yields the largest γ. 
+
+> 28:
+
+Break.  
+
+> 29:
+
+end if  
+
+> 30:
+
+end while  
+
+> 31:
+
+Arrange the Laplacian coefficients { wk }Kk=1 into the corresponding rows and columns of LI ,M . 
+
+> 32:
+
+end for  
+
+> 33:
+
+Output: The approximate operator matrix LI ,M .8A PREPRINT - M ARCH 31, 2026 
+
+(a) pointwise absolute error with N = 6400, l = 40 /2 3 /2 2  
+
+> 1
+> 0
+> /2
+> 2
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> ×10 3
+
+(b) consistent FE s with different degrees 1600 3200 6400 12800 25600 51200             
+
+> N
+> 10 5
+> 10 4
+> 10 3
+> 10 2
+> FE
+> O(N1/2 )
+> O(N1)
+> O(N3/2 )
+> O(N2)
+> l= 2
+> l= 3
+> l= 4
+> l= 5
+
+Figure 3: Poisson problems on 2D semi-torus in R3. Panel (a) shows the pointwise absolute error of ∆M using our combined RBF-FD and QP approach with N = 6400 and l = 4. Panel (b) shows the consistency of FE s for different polynomial degrees. All simulations are run with 12 independent trials, each with a set of randomly sampled data points. After applying the QP approach, Fig. 1(b) shows that all points with w1 > 0 are completely eliminated, as indicated by the absence of red crosses. Indeed, this complete elimination of points with w1 > 0 was consistently observed across all simulation trials. However, points with γ < 3 are only partially removed, with a small number still remaining (see blue circles in Fig. 1(b) and see also the resulting Laplacian coefficients obtained from the QP approach in Fig. 2(c)). While some of the ratios are still γ < 3, we numerically observe that all of them have γ ≥ 1 (see the coefficients in Fig. 2(c)). Fortunately, despite the presence of some points with 1 ≤ γ < 3, the estimator becomes sufficiently stable to yield convergent solutions, as will be demonstrated below in Sec. 3. To numerically verify the validity of operator approximation, we define the forward error ( FE ) for the operator approximation as 
+
+FE =
+
+Ã
+
+1
+
+NINIX 
+
+> i=1
+
+¡∆M u (xi ) − ¡LI ,M u¢
+
+> i
+
+¢2
+
+!1/2 
+
+, (26) where u := (u(x1) , . . . , u(xN )) ⊤ ∈ RN ×1 is the analytic solution and ¡LI ,M u¢ 
+
+> i
+
+is the i th component of LI ,M u ∈ RNI ×1.Fig. 3 shows the pointwise absolute error of ∆M (panel (a)) and the consistency of FE s for different polynomial degrees (panel (b)). As can be seen from Fig. 3(a), points near the boundary, whose coefficients are obtained from the QP approach, exhibit relatively large pointwise errors compared to those away from the boundary. As shown in Fig. 3(b), the consistency rate is approximately O(N −(l −1)/2 ), which is in good agreement with the theoretical error bound of O((log N /N )(l −1)/2 ) (see e.g., [29, 38, 34]). 
+
+3 Application to solving boundary problems 
+
+In this section, we extend the RBF-FD-QP approach, introduced in Sec. 2 for interior points, to boundary points for solving BVPs on surfaces with derivative boundary conditions. The task here is to approximate the outward co-normal derivative at boundary points using one-sided stencils. We first derive the weights generated by our two-step RBF-FD approach on the boundary (Sec. 3.1), and then describe the numerical implementation of our RBF-FD-QP approach for boundary operator approximation (Sec. 3.2). Last, we assemble the discrete estimators of interior and boundary operators into a sparse linear system for solving the Poisson problems in Example 2.2. 
+
+3.1 RBF-FD approach for approximating the outward co-normal derivative on boundaries 
+
+To solve boundary value problems with derivative boundary conditions on surfaces, we need to approximate the outward co-normal derivative for points located on the boundary ∂M . Let xb ∈ ∂M be a boundary base point. The outward co-normal derivative of a smooth function u at xb is defined as ∂u 
+
+> ∂n
+
+(xb ) = ∇ M u(xb ) · n, where ∇M u(xb ) ∈ R3
+
+is the surface gradient and n ∈ R3 is the unit outward co-normal vector at xb . Note that n lies in the tangent space 
+
+Txb M and is orthogonal to the boundary curve ∂M .9A PREPRINT - M ARCH 31, 2026 We first approximate the surface gradient ∇M u(xb ) ∈ Txb M . Using the local Monge coordinate system θ(x) =
+
+(θ1(x), θ2(x)), the surface gradient can be expressed by pushing forward the local intrinsic gradient ∇θ u(xb ) ∈ R2×1
+
+via the tangent basis matrix Txb = [t1(xb ), t2(xb )] ∈ R3×2. Applying the two-step tangent-space RBF-FD interpolant defined in (14), we have 
+
+∇M u(xb ) ≈ Txb ∇θ (Iφp uxb )( x)¯¯x=xb
+
+= Txb
+
+Ã KX
+
+> k=1
+
+ak ∇θ φ ¡∥θ(x) − θ(xb,k )∥¢ +
+
+> m
+
+X
+
+> s=1
+
+bs ∇θ pα(s)(θ(x)) 
+
+! ¯¯¯¯x=xb
+
+, (27) where ©xb,k ∈ XM
+
+ªKk=1 is a specifically selected stencil of K neighbors of xb = xb,1 and uxb := (u(xb,1 ) , ..., u(xb,K )) ⊤ is the corresponding K function values. The choice of the K neighbors will be clarified below in the following Sec. 3.2. Evaluating the gradients at the boundary base point xb (or correspondingly, θ(xb ) = 0) , the derivative of the PHS function φ(r ) = r 2κ+1 yields a 2 × 1 column vector: 
+
+∇θ φ ¡∥θ(x) − θ(xb,k )∥¢ ¯ ¯x=xb = − (2 κ + 1) ∥θ(xb,k )∥2κ−1θ(xb,k ) ∈ R2. (28) For the polynomial terms pα(s)(θ(x)), all quadratic and higher-order terms vanish at the origin θ(xb ) = 0, leaving only the gradients of the linear terms: 
+
+∇θ pα(s)(θ(x)) ¯¯x=xb =
+
+
+
+(1, 0) ⊤, if α(s) = (1, 0), (0, 1) ⊤, if α(s) = (0, 1), (0, 0) ⊤, otherwise. (29) Substituting (28) and (29) into (27) gives the matrix-vector form: 
+
+∇M u(xb ) ≈ Txb
+
+¡(∇θ Φxb )a + (∇θ Pxb )b¢ , (30) where ∇θ Φxb ∈ R2×K contains the PHS derivatives in (28) and ∇θ Pxb ∈ R2×m contains the polynomial derivatives in (29). To obtain the co-normal derivative, we take the inner product of the ambient surface gradient with the outward co-normal vector n: ∂u
+
+∂n (xb ) = n⊤∇M u(xb ) ≈ n⊤Txb
+
+¡(∇θ Φxb )a + (∇θ Pxb )b¢ . (31) Notice that the vector-matrix product n⊤Txb computes the projection of the co-normal vector onto the local tangent space basis. Finally, by substituting the coefficients a in (12) and b in (5) into (31), we obtain the weights {vk }Kk=1
+
+such that 
+
+∂u
+
+∂n (xb ) ≈
+
+> K
+
+X
+
+> k=1
+
+vk u(xb,k )
+
+= n⊤Txb
+
+h
+
+(∇θ Φxb )Φ†¡I − P (P ⊤ΛP )−1P ⊤Λ¢ + (∇θ Pxb )( P ⊤ΛP )−1P ⊤Λ
+
+i
+
+uxb .(32) This formulation yields the weights required to enforce Neumann or Robin boundary conditions by applying the two-step RBF-FD method. 
+
+3.2 Algorithmic implementation for boundary operators 
+
+With the mathematical formulation established in Sec. 3.1, we now describe the practical implementation for approximating the outward co-normal derivative at boundary points. The procedure shares similarities with the evaluation of the interior Laplace-Beltrami operator but requires specific considerations for stencil selection, weight function Λ, and the auto-tuning of the neighborhood size K . Unlike the interior Laplace-Beltrami operator, the boundary operator should be constructed from a one-sided local stencil that accounts for the directional derivative along the outward co-normal direction. When dealing with a boundary base point xb ∈ ∂M , the local geometry is heavily one-sided due to the truncation of the domain. To collect the stencil Sxb = {xb,k }Kk=1, we consider a restricted K -nearest neighbor (KNN) search strategy that includes only the boundary base point xb and its neighboring interior points, as illustrated in Fig. 4(a). That is to say, the restricted KNN method excludes all other boundary points except the base xb itself. This restricted KNN search strategy ensures that the value of the boundary base point can be written as a linear combination of the values of neighboring interior points after discretization (as will be shown below in (37)). 10 A PREPRINT - M ARCH 31, 2026 Moreover, the restricted KNN search is based on a weighted metric biased in the outward co-normal direction. For a boundary base point xb , let n be the unit outward co-normal vector. The weighted distance metric is defined as: 
+
+∥xb,k − xb ∥W := ∥ ωnn ⊤(xb,k − xb ) + (I − nn ⊤)( xb,k − xb )∥, (33) where ∥ · ∥ is the standard Euclidean norm in R3 and I is the 3 × 3 identity matrix. The parameter ω ∈ (0 , 1) is a scaling factor that intentionally shrinks the distance measurement along the co-normal direction. By taking small ω, the effective search neighborhood forms an ellipsoid elongated along n (see Fig. 4(a)). In our numerical implementation, we set ω = 1/3. The stencil Sxb = {xb,k ∈ XI ∪ {xb }} Kk=1 is then efficiently constructed by querying the K -nearest neighbors based on this weighted metric. We also utilize the 1/ K diagonal weight matrix Λ as defined in Eq. (6) for a stable approximation of the co-normal derivative (32). Similar to the interior Laplacian approximation, we employ an auto-tuning algorithm to choose an appropriate K
+
+at each boundary point. For the approximation of the outward co-normal derivative ∂u 
+
+> ∂n
+
+(xb ) ≈ PKk=1 vk u(xb,k ), we consider the following two nearly diagonal dominance conditions: 1. (Sign constraint). The weight at the center node is strictly positive, i.e., v1 > 0. 2. (Ratio constraint). The ratio γbd := |v1|
+
+max 2≤k≤K |vk | satisfies γbd ≥ 3. This sign constraint is motivated by the fact that the derivative is taken in the outward co-normal direction. For a one-sided boundary stencil, the resulting discrete co-normal derivative typically has a positive coefficient at the center node. Algorithmically, the boundary routine reuses Algorithm 1 from Sec. 2.4 with three modifications: the interior Laplacian weights are replaced by the co-normal derivative weights in (32) , the conditions v1 > 0 and γbd ≥ 3 are used during the same auto-tuned search for K , and the quadratic optimization formulation is given for the boundary base point by the following: min  
+
+> v1,..., vK,C
+
+PKk=1
+
+12
+
+v2 
+
+> k
+
++C 2
+
+λk
+
+subject to PKk=1 vk pα( j )(θ ¡xb,k
+
+¢) = ∂∂n pα( j )(θ (xb )), j = 1, . . . , m,
+
+v1 ≥ 0, 
+
+−C ≤ vk ≤ C , k = 2, . . . , K ,
+
+C ≥ 0. (34) Then the weights ( v1, . . . , vK ) are inserted row-wise into the corresponding boundary operator matrix. Fig. 4(b) shows a typical distribution of weights obtained by the RBF-FD approach for most boundary points satisfying the two nearly diagonal dominance conditions. Figs. 4(c) and (d) compare the weights for the outward co-normal derivative before and after quadratic optimization, demonstrating the elimination of unstable weights. To verify the validity of the boundary operator approximation, we define the forward error ( FE ) for the co-normal derivative similarly to (26). Fig. 4(f) demonstrates the consistency of FE s for different polynomial degrees lbd . The numerical consistency rate is approximately O(N −lbd /2 ), which is in good agreement with the theoretical prediction. 
+
+3.3 Matrix assembly and PDE solution 
+
+With the discretized coefficients for the interior Laplace–Beltrami operator (Algorithm 1) and the boundary co-normal derivative (Sec. 3.2) computed, the final step is to assemble the sparse linear system and solve the boundary value problem. To solve the Poisson problem ∆M u = f on the surface M subjected to the Robin boundary condition u + ∂u 
+
+> ∂n
+
+= h on the boundary ∂M (Example 2.2), we discretize the differential operators to construct a coupled algebraic system. Let 
+
+uI and uB denote the vectors of unknown values at the interior and boundary nodes, respectively. Then the discrete system consists of equations for interior points obtained from the Laplace–Beltrami matrix and equations for boundary points obtained from the discretization of the derivative boundary conditions. The discretized Laplace– Beltrami matrix LI ,M ∈ RNI ×N is constructed for all interior points via the RBF-FD-QP method. We partition the Laplacian matrix LI ,M and the solution vector u ∈ RN as follows: 
+
+LI ,M = £LI ,I LI ,B
+
+¤ , u =
+
+·uI
+
+uB
+
+¸
+
+,11 A PREPRINT - M ARCH 31, 2026 
+
+(a) restricted KNN Surface Boundary 
+
+> Interior Nodes
+> Boundary Nodes
+> Selected Stencil
+> Center Node
+> Outward Co-normal
+> Search Ellipsoid
+
+(b) typical distribution 0 10 20 30 40 
+
+k-nearest neighbor 
+
+10 
+
+0
+
+10 
+
+20 
+
+30 
+
+> coefficient  vk
+
+(c) RBF-FD weight, γbd < 30 10 20 
+
+k-nearest neighbor 
+
+60 
+
+40 
+
+20 
+
+0
+
+20 
+
+40 
+
+> coefficient  vk
+
+(d) the same point as (c), using QP 0 10 20 
+
+k-nearest neighbor 
+
+0
+
+5
+
+10 
+
+15 
+
+> coefficient  vk
+
+(e) pointwise forward error 1.0 1.5 2.0 2.5 3.0  
+
+> x1
+> 1.00
+> 0.75
+> 0.50
+> 0.25
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> x3
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> ×10 4
+
+(f) consistency 1600 3200 6400 12800 25600 51200              
+
+> N
+> 10 6
+> 10 5
+> 10 4
+> 10 3
+> 10 2
+> FE
+> O(N1)
+> O(N3/2 )
+> O(N2)
+> O(N5/2 )
+> lbd = 2
+> lbd = 3
+> lbd = 4
+> lbd = 5
+
+Figure 4: Stencil illustration and numerical consistency for boundary operators. Panel (a) shows the restricted KNN stencil. Panel (b) shows a typical distribution of weights obtained by the RBF-FD approach for most boundary points. Panels (c) and (d) compare the weights for the outward co-normal derivative without and with quadratic optimization, demonstrating the elimination of unstable weights. Panel (e) illustrates the pointwise forward error (FE ) for a circular boundary of the semi-torus, while panel (f) shows the consistency across different polynomial degrees lbd , matching the expected theoretical convergence rate O(N −l /2 ). where LI ,I ∈ RNI ×NI , LI ,B ∈ RNI ×NB , uI ∈ RNI ×1, and uB ∈ RNB ×1. This yields a set of discretized equations for interior points: 
+
+LI ,I uI + LI ,B uB = fI , (35) where fI ∈ RNI contains the forcing term f at the interior points. For the Robin boundary conditions, we define a discretized boundary operator matrix B ∈ RNB ×N representing the discretization of the operator ( I + ∂∂n ), where I is the identity map. The boundary matrix B is partitioned to be: 
+
+B = £BB,I BB,B
+
+¤ ,where BB,I ∈ RNB ×NI and BB,B ∈ RNB ×NB . Note that the matrix BB,B is diagonal with positive diagonal entries because we employ the restricted KNN strategy for the boundary stencil selection (as discussed in Sec. 3.2) as well as the sign constraint in the nearly dominance condition for the boundary base point. We then couple the discretized Poisson equation (35) with the discretized boundary conditions to obtain the following block system: · LI ,I LI ,B
+
+BB,I BB,B
+
+¸ · uI
+
+uB
+
+¸
+
+=
+
+· fI
+
+hB
+
+¸
+
+, (36) where hB ∈ RNB ×1 is the nonhomogeneous boundary data vector. To solve this coupled system (36) efficiently, we eliminate the boundary unknowns uB . Solving the second block row for uB , we obtain: 
+
+uB = B −1
+
+B,B (hB − BB,I uI ). (37) Substituting this expression into the first block row yields a reduced system for the interior unknowns uI only: (LI ,I − LI ,B B −1
+
+B,B BB,I )
+
+| {z }
+
+A′
+
+uI = fI − LI ,B B −1
+
+B,B hB
+
+| {z }
+
+b′
+
+. (38) By solving the reduced NI × NI system A′uI = b′, we obtain the solution uI at the interior points. The boundary values uB are then recovered using back-substitution in (37). 12 A PREPRINT - M ARCH 31, 2026 
+
+(a) pointwise error, l = 3, lbd = 20 /2 3 /2 2 
+
+> 1
+> 0
+> /2
+> 2
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> 1.4
+> ×10 3
+
+(b) pointwise error, l = 4, lbd = 40 /2 3 /2 2 
+
+> 1
+> 0
+> /2
+> 2
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> 1.4
+> ×10 4
+
+(c) IE for l = 21600 3200 6400 12800 25600 51200          
+
+> N
+> 10 4
+> 10 3
+> 10 2
+> IE
+> O(N1/2 )
+> O(N1)
+> lbd = 1
+> lbd = 2
+> lbd = 3
+> lbd = 4
+
+(d) IE for l = 31600 3200 6400 12800 25600 51200        
+
+> N
+> 10 4
+> 10 3
+> IE
+> O(N1)
+> lbd = 2
+> lbd = 3
+> lbd = 4
+> lbd = 5
+
+(e) IE for l = 41600 3200 6400 12800 25600 51200            
+
+> N
+> 10 6
+> 10 5
+> 10 4
+> 10 3
+> IE
+> O(N1)
+> O(N3/2 )
+> O(N2)
+> lbd = 2
+> lbd = 3
+> lbd = 4
+> lbd = 5
+
+(f) IE for l = 51600 3200 6400 12800 25600 51200           
+
+> N
+> 10 6
+> 10 5
+> 10 4
+> 10 3
+> IE
+> O(N3/2 )
+> O(N2)
+> lbd = 3
+> lbd = 4
+> lbd = 5
+> lbd = 6
+
+Figure 5: Solution accuracy for Poisson problems on a 2D semi-torus in R3. Panels (a) and (b) display the spatial distribution of pointwise absolute errors for degrees of ( l , lbd ) = (3 , 2) and ( l , lbd ) = (4 , 4), respectively. Panels (c)–(f) illustrate the convergence of inverse errors ( IE s) for l ∈ { 2 , 3 , 4 , 5 } . All simulations are run with 12 independent trials, each with a set of randomly sampled data points. To numerically verify the overall accuracy and convergence of our proposed approach for solving the boundary value problem, we evaluate the inverse error ( IE ): 
+
+IE =
+
+Ã
+
+1
+
+N
+
+NX
+
+i =1
+
+(ui − u(xi )) 2
+
+!1/2 
+
+,where u(xi ) is the exact analytic solution evaluated at node xi and ui is the corresponding numerical solution. Fig. 5 demonstrates the numerical performance of the RBF-FD-QP solver for the Poisson equation on the 2D semi-torus in Example 2.2. Figs. 5(a) and 5(b) illustrate the spatial distribution of the pointwise absolute error, while Figs. 5(c)-(f) show the convergence of the inverse error ( IE ) under different polynomial degrees l for interior points and the polynomial degrees lbd for boundary points. Here, the interior degree l and boundary degree lbd should be chosen to match each other. It can be observed from Fig. 5 that when the interior degree l is odd, the optimal boundary degree is lbd = l − 1. When the interior degree l is even, the optimal boundary degree is lbd = l . In the following section for numerical results, we only focus on the numerical performance in the setting of the pairs of (l , lbd ) = (3, 2) and ( l , lbd ) = (4, 4). 
+
+3.4 Comparison of RBF-FD and RBF-FD-QP 
+
+Before proceeding to more complex numerical experiments, we demonstrate the necessity and effectiveness of the proposed quadratic-programming-based stabilization. We conduct an ablation study comparing the standard RBF-FD method with our proposed RBF-FD-QP approach using the semi-torus Poisson problem (Example 2.2). To comprehensively evaluate the effect of the QP module, we compare three quantities: the interior forward error (FE ) of the Laplace-Beltrami operator approximation, the stability of the reduced interior system characterized by the spectral norm of the inverse matrix ∥(A′)−1∥2, and the inverse error ( IE ) of the PDE solution. For comparison, 12 independent trials with different randomly sampled point clouds are conducted, and the result of each trial is directly plotted for visualization (see Fig. 6). 13 A PREPRINT - M ARCH 31, 2026 
+
+(a) FE 1600 3200 6400 12800 25600 51200       
+
+> N
+> 10 5
+> 10 4
+> 10 3
+> 10 2
+> FE
+> O(N3/2 )
+> RBF-FD
+> RBF-FD-QP
+
+(b) Stability 1600 3200 6400 12800 25600 51200  
+
+> N
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> 80
+> 90
+> ||( A′) 1|| 2
+> RBF-FD
+> RBF-FD-QP
+
+(c) IE 1600 3200 6400 12800 25600 51200        
+
+> N
+> 10 6
+> 10 5
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> IE  O(N2)
+> RBF-FD
+> RBF-FD-QP
+
+Figure 6: Ablation study on the necessity of the QP stabilization. Comparison between the standard RBF-FD and the proposed RBF-FD-QP method for solving the Poisson problem on the 2D semi-torus. Panels (a), (b), and (c) display the forward error ( FE ), the stability measured by the spectral norm of the inverse reduced matrix ∥(A′)−1∥2,and the inverse error ( IE ), respectively. Results from 12 independent random-sampling trials are plotted directly (without averaging or statistics) for visualization. The standard RBF-FD method provides a reasonable and convergent approximation of the Laplacian operator (blue curves in Fig. 6(a)). However, the spectral norm of the inverse matrix ∥(A′)−1∥2 obtained with the standard RBF-FD method may not be bounded around a constant for several trials (blue curves in Fig. 6(b)), implying that the reduced linear system (38) may lose stability. Meanwhile, for the trials with relatively large norms, the corresponding inverse errors fail to decay as N increases (blue curves in Fig. 6(c)), indicating a loss of convergence. Upon inspection, we find that such instability and non-convergence are induced by the inappropriate local RBF-FD approximation to differential operators for some points near the boundary (see Fig. 1). This motivates us to propose the RBF-FD-QP approach to improve the coefficients and stabilize the system. As can be seen from Fig. 6(a), the proposed RBF-FD-QP method also provides a consistent approximation of the Laplacian operator, although its error is slightly larger than that of the standard RBF-FD. This behavior is expected, since the QP formulation imposes only equality constraints on polynomials, yielding less accurate coefficients than the standard RBF-FD, which enforces exactness for both polynomials and polyharmonic splines. More importantly, compared with the standard RBF-FD method, the proposed RBF-FD-QP method provides uniform bounds for the norm of the inverse matrix and, consequently, convergent solutions for the PDE across all random samplings (see orange curves in Figs. 6(b) and (c)). 
+
+4 Numerical experiments 
+
+In this section, we evaluate the proposed RBF-FD-QP approach across three types of problems on surfaces. In Sec. 4.1, we consider the eigenvalue problems, in which we examine the convergence of the eigenvalues of the Laplace–Beltrami operator on surfaces with boundary. In Sec. 4.2, we evaluate the performance for solving linear time-dependent diffusion equations and verify that the proposed spatial discretization remains stable and accurate. In Sec. 4.3, we focus on elliptic interface problems on surfaces to demonstrate the ability of the proposed framework to handle solution discontinuities and jump conditions across the interface using point cloud data. To test the robustness of our approach, all numerical experiments are conducted on various independent trials of randomly sampled point clouds. The results demonstrate the ability of the RBF-FD-QP approach to maintain stability and high-order accuracy without relying on regular meshes or introducing ghost points. For data generation in all examples, the intrinsic data are first randomly generated from a uniform sampling in the parameter space and then mapped onto the surfaces in the ambient space via the parametrization. For the RBF-FD-QP approach, we set the PHS parameter κ = 3 and the polynomial degrees ( l , lbd ) to be (3, 2) and (4, 4) across all experiments. 14 A PREPRINT - M ARCH 31, 2026 
+
+4.1 Eigenvalue problem 
+
+We first consider the eigenvalue problem for the Laplace–Beltrami operator on a two-dimensional surface M
+
+embedded in R3, which is governed by: 
+
+−∆M uk = λk uk , on M ,
+
+uk + ∂uk
+
+∂n = 0, on ∂M, (39) where {λk }∞
+
+k=1 denote the eigenvalues and {uk }∞
+
+k=1 the corresponding eigenfunctions. We test the proposed RBF-FD-QP method on two smooth surfaces with boundary: a semi-torus (as defined in (20) ) and a semi-sphere parameterized by x := (x1, x2, x3) = (sin ψ1 cos ψ2, sin ψ1 sin ψ2, cos ψ1) for 0 ≤ ψ1 ≤ π
+
+2 and 0 ≤ ψ2 < 2π.To validate the accuracy of the RBF-FD-QP approach, we compare our results against reference eigenvalues and eigenfunctions computed by the Finite Element Method (FEM) via the FreeFem++ software [ 21 ]. For the FEM reference, the parametric domains are uniformly discretized into a 300 × 300 structured grid, utilizing continuous piecewise quadratic finite elements (P2) to construct the functional spaces. Table 1: Convergence of the mean and standard deviation of absolute errors for the selected eigenvalues on the semi-sphere and semi-torus. Here the polynomial degrees ( l , lbd ) = (4, 4). 
+
+(a) Semi-sphere                                                                                     
+
+> Nk=1k=2k=4k=8k=20 Error mean (std) Rate Error mean (std) Rate Error mean (std) Rate Error mean (std) Rate Error mean (std) Rate 6400 2.277e-05 (2.699e-06) -3.714e-05 (1.397e-05) -9.647e-05 (1.032e-05) -6.333e-04 (1.443e-04) -1.670e-03 (4.465e-04) -12800 7.600e-06 (6.807e-07) 1.58 3.072e-06 (1.329e-06) 3.60 3.096e-05 (2.526e-06) 1.64 1.219e-04 (1.704e-05) 2.38 3.935e-04 (1.077e-04) 2.09 25600 2.227e-06 (1.612e-07) 1.77 3.306e-07 (2.479e-07) 3.22 8.844e-06 (6.389e-07) 1.81 2.425e-05 (2.848e-06) 2.33 8.249e-05 (4.300e-05) 2.25 51200 6.052e-07 (5.374e-08) 1.88 3.449e-07 (5.693e-08) -0.06 2.362e-06 (1.936e-07) 1.90 4.354e-06 (4.435e-07) 2.48 2.294e-05 (7.569e-06) 1.85 102400 1.685e-07 (1.511e-08) 1.84 1.182e-07 (1.885e-08) 1.54 6.477e-07 (5.592e-08) 1.87 8.708e-07 (7.673e-08) 2.32 9.793e-06 (2.208e-06) 1.23 FEM Ref 0.7055983 -3.156904 -7.153786 -13.24604 -32.31781 -
+
+(b) Semi-torus                                                                                     
+
+> Nk=1k=2k=4k=8k=20 Error mean (std) Rate Error mean (std) Rate Error mean (std) Rate Error mean (std) Rate Error mean (std) Rate 6400 2.887e-06 (9.265e-07) -1.246e-05 (4.932e-06) -3.674e-05 (1.358e-05) -4.623e-05 (5.414e-05) -1.326e-04 (9.891e-05) -12800 5.234e-07 (2.707e-07) 2.46 2.822e-06 (8.937e-07) 2.14 1.017e-05 (1.652e-06) 1.85 1.574e-05 (1.163e-05) 1.55 2.868e-05 (1.646e-05) 2.21 25600 1.580e-07 (7.903e-08) 1.73 6.710e-07 (2.819e-07) 2.07 2.651e-06 (7.814e-07) 1.94 6.419e-06 (1.568e-05) 1.29 2.003e-05 (1.318e-05) 0.52 51200 2.775e-08 (1.528e-08) 2.51 1.173e-07 (2.468e-08) 2.52 6.993e-07 (2.187e-07) 1.92 4.819e-07 (2.568e-07) 3.74 5.279e-06 (1.143e-06) 1.92 102400 5.859e-09 (2.531e-09) 2.24 2.636e-08 (8.834e-09) 2.15 1.721e-07 (3.936e-08) 2.02 1.278e-07 (1.094e-07) 1.91 1.541e-06 (2.378e-07) 1.78 FEM Ref 0.1468539 -0.5501428 -1.137836 -2.268830 -5.571232 -
+
+In Table 1, we show the mean, standard deviation (std), and convergence rate of the absolute errors for several leading eigenvalues on the two surfaces using 12 independent trials. It can be seen that as the number of nodes increases, the numerical eigenvalues of RBF-FD-QP converge toward the FEM reference values, with most modes exhibiting approximately second-order convergence. The small standard deviations further confirm the stability of the approximation across different random samplings. Figure 7 compares the eigenfunctions obtained from the proposed RBF-FD-QP method with those from the FEM reference. The numerical eigenfunctions produced by RBF-FD-QP exhibit the same spatial patterns as the FEM results, including the symmetry features, on both the semi-sphere and semi-torus. These results indicate that the proposed method can accurately capture both the eigenvalues and the corresponding eigenfunctions of the Laplace–Beltrami operator on surfaces with boundary. 
+
+4.2 Linear time-dependent equations 
+
+Next, we evaluate the performance of the proposed framework on a linear time-dependent diffusion equation defined on a surface, 
+
+ut = ν∆M u + f , (40) where the diffusion coefficient ν = 0 . 1. For temporal discretization, we employ the implicit fourth-order backward differentiation formula (BDF4), which allows larger time steps than explicit schemes. In all simulations, we fix the time step with ∆t = 10 −3 and run the integration to a final time of Tend = 0.05 to examine the convergence. For the semi-sphere defined in above Sec. 4.1, we set the true solution to be u(x, t ) = e−t sin (x1) cos (x2). For the second example, we consider a geometrically more complex helical pipe featuring a star-shaped cross-section [ 22 ], 15 A PREPRINT - M ARCH 31, 2026 
+
+(a) Mode 1 (Sphere) FEM 1.0  
+
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x11.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> x3
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> 0.85
+> 0.90
+> 0.95
+> 1.00
+
+(b) Mode 1 (Sphere) RBF-FD-QP 1.0  
+
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x11.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> x3
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> 0.85
+> 0.90
+> 0.95
+> 1.00
+
+(c) Mode 4 (Sphere) FEM 1.0  
+
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x11.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> x3
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+
+(d) Mode 4 (Sphere) RBF-FD-QP 1.0  
+
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x11.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> x3
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+
+(e) Mode 1 (Torus) FEM 3 2 1 0 1 2 3
+
+> x1
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> x2
+> 1.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x3
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> 1.0
+
+(f) Mode 1 (Torus) RBF-FD-QP 3 2 1 0 1 2 3 
+
+> x1
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> x2
+> 1.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x3
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> 1.0
+
+(g) Mode 8 (Torus) FEM 3 2 1 0 1 2 3
+
+> x1
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> x2
+> 1.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x3
+> 1.00
+> 0.75
+> 0.50
+> 0.25
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+
+(h) Mode 8 (Torus) RBF-FD-QP 3 2 1 0 1 2 3
+
+> x1
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> x2
+> 1.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x3
+> 0.75
+> 0.50
+> 0.25
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+
+Figure 7: Comparison of normalized eigenfunctions. Shown are the normalized eigenfunctions calculated by the FEM reference and the proposed RBF-FD-QP approach. Top row: Modes 1 and 4 on the semi-sphere. Bottom row: Modes 1 and 8 on the semi-torus. For RBF-FD-QP , we use l = 4, lbd = 4 and N = 51200. parameterized by 
+
+x1 = a cos ψ2 + R(ψ1, ψ2)( β sin ψ1 sin ψ2 − cos ψ1 cos ψ2), 
+
+x2 = a sin ψ2 − R(ψ1, ψ2)( β sin ψ1 cos ψ2 + cos ψ1 sin ψ2), 
+
+x3 = bψ2 + R(ψ1, ψ2)α sin ψ1,(41) where the moving frame constants are defined as α = apa2+b2 and β = bpa2+b2 . The helical centerline is defined by the spiral radius a = 8 and the vertical growth rate b = 1, defined over the domain ψ2 ∈ [0 , 3π]. The surface radius for the star-shaped cross-section is explicitly given by: 
+
+R(ψ1, ψ2) = 35 + 340 sin(5 ψ1), (42) where the first parameter ψ1 ∈ [0 , 2π). On this surface, we prescribe the exact true solution to be u(ψ1, ψ2, t ) =
+
+e−t sin (ψ1) cos (ψ2). Then, for both examples, the manufactured f are calculated by f := ut − ν∆M u and the manufactured h are calculated by h := ∂u
+
+∂n + u in the Robin boundary conditions so that the prescribed exact solutions satisfy the governing equations and the boundary conditions. In Figs. 8(a)(d), we plot the IE s as functions of N at the final time Tend = 0 . 05. For both the semi-sphere and the helical pipe, the IE s decrease as the number of nodes increases, indicating convergence of the solutions obtained from the proposed method. We also show the true solutions in Figs. 8(b)(e), and the pointwise absolute errors in Figs. 8(c)(f). The convergence results and pointwise error distributions in Fig. 8 demonstrate that the RBF-FD-QP spatial discretization, combined with the BDF4 time-marching scheme, yields stable and accurate numerical solutions for linear time-dependent diffusion equations on surfaces with boundary, even when the surface geometry is complicated and the surfaces are identified by randomly sampled data points. 
+
+4.3 Interface problem 
+
+In this subsection, we consider solving the elliptic interface problems on surfaces: 
+
+−∇ M · (c∇M u) + σu = f . (43) The surface is partitioned into two subdomains, M + and M −, separated by a smooth interface curve ˜Λ. Across this interface, the solution satisfies the jump conditions, [u] = u+ − u− = q0, [c∇u · n] = c+(∇u+ · n) − c−(∇u− · n) = q1,16 A PREPRINT - M ARCH 31, 2026 
+
+(a) IE 1600 3200 6400 12800 25600 51200               
+
+> N
+> 10 8
+> 10 7
+> 10 6
+> 10 5
+> 10 4
+> IE  O(N2)
+> O(N5/2 )
+> l= 3, lbd = 2
+> l= 4, lbd = 4
+
+(b) Numerical solution 1.0   
+
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x11.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> x3
+> 0.8
+> 0.6
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+
+(c) Pointwise absolute error 1.0   
+
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x11.0
+> 0.5
+> 0.0
+> 0.5
+> 1.0
+> x2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> x3
+> 0.25
+> 0.50
+> 0.75
+> 1.00
+> 1.25
+> 1.50
+> 1.75
+> ×10 7
+
+(d) IE 1600 3200 6400 12800 25600 51200              
+
+> N
+> 10 5
+> 10 4
+> 10 3
+> 10 2
+> IE
+> O(N3/2 )
+> O(N5/2 )
+> l= 3, lbd = 2
+> l= 4, lbd = 4
+
+(e) Numerical solution 10 5 0 5 10   
+
+> x110
+> 5
+> 0
+> 5
+> 10
+> x2
+> 0
+> 5
+> 10
+> 15
+> 20
+> x3
+> 0.75
+> 0.50
+> 0.25
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+
+(f) Pointwise absolute error 10 5 0 5 10   
+
+> x110
+> 5
+> 0
+> 5
+> 10
+> x2
+> 0
+> 5
+> 10
+> 15
+> 20
+> x3
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> 3.0
+> 3.5
+> 4.0
+> ×10 4
+
+Figure 8: Numerical results for the time-dependent heat equation on surfaces. (a)–(c) Simulation on a semi-sphere using the time step ∆t = 10 −3 at the final time Tend = 0 . 05. (d)–(f) Simulation on a helical pipe using the time step 
+
+∆t = 10 −3 at the final time Tend = 0 . 05. The left column shows the convergence of inverse errors ( IE s) over various independent trials, examining the stability of the spatial RBF-FD-QP discretization coupled with the implicit BDF4 time integration. The middle and right columns display the numerical solutions and the corresponding pointwise absolute errors, respectively, using l = 4, lbd = 4 and N = 51200. All simulations are run with 12 independent trials, each with a set of randomly sampled data points. where n denotes the unit normal to the interface within the tangent plane of the surface. While resolving such jumps may involve computationally expensive interface-fitted meshes, our mesh-free RBF-FD-QP framework offers an alternative approach by handling these discontinuities directly from point clouds. We test our method on two interface problems, with the numerical results detailed in Fig. 9: 1. Equatorial Interface on a Sphere [ 17 ]: The spherical domain is parameterized by standard spherical coordinates with a radius of R = 0.5. The parameterization mapping X : [0, π] × [0, 2 π) → R3 is defined as: 
+
+
+
+x1(ψ1, ψ2) = 0.5 sin ψ1 cos ψ2,
+
+x2(ψ1, ψ2) = 0.5 sin ψ1 sin ψ2,
+
+x3(ψ1, ψ2) = 0.5 cos ψ1,(44) where ψ1 is the polar angle and ψ2 is the azimuthal angle. The domain is partitioned into two subdomains by an equatorial interface, which corresponds to the line ψ1 = π/2 in the parameter space (effectively the plane x3 = 0). We impose a high-contrast diffusion ratio ( c+ = 1 . 0, c− = 10 . 0) alongside a uniform coefficient 
+
+σ = 1.0. The exact solution exhibits oscillatory behavior: u+ = x1x2 sin(4 πx3) and u− = x1x2 cos(4 πx3). 2. Star-shaped Interface on a Paraboloid [ 54 ]: We embed a highly non-convex, five-fold star interface onto an elliptic paraboloid surface. The underlying surface is parameterized by the mapping X : [ −1 . 4 , 1 . 4] 2 → R3,where ( ψ1, ψ2) 7 → (ψ1, ψ2, (ψ1)2 + (ψ2)2). On this parametric ( ψ1, ψ2)-plane, the interface is defined by a star-shaped domain parameterized by 
+
+(
+
+ψ1(t ) = [0.7 + 0.3 cos(5( t − 11 π/13))] cos( t ), 
+
+ψ2(t ) = [0.7 + 0.3 cos(5( t − 11 π/13))] sin( t ), (45) 17 A PREPRINT - M ARCH 31, 2026 
+
+(a) IE convergence 3200 6400 12800 25600 51200 102400              
+
+> N
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> IE
+> O(N3/2 )
+> O(N5/2 )
+> l= 3, lbd = 2
+> l= 4, lbd = 4
+
+(b) Numerical solution 0.4 0.2    
+
+> 0.0 0.2 0.4
+> x1
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> x2
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> x3
+> 0.10
+> 0.05
+> 0.00
+> 0.05
+> 0.10
+
+(c) Pointwise absolute error 0.4 0.2    
+
+> 0.0 0.2 0.4
+> x1
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> x2
+> 0.4
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> x3
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> 1.4
+> 1.6
+> ×10 4
+
+(d) IE convergence 1600 3200 6400 12800 25600 51200               
+
+> N
+> 10 5
+> 10 4
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> IE  O(N3/2 )
+> O(N5/2 )
+> l= 3, lbd = 2
+> l= 4, lbd = 4
+
+(e) Numerical solution 1 
+
+> 0
+> 1
+> x1
+> 1
+> 0
+> 1
+> x2
+> 0
+> 1
+> 2
+> 3
+> 4
+> x3
+> 0.75
+> 0.50
+> 0.25
+> 0.00
+> 0.25
+> 0.50
+> 0.75
+
+(f) Pointwise absolute error 1 
+
+> 0
+> 1
+> x1
+> 1
+> 0
+> 1
+> x2
+> 0
+> 1
+> 2
+> 3
+> 4
+> x3
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> ×10 5
+
+Figure 9: Numerical results for elliptic interface problems. (a) A sphere featuring an equatorial jump interface with a 1:10 diffusion contrast. (b) A paraboloid featuring a highly non-convex, five-fold star interface. Left column: Stable high-order convergence of the inverse error ( IE ). Middle column: The numerical solution, capturing the sharp discontinuities across the interfaces. Right column: Pointwise absolute error distributions. For panels (b), (c), (e) and (f), we use l = 4, lbd = 4 and N = 51200. All simulations are run with 12 independent trials, each with a set of randomly sampled data points. with t ∈ [0 , 2π). The coefficients are set to be c+ = 2 . 0, c− = 1 . 0 and σ+ = 1 . 0, σ− = 3 . 0. The exact solution takes different forms across the interface: a rapidly expanding polynomial field u+(x) = (( x1)2 − 1)(( x2)2 − 1) on one side, and a coupled trigonometric field u−(x) = cos( x1 + x2) sin( x3) on the other. Fig. 9 shows convergence of the IE s for both interface configurations. In addition, the numerical solutions sharply resolve the prescribed discontinuities across the interface. The pointwise error plots indicate that the error does not exhibit pronounced deterioration near either the equatorial interface on the sphere or the non-convex star-shaped interface on the paraboloid. These results show that the proposed RBF-FD-QP framework can accurately handle elliptic interface problems on surfaces using scattered nodes only. Figs. 9(a) and 9(d) show the convergence of the IE s for both interface problems. In addition, our mesh-free method resolves the prescribed discontinuity across the interface. As shown in Figs. 9(c) and 9(f), the pointwise errors remain well-behaved near both the equatorial interface on the sphere and the non-convex star-shaped interface on the paraboloid. These results demonstrate that the proposed RBF-FD-QP framework can effectively handle elliptic interface problems on surfaces using only scattered nodes. 
+
+5 Conclusions 
+
+In this paper, we considered the two-step RBF-FD method coupled with quadratic programming, referred to as RBF-FD-QP , for solving PDEs on surfaces with derivative boundary conditions, where the surfaces are represented by randomly sampled point clouds. We observed that using the RBF-FD coefficients alone, even when combined with an auto-tuned K and a 1/ K weight function, could still produce unstable approximations of the Laplacian operator and, consequently, non-convergent solutions. The instability was found to arise from interior points near the boundary, where stencils are one-sided. To overcome this instability, we introduced a quadratic-programming-18 A PREPRINT - M ARCH 31, 2026 based approach to compute weights that yield stable approximations while preserving the consistency constraints of the Laplacian. At boundary points, we applied a similar quadratic optimization formulation to approximate the outward co-normal derivative to further enhance stability. This was accompanied by a specific stencil construction based on restricted K -nearest neighbors, selected using a weighted quadratic norm biased in the co-normal direction. In addition, we numerically investigated compatible choices for the interior polynomial degree l and the boundary degree lbd . By combining all the techniques described above, we validated the proposed RBF-FD-QP approach and demonstrated numerical convergence of the solutions for various types of surface PDEs with derivative boundary conditions. There are two questions remaining for future investigation. First, the quadratic-programming-based approach used here is related to the generalized moving least squares (GMLS) method, which only involves polynomial constraints. A natural extension is to incorporate radial basis functions into the quadratic optimization formulation, thereby establishing a connection to the RBF-FD method. Second, a promising direction is to apply the proposed RBF-FD-QP approach to variable-coefficient diffusion-type equations, such as weighted diffusion equations and Fokker–Planck equations, with derivative boundary conditions. This is particularly relevant for modeling highly heterogeneous media with discontinuities, as well as the time evolution of distributions for stochastic differential equations with jumps, which mathematically correspond to highly oscillatory or discontinuous coefficients. A key question is whether the proposed RBF-FD-QP approach remains stable and robust for such problems under numerical investigation. 
+
+Acknowledgment 
+
+S. J. was supported by the NSFC Grant No. 12471412, the ShanghaiTech University Grant No. 2024X0303-902-01, and the HPC Platform of ShanghaiTech University. Q. Y. was supported by the Simons Foundation grant 601937, DNA. 
+
+References 
+
+[1] A. Alphonse, C. M. Elliott, and J. Terra. A coupled ligand-receptor bulk-surface system on a moving domain: well posedness, regularity, and convergence to equilibrium. SIAM Journal on Mathematical Analysis, 50(2):1544– 1592, 2018. [2] D. Álvarez, P. González-Rodríguez, and M. Kindelan. A local radial basis function method for the laplace– beltrami operator. J. Sci. Comput., 86, 2021. [3] T. Asai and Y. Giga. On self-similar solutions to the surface diffusion flow equations with contact angle boundary conditions. Interfaces and Free Boundaries, 16(4):539–573, 2014. [4] R. Barreira, C. M. Elliott, and A. Madzvamuse. The surface finite element method for pattern formation on evolving biological surfaces. J. Math. Biol., 63(6):1095–1119, 2011. [5] V. Bayona, N. Flyer, and B. Fornberg. On the role of polynomials in rbf-fd approximations: Iii. behavior near domain boundaries. J. Comput. Phys., 380:378–399, 2019. [6] V. Bayona, N. Flyer, B. Fornberg, and G. A. Barnett. On the role of polynomials in rbf-fd approximations: Ii. numerical solution of elliptic pdes. J. Comput. Phys., 332:257–273, 2017. [7] C. Chen, A. Karageorghis, and F. Dou. A novel rbf collocation method using fictitious centres. Appl. Math. Lett., 101:106069, 2020. [8] G. Dziuk and C. M. Elliott. Finite element methods for surface pdes. Acta Numerica, 22:289–396, 2013. [9] C. M. Elliott and B. Stinner. Modeling and computation of two phase geometric biomembranes using surface finite elements. J. Comput. Phys., 229(18):6585–6612, 2010. [10] G. E. Fasshauer and M. J. McCourt. Stable evaluation of gaussian radial basis function interpolants. SIAM J. Sci. Comput., 34(2):A737–A762, 2012. [11] N. Flyer, B. Fornberg, V. Bayona, and G. A. Barnett. On the role of polynomials in rbf-fd approximations: I. interpolation and accuracy. J. Comput. Phys., 321:21–38, 2016. [12] N. Flyer and G. B. Wright. A radial basis function method for the shallow water equations on a sphere. Proc. Roy. Soc. A., 465(2106):1949–1976, 2009. [13] E. J. Fuselier and G. B. Wright. Stability and error estimates for vector field interpolation and decomposition on the sphere with rbfs. SIAM J. Numer. Anal., 47:3213–3239, 2009. 19 A PREPRINT - M ARCH 31, 2026 [14] E. J. Fuselier and G. B. Wright. A high-order kernel method for diffusion and reaction-diffusion equations on surfaces. J. Sci. Comput., 56(3):535–565, 2013. [15] F. Gilani and J. Harlim. Approximating solutions of linear elliptic pde’s on a smooth manifold using local kernel. J. Comput. Phys., 395:563 – 582, 2019. [16] B. J. Gross, N. Trask, P . Kuberry, and P . J. Atzberger. Meshfree methods on manifolds for hydrodynamic flows on curved surfaces: A generalized moving least-squares (gmls) approach. J. Comput. Phys., 409:109340, 2020. [17] C. Guo, X. Xiao, L. Song, Z. Tan, and X. Feng. A generalized finite difference method for solving elliptic interface problems with non-homogeneous jump conditions on surfaces. Engineering Analysis with Boundary Elements, 157:259–271, 2023. [18] T. Halada, S. Yaskovets, A. Singh, L. Benes, P. Suchde, and I. F. Sbalzarini. An overview of meshfree collocation methods. arXiv preprint arXiv:2509.20056, 2025. [19] T. Hangelbroek, C. Rieger, and G. B. Wright. Generalized local polynomial reproductions. arXiv preprint arXiv:2410.12973, 2024. [20] J. Harlim, S. W. Jiang, and J. W. Peoples. Radial basis approximation of tensor fields on manifolds: from operator estimation to manifold learning. J. Mach. Learn. Res., 24(345):1–85, 2023. [21] F. Hecht. New development in freefem++. J. Numer. Math., 20(3-4):251–265, 2012. [22] S. Hu, Y. Jiao, D. Kong, and L.-L. Wang. Solving PDEs on surfaces of pipe geometries using new coordinate transformations and high-order compact finite differences. Journal of Scientific Computing, 107(1):9, 2026. [23] A. Iske. On the approximation order and numerical stability of local lagrange interpolation by polyhar-monic splines. In Modern Developments in Multivariate Approximation: 5th International Conference, Witten-Bommerholz (Germany), September 2002, pages 153–165. Springer, 2003. [24] S. W. Jiang and J. Harlim. Ghost point diffusion maps for solving elliptic pdes on manifolds with classical boundary conditions. Commun. Pure Appl. Math.,, 76(2):337–405, 2023. [25] S. W. Jiang, R. Li, Q. Yan, and J. Harlim. Generalized finite difference method on unknown manifolds. J. Comput. Phys., 502:112812, 2024. [26] A. M. Jones, P. A. Bosler, P. A. Kuberry, and G. B. Wright. Generalized moving least squares vs. radial basis function finite difference methods for approximating surface derivatives. Comput. Math. Appl., 147:1–13, 2023. [27] M.-C. Lai, Y.-H. Tseng, and H. Huang. Numerical simulation of moving contact lines with surfactant by immersed boundary method. Communications in Computational Physics, 8(4):735–757, 2010. [28] E. Lehto, V. Shankar, and G. B. Wright. A radial basis function (rbf) compact finite difference (fd) scheme for reaction-diffusion equations on surfaces. SIAM J. Sci. Comput., 39(5):A2129–A2151, 2017. [29] D. Levin. The approximation power of moving least-squares. Math. Comput., 67(224):1517–1531, 1998. [30] R. Li, H. Di, and S. W. Jiang. Two-step generalized rbf-generated finite difference method on manifolds. arXiv preprint arXiv:2511.18049, 2025. [31] R. Li, Q. Yan, and S. W. Jiang. Generalized moving least-squares for solving vector-valued pdes on unknown manifolds. arXiv e-prints, pages arXiv–2406, 2024. [32] Z. Li, Z. Shi, and J. Sun. Point integral method for solving poisson-type equations on manifolds from point clouds with convergence guarantees. Commun. Comput. Phys., 22(1):228–258, 2017. [33] J. Liang, R. Lai, T. W. Wong, and H. Zhao. Geometric understanding of point clouds using laplace-beltrami operator. In 2012 IEEE Conference on Computer Vision and Pattern Recognition, pages 214–221. IEEE, 2012. [34] J. Liang and H.-K. Zhao. Solving partial differential equations on point clouds. SIAM J. Sci. Comput. ,35(3):A1461–A1486, 2013. [35] J. Lin, Y. Zhao, D. Watson, and C. Chen. The radial basis function differential quadrature method with ghost points. Mathematics and Computers in Simulation, 173:105–114, 2020. [36] Y. Lipman. Stable moving least-squares. J. Approx. Theory, 161(1):371–384, 2009. [37] G. Liu, B. B. Kee, and L. Chun. A stabilized least-squares radial point collocation method (ls-rpcm) for adaptive analysis. Computer methods in applied mechanics and engineering, 195(37-40):4843–4861, 2006. [38] D. Mirzaei, R. Schaback, and M. Dehghan. On generalized moving least squares and diffuse derivatives. IMA J. Numer. Anal., 32(3):983–1000, 2012. [39] V. Mohammadi and M. Dehghan. A divergence-free generalized moving least squares approximation with its application. Applied Numerical Mathematics, 162:374–404, 2021. 20 A PREPRINT - M ARCH 31, 2026 [40] G. Monge. Application de l’analyse à la géométrie à l’usage de l’Ecole impériale polytechnique. Veuve Bernard, 1809. [41] M. E. Nielsen and B. Fornberg. High-order numerical method for solving elliptic partial differential equations on unfitted node sets. Computers & Mathematics with Applications, 193:103–116, 2025. [42] A. Petras, L. Ling, and S. J. Ruuth. An rbf-fd closest point method for solving pdes on surfaces. J. Comput. Phys., 370:43–57, 2018. [43] C. Piret. The orthogonal gradients method: A radial basis functions method for solving partial differential equations on arbitrary surfaces. J. Comput. Phys., 231(14):4662–4675, 2012. [44] A. N. Pressley. Elementary differential geometry. Springer Science & Business Media, 2010. [45] M. Rauter and Ž. Tukovi´ c. A finite area scheme for shallow granular flows on three-dimensional surfaces. Comput. & Fluids, 166:184–199, 2018. [46] V. Shankar, G. B. Wright, R. M. Kirby, and A. L. Fogelson. A radial basis function (rbf)-finite difference (fd) method for diffusion and reaction–diffusion equations on surfaces. J. Sci. Comput., 63(3):745–768, 2015. [47] S. B. Shaw. Radial basis function finite difference approximations of the Laplace-Beltrami operator, thesis. Boise State University Graduate College, 2019. [48] P. Suchde. A meshfree lagrangian method for flow on manifolds. Internat. J. Numer. Methods Fluids, 93(6):1871– 1894, 2021. [49] L. Tian, C. B. Macdonald, and S. J. Ruuth. Segmentation on surfaces with the closest point method. In 2009 16th IEEE International Conference on Image Processing (ICIP), pages 3009–3012. IEEE, 2009. [50] I. Tominec, E. Larsson, and A. Heryudono. A least squares radial basis function finite difference method with improved stability properties. SIAM Journal on Scientific Computing, 43(2):A1441–A1471, 2021. [51] H. Wendland. Scattered Data Approximation. Cambridge University Press, 2005. [52] G. B. Wright, A. Jones, and V. Shankar. Mgm: a meshfree geometric multilevel method for systems arising from elliptic equations on point cloud surfaces. SIAM J. Sci. Comput., 45(2):A312–A337, 2023. [53] Q. Yan, S. W. Jiang, and J. Harlim. Kernel-based methods for solving time-dependent advection-diffusion equations on manifolds. J. Sci. Comput., 94(1):5, 2023. [54] P. Yin, W. Ying, Y. Zhang, and H. Zhou. A kernel-free boundary integral method for elliptic interface problems on surfaces. arXiv preprint arXiv:2508.16061, 2025. 21
