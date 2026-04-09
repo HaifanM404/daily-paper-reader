@@ -1,0 +1,1593 @@
+Title: On the error of the Euler scheme for approximation of solutions of nonlinear DDEs under inexact information
+
+URL Source: https://arxiv.org/pdf/2604.01180v1
+
+Published Time: Thu, 02 Apr 2026 01:23:28 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+ON THE ERROR OF THE EULER SCHEME FOR APPROXIMATION OF SOLUTIONS OF NONLINEAR DDES UNDER INEXACT INFORMATION 
+
+PAWEŁ PRZYBYŁOWICZ AND MARTYNA WIA ¸ CEK 
+
+Abstract. We analyze the behavior of the Euler method for delay differential equations under nonstandard assumptions on the right-hand-side function f , when evaluations of f are corrupted by information noise. We consider a deterministic inexact-information model in which perturbations affect the numerical evaluation of the right-hand side and may propagate across successive delay intervals. We provide theoretical upper bounds on the Euler discretization error in two settings: first, under global Lipschitz assumptions, and second, under a local one-sided Lipschitz condition combined with local Hölder continuity. In the globally Lipschitz case we obtain stability with respect to perturbations and derive a global error estimate in terms of the time step h
+
+and the noise level δ. In the weaker regularity regime, we show that the interaction between the delay term and information noise leads to a more delicate error structure, including a hierarchy of exponents depending on the Hölder parameter of the delayed argument. This turned out to be different for DDEs, compared to ODEs. We also present numerical experiments illustrating the convergence behavior of the noisy Euler scheme and confirming the theoretical estimates. In particular, the experiments show how the accumulation of perturbations becomes more pronounced when the regularity in the delayed variable is weaker. 
+
+Key words: Euler algorithm, DDEs, exact/inexact information, informational noise, one-sided Lipschitz condition, local Hölder continuity 
+
+MSC 2010: 65L05, 65L70 
+
+Contents 
+
+1. Introduction 22. Inexact information model of computation 33. Analysis under the Global Lipschitz Condition 43.1. Problem formulation 43.2. Error of the Euler scheme 54. Analysis under a Local One-Sided Lipschitz and Local Hölder Condition 74.1. Problem formulation 74.2. Error of the Euler scheme 85. Numerical experiments 13 5.1. Test equations 13 5.2. Perturbed information model 14 5.3. Convergence experiment with respect to the step size 14 5.4. Interval-wise and cumulative supremum errors 14 5.5. Summary 14 6. Conclusion and future work 16 Funding 17 Appendix A. 17  
+
+> 1
+> arXiv:2604.01180v1 [math.NA] 1 Apr 2026 ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 2
+
+References 17 1. Introduction 
+
+In this paper, we study the approximation of solutions to delay differential equations (DDEs) with information noise using the Euler scheme. Let us consider the problem of approximating the solution z : [0 , +∞) → Rd of the multi-dimensional delay differential equation of the form 
+
+(
+
+z′(t) = f (t, z (t), z (t − τ )) , t ∈ [0 , (n + 1) τ ],z(t) = η, t ∈ [−τ, 0] , (1) with a constant time lag τ ∈ (0 , +∞). Here η ∈ Rd is the initial condition, n ∈ N is a (finite and fixed) horizon parameter , and the right-hand side function f : [0 , +∞) × Rd × Rd → Rd
+
+for a fixed d ∈ N satisfies the appropriate regularity conditions. In this work, we investigate the approximation error of the Euler scheme under two distinct assumptions on the right-hand side: first, a global Lipschitz condition; second, a local one-sided Lipschitz with Hölder regularity, which is a nonstandard assumption. Delay differential equations (DDEs) are a well-established class of functional differential equations used to model systems in which the present rate of change depends not only on the current state but also on past states. Classical monographs such as [3], [4] provide a comprehensive theory of existence, uniqueness, and numerical approximation under global Lipschitz assumptions. These conditions ensure good stability properties of numerical schemes, including the Euler method, but they are often too restrictive for nonlinear or application-driven models. In recent years, attention has shifted toward studying DDEs under weaker and more real-istic regularity assumptions. In particular, an approximation theory for the Euler method in the setting of locally one-sided Lipschitz and Hölder continuous f ’s has been developed in [1], where convergence and optimal-order error estimates were established for the noise-free case. Even more general Carathéodory-type right-hand sides, measurable in time and only contin-uous in the state variables, have been investigated in [5], where the existence of generalized solutions and stability under perturbations were analyzed. On the other hand, the literature on perturbed or inexact information for DDEs is still very limited. While stochastic delay differential equations (SDDEs) with random noise in the dynamics have been extensively studied (see, e.g., [6–8]), much less is known about deter-ministic information noise affecting the numerical evaluation of the right-hand side function. Such perturbations naturally arise from finite precision, rounding and discretization errors, or inexact preprocessing steps in the computational pipeline. To the best of our knowledge, a systematic error analysis of the Euler scheme for DDEs under deterministic information noise (especially in the weak regularity regimes considered in this paper) has not yet been developed. A closely related line of research has been developed for problems without delay, where the availability of only inexact (noisy) standard information about the data is a natural modeling paradigm in information-based complexity. In the context of initial value problems for ODEs, robust algorithms and optimal error bounds under noisy evaluations of the right-hand side were studied, among others, in [9]. More recent works analyze explicit/implicit 
+
+randomized Euler-type schemes for ODEs when only perturbed function values are accessible ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 3
+
+and investigate stability and optimality in such noise models, see, e.g., [10] as well as higher-order randomized Runge–Kutta constructions in [11]. In the SDE setting, inexact information models have been used to quantify how deterministic perturbations in the evaluation of the drift and diffusion coefficients, as well as perturbations of the driving Wiener process, affect strong approximation, in particular, optimal pointwise approximation and randomized Euler-type methods under noisy information were studied in [12], and further developments include randomized Euler algorithms for SDEs with disturbed information, see, e.g., [13]. Finally, related issues arise already at the level of numerical integration: approximation of stochastic integrals under analytic noise models (including explicit links to low-precision computation) was investigated in [14]. From the practical perspective, studying inexact information is motivated by the fact that modern simulation pipelines rarely evaluate f exactly. Perturbations may arise from finite-precision arithmetic, such as rounding and loss of significant digits, from implementations that use mixed or low numerical precision, for example to improve performance on GPUs or other accelerators, from approximate evaluations of transcendental functions, from sur-rogate or interpolatory approximations of coefficients, as well as from inexact preprocessing and data movement. A deterministic bounded-noise model offers a tractable way to cap-ture these effects and to understand the robustness of time-stepping schemes with respect to implementation-level inaccuracies. In DDEs this issue is further amplified by the delayed argument, as perturbations can propagate across consecutive delay intervals. The main contributions of the paper are as follows. (i) We extend the error analysis of the Euler scheme for nonlinear delay differential equa-tions to the setting of inexact information about the right-hand side. In particular, we derive stability estimates and global error bounds that quantify the dependence of the Euler error on the time step h, the noise level δ, and the regularity parameters of 
+
+f under both global Lipschitz and one-sided Lipschitz/Hölder assumptions. (ii) We show that under one-sided Lipschitz and Hölder conditions, the deterministic infor-mation noise may accumulate along the delay intervals, which leads to a characteristic hierarchy of error exponents in h and δ.(iii) We present numerical experiments that confirm the theoretical convergence rates and illustrate the effect of noise accumulation. The paper is organized as follows. Section 2 introduces the inexact information model and the noisy Euler scheme. Section 3 is devoted to the error analysis under global Lipschitz assumptions. Section 4 contains the corresponding analysis in the one-sided Lipschitz and locally Hölder continuous case. Section 5 reports results of numerical experiments. Section 6 collects concluding remarks and outlines possible directions for future research. An Appendix gathers auxiliary analytical results and discrete Gronwall-type inequalities used in the proofs. 2. Inexact information model of computation 
+
+For x, y ∈ Rd we take ⟨x, y ⟩ = Pdk=1 xkyk, ∥x∥ = ⟨x, x ⟩1/2.
+
+Assumption 1 (Noise condition) . The perturbed (noisy) model is given by 
+
+˜f (t, y, z ) = f (t, y, z ) + ˜δf (t, y, z ), (2) where ˜δf : [0 , +∞) × Rd × Rd → Rd is a Borel measurable function satisfying 
+
+∥˜δf (t, y, z )∥ ≤ δ(1 + ∥y∥)(1 + ∥z∥), δ ∈ [0 , 1] .ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 4
+
+The multiplicative form of the perturbation is natural in information-based error models. Namely, it allows bounded relative inaccuracy that scales with the size of the arguments and preserves the polynomial growth structure of the perturbed f .Having introduced the noise model, we now proceed to formulate the Euler approximation that incorporates such deterministic perturbations. Let N ∈ N be fixed, and define the discretization parameters as 
+
+h = τN , tjk = jτ + kh, k = 0 , 1, . . . , N, j = 0 , 1, . . . , n. 
+
+The initial condition is prescribed as 
+
+˜y−10 = ˜ y−11 = · · · = ˜ y−1 
+
+> N
+
+= ˜ η, ∥˜η − η∥ ≤ δ. 
+
+Then, for j = 0 , 1, . . . , n and k = 0 , 1, . . . , N − 1, the Euler scheme is defined recursively by 
+
+
+
+˜yj 
+
+> 0
+
+= ˜ yj−1 
+
+> N
+
+,
+
+˜yjk+1 = ˜ yjk + h ˜f
+
+
+
+tjk, ˜yjk, ˜yj−1
+
+> k
+
+
+
+.
+
+In what follows, we denote by {yjk} the Euler values computed with the exact right-hand side f , while {˜yjk} denote the Euler values computed with the perturbed right-hand side ˜f
+
+(inexact information). The sequence {yjk} is generated by the same recursion with f in place of ˜f and η in place of ˜η.For each j = 0 , . . . , n , let ljN and ljN,δ denote the piecewise-linear interpolants of {yjk}Nk=0 
+
+and {˜yjk}Nk=0 on [jτ, (j + 1) τ ]. We also define the global interpolants 
+
+lN (t) := ljN (t), lN,δ (t) := ljN,δ (t), t ∈ [jτ, (j + 1) τ ], j = 0 , . . . , n. 
+
+The objective of this paper is to analyse the accuracy of the Euler method applied to delay differential equations with inexact information on the right-hand side. In particular, we aim to derive upper bounds for the global approximation error 
+
+max  
+
+> 0≤j≤n
+
+max  
+
+> 0≤k≤N
+
+y jk − ˜y jk ,
+
+under various structural assumptions imposed on the right-hand side function f and 
+
+sup  
+
+> t∈[0 ,(n+1) τ]
+
+z(t) − lN,δ (t) .
+
+Each chapter considers a different set of assumptions on f , leading to corresponding error estimates and illustrating how these assumptions influence the behaviour of the Euler scheme. 3. Analysis under the Global Lipschitz Condition 
+
+3.1. Problem formulation. We assume that f in (1) satisfies (E1) f ∈ C([0 , +∞) × Rd × Rd; Rd),(E2) there exists L ≥ 0 such that for all t1, t 2 ∈ [0 , (n + 1) τ ] and y1, y 2, z 1, z 2 ∈ Rd,
+
+∥f (t1, y 1, z 1) − f (t2, y 2, z 2)∥ ≤ L |t1 − t2| + ∥y1 − y2∥ + ∥z1 − z2∥.
+
+The condition (E2) means that the function f satisfies the global Lipschitz condition with respect to all its variables with a constant L. Note that assumptions (E1)–(E2) guarantee the existence and uniqueness of the solution z = z(t) on the entire interval t ∈ [−τ, (n + 1) τ ]ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 5
+
+for problem (1) (see Appendix, Lemma 6, for an analogous well-posedness statement under assumptions (F1)–(F4)). Note that the right-hand side of equation (1) also satisfies a linear growth condition. 
+
+Fact 1. Let f : [0 , (n + 1) τ ] × Rd × Rd → Rd satisfy assumption (E2) . Then there exists a constant M ≥ 0 such that for all (t, y, z ) ∈ [0 , (n + 1) τ ] × Rd × Rd,
+
+∥f (t, y, z )∥ ≤ M (1 + ∥y∥)(1 + ∥z∥). (3) 
+
+Proof. From the global Lipschitz condition (E2) we have 
+
+∥f (t, y, z ) − f (0 , 0, 0) ∥ ≤ L |t| + ∥y∥ + ∥z∥ ≤ L max {1, (n + 1) τ } 1 + ∥y∥ + ∥z∥.
+
+Consequently, 
+
+∥f (t, y, z )∥ ≤ ∥ f (0 , 0, 0) ∥ + L max {1, (n + 1) τ } 1 + ∥y∥ + ∥z∥
+
+≤  ∥f (0 , 0, 0) ∥ + L max {1, (n + 1) τ }(1 + ∥y∥ + ∥z∥)
+
+≤ M (1 + ∥y∥)(1 + ∥z∥), (4) where we may take 
+
+M := ∥f (0 , 0, 0) ∥ + L max {1, (n + 1) τ }.
+
+□
+
+3.2. Error of the Euler scheme. Lemma 1. Let τ ∈ (0 , +∞), n ∈ N, η ∈ Rd, and let f satisfy assumptions (E1) –(E2) . There exist constants ˜C0, ˜C1, . . . , ˜Cn ∈ (0 , +∞), such that for all N ∈ N the following holds 
+
+max  
+
+> 0≤j≤n
+
+max  
+
+> 0≤k≤N
+
+∥˜yjk∥ ≤ max 
+
+> 0≤j≤n
+
+˜Cj . (5) 
+
+Proof. For j = 0 , the recursion reads 
+
+˜y0 
+
+> k+1
+
+= ˜ y0 
+
+> k
+
++ h ˜f  t0
+
+> k
+
+, ˜y0
+
+> k
+
+, ˜η , ˜y00 = ˜ η. 
+
+Since ∥˜η − η∥ ≤ δ ≤ 1, it follows that ∥˜η∥ ≤ 1 + ∥η∥. Using the growth estimate ∥ ˜f (t, y, z )∥ ≤ 
+
+(M + δ)(1 + ∥y∥)(1 + ∥z∥) we obtain 
+
+∥˜y0
+
+> k+1
+
+∥ ≤ ∥ ˜y0
+
+> k
+
+∥ + h(M + 1)(2 + ∥η∥)(1 + ∥˜y0
+
+> k
+
+∥) = (1 + hC 0)∥˜y0
+
+> k
+
+∥ + hC 0,
+
+where C0 := ( M + 1)(2 + ∥η∥). By the discrete Grönwall inequality, 
+
+∥˜y0
+
+> k
+
+∥ ≤ (1 + hC 0)k∥˜η∥ +  (1 + hC 0)k − 1 ≤ eτ C 0 ∥˜η∥ + ( eτ C 0 − 1) =: ˜C0.
+
+Assume now that for some j ≥ 0 we have max 0≤k≤N ∥˜yjk∥ ≤ ˜Cj . Then, for j + 1 we write 
+
+∥˜yj+1 
+
+> k+1
+
+∥ ≤ ∥ ˜yj+1  
+
+> k
+
+∥ + h(M + 1)(1 + ∥˜yj+1  
+
+> k
+
+∥)(1 + ∥˜yjk∥) ≤ (1 + hC j )∥˜yj+1  
+
+> k
+
+∥ + hC j ,
+
+where Cj := ( M + 1)(1 + ˜Cj ). Applying the discrete Grönwall inequality again gives 
+
+∥˜yj+1  
+
+> k
+
+∥ ≤ (1 + hC j )k∥˜yj+1 0 ∥ + ((1 + hC j )k − 1) ≤ eτ C j ˜Cj + ( eτ C j − 1) =: ˜Cj+1 .
+
+Hence max 0≤k≤N ∥˜yj+1  
+
+> k
+
+∥ ≤ ˜Cj+1 for all j, which completes the proof. □
+
+Lemma 2. Let τ ∈ (0 , +∞), n ∈ N, η ∈ Rd, δ ∈ [0 , 1] and let f satisfy assumptions 
+
+(E1) –(E2) . Set ejk := yjk − ˜yjk. Then there exist constants ¯K0, . . . , ¯Kn > 0, such that for all 
+
+N ∈ N the following holds 
+
+max  
+
+> 0≤j≤n
+
+max  
+
+> 0≤k≤N
+
+∥ejk∥ ≤ max 
+
+> 0≤j≤n
+
+¯Kj δ. (6) ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 6
+
+Proof. Define the errors ejk = yjk − ˜yjk. From the recursive relations for yjk and ˜yjk, we obtain 
+
+ejk+1 = ejk + h
+
+h
+
+f (tjk, y jk, y j−1 
+
+> k
+
+) − f (tjk, ˜yjk, ˜yj−1 
+
+> k
+
+) − ˜δf (tjk, ˜yjk, ˜yj−1 
+
+> k
+
+)
+
+i
+
+.
+
+Using the global Lipschitz property of f and the noise bound, one gets 
+
+∥ejk+1 ∥ ≤ (1 + hL )∥ejk∥ + hL ∥ej−1 
+
+> k
+
+∥ + hδ (1 + ∥˜yjk∥)(1 + ∥˜yj−1 
+
+> k
+
+∥).
+
+From Lemma 1 we have uniform bounds ∥˜yjk∥ ≤ ˜Cj , independent of N .For j = 0 , using e−1 
+
+> k
+
+= η − ˜η and ∥e−1 
+
+> k
+
+∥ ≤ δ, we get 
+
+∥e0
+
+> k+1
+
+∥ ≤ (1 + hL )∥e0
+
+> k
+
+∥ + hLδ + hδ (1 + ∥˜y0
+
+> k
+
+∥)(1 + ∥˜η∥).
+
+By Lemma 1, max 0≤k≤N ∥˜y0
+
+> k
+
+∥ ≤ ˜C0, and ∥˜η∥ ≤ 1 + ∥η∥, hence 
+
+∥e0
+
+> k+1
+
+∥ ≤ (1 + hL )∥e0
+
+> k
+
+∥ + hδ ˆK0, ˆK0 := L + (1 + ˜C0)(2 + ∥η∥).
+
+Applying the discrete Grönwall inequality yields 
+
+max  
+
+> 0≤k≤N
+
+∥e0
+
+> k
+
+∥ ≤ ¯K0δ
+
+for some ¯K0 > 0 independent of N .Assume inductively that for some j ≥ 0,
+
+max  
+
+> 0≤k≤N
+
+∥ejk∥ ≤ ¯Kj δ. 
+
+Then, for layer j + 1 ,
+
+∥ej+1 
+
+> k+1
+
+∥ ≤ (1 + hL )∥ej+1  
+
+> k
+
+∥ + hL ∥ejk∥ + hδ (1 + ∥˜yj+1  
+
+> k
+
+∥)(1 + ∥˜yjk∥).
+
+Using Lemma 1 and the induction hypothesis, 
+
+∥ej+1 
+
+> k+1
+
+∥ ≤ (1 + hL )∥ej+1  
+
+> k
+
+∥ + hδ ˆKj ,
+
+where ˆKj := L ¯Kj + (1 + ˜Cj+1 )(1 + ˜Cj ).
+
+Since ej+1 0 = ejN , we have ∥ej+1 0 ∥ ≤ ¯Kj δ. Applying the discrete Grönwall inequality (and in the case L = 0 interpreting eτ L −1 
+
+> L
+
+as its limit equal to τ ) yields 
+
+max  
+
+> 0≤k≤N
+
+∥ej+1  
+
+> k
+
+∥ ≤ 
+
+
+
+eτ L ¯Kj + eτ L − 1
+
+L ˆKj
+
+
+
+δ =: ¯Kj+1 δ. 
+
+Hence, by induction on j, inequality (6) follows. □
+
+Remark 1. It follows from the proofs of Lemma 2 and Lemma 1 that all constants ˜Cj , ¯Kj ,and ˆKj depend only on the model parameters τ , n, d, L, and η. Consequently, the stability estimate (6) holds uniformly with respect to the time-step size h = τ /N . In particular, the Euler scheme remains uniformly stable with respect to perturbations as N → ∞ . Combined with the deterministic discretization error estimates under assumptions (E1)–(E2), this yields convergence of the perturbed Euler approximations to the exact solution as h → 0 and δ → 0.
+
+Theorem 2. Let τ ∈ (0 , +∞), n ∈ N, η ∈ Rd, δ ∈ [0 , 1] , and let f satisfy assumptions 
+
+(E1) –(E2) . Then there exists a constant C > 0, independent of N , such that 
+
+sup  
+
+> t∈[0 ,(n+1) τ]
+
+∥z(t) − lN,δ (t)∥ ≤ C(h + δ). (7) 
+
+Here z denotes the exact solution of (1) , and lN,δ is the global piecewise-linear interpolant obtained by combining local interpolants of the noisy Euler iterates {˜yjk}Nk=0 on subintervals 
+
+[jτ, (j + 1) τ ], j = 0 , . . . , n .ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 7
+
+Proof. For each j = 0 , 1, . . . , n we introduce the noiseless Euler approximation {yjk}Nk=0 corre-sponding to the exact right-hand side f and the exact initial value η, and denote by l jN, 0 the piecewise linear interpolation of {yjk}Nk=0 on [jτ, (j + 1) τ ]. Then 
+
+z(t) − l jN,δ (t) =  z(t) − l jN, 0(t) +  l jN, 0(t) − l jN,δ (t), t ∈ [jτ, (j + 1) τ ].
+
+Under assumptions (E1)–(E2), the standard error analysis for the Euler method applied to delay differential equations yields a first-order convergence estimate on each subinterval 
+
+[jτ, (j +1) τ ]. More precisely, by Theorem 2.5 in [2] (applied to the present setting) there exists a constant C(1)  
+
+> j
+
+≥ 0, independent of N , such that 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+z(t) − l jN, 0(t) ≤ C(1)  
+
+> j
+
+h. (8) Next, we estimate the difference between the noiseless and noisy Euler approximations. Let 
+
+ejk := yjk − ˜yjk for k = 0 , 1, . . . , N and j = 0 , 1, . . . , n . By Lemma 2, there exist constants 
+
+¯K0, . . . , ¯Kn ≥ 0, such that 
+
+max  
+
+> 0≤k≤N
+
+∥ejk∥ ≤ ¯Kj δ, j = 0 , 1, . . . , n. (9) For any t ∈ [tjk, t jk+1 ] we can write 
+
+l jN, 0(t) = (1 − θ) yjk + θ y jk+1 , l jN,δ (t) = (1 − θ) ˜ yjk + θ ˜yjk+1 
+
+for some θ = θ(t) ∈ [0 , 1] , and hence 
+
+l jN, 0(t) − l jN,δ (t) = (1 − θ) ejk + θ e jk+1 .
+
+Therefore, 
+
+l jN, 0(t) − l jN,δ (t) ≤ (1 − θ)∥ejk∥ + θ∥ejk+1 ∥ ≤ max  
+
+> 0≤m≤N
+
+∥ejm∥,
+
+and by (9) we obtain 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+l jN, 0(t) − l jN,δ (t) ≤ ¯Kj δ. (10) Combining (8) and (10) with the triangle inequality yields 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+z(t) − l jN,δ (t) ≤ C(1)  
+
+> j
+
+h + ¯Kj δ ≤ Cj (h + δ),
+
+where we may take Cj := C(1)  
+
+> j
+
++ ¯Kj , j = 0 , 1, . . . , n . Taking the maximum over j = 0 , . . . , n 
+
+gives (7). □
+
+4. Analysis under a Local One-Sided Lipschitz and Local Hölder Condition 
+
+4.1. Problem formulation. Let the right-hand side f : [0 , +∞) × Rd × Rd → Rd in equa-tion (1) satisfy the following conditions: (F1) 
+
+f ∈ C [0 , +∞) × Rd × Rd; Rd.
+
+(F2) There exists a constant K > 0 such that for every (t, y, z ) ∈ [0 , +∞) × Rd × Rd
+
+∥f (t, y, z )∥ ≤ K (1 + ∥y∥) (1 + ∥z∥).
+
+(F3) There exists a constant H ∈ R such that for all (t, z ) ∈ [0 , +∞) × Rd and y1, y 2 ∈ Rd
+
+y1 − y2, f (t, y 1, z ) − f (t, y 2, z ) ≤ H (1 + ∥z∥) ∥y1 − y2∥2.ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 8
+
+(F4) There exist constants L > 0 and exponents α, β 1, β 2, γ ∈ (0 , 1] such that for all 
+
+t1, t 2 ∈ [0 , +∞) and y1, y 2, z 1, z 2 ∈ Rd
+
+∥f (t1, y 1, z 1) − f (t2, y 2, z 2)∥ ≤ L
+
+
+
+(1 + ∥y1∥ + ∥y2∥) (1 + ∥z1∥ + ∥z2∥) |t1 − t2|α
+
++ (1 + ∥z1∥ + ∥z2∥) ∥y1 − y2∥β1
+
++ (1 + ∥z1∥ + ∥z2∥) ∥y1 − y2∥β2
+
++ (1 + ∥y1∥ + ∥y2∥) ∥z1 − z2∥γ 
+
+.
+
+Assumption (F2) provides a global linear-growth bound for the right-hand side function f ,while the usual global Lipschitz requirement is replaced by the one-sided condition (F3). Condition (F4) is commonly referred to as a local Hölder condition. As noted in [2], these assumptions (especially (F3) and (F4)) are motivated by a real-life model describing the evolution of dislocation density. Under assumptions (F1)-(F4), problem (1) admits a unique solution z = z(t) on the whole interval (see Lemma 6). 
+
+Remark 2. If f satisfies assumptions (E1)–(E2), then it also satisfies (F1)–(F4) with α =
+
+β1 = β2 = γ = 1 . We treat these two settings separately because the stronger assump-tions (E1)–(E2) lead to sharper convergence rates for the Euler scheme. 4.2. Error of the Euler scheme. Lemma 3. Let τ ∈ (0 , +∞), n ∈ N, η ∈ Rd, δ ∈ [0 , 1] and let f satisfy assumptions (F1) –(F2) 
+
+Then there exist constants ˜C0, . . . , ˜Cn > 0 such that for all N ∈ N
+
+max  
+
+> 0≤j≤n
+
+max  
+
+> 0≤k≤N
+
+∥˜yjk∥ ≤ max 
+
+> 0≤j≤n
+
+˜Cj .
+
+Proof. For j = 0 , the recursion reads 
+
+˜y0 
+
+> k+1
+
+= ˜ y0 
+
+> k
+
++ h ˜f (t0
+
+> k
+
+, ˜y0
+
+> k
+
+, ˜η), ˜y00 = ˜ η, ∥˜η − η∥ ≤ δ ≤ 1.
+
+From (F2) and Assumption 1 we have 
+
+∥ ˜f (t, y, z )∥ = ∥f (t, y, z ) + ˜δf (t, y, z )∥ ≤ (K + δ)(1 + ∥y∥)(1 + ∥z∥).
+
+Hence, 
+
+∥˜y0
+
+> k+1
+
+∥ ≤ ∥ ˜y0
+
+> k
+
+∥ + h(K + δ)(1 + ∥˜y0
+
+> k
+
+∥)(1 + ∥˜η∥) ≤ (1 + hC 0)∥˜y0
+
+> k
+
+∥ + hC 0,
+
+where C0 := ( K + δ)(2 + ∥η∥). By the discrete Grönwall inequality, 
+
+∥˜y0
+
+> k
+
+∥ ≤ eτ C 0 ∥˜η∥ + ( eτ C 0 − 1) =: ˜C0.
+
+Assume now that for some j ≥ 0 we have max 0≤k≤N ∥˜yjk∥ ≤ ˜Cj . Then 
+
+∥˜y j+1  
+
+> k+1
+
+∥ ≤ ∥ ˜y j+1  
+
+> k
+
+∥ + h(K + δ)(1 + ∥˜y j+1  
+
+> k
+
+∥)(1 + ∥˜y jk ∥) ≤ (1 + hC j )∥˜y j+1  
+
+> k
+
+∥ + hC j ,
+
+where Cj := ( K + δ)(1 + ˜Cj ). The discrete Grönwall inequality yields again 
+
+∥˜y j+1  
+
+> k
+
+∥ ≤ eτ C j ˜Cj + ( eτ C j − 1) =: ˜Cj+1 .
+
+Induction in j completes the proof and gives 
+
+max  
+
+> 0≤j≤n
+
+max  
+
+> 0≤k≤N
+
+∥˜yjk∥ ≤ max 
+
+> 0≤j≤n
+
+˜Cj ,
+
+□ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 9
+
+Lemma 4. Let τ ∈ (0 , +∞), n ∈ N, η ∈ Rd and δ ∈ (0 , 1] . Let f satisfy assumptions 
+
+(F1) –(F4) and set ejk := yjk − ˜yjk.(A) If γ = 1 , there exist constants C0, C 1, . . . , C n > 0 such that for all N ≥ 2⌈τ ⌉ and each 
+
+j = 0 , 1, . . . , n ,
+
+max  
+
+> 0≤k≤N
+
+∥e jk ∥ ≤ Cj
+
+ h1/2 + δ.
+
+(B) If γ ∈ (0 , 1) , then there exist constants C0, C 1, . . . , C n > 0 such that for all N ≥ 2⌈τ ⌉
+
+max  
+
+> 0≤k≤N
+
+∥e 0 
+
+> k
+
+∥ ≤ C0
+
+ h1/2 + δγ ,
+
+and for each j = 0 , 1, . . . , n − 1,
+
+max  
+
+> 0≤k≤N
+
+∥e j+1  
+
+> k
+
+∥ ≤ Cj+1 
+
+> j+1
+
+X
+
+> ℓ=0
+
+h γℓ 
+
+> 2
+
++
+
+> j+2
+
+X
+
+> ℓ=0
+
+δγℓ
+
+!
+
+.
+
+Proof. Fix N ∈ N and set h = τ /N . Assume N ≥ 2⌈τ ⌉ so that h ≤ 1/2. For k = 0 , 1, . . . , N −1
+
+and j = 0 , 1, . . . , n define 
+
+U jk = ( tjk, y jk, y j−1 
+
+> k
+
+), ˜U jk = ( tjk, ˜yjk, ˜yj−1 
+
+> k
+
+).
+
+Subtracting the Euler recursions and using ˜f = f + ˜δf we obtain 
+
+ejk+1 = ejk + h
+
+
+
+f (U jk ) − f ( ˜U jk )
+
+
+
+− h ˜δf ( ˜U jk ).
+
+Add and subtract f (tjk, ˜yjk, y j−1 
+
+> k
+
+) and introduce 
+
+Rjk := f (tjk, y jk, y j−1 
+
+> k
+
+) − f (tjk, ˜yjk, y j−1 
+
+> k
+
+),Ljk := f (tjk, ˜yjk, y j−1 
+
+> k
+
+) − f (tjk, ˜yjk, ˜yj−1 
+
+> k
+
+) − ˜δf ( ˜U jk ).
+
+Then 
+
+ejk+1 − h L jk = ejk + h R jk. (11) and 
+
+∥ejk+1 − hL jk∥2 = ∥ejk + hR jk∥2.
+
+Hence 
+
+∥ejk+1 ∥2 − 2h⟨ejk+1 , L jk⟩ ≤ ∥ ejk∥2 + 2 h⟨ejk, R jk⟩ + h2∥Rjk∥2.
+
+Using Cauchy–Schwarz and Young’s inequalities we have 
+
+2h⟨ejk+1 , L jk⟩ ≤ 2h|⟨ ejk+1 , L jk⟩| ≤ 2h∥ejk+1 ∥ ∥ Ljk∥ ≤ h∥ejk+1 ∥2 + h∥Ljk∥2.
+
+Hence, 
+
+(1 − h)∥ejk+1 ∥2 ≤ ∥ ejk∥2 + 2 h⟨ejk, R jk⟩ + h2∥Rjk∥2 + h∥Ljk∥2.
+
+Since h ≤ 1/2, we have 
+
+(1 − h)−1 ≤ 1 + 2 h. 
+
+Therefore, 
+
+∥ejk+1 ∥2 ≤ (1 + 2 h)
+
+
+
+∥ejk∥2 + 2 h⟨ejk, R jk⟩ + h2∥Rjk∥2 + h∥Ljk∥2
+
+. (12) We use the boundedness of both Euler trajectories on each layer. More precisely, Lemma 3 yields max j,k ∥˜yjk∥ ≤ max 0≤j≤n ˜Cj . The same argument with δ = 0 gives analogous bounds for {yjk}. Therefore, all factors of the form (1 + ∥yjk∥ + ∥˜yjk∥) can be absorbed into constants depending only on τ, n, d and the parameters in (F1)–(F4). 
+
+(i) The one-sided Lipschitz term. By (F3), with z = yj−1 
+
+> k
+
+fixed, 
+
+⟨ejk, R jk⟩ = yjk − ˜yjk, f (tjk, y jk, y j−1 
+
+> k
+
+) − f (tjk, ˜yjk, y j−1 
+
+> k
+
+) ≤ C ∥ejk∥2,ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 10 
+
+hence 2h⟨ejk, R jk⟩ ≤ Ch ∥ejk∥2.
+
+(ii) The Rjk-term. Using (F4) with t1 = t2 = tjk and z1 = z2 = yj−1 
+
+> k
+
+, we obtain 
+
+∥Rjk∥ ≤ C ∥ejk∥β1 + ∥ejk∥β2  ≤ C(1 + ∥ejk∥),
+
+where we used xϱ 
+
+> 1
+
+≤ 1 + x for x ≥ 0 and ϱ1 ∈ (0 , 1] . Thus, 
+
+h2∥Rjk∥2 ≤ Ch 2 + Ch 2∥ejk∥2.
+
+(iii) The Ljk-term (delay Hölder + noise). By the noise assumption and boundedness of ˜y,
+
+∥˜δf ( ˜U jk )∥ ≤ δ(1 + ∥˜yjk∥)(1 + ∥˜yj−1 
+
+> k
+
+∥) ≤ Cδ. 
+
+Moreover, by (F4) in the z-variable (exponent γ), 
+
+∥f (tjk, ˜yjk, y j−1 
+
+> k
+
+) − f (tjk, ˜yjk, ˜yj−1 
+
+> k
+
+)∥ ≤ C∥yj−1 
+
+> k
+
+− ˜yj−1 
+
+> k
+
+∥γ = C∥ej−1 
+
+> k
+
+∥γ .
+
+Hence, 
+
+∥Ljk∥ ≤ C δ + ∥ej−1 
+
+> k
+
+∥γ , ∥Ljk∥2 ≤ C δ2 + ∥ej−1 
+
+> k
+
+∥2γ .
+
+Inserting the above bounds into (12) and expanding the factor (1 + 2 h), we obtain terms of the form 
+
+(1 + 2 h) 1 + Ch + Ch 2∥ejk∥2 + C(1 + 2 h)h2 + C(1 + 2 h)h δ2 + ∥ej−1 
+
+> k
+
+∥2γ .
+
+Since h ≤ 1/2, we have h2 ≤ h, and therefore 
+
+(1 + 2 h) 1 + Ch + Ch 2 ≤ 1 + aj h
+
+for a suitable constant aj > 0 independent of N . Hence, for each fixed j,
+
+∥ejk+1 ∥2 ≤ (1 + aj h)∥ejk∥2 + bj h2 + cj h δ2 + ∥ej−1 
+
+> k
+
+∥2γ , k = 0 , . . . , N − 1, (13) with constants aj , b j , c j ≥ 0 independent of N .Let Ej := max 0≤k≤N ∥ejk∥. Since ej 
+
+> 0
+
+= ej−1 
+
+> N
+
+, we have ∥ej
+
+> 0
+
+∥ ≤ Ej−1. Applying the discrete Grönwall inequality (Lemma 5) to (13) gives 
+
+E2 
+
+> j
+
+≤ Cj
+
+
+
+E2 
+
+> j−1
+
++ h + δ2 + E2γj−1
+
+
+
+, j = 0 , 1, . . . , n, (14) with constants Cj independent of N . Finally, on the history layer j = −1 we have e−1 
+
+> k
+
+= η − ˜η,hence E−1 ≤ δ.
+
+Case γ = 1 . Then (14) becomes E2 
+
+> j
+
+≤ Cj (E2 
+
+> j−1
+
++ h + δ2). Starting from E−1 ≤ δ we obtain inductively E2 
+
+> j
+
+≤ ˜Cj (h + δ2), hence 
+
+Ej ≤ Cj
+
+ h1/2 + δ, j = 0 , 1, . . . , n. 
+
+Case γ ∈ (0 , 1) . From (14) we get E20 ≤ C(h + δ2γ ), hence E0 ≤ C(h1/2 + δγ ). Next, taking square roots in (14) yields the convenient form 
+
+Ej ≤ Cj
+
+
+
+Ej−1 + h1/2 + δ + Eγj−1
+
+
+
+.
+
+Using subadditivity (x + y)γ ≤ xγ + yγ for γ ∈ (0 , 1) (and iterating it over finite sums), one checks by induction that the exponents propagate, which leads to 
+
+Ej+1 ≤ Cj+1 
+
+> j+1
+
+X
+
+> ℓ=0
+
+h γℓ 
+
+> 2
+
++
+
+> j+2
+
+X
+
+> ℓ=0
+
+δγℓ
+
+!
+
+, j = 0 , 1, . . . , n − 1.
+
+This completes the proof. □ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 11 
+
+Remark 3. For δ = 0 , we have ˜f = f and ˜η = η, hence the noisy and noiseless Euler schemes coincide and ejk ≡ 0 for all j, k .
+
+Theorem 3. Let τ ∈ (0 , +∞), n ∈ N, η ∈ Rd and δ ∈ [0 , 1] . Let f satisfy assumptions 
+
+(F1) –(F4) . Then there exist constants ¯C0, ¯C1, . . . , ¯Cn ≥ 0 such that for all N ≥ 2⌈τ ⌉ the following holds: (A) If γ = 1 , then 
+
+sup  
+
+> t∈[0 ,τ ]
+
+ϕ0(t) − l0
+
+> N,δ
+
+(t) ≤ ¯C0
+
+ hα + hβ1 + hβ2 + h1/2 + δ, (15) 
+
+and for each j = 1 , 2, . . . , n ,
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t) − ljN,δ (t) ≤ ¯Cj
+
+ h1/2 + hα + hβ1 + hβ2 + δ. (16) 
+
+(B) If γ ∈ (0 , 1) , then 
+
+sup  
+
+> t∈[0 ,τ ]
+
+ϕ0(t) − l0
+
+> N,δ
+
+(t) ≤ ¯C0
+
+ hα∧γ + hβ1 + hβ2 + h1/2 + δγ , (17) 
+
+and for each j = 1 , 2, . . . , n ,
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t) − ljN,δ (t) ≤ ¯Cj
+
+> j
+
+X
+
+> ℓ=1
+
+ h γℓ 
+
+> 2
+
++ hγℓ(α∧γ) + hβ1γℓ
+
++ hβ2γℓ  +
+
+> j+2
+
+X
+
+> ℓ=0
+
+δγℓ
+
+!
+
+. (18) 
+
+where ϕj denotes the solution z = z(t) for t ∈ [jτ, (j+1) τ ] and ljN,δ denotes the piecewise-linear interpolation of the noisy Euler iterates. 
+
+Remark 4. In particular, for γ = 1 the noise does not accumulate over the subintervals and the global error of the noisy Euler scheme is of order O h1/2 + hα + hβ1 + hβ2 + δ on each interval [jτ, (j + 1) τ ].
+
+Proof. Fix n ∈ N0 and N ∈ N. For each j = 0 , 1, . . . , n let {yjk}Nk=0 denote the Euler iterates corresponding to the exact right-hand side f (without noise) and the exact initial value η, and let ljN be their piecewise linear interpolation on [jτ, (j +1) τ ]. The noisy iterates are denoted by 
+
+{˜yjk}Nk=0 , and ljN,δ is the corresponding interpolation. Moreover, we write ϕj for the restriction of the exact solution z of (1) to [jτ, (j + 1) τ ].For t ∈ [jτ, (j + 1) τ ] we decompose 
+
+ϕj (t) − ljN,δ (t) =  ϕj (t) − ljN (t) +  ljN (t) − ljN,δ (t).
+
+Deterministic Euler error (noiseless case). Under assumptions (F1)–(F4), the error analysis of the Euler scheme for DDEs with one-sided Lipschitz condition and local Hölder regularity (see [1, Theorems 3.2–3.3]) yields the following bounds for the scheme based on the exact right-hand side f :(D1) If γ = 1 , then there exist constants Cdet 0 , . . . , C det  
+
+> n
+
+≥ 0 such that 
+
+sup  
+
+> t∈[0 ,τ ]
+
+ϕ0(t) − l0 
+
+> N
+
+(t) ≤ Cdet 0
+
+ hα + hβ1 + hβ2 + h1/2, (19) 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t) − ljN (t) ≤ Cdet 
+
+> j
+
+ h1/2 + hα + hβ1 + hβ2 , j = 1 , . . . , n. (20) (D2) If γ ∈ (0 , 1) , then there exist constants Cdet 0 , . . . , C det  
+
+> n
+
+≥ 0 such that 
+
+sup  
+
+> t∈[0 ,τ ]
+
+ϕ0(t) − l0 
+
+> N
+
+(t) ≤ Cdet 0
+
+ hα∧γ + hβ1 + hβ2 + h1/2, (21) ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 12 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t) − ljN (t) ≤ Cdet 
+
+> jj
+
+X
+
+> ℓ=1
+
+ h γℓ 
+
+> 2
+
++ hγℓ(α∧γ) + hβ1γℓ
+
++ hβ2γℓ , j = 1 , . . . , n. (22) These estimates correspond to the case δ = 0 (exact information model). 
+
+Error between noiseless and noisy Euler schemes. Set ejk := yjk − ˜yjk for k = 0 , . . . , N and 
+
+j = 0 , . . . , n . By Lemma 3, the noisy terms are uniformly bounded in j, k , and using (F3), (F4) together with Assumption 1 one obtains (cf. Lemma 4) the following grid–error bounds: (E1) If γ = 1 , then there exist constants Ce 
+
+> 0
+
+, . . . , C en > 0 such that 
+
+max  
+
+> 0≤k≤N
+
+∥e jk ∥ ≤ Cej
+
+ h1/2 + δ, j = 0 , 1, . . . , n. (23) (E2) If γ ∈ (0 , 1) , then there exist constants Ce 
+
+> 0
+
+, . . . , C en > 0 such that 
+
+max  
+
+> 0≤k≤N
+
+∥e 0 
+
+> k
+
+∥ ≤ Ce
+
+> 0
+
+ h1/2 + δγ , (24) 
+
+max  
+
+> 0≤k≤N
+
+∥e jk ∥ ≤ Cej
+
+> j
+
+X
+
+> ℓ=0
+
+h γℓ 
+
+> 2
+
++
+
+> j+1
+
+X
+
+> ℓ=0
+
+δγℓ
+
+!
+
+, j = 1 , . . . , n. (25) For fixed j and t ∈ [tjk, t jk+1 ] we can write 
+
+ljN (t) = (1 − θ) yjk + θ y jk+1 , ljN,δ (t) = (1 − θ) ˜ yjk + θ ˜yjk+1 ,
+
+for some θ = θ(t) ∈ [0 , 1] . Hence 
+
+ljN (t) − ljN,δ (t) = (1 − θ) ejk + θ e jk+1 ,
+
+and therefore 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ljN (t) − ljN,δ (t) ≤ max  
+
+> 0≤k≤N
+
+∥ejk∥. (26) 
+
+Combination of estimates. Using the triangle inequality we obtain 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t) − ljN,δ (t) ≤ sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t) − ljN (t) + sup  
+
+> t∈[jτ, (j+1) τ]
+
+ljN (t) − ljN,δ (t) .
+
+Case γ = 1 . For j = 0 , combining (19), (23) and (26) yields 
+
+sup  
+
+> t∈[0 ,τ ]
+
+ϕ0(t)−l0
+
+> N,δ
+
+(t) ≤ Cdet 0
+
+ hα+hβ1 +hβ2 +h1/2+Ce
+
+> 0
+
+ h1/2+δ ≤ ¯C0
+
+ hα+hβ1 +hβ2 +h1/2+δ.
+
+For j ≥ 1, using (20), (23) and (26) we obtain 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t)−ljN,δ (t) ≤ Cdet 
+
+> j
+
+ h1/2+hα+hβ1 +hβ2 +Cej
+
+ h1/2+δ ≤ ¯Cj
+
+ h1/2+hα+hβ1 +hβ2 +δ,
+
+which proves (15)–(16). 
+
+Case γ ∈ (0 , 1) . For j = 0 , we combine (21), (24) and (26) to obtain 
+
+sup  
+
+> t∈[0 ,τ ]
+
+ϕ0(t)−l0
+
+> N,δ
+
+(t) ≤ Cdet 0
+
+ hα∧γ +hβ1 +hβ2 +h1/2+Ce
+
+> 0
+
+ h1/2+δγ  ≤ ¯C0
+
+ hα∧γ +hβ1 +hβ2 +h1/2+δγ ,
+
+which gives (17). For j ≥ 1, by (22), (25) and (26), 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t)−ljN,δ (t) ≤ Cdet 
+
+> jj
+
+X
+
+> ℓ=1
+
+ h γℓ 
+
+> 2
+
++hγℓ(α∧γ)+hβ1γℓ
+
++hβ2γℓ +Cej
+
+> j
+
+X
+
+> ℓ=0
+
+h γℓ 
+
+> 2
+
++
+
+> j+1
+
+X
+
+> ℓ=0
+
+δγℓ
+
+!
+
+.ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 13 
+
+Since the sums in the estimate for max k ∥ejk∥ start from ℓ = 0 while the deterministic con-tributions start from ℓ = 1 , we can absorb all terms into a single constant ¯Cj and slightly extend the indices in the δ–sum, obtaining 
+
+sup  
+
+> t∈[jτ, (j+1) τ]
+
+ϕj (t) − ljN,δ (t) ≤ ¯Cj
+
+> j
+
+X
+
+> ℓ=1
+
+ h γℓ 
+
+> 2
+
++ hγℓ(α∧γ) + hβ1γℓ
+
++ hβ2γℓ  +
+
+> j+2
+
+X
+
+> ℓ=0
+
+δγℓ
+
+!
+
+,
+
+which is precisely (18). This completes the proof. □
+
+5. Numerical experiments 
+
+We focus on two aspects: convergence with respect to the stepsize h and error propagation across successive delay intervals. Computations are carried out for multiple noise levels δ and two values of the delay exponent γ ∈ { 0.225 , 1.0}.5.1. Test equations. We consider four scalar delay differential equations of the form 
+
+z′(t) = f (t, z (t), z (t − τ )) , t ≥ 0,
+
+with constant delay τ > 0 and constant history z(t) ≡ η for t ∈ [−τ, 0] . In all experiments we use 
+
+η = z0 = 0 .05854 .
+
+The right-hand sides f1, . . . , f 4 are defined as follows (for (t, y, z ) ∈ [0 , ∞) × R × R). Example 1 (metal-type drift with sgn( y)). We set 
+
+f1(t, y, z ) = A − B sgn( y) |y| − C sgn( y) |y|ϱ1 |z|γ + D y |z|γ ,
+
+with parameters 
+
+A = 1 .7137 , B = 0 .7769 , C = 0 .5895 , D = −0.82615 , ϱ1 = 0 .973 ,
+
+and γ ∈ { 0.225 , 1.0}.Example 2 (one-sided power nonlinearity in y and Hölder term in z). We define 
+
+f2(t, y, z ) = sin( t) + c |z|γ − a y − (1 + |z|)  max {y, 0}β ,
+
+with parameters 
+
+β = 0 .7, a = 0 .2, c = 2 .0, γ ∈ { 0.225 , 1.0}.
+
+Example 3 (symmetric power in y and Hölder term in z). Here 
+
+f3(t, y, z ) = sin( t) + c sgn( z) |z|γ − a y − (1 + |z|) sgn( y) |y|β ,
+
+with the same parameters as in Example 2: 
+
+β = 0 .7, a = 0 .2, c = 2 .0, γ ∈ { 0.225 , 1.0}.
+
+Example 4 (modified oscillatory delay equation). Finally, we consider 
+
+f4(t, y, z ) = 3 sgn( z) |z|γ sin( λt ),
+
+with 
+
+λ = 1 .0, γ ∈ { 0.225 , 1.0}.
+
+In all four examples fi satisfies assumptions (F1)–(F4) and is not globally Lipschitz in the delayed argument when γ ∈ (0 , 1) .ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 14 
+
+5.2. Perturbed information model. In all noisy experiments we work with the perturbed right-hand side 
+
+˜fδ(t, y, z ) = f (t, y, z ) + ˜δf (t, y, z ),
+
+where the perturbation is given by 
+
+˜δf (t, y, z ) = δ U (−1, 1)  1 + |y| + |z|,δ ∈ [0 , 1] is the noise level and U (−1, 1) denotes a random variable uniformly distributed on the interval [−1, 1] . Independent samples of U (−1, 1) are used at each time step and for each trajectory. We consider the noise levels 
+
+δ ∈ { 0.0, 0.01 , 0.05 , 0.1, 0.2, 0.5, 0.75 , 1.0}.
+
+Although the perturbation is random in simulations, it satisfies the deterministic noise bound from Assumption 1 pathwise, since |U (−1, 1) | ≤ 1 and 
+
+1 + |y| + |z| ≤ (1 + |y|)(1 + |z|).
+
+Hence the theoretical bounds apply to each realization. 5.3. Convergence experiment with respect to the step size. We set τ = 20 , n = 9 ,and T = ( n + 1) τ . For 
+
+N ∈ {⌊ 100 · 1.3i⌋ : i = 0 , . . . , 12 }, h = τ /N, 
+
+we compute Euler trajectories and a reference trajectory on a refined grid Nref = 50 N (with 
+
+δ = 0 ), then sample the reference back to the coarse grid. For each (f, γ, δ, N ), we generate 
+
+50 noisy trajectories and record the interval-wise and cumulative supremum errors relative to the reference. The convergence plots in Fig. 1 show the expected transition between a discretization-dominated regime and a noise-dominated regime. For small δ, errors decrease with h; for larger δ, a plateau appears. The plateau is reached earlier and at a higher level when γ < 1,consistently with the theoretical bounds. 5.4. Interval-wise and cumulative supremum errors. To track error propagation across delay intervals, for j = 0 , . . . , n we define 
+
+Eloc  
+
+> j
+
+:= sup  
+
+> t∈[jτ, (j+1) τ]
+
+|yδh(t) − yref (t)|,Ecum  
+
+> j
+
+:= sup  
+
+> t∈[0 ,(j+1) τ]
+
+|yδh(t) − yref (t)|.
+
+Here Eloc  
+
+> j
+
+measures the local error on the j-th interval, while Ecum  
+
+> j
+
+measures accumulated error up to time (j + 1) τ . By definition, {Ecum  
+
+> j
+
+} is nondecreasing. The cumulative-supremum plots in Fig. 2 show systematic growth with δ. For γ = 1 , growth across intervals is milder. For γ < 1, accumulation is stronger, and reducing h becomes less effective over long horizons. 5.5. Summary. The experiments support the theoretical picture. The method is stable under small perturbations, but the long-time effect of information noise depends strongly on γ. In particular, the transition from γ = 1 to γ < 1 amplifies cumulative error over successive delay intervals. ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 15 
+
+(a) f1, γ = 1 .0 (b) f1, γ = 0 .225 
+
+(c) f2, γ = 1 .0 (d) f2, γ = 0 .225 
+
+(e) f3, γ = 1 .0 (f) f3, γ = 0 .225 
+
+(g) f4, γ = 1 .0 (h) f4, γ = 0 .225 
+
+Figure 1. Empirical convergence plots for the four test equations f1, f 2, f 3, f 4
+
+and two values of γ.ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 16 
+
+(a) f1, γ = 1 .0 (b) f1, γ = 0 .225 
+
+(c) f2, γ = 1 .0 (d) f2, γ = 0 .225 
+
+(e) f3, γ = 1 .0 (f) f3, γ = 0 .225 
+
+(g) f4, γ = 1 .0 (h) f4, γ = 0 .225 
+
+Figure 2. Cumulative supremum errors for the four test equations 
+
+f1, f 2, f 3, f 4 and two values of γ.6. Conclusion and future work 
+
+This paper establishes upper error bounds for Euler-type approximations of nonlinear de-lay differential equations under inexact information, covering both globally Lipschitz and non-globally Lipschitz regimes. Numerical experiments corroborate the predicted convergence ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 17 
+
+rates. Future work will focus on deriving matching lower bounds (complexity lower limits) to quantify the sharpness of these rates, and on extending the analysis to adaptive methods and broader classes of perturbed-data problems. 
+
+Funding 
+
+Funding not applicable. 
+
+Appendix A. 
+
+Lemma 5 (Grönwall’s Lemma - discrete version) . Let A, B ≥ 0. If the sequence {ξn}+∞ 
+
+> n=0
+
+⊂ R
+
+satisfies the inequality for every n ∈ N0
+
+|ξn+1 | ≤ A|ξn| + B, 
+
+then for every n ∈ N we have 
+
+|ξn| ≤ An|ξ0| + Cn,
+
+where 
+
+Cn =
+
+
+
+An − 1
+
+A − 1 B, if A̸ = 1 ,nB, if A = 1 .
+
+Lemma 6. ([1]) Let η ∈ Rd and let f satisfy (F1)–(F4) . Moreover, fix τ ∈ (0 , +∞) and 
+
+n ∈ Z+ ∪ { 0}. Then the (1) has a unique solution 
+
+z ∈ C1([0 , (n + 1) τ ]; Rd). (27) 
+
+Moreover, then there exist K0, K 1, . . . , K n ≥ 0 such that for j = 0 , 1, . . . , n 
+
+sup  
+
+> jτ ≤t≤(j+1) τ
+
+∥ϕj (t)∥ ≤ Kj , (28) 
+
+and, for all t, s ∈ [jτ, (j + 1) τ ]
+
+∥ϕj (t) − ϕj (s)∥ ≤ ¯Kj |t − s|, (29) 
+
+with ¯Kj = K(1 + Kj−1)(1 + Kj ), where K−1 := ∥η∥.
+
+References 
+
+[1] N. Czyżewska, P. M. Morkisz, and P. Przybyłowicz, Approximation of solutions of DDEs under nonstan-dard assumptions via Euler scheme , Numerical Algorithms 91 (4) (2022), 1829–1854. [2] N. Jażdżewska, Approximation of solutions of nonlinear ordinary and delay differential equa-tions under nonstandard assumptions , Ph.D. thesis (in Polish), Faculty of Applied Math-ematics, AGH University of Krakow, 2025. https://repo.agh.edu.pl/entities/publication/ 850d6451-176a-4145-888d-9e9de611008e 
+
+[3] A. Bellen and M. Zennaro, Numerical methods for delay differential equations , Oxford University Press, New York, 2003. [4] J. K. Hale and S. M. Verduyn Lunel, Introduction to Functional Differential Equations , Applied Mathe-matical Sciences, Vol. 99, Springer, New York, 1993. [5] F. V. Difonzo, P. Przybyłowicz, and Y. Wu, Existence, uniqueness and approximation of solutions to Carathéodory delay differential equations , Journal of Computational and Applied Mathematics 436 (2024), 115411. [6] P. Przybyłowicz, Y. Wu, and X. Xie, On approximation of solutions of stochastic delay differential equa-tions via randomized Euler scheme , Applied Numerical Mathematics 197 (2024), 143–163. [7] E. Buckwar, Introduction to the numerical analysis of stochastic delay differential equations , Journal of Computational and Applied Mathematics 125 (2000), 297–307. [8] C. Kumar and S. Sabanis, On tamed Euler approximations of stochastic differential equations with dis-tributed delays , Stochastic Processes and their Applications 130 (2020), 1004–1042. ON THE ERROR OF THE EULER SCHEME FOR DDES UNDER INEXACT INFORMATION 18 
+
+[9] B. Kacewicz and P. Przybyłowicz, On the optimal robust solution of IVPs with noisy information , Nu-merical Algorithms 71 (2016), 505–518. https://doi.org/10.1007/s11075-015-0006-6 
+
+[10] T. Bochacik and P. Przybyłowicz, On the randomized Euler schemes for ODEs under inexact information ,
+
+Numerical Algorithms 91 (3) (2022), 1205–1229. https://doi.org/10.1007/s11075-022-01299-7 
+
+[11] T. Bochacik, M. Goćwin, P. M. Morkisz, and P. Przybyłowicz, Randomized Runge–Kutta method — Stability and convergence under inexact information , Journal of Complexity 65 (2021), 101554. https: //doi.org/10.1016/j.jco.2021.101554 
+
+[12] P. M. Morkisz and P. Przybyłowicz, Optimal pointwise approximation of SDEs from inexact information ,
+
+Journal of Computational and Applied Mathematics 324 (2017), 85–100. https://doi.org/10.1016/j. cam.2017.04.023 
+
+[13] M. Baranek, A. Kałuża, P. M. Morkisz, P. Przybyłowicz, and M. Sobieraj, On the randomized Euler algorithm under inexact information , arXiv:2307.04718, 2023. [14] A. Kałuża, P. M. Morkisz, and P. Przybyłowicz, Optimal approximation of stochastic integrals in analytic noise model , Applied Mathematics and Computation 356 (2019), 74–91. https://doi.org/10.1016/j. amc.2019.03.022 
+
+AGH University of Krakow, Faculty of Applied Mathematics, Al. A. Mickiewicza 30, 30-059 Kraków, Poland 
+
+Email address : pprzybyl@agh.edu.pl 
+
+AGH University of Krakow, Faculty of Applied Mathematics, Al. A. Mickiewicza 30, 30-059 Kraków, Poland 
+
+Email address : martynawiacek@agh.edu.pl, corresponding author

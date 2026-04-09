@@ -1,0 +1,632 @@
+Title: Physics-Informed Neural Optimal Control for Precision Immobilization Technique in Emergency Scenarios
+
+URL Source: https://arxiv.org/pdf/2604.05758v1
+
+Published Time: Wed, 08 Apr 2026 01:08:42 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+> IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 1
+
+# Physics-Informed Neural Optimal Control for Precision Immobilization Technique in Emergency Scenarios 
+
+Yangye Jiang, Jiachen Wang, Daofei Li 
+
+Abstract —Precision Immobilization Technique (PIT) is a po-tentially effective intervention maneuver for emergency out-of-control vehicle, but its automation is challenged by highly nonlinear collision dynamics, strict safety constraints, and real-time computation requirements. This work presents a PIT-oriented neural optimal-control framework built around Pi-coPINN (Planning-Informed Compact Physics-Informed Neu-ral Network), a compact physics-informed surrogate obtained through knowledge distillation, hierarchical parameter clus-tering, and relation-matrix-based parameter reconstruction. A hierarchical neural-OCP (Optimal Control Problem) architecture is then developed, in which an upper virtual decision layer generates PIT decision packages under scenario constraints and a lower coupled-MPC (Model Predictive Control) layer executes interaction-aware control. To evaluate the framework, we construct a PIT Scenario Dataset and conduct surrogate-model comparison, planning-structure ablation, and multi-fidelity assessment from simulation to scaled by-wire vehicle tests. In simulation, adding the upper planning layer improves PIT success rate from 63.8% to 76.7%, and PicoPINN reduces the original PINN parameter count from 8965 to 812 and achieves the smallest average heading error among the learned surrogates (0.112 rad). Scaled vehicle experiments are further used as evidence of control feasibility, with 3 of 4 low-speed controllable-contact PIT trials achieving successful yaw reversal. 
+
+Index Terms —Precision Immobilization Technique, Physics-Informed Neural Networks, Neural Optimal Control, Vehicle Collision Dynamics, PIT Scenario Dataset 
+
+I. I NTRODUCTION 
+
+# WITH the rapid development of intelligent transportation systems and autonomous driving, active intervention for safety-critical events has become an important research direction. In emergency intervention (stopping/rescue) scenar-ios, e.g. in Figure 1, Precision Immobilization Technique (PIT) with controlled rear-quarter contact is potentially to be used to guide the target vehicle toward a safe terminal state [1]–[3]. From a vehicle dynamics perspective, collision events in-volve tightly-coupled pre-impact, during-impact, and post-impact phases, where the short but highly nonlinear contact interval dominates downstream trajectory evolution [4]–[7]. Such coupling makes PIT planning fundamentally different 
+
+This work was supported by National Natural Science Foundation of China (Grant No.52372421) and the Zhejiang Key Laboratory of Intelligent Vehicle Comprehensive Safety. (Corresponding author: Daofei Li.) The authors are with the Institute of Power Machinery and Vehicular Engineering, Zhejiang University and the Zhejiang Key Laboratory of In-telligent Vehicle Comprehensive Safety, Hangzhou 310027, China. (e-mail: dfli@zju.edu.cn) 
+
+from standard lane-level autonomous driving tasks. Practi-cal deployment requires terminal-state precision under strict constraints on road-boundary compliance, secondary-collision avoidance, and real-time computation. On the other hand, the latest mid-to-high-end vehicles with driving automation functionalities are now commonly equipped with the sensing, onboard computing, and actuation foundations that are also required for automated PIT execution. However, a key bottleneck still remains in how to succeed PIT in constrained situations, especially while balancing phys-ical fidelity and computational efficiency in control-oriented collision modeling. This motivates a PIT-specific framework that connects differentiable surrogate dynamics, neural optimal control, and safety-oriented evaluation under boundary oper-ating conditions. 
+
+A. Related work 
+
+Collision dynamics modeling forms the theoretical foun-dation of PIT research. Early studies based on impulse– momentum principles provide interpretable analytical structure for light-impact prediction [2], [8]. For detailed mechanism analysis, multibody and finite-element approaches improve fidelity and can reproduce deformation and force histories with high resolution [9]–[11]. However, these methods are usually too computationally expensive for online planning and control. For control-oriented applications, simplified impact-force representations remain widely used. Lumped spring-damper models and pulse-based approximations offer efficient for-mulations, with triangular or half-sine force profiles often adopted in low-to-moderate severity crash analysis [12]–[18]. Yet simplified templates alone are often insufficient when contact conditions vary significantly across scenarios. Physics-Informed Neural Networks (PINNs) provide apromising alternative by embedding physical constraints into data-driven learning, thereby improving extrapolation and sample efficiency under limited data [19], [20]. Recent studies further emphasize that beyond adding physics residuals in the loss, network structure itself can be made physics-consistent through staged distillation and structure discovery. In particu-lar, a physics-informed distillation framework has shown that decoupling physical regularization and parameter regulariza-tion, followed by clustering-based parameter reconstruction, can improve both efficiency and transferability in PDE(partial differential equation)-oriented tasks [21].  
+
+> arXiv:2604.05758v1 [eess.SY] 7 Apr 2026 IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 2target
+
+Phase I:Chasin g
+
+> Establish desired relative pose
+> target
+
+Phase III: Stabilization Phase II: PIT Contact   
+
+> Coupled MPC maintain
+> Contact geometry & force corridor
+> Target reaches terminal Set
+> target
+> Contact Separation
+> Fig. 1. Schematic diagram of the PIT scenario.
+
+In vehicle-related tasks, PINN variants have shown progress in car-following, trajectory prediction, and hybrid dynamics modeling [22]–[27]. From the neural-OCP (Optimal Control Problem) perspec-tive, recent work increasingly treats learned models as differ-entiable components within trajectory optimization rather than purely offline predictors. Representative directions include differentiable neural potential fields for collision-cost construc-tion and toolchains that couple PyTorch models with numerical optimal-control solvers to preserve gradient flow in large-scale constrained optimization [28], [29]. Related integrated planning-and-tracking studies further show that learned vehicle models can be embedded into a unified optimization loop to improve decision–execution consistency, especially under adhesion variation and emergency maneuvers [30]. From the neural-MPC (Model Predictive Control) per-spective, most studies replace or augment prediction mod-els within receding-horizon control using sequence networks (e.g., LSTM) or high-capacity neural dynamics. Existing re-sults cover interactive traffic prediction–MPC coupling, car-following control in mixed traffic, and lateral-motion tracking with data-driven models. Recent real-time implementations further demonstrate that substantially larger neural dynamics models can run inside embedded gradient-based MPC loops [31]–[35]. In summary, neural-OCP and neural-MPC share the goal of leveraging differentiable learned dynamics for constrained control, but the former emphasizes trajectory-level optimization structure, whereas the latter emphasizes online receding-horizon execution and real-time feasibility. Nevertheless, most existing studies focus on non-contact traffic scenarios. Direct integration of collision-aware surro-gate modeling with differentiable optimal control for PIT remains limited. Building on our previous PINN-based col-lision modeling study [36], this work targets the planning-and-control layer and proposes a compact PIT-oriented surro-gate (PicoPINN) for hierarchical neural optimal control and scenario-oriented evaluation. 
+
+B. Main Contributions 
+
+Despite important advances in collision modeling, physics-informed learning, and vehicle control, existing literature still lacks a PIT-oriented framework that jointly considers model compactness, differentiable optimization, and scenario-oriented evaluation. This work addresses these gaps through the following contributions:  
+
+> •
+
+A compact physics-informed surrogate model, denoted as the Planning-Informed Compact Physics-Informed Neural Network (PicoPINN), is developed by extending the original PINN with knowledge distillation, hierarchical agglomerative clustering, and parameter reconstruction. The resulting model preserves differentiability and phys-ical consistency while reducing the parameter scale by approximately one order of magnitude, which is benefi-cial for neural-OCP deployment.  
+
+> •
+
+A hierarchical neural-OCP formulation is established by embedding the lightweight surrogate into the PIT planning problem. The upper layer performs virtual PIT decision optimization, while the lower layer executes coupled MPC control that jointly optimizes actuation and collision interaction variables of the bullet vehicle, i.e., the controlled vehicle that initiates the PIT impact against the target vehicle.  
+
+> •
+
+A PIT Scenario Dataset is constructed and used to bench-mark model baselines and planning/control variants under boundary operating conditions, and is further validated through scaled vehicle experiments. This establishes a more application-relevant evaluation framework for con-trollable PIT. The rest of this work is organized as follows. Section II first introduces the PIT scenario and then presents the vehicle-model layer used by planning and control. Section III develops the hierarchical neural optimal-control formulation. Section IV presents PIT Scenario Dataset construction and the simulation setup used for benchmarking. Section V reports simulation results and the scaled vehicle feasibility study. Finally, Section VI concludes this work and discusses future work. II. PIT S CENARIO AND VEHICLE MODEL 
+
+Before introducing detailed model equations, the PIT oper-ating scenario is first defined to make the interaction geometry and stage logic explicit. As shown in Figure 1, the bullet vehicle approaches the target vehicle under road-boundary and obstacle constraints, performs controllable side-rear contact during the PIT interaction, and then guides the target vehicle toward a safe terminal region. This scenario-level description IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 3Input  Hidden Layers 
+
+> 4DOF Physics Informed
+
+…
+
+…
+
+…
+
+Teacher  PINN  Network 
+
+output 
+
+PicoPINN  Network 
+
+> label
+> Parameter
+> Clustering
+> Regulari
+> zation
+> Relation Matrix
+
+Retrain  Re -constructed 
+
+Fig. 2. Schematic diagram of the PicoPINN architecture. 
+
+is used consistently by the subsequent modeling and control formulation. 
+
+A. Target-Vehicle PicoPINN Model 
+
+Traditional analytical models struggle to accurately cap-ture highly nonlinear and discontinuous collision dynamics. To address this limitation while reducing repeated optimiza-tion cost, the original PINN surrogate [36] is extended to a lightweight model termed PicoPINN (Planning-Informed Compact Physics-Informed Neural Network). As shown in Figure 2, PicoPINN inherits the physics-informed training paradigm and further introduces knowledge distillation, pa-rameter clustering, and relation-matrix-based parameter recon-struction, making it more suitable as the predictive core of the subsequent neural-OCP formulation. Let the reconstructed parameter vector be denoted by θfree 
+
+and the corresponding relation matrix by R. The compressed parameterization is written as 
+
+ˆw = Rθfree , (1) where ˆw is the effective parameter vector used by the com-pact surrogate. In the present implementation, the teacher PINN network contains 8965 parameters, whereas PicoPINN reduces this number to approximately 800 trainable pa-rameters after parameter clustering and reconstruction. The clustering-induced parameter reduction and the training convergence/loss-evolution behavior are shown in Figure 3(a) and Figure 3(b), respectively. The system dynamics are represented as 
+
+˙x(t) = fPico (x(t), u(t), F n(t), F t(t); ωpico ) (2) where x = [ vx, v y , ψ, ˙ψ, ˙ϕ, ϕ, X, Y ]T ∈ R8 is state vector, vx
+
+and vy are longitudinal and lateral velocities, ˙ψ is yaw rate, 
+
+˙ϕ is roll rate, ϕ is roll angle, (X, Y ) is global position, and ψ
+
+is heading angle; u = [ δ, T b]T is the control input; Fn and Ft
+
+denote the contact normal and tangential components, respec-tively; and ωpico denotes the trained PicoPINN parameters. The PicoPINN architecture maps the force-history-related input space to collision-sensitive state responses in the local contact frame: 
+
+gPico (Fn(t), F t(t), x (t − 1)) 7 → [x(t)] (3) 0.0 0.5 1.0 1.5 2.0   
+
+> |weight|
+> net.6
+> net.4
+> net.2
+> net.0
+> Layer
+> K=96
+> K=238
+> K=245
+> K=103
+> Parameter clustering across layers
+> positive weights negative weights cluster centers
+
+(a) Parameter clustering and resulting parame-ter reduction. 
+
+(b) Training curves of PicoPINN. 
+
+Fig. 3. Parameter clustering and training behavior of PicoPINN. 
+
+The key advantage of PicoPINN lies in providing a con-tinuously differentiable and computationally lighter dynamic surrogate throughout the collision maneuver. 
+
+B. Bullet-Vehicle Control Model (Front Steering and Rear-Wheel Drive) 
+
+For controller execution, the bullet vehicle is modeled by a control-oriented planar dynamics model with front-wheel steering and rear-wheel longitudinal drive. The bullet state and dynamic control input are defined as 
+
+xB = [ XB , Y B , ψ B , v x,B , v y,B , r B ]T ,
+
+udyn  
+
+> B
+
+= [ δf,B , T r,B ]T , (4) where δf,B is the front steering angle and Tr,B is the rear-wheel drive/brake torque command. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 4
+
+The rear-wheel longitudinal force is generated from wheel torque as 
+
+Fx,r,B = ηdig
+
+Rw
+
+Tr,B , Tr,B ∈ [T r , T r ], δ f,B ∈ [δf , δ f ],
+
+(5) with drivetrain efficiency ηd, gear ratio ig , and effective wheel radius Rw.Including contact-force terms in the bullet body frame, the continuous-time dynamics are 
+
+˙XB = vx,B cos ψB − vy,B sin ψB ,
+
+˙YB = vx,B sin ψB + vy,B cos ψB ,
+
+˙ψB = rB ,mB ( ˙ vx,B − rB vy,B ) = Fx,r,B − Fy,f,B sin δf,B 
+
++ F body  
+
+> x,c,B
+
+,mB ( ˙ vy,B + rB vx,B ) = Fy,f,B cos δf,B + Fy,r,B 
+
++ F body  
+
+> y,c,B
+
+,Iz,B ˙rB = lf,B Fy,f,B cos δf,B − lr,B Fy,r,B 
+
++ Mz,c,B ,
+
+(6) where Fy,f,B and Fy,r,B are front/rear lateral tire forces and 
+
+F body  
+
+> x,c,B
+
+, F body  
+
+> y,c,B
+
+, Mz,c,B are interaction-induced terms from the contact pair. The bullet vehicle model can be written in discrete form as 
+
+xB,k +1 = fB
+
+ xB,k , udyn 
+
+> B,k
+
+, F body  
+
+> x,c,B
+
+, F body 
+
+> y,c,B
+
+. (7) III. H IERARCHICAL NEURAL OCP F ORMULATION 
+
+A. Hierarchical Neural OCP Statement 
+
+The controllable PIT maneuver is formulated as a hierarchi-cal problem composed of two layers. The upper layer performs virtual PIT decision optimization under road topology and obstacle constraints. Instead of directly actuating the target vehicle, it carries out a virtual PIT rollout over a 2 s prediction horizon and optimizes the terminal decision so that the target vehicle reaches a safe region with its yaw reversed relative to the lane direction. This upper-layer planner operates in a replanning manner every 1 s. The lower layer then executes the maneuver through a coupled collision MPC with a 1 s prediction horizon and a discretization step of 0.05 s. This distinction is important because the target vehicle is defined as the PIT object and is therefore not modeled as a directly actuated subsystem. The overall decision-control information flow is shown in Figure 4. 
+
+1) Virtual PIT Decision-Collision Layer: Given the initial system state, the road geometry, and predicted surrounding obstacles, the upper layer jointly solves virtual PIT decision and virtual target-side collision inference. Its decision package is written as 
+
+Π = 
+
+n
+
+mPIT , R(t), ˆO(t), XT,f , CF , CB , Tc, Spost 
+
+o
+
+, (8) where mPIT denotes the mode decision, R(t) denotes the road-boundary constraints, ˆO(t) denotes the predicted obstacle set, XT,f denotes the desired terminal set of the target vehicle, 
+
+CF denotes the admissible (Fn, F t) force corridor, CB denotes the bullet-vehicle tracking and contact envelope, Tc denotes the admissible contact-time window, and Spost denotes the post-PIT safety set. Within this upper layer, the target vehicle is represented by a virtual interaction descriptor 
+
+uvir  
+
+> T
+
+= [ Fn, F t]T , (9) which denotes an interaction descriptor rather than a directly actuated command. A compact target-response objective is defined as 
+
+JT = wψ (ψT,N − ψT, rev )2 + wv ∥vT,N ∥2
+
++ wcN −1X
+
+> k=0
+
+dist  uvir 
+
+> T,k
+
+, CF,k 
+
+2 , (10) where ψT, rev denotes the desired reversed heading and 
+
+dist( ·, CF,k ) penalizes deviation from the feasible interaction corridor rather than enforcing an unrealistically exact force trajectory. The upper-layer optimization can be summarized as 
+
+min     
+
+> Π,{uvir
+> T ,k }N−1
+> k=0 , T f
+
+Jplan (Π , T f ) + λT JT (11a) subject to ˙x(t) = fPico 
+
+ x(t), u(t), uvir  
+
+> T
+
+(t); ωpico 
+
+,
+
+(11b) 
+
+x(0) = x0, (11c) 
+
+x(t) ∈ R (t) \ ˆO(t), (11d) 
+
+uvir  
+
+> T
+
+(t) ∈ C F , (11e) 
+
+d
+
+
+
+xT (t), ˆO(t)
+
+
+
+≥ dsafe , (11f) 
+
+xT (Tf ) ∈ X T,f ∩ S post . (11g) where Jplan is the scenario-level decision objective and λT is the coupling weight between virtual PIT decision and virtual target-response optimization. 
+
+2) Coupled Collision MPC Control Layer: The lower layer is formulated as a coupled MPC that jointly optimizes bullet actuation and collision interaction variables under the upper-layer decision package. The bullet dynamic actuation input is defined as 
+
+udyn  
+
+> B,k
+
+= [ δf,B,k , T r,B,k ]T , (12) while the shared interaction variable in the contact frame is 
+
+f nt c,k = [ Fn,k , F t,k ]T , (13) with the interaction relationship 
+
+f nt T,k = −f nt B,k = f nt c,k . (14) Let γk denote the contact-frame heading at step k. The contact force pair is mapped into each vehicle body frame as 
+
+f body  
+
+> T,k
+
+= R(ψT,k − γk) f nt c,k ,
+
+f body  
+
+> B,k
+
+= −R(ψB,k − γk) f nt c,k , (15) with R(α) = 
+
+cos α − sin α
+
+sin α cos α
+
+
+
+.IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 5Upper Layer : Virtual PIT Decision  Scenario Input: 
+
+Environment 
+
+Vehicles States    
+
+> PIT Mode Decision
+> Phase, ,
+> PicoPINN
+> surrogate
+> Target response optimization
+
+Decision Package 
+
+Lower Layer : Coupled Collision MPC   
+
+> Coupled Collision MPC
+> target
+> target
+> Target Vehicle State Shared Contact Variable Bullet Vehicle
+> Relative State
+
+Bullet vehicle Control Output   
+
+> PINN history
+> Fig. 4. Decision-control framework of the proposed hierarchical neural OCP for PIT.
+
+The lower-layer coupled MPC over horizon N is summa-rized as 
+
+min      
+
+> {xT ,k ,xB,k ,udyn
+> B,k ,fnt c,k }
+
+JMPC (16a) subject to xT,k +1 = fT (xT,k , f body  
+
+> T,k
+
+), (16b) 
+
+xB,k +1 = fB (xB,k , udyn 
+
+> B,k
+
+, f body  
+
+> B,k
+
+),
+
+(16c) 
+
+udyn  
+
+> B,k
+
+∈ U B,k , f nt c,k ∈ C F,k , (16d) 
+
+eBT,k ∈ C B,k , (16e) 
+
+xT,k , xB,k ∈ R k \ ˆOk, (16f) where fT (·) is the PicoPINN-based target-vehicle transition model, fB (·) is the front-steering/rear-drive bullet transition model in (7), and f body  
+
+> T,k
+
+and f body  
+
+> B,k
+
+are transformed from the same optimized contact variable f nt c,k .Let the relative state between the two vehicles be denoted by 
+
+eBT = [ XB − XT , Y B − YT , ψ B − ψT , v B − vT ]T . (17) The desired relative-contact state is generated online from the current interaction geometry and upper-layer corridors: 
+
+eref ,k = href (Π , xT,k , xB,k , CF,k , CB,k ) , (18) where href (·) returns a feasible relative-contact target satis-fying the contact envelope CB,k and consistency with the admissible force corridor CF,k .The coupled-MPC objective can be written in a compact form as 
+
+JMPC = wT JT + weNX
+
+> k=0
+
+∥eBT,k − eref ,k ∥2
+
++ wfN −1X
+
+> k=0
+
+dist  f nt c,k , CF,k 
+
+2 + wuN −1X
+
+> k=0
+
+∥udyn 
+
+> B,k
+
+∥2,
+
+(19) where eref is the desired bullet-target relative-contact config-uration. 
+
+3) Phase-Wise Interpretation: The proposed formulation is intended for controllable-contact PIT. As shown in Figure 1, the maneuver is divided into three phases. 1) Chasing phase: 
+
+the bullet vehicle tracks the approach trajectory and establishes the desired relative pose. 2) PIT phase: the coupled MPC maintains the contact geometry, timing window, and force or impulse corridor in a soft-tracking sense. 3) Stabilization phase: after the PIT interaction, the predicted target motion is required to satisfy the terminal yaw-reversal and safety constraints while remaining free of secondary collision. The proposed lower layer is a practical controller for maintaining a controllable PIT interaction over a finite contact interval. 
+
+4) Constraint Interface and Solver: The upper layer summarizes mode, boundary, obstacle, terminal-set, contact-corridor, and safety constraints into a decision package and passes it to the lower-layer coupled MPC, while the l4casADi-based [29] implementation supports gradient-based optimiza-tion and receding-horizon execution. IV. PIT S CENARIO DATASET CONSTRUCTION AND 
+
+SIMULATION SETUP 
+
+A. PIT Scenario Dataset Construction 
+
+The dataset is designed to characterize boundary operating conditions under which PIT is necessary, feasible, or unsafe IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 6Raw input           
+
+> PIT law -enforcement
+> & PIT accident videos
+> Video Clip
+> CV
+> processing
+> Detection
+> Tracking
+> Semantic
+> Depth
+> BEV fuse {
+> "initial_states ": {
+> ego: { x, y, v, θ, type }
+> npc : { x, y, v, θ, type }
+> }, " road_geometry ": { κ, w },
+> "environment": { μ, surface },
+> "pit_params ": { angle, Δv }
+> }
+
+Scene schema . json 
+
+LLM 
+
+carsim  model 
+
+> Target.sim
+> Bullet.sim
+
+Scene generate 
+
+Scene features 
+
+> coarse semantic tagging
+> Simulation FOV Simulation BEV
+
+Carla -carsim  simulation 
+
+> Target update
+> Bullet update
+
+Sim database   
+
+> FEA force library
+> Vehicle type/class
+> Road_geometry
+> Obstacle Vehicle
+> Carsim model dispatch
+> Fig. 5. Dataset-construction and simulation-scene-generation pipeline from PIT videos to the CarSim–Carla PIT Scenario Dataset.
+
+while remaining consistent with real intervention cases. We first build a real-case prior pool from publicly available PIT law-enforcement and crash videos, and then apply a CV-to-BEV [37] extraction pipeline to obtain key descriptors, includ-ing initial speed, relative pose, road topology, and obstacle context. One representative frame per scene is further pro-cessed for coarse semantic tagging via LLM (large language model) (e.g., road type, approximate adhesion level, lane count and width, and lead-vehicle class). The scenario space is defined by the joint variation of video-inferred initial states, road geometry, and environment-related factors. Representative categories include:  
+
+> •
+
+straight-road, curved-road, and lane-boundary-constrained PIT geometries;  
+
+> •
+
+low-, medium-, and high-adhesion conditions;  
+
+> •
+
+sparse-to-dense obstacle-context configurations near roadway boundaries; 
+
+1) Data Acquisition, Screening, and Annotation: The dataset is constructed through CV-based real-case extraction, conditional simulation generation, and quality control. Video-derived priors and coarse semantic tags are used to generate distribution-consistent scene-schema parameters. Each case is executed with vehicle-type-specific CarSim .simfile 
+
+models selected by scene features, with collision-force inputs from the matched FEA force library in our previous work [36]; Carla is used for visualization and replay-based curation. Infeasible or trivial samples are removed by rule-based pre-screening and manual review. The overall dataset-construction and simulation-scene-generation workflow is shown in Fig. 5, and key dataset statistics are summarized in Table I. The generated-scenario composition and its distributional consistency with the real-case prior are illustrated in Fig. 6(a) and Fig. 6(b), respectively. Fig. 6(a) reports category-level composition, and Fig. 6(b) compares KL divergence between generated and real datasets across representative attributes.         
+
+> TABLE I STATISTICS OF THE PIT S CENARIO DATASET
+> Item Value
+> Source video events 214 CV-extracted valid clips 156 Valid parameterized priors 117 Generated scenarios 3600 Retained realistic PIT scenes 2048
+
+The retained scenes are distributed across straight-urban (22.0%), straight-highway (17.9%), and curved-road (60.1%) layouts. 
+
+B. Comparative Experiment Design for the Proposed PIT Strategy 1) Benchmark Baselines: Because no widely accepted pub-lic benchmark is dedicated to PIT planning and control, the comparison is organized in two levels. The first is surrogate-model comparison , used to assess whether PicoPINN is suit-able for downstream neural OCP; representative baselines are the conventional 4DOF analytical model, the original PINN surrogate. The second is planning-structure comparison under the same PicoPINN dynamics, namely full hierarchical neural OCP (with the upper planning layer) versus direct coupled MPC (without the upper planning layer). This two-level design avoids redundant combinations and isolates whether improvements come from surrogate compactness or upper-layer planning. 
+
+2) Evaluation Metrics: The evaluation metrics are grouped into two sets. Surrogate-model metrics quantify prediction quality and deployment-oriented closed-loop behavior, includ-ing RMSE error for ϕ; overall PIT success rate under each surrogate; success-rate breakdowns across road topologies and adhesion levels; planning and control runtimes. Planning-and-control metrics quantify task completion quality and real-time feasibility, including PIT success rate (primary met-ric), terminal heading error, minimum safety margin, and IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 7
+
+(a) Category breakdown of generated simulation dataset. 
+
+(b) KL-divergence comparison between generated and real datasets.                                                                             
+
+> Fig. 6. Distribution-oriented evaluation of dataset generation quality. TABLE II INTEGRATED BENCHMARK OF PLANNING STRUCTURE , S URROGATE MODELS ,AND SUCCESS /F AILURE COMPOSITION
+> Planning Structure Succ. (%) Head.Err. (rad) Min Margin (m) Bound. Violation (%) 2nd Coll. (%) Plan/Ctrl (ms)
+> PicoPINN + upper-plan + cMPC 76.7 0.106 0.84 1.9 0.8 842 / 24.6 PicoPINN + cMPC (without upper layer) 63.8 0.114 0.62 6.8 4.5 0 / 35.9
+> Surrogate Model Succ. (%) Road (%) Adhesion (%) Head.Err. (rad) Runtime / Size Failure Cause (%) Straight Curved Low-μMid-μHigh-μPlan Ctrl Param. Decision Infeas. in Chasing No-Term. by Tmax
+> Bound. Violation 2nd Coll. Unsafe Rebound
+> 4DOF analytical model 58.9 65.4 54.7 42.3 59.8 71.5 0.161 2310 107.4 –13.2 13.8 7.7 3.7 2.7 Original PINN 74.9 79.1 72.0 64.2 75.6 81.3 0.118 1346 47.8 8965 12.9 5.8 3.5 1.7 1.2 PicoPINN 76.7 80.3 74.2 66.1 77.8 82.6 0.112 842 24.6 812 12.7 5.1 3.0 1.4 1.1
+
+planning/control runtimes. Unless otherwise stated, the non-percentage scalar metrics reported in the integrated benchmark are averages over the evaluated runs. For reproducible evalu-ation, a PIT trial is counted as successful if and only if the target vehicle reaches the prescribed terminal condition within the allowed horizon Tmax while satisfying safety constraints throughout the maneuver. Specifically, the run must satisfy 
+
+|eψ (T )| ≤ εψ and remain free of boundary violation, unsafe rebound, and secondary collision. This definition is used consistently for simulation and scaled vehicle tests. V. S IMULATION RESULTS AND SCALED VEHICLE 
+
+EXPERIMENTS 
+
+A. Integrated Benchmark Results 
+
+Table II summarizes planning-structure and surrogate-model performance, including success rates, heading error, safety metrics, runtime, model size, and failure-cause composition. Except for model parameter count, the remaining scalar met-rics are reported as averages over the evaluated runs. Introducing the upper planning layer increases PIT success from 63.8% to 76.7% (+12.9 percentage points), increases the minimum safety margin from 0.62 m to 0.84 m, and reduces the average heading error from 0.114 rad to 0.106 rad, while reducing boundary-violation and secondary-collision rates from 6.8% to 1.9% and from 4.5% to 0.8%, respec-tively. Among surrogate models, PicoPINN provides the best overall trade-off: highest overall success rate (76.7%), best low-adhesion success (66.1%), and smallest average heading error (0.112 rad), while reducing parameter count from 8965 (Original PINN) to 812 (90.9% reduction). The additional failure type, early exit due to infeasible PIT decision in the chasing phase, remains near 13% for all models (12.7%– 13.2%), indicating that most gains are reflected in reduced boundary violation, secondary collision, and unsafe rebound. Figure 7 supplements Table II for qualitative interpretation. Panel A visualizes mission/road/adhesion success indicators; Panel B visualizes failure-cause composition; and Panel C jointly visualizes planning and control runtimes, showing that planning remains substantially more expensive than control for all models. 
+
+B. Representative Simulation Case Analysis 
+
+To complement aggregate metrics, two representative cases are compared through scenario settings and trajectory-level responses: a successful case and a failed case, shown in Figures 8 and 9, respectively. In the successful case, the road is dry asphalt with high ad-hesion ( μ = 0 .9214 ), no surrounding dynamic obstacles, and relatively strong PIT excitation (contact angle 21 .196 ◦, speed difference 3.804 m/s). The target yaw-rate peak generated during contact is followed by stable recovery, lateral-speed response remains bounded, and bullet control inputs recover from saturation in time; therefore, the terminal trajectory stays inside the desired corridor. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 84DOF PINN PicoPINN        
+
+> 40
+> 50
+> 60
+> 70
+> 80
+> %
+> ASuccess And Generalization
+> 4DOF PINN PicoPINN
+> 0
+> 2
+> 4
+> 6
+> 8
+> 10
+> 12
+> 14
+> 16
+> %
+> BFailure Cause Distribution
+> 4DOF PINN PicoPINN
+> 0
+> 700
+> 1400
+> 2100
+> 2800
+> Decision / Plan [ms]
+> CDecision And Control Runtime
+> Decision / Plan
+> Control
+> 0
+> 25
+> 50
+> 75
+> 100
+> 125
+> Control [ms]
+
+Fig. 7. Visualization-oriented benchmark summary consistent with Table II. Chasing  PIT 
+
+Fig. 8. Representative successful case: trajectory evolution, state responses, and bullet control inputs. Chasing  PIT   
+
+> No solution for decision
+
+Fig. 9. Representative failed case: trajectory evolution, state responses, and bullet control inputs. 
+
+In the failed case, the road is wet asphalt ( μ = 0 .5812 ), two forward obstacles are present, and PIT excitation is weaker (contact angle 15 .546 ◦, speed difference 2.936 m/s). Absolute speeds are higher (ego/target: 23 .954 /21 .018 m/s versus 17 .232 /13 .429 m/s), and the initial longitudinal gap is larger (7.462 m versus 5.424 m). These factors jointly reduce effective lateral impulse and leave less post-contact correction margin. Correspondingly, the failed case shows a larger lateral-speed peak, longer post-contact drift, and longer near-saturated rear-axle torque and steering periods, causing the terminal state to leave the desired set within the finite horizon (boundary violation). 
+
+C. Scaled Vehicle Feasibility Study 1) Experimental Platform: To further evaluate practical feasibility, tests on half-scaled by-wire vehicles are conducted. As shown in Figure 10, the experiment platform consists of a bullet vehicle and a target vehicle, with an approximate wheelbase-based scaling ratio of 1:2 relative to full-size pas-senger cars. The bullet vehicle has dimensions of approxi-mately 2100 × 1120 × 455 mm, a mass of approximately 290 
+
+kg, front-wheel steering, and independent four-wheel drive, IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 9                                 
+
+> TABLE III SUMMARY OF REAL -V EHICLE PIT V ALIDATION RESULTS
+> Case Target Speed (km/h) Relative Impact Speed (km/h) Impact Angle (deg) Heading Error (rad) Remark
+> R1 7.8 3.1 21.4 0.182 Successful R2 8.2 4.2 24.8 0.209 Successful R3 7.6 2.6 18.9 0.074 Successful R4 8.4 0.8 10.1 1.127 Failed Overall 8.0 2.7 18.8 0.398 3/4 successful
+
+whereas the target vehicle has dimensions of approximately 
+
+1900 × 900 × 350 mm, a mass of approximately 100 kg, front-wheel steering, and rear-wheel drive. Both vehicles are equipped with pneumatic tires so that the nonlinear vehicle responses relevant to PIT can still be reproduced at the scaled level. Here, the platform is used to examine low-speed controllable-contact control feasibility rather than to reproduce a full-scale crash event. Target Vehicle  
+
+> Bullet Vehicle
+> GNSS/IMU IPC
+> GNSS/IMU IPC
+> WIFI
+> CAN Bus
+> Serial RS232
+> Wheelbase=1.45m
+> Wheelbase= 1.2m
+> Fig. 10. Half-scaled experiment platforms: bullet and target vehicles.
+
+Each vehicle is equipped with an industrial personal computer for onboard planning and control, and the state-estimation system is built on GNSS-IMU sensing. According to the previously verified platform specification, the position accuracy is approximately 0.01 m and the angular-rate ac-curacy is approximately 0.002 rad/s. Inter-vehicle communi-cation is realized through a local wireless network, whereas low-level commands are transmitted through the CAN bus. 
+
+2) Test Procedure: The scaled vehicle experiment follows the same three-phase logic as the proposed control framework. In the chasing phase, the bullet vehicle establishes the desired relative pose with respect to the target vehicle. In the PIT phase, the planned contact corridor is maintained by the coupled MPC so that the target vehicle is driven toward yaw reversal while remaining inside the road boundary and avoiding secondary collision. In the stabilization phase, the resulting target motion is observed to determine whether the required terminal yaw condition is reached without unsafe rebound or secondary contact. The results of scaled vehicle experiments are shown in Table III. Except for the binary success label, here the remaining scalar metrics are reported as averages in the ‘Overall‘ row. As a representative vehicle test run, Case 1 (R1) is shown in Figure 11. Under a target speed of 7.8 km/h and a relative impact speed of 3.1 km/h, the maneuver achieves the required terminal yaw condition with a heading error of 0.182 rad, consistent with the successful label in Table III. This result provides preliminary physical evidence that the proposed con-troller can maintain controllable contact and guide the target toward the intended post-impact evolution in the scaled vehicle setting. 
+
+3) Discussion: First, the half-scaled vehicle tests should be interpreted as evidence of control feasibility rather than full-size vehicle deployment validation, since the latter involves much higher costs of resources. The main purpose here is to examine whether the proposed upper-planning and coupled-MPC framework can maintain the intended contact evolution, achieve yaw reversal, and remain operable under sensing noise, communication latency, and actuation uncertainty. With this, the 3/4 success rate provides preliminary support that the controller can coordinate contact timing and post-impact stabilization in a physical closed loop. However, further full-scale deployment readiness is to be validated in future work. Second, the failed scaled case is consistent with the failure trends observed in simulation. In Table III, R4 corresponds to the smallest relative impact speed (0.8 km/h) and the smallest impact angle (10.1 ◦), which together imply insufficient lateral excitation for reliable yaw reversal. This observation is aligned with the simulation-side failure analysis, where weak PIT excitation and limited post-contact correction margin lead to boundary-related failure. The consistency between simulated failure mechanisms and the scaled physical result is encourag-ing, because it suggests that the controller is capturing the right qualitative sensitivity to contact severity even though exact post-impact trajectories still differ across fidelities. Third, a non-negligible sim-to-real gap remains. The con-troller relies on a compact differentiable surrogate and simpli-fied corridor-based interaction description, whereas the phys-ical platform still contains unmodeled effects such as sensing bias, communication delay, tire nonlinearities, compliance, and scale-dependent contact behavior. Accordingly, the present study should be understood as a staged validation pipeline: high-fidelity simulation provides the main comparative evi-dence, and the scaled tests provide a practical check that the control architecture remains executable on hardware. Extend-ing the physical evidence to a broader set of scaled conditions, incorporating explicit delay or uncertainty adaptation, and pursuing larger-scale experimental validation are therefore important next steps before any real-world deployment can be considered. VI. C ONCLUSION 
+
+This work develops a PIT-oriented neural optimal-control framework based on a lightweight physics-informed surrogate model. By extending the previous PINN with knowledge distillation, hierarchical clustering, and parameter reconstruc-tion, PicoPINN provides a compact differentiable dynamics surrogate for neural-OCP-based PIT planning. The framework IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 10 Target Vehicle 
+
+> Bullet Vehicle
+
+Chasing PIT Contact 
+
+> t =20s
+> t =17s
+> t =21s
+
+Fig. 11. Representative scaled vehicle test Case 1 (R1). 
+
+formulates PIT as a hierarchical problem: an upper virtual PIT decision layer plans target-side response and constraints, while a lower coupled-MPC layer executes the maneuver under road and obstacle constraints across chasing, PIT, and stabilization phases. The study also shifts evaluation from isolated case validation to scenario-oriented assessment by introducing a PIT Scenario Dataset, a benchmark framework for surrogate and control comparisons, and a multi-fidelity validation pipeline spanning high-fidelity simulation and pre-liminary scaled vehicle control-feasibility experiments. Future work will focus on expanding benchmark scale and quantitatively identifying which classes of PIT boundary scenarios benefit most from the proposed method in terms of safety and consistency. REFERENCES [1] J. Zhou, J. Lu, and H. Peng, “Vehicle dynamics in response to the maneuver of precision immobilization technique,” in Dynamic Systems and Control Conference , vol. 43352, 2008, pp. 577–584. [2] J. Zhou, H. Peng, and J. Lu, “Collision model for vehicle motion prediction after light impacts,” Vehicle System Dynamics , vol. 46, no. sup1, pp. 3–15, 2008. [3] D. D. Mascare˜ nas, C. J. Stull, and C. R. Farrar, “Autonomous execution of the precision immobilization technique,” Mechanical Systems and Signal Processing , vol. 87, pp. 153–168, 2017. [4] M. Parseh, M. Nybacka, and F. Asplund, “Motion planning for au-tonomous vehicles with the inclusion of post-impact motions for min-imising collision risk,” Vehicle System Dynamics , vol. 61, no. 6, pp. 1707–1733, 2023. [5] M. Elkady, A. Elmarakbi, J. MacIntyre, and M. Alhariri, “Collision mitigation and vehicle transportation safety using integrated vehicle dynamics control systems,” Journal of Traffic and Transportation Engi-neering (English Edition) , vol. 4, no. 1, pp. 41–60, 2017. [6] D. Yang, T. Gordon, and U. Sander, “Post-impact motion control of road vehicles,” Vehicle System Dynamics , vol. 63, no. 7, pp. 1300–1357, 2025. [7] D. Yang, Vehicle Dynamics Control after Impacts in Multiple-Event Accidents . G”oteborg: Chalmers University of Technology, 2013. [8] R. M. Brach, “An impact moment coefficient for vehicle collision analysis,” SAE Transactions , pp. 30–37, 1977. [9] L. Sousa, P. Ver´ ıssimo, and J. Ambr´ osio, “Development of generic multibody road vehicle models for crashworthiness,” Multibody System Dynamics , vol. 19, no. 1-2, pp. 133–158, 2008. [10] Q. Chen, Y. Xie, Y. Ao, T. Li, G. Chen, S. Ren, C. Wang, and S. Li, “A deep neural network inverse solution to recover pre-crash impact data of car collisions,” Transportation Research Part C: Emerging Technologies ,vol. 126, p. 103009, 2021. [11] A. R. Yildiz and K. N. Solanki, “Multi-objective optimization of vehicle crashworthiness using a new particle swarm based approach,” The International Journal of Advanced Manufacturing Technology , vol. 59, no. 1-4, pp. 367–376, 2012. [12] P. Jons´ en, E. Isaksson, K. G. Sundin, and M. Oldenburg, “Identification of lumped parameter automotive crash models for bumper system development,” International Journal of Crashworthiness , vol. 14, no. 6, pp. 533–541, 2009. [13] S. M. Ofochebe, C. G. Ozoegwu, and S. O. Enibe, “Performance evaluation of vehicle front structure in crash energy management using lumped mass spring system,” Advanced Modeling and Simulation in Engineering Sciences , vol. 2, no. 1, p. 2, 2015. [14] J. Iraeus and M. Lindquist, “Pulse shape analysis and data reduction of real-life frontal crashes with modern passenger cars,” International Journal of Crashworthiness , vol. 20, no. 6, pp. 535–546, 2015. [15] M. Huang, Vehicle Crash Mechanics , 1st ed. CRC Press, 2002. [16] Z. Wei, K. G. Robbersmyr, and H. R. Karimi, “Data-based modeling and estimation of vehicle crash processes in frontal fixed-barrier crashes,” 
+
+Journal of the Franklin Institute , vol. 354, no. 12, pp. 4896–4912, 2017. [17] J. Huibers and E. de Beer, “Current front stiffness of european vehicles with regard to compatibility,” SAE Technical Paper, Tech. Rep., 2001. [18] B.-J. Kim and H. Peng, “Optimal vehicle motion control to mitigate secondary crashes after an initial impact,” 2014, p. V001T10A002. [19] M. Raissi, P. G. Perdikaris, and G. E. Karniadakis, “Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations,” 
+
+Journal of Computational Physics , vol. 378, pp. 686–707, 2019. [20] G. E. Karniadakis, I. G. Kevrekidis, L. Lu, P. Perdikaris, S. Wang, and L. Yang, “Physics-informed machine learning,” Nature Reviews Physics ,vol. 3, no. 6, pp. 422–440, 2021. [21] Z. Liu, Y. Liu, X. Yan, W. Liu, H. Nie, S. Guo, and C.-a. Zhang, “Automatic network structure discovery of physics informed neural networks via knowledge distillation,” Nature Communications , vol. 16, p. 9558, 2025. [22] Z. Mo, R. Shi, and X. Di, “A physics-informed deep learning paradigm for car-following models,” Transportation Research Part C: Emerging Technologies , vol. 130, p. 103240, 2021. [23] H. Shi, Y. Zhou, K. Wu, S. Chen, B. Ran, and Q. Nie, “Physics-informed deep reinforcement learning-based integrated two-dimensional car-following control strategy for connected automated vehicles,” 
+
+Knowledge-Based Systems , vol. 269, p. 110485, 2023. [24] M. Geng, J. Li, Y. Xia, and X. Chen, “A physics-informed transformer model for vehicle trajectory prediction on highways,” Transportation Research Part C: Emerging Technologies , vol. 154, p. 104272, 2023. [25] Q. Cheng, Y. Zhang, Z. Gu, Z. Wang, H. Liu, Y. Lin, and Z. Liu, “A hybrid physics-based and data-driven approach for car-following behavior modeling and analysis,” Transportation Research Part C: Emerging Technologies , vol. 177, p. 105207, 2025. [26] S. Fang and K. Yu, “Fine-tuning hybrid physics-informed neural net-works for vehicle dynamics model estimation,” IFAC-PapersOnLine ,vol. 58, no. 28, pp. 810–815, 2024. IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 11 
+
+[27] K. Long, X. Shi, and X. Li, “Physics-informed neural network for cross-dynamics vehicle trajectory stitching,” Transportation Research Part E: Logistics and Transportation Review , vol. 192, p. 103799, 2024. [28] M. Alhaddad, K. Mironov, A. Staroverov, and A. Panov, “Neural potential field for obstacle-aware local motion planning,” Oct. 2023. [29] T. Salzmann, J. Arrizabalaga, J. Andersson, M. Pavone, and M. Ryll, “Learning for casadi: Data-driven models in numerical optimization,” Dec. 2023. [30] Z. Gao, W. Wen, Y. Xing, and A. Tsourdos, “An integrated framework for autonomous driving planning and tracking based on nnmpc consider-ing road surface variations,” IEEE Transactions on Intelligent Vehicles ,pp. 1–15, 2024. [31] Y. Jeong, S. Kim, and K. Yi, “Surround vehicle motion prediction using lstm-rnn for motion planning of autonomous vehicles at multi-lane turn intersections,” IEEE Open Journal of Intelligent Transportation Systems ,vol. 1, pp. 2–14, 2020. [32] Y. Zhou, Z. Zhang, F. Ding, S. Ahn, K. Wu, and B. Ran, “A deep long short-term memory network embedded model predictive control strategies for car-following control of connected automated vehicles in mixed traffic,” IEEE Transactions on Intelligent Transportation Systems ,vol. 25, no. 7, pp. 8209–8220, Jul. 2024. [33] K. H. Kim, C. Jeong, J. Kim, S. Lee, and C. M. Kang, “Data-driven lstm model and predictive control for vehicle lateral motion,” Journal of Electrical Engineering & Technology , vol. 19, no. 6, pp. 3635–3644, Aug. 2024. [34] K. Huang, K. Wei, F. Li, C. Yang, and W. Gui, “Lstm-mpc: A deep learning based predictive control method for multimode process control,” 
+
+IEEE Transactions on Industrial Electronics , vol. 70, no. 11, pp. 11 544– 11 554, Nov. 2023. [35] T. Salzmann, E. Kaufmann, J. Arrizabalaga, M. Pavone, D. Scaramuzza, and M. Ryll, “Real-time neural-mpc: Deep learning model predictive control for quadrotors and agile robotic platforms,” IEEE Robotics and Automation Letters , vol. 8, no. 4, pp. 2397–2404, Apr. 2023. [36] Y. Jiang, J. Wang, and D. Li, “Physics-informed neural network modeling of vehicle collision dynamics in precision immobilization technique maneuvers,” 2025. [Online]. Available: https://arxiv.org/abs/ 2510.13461 [37] L. Yang, B. Kang, Z. Huang, Z. Zhao, X. Xu, J. Feng, and H. Zhao, “Depth anything v2,” 2024. [Online]. Available: https://arxiv.org/abs/2406.09414 
+
+Author info 
+
+Yangye Jiang obtained his B.S. degree of Vehicle Engineering from Zhejiang University, Hangzhou, China, in 2023. He joined the Research Group of Human-Mobility-Automation, ZJU in August 2022 and is currently pursuing for his Ph.D. of Power Engineering and Engineering Thermophysics. His research interests include automated driving decision and eco-driving. 
+
+Jiachen Wang obtained his B.S. degree of Vehicle Engineering from Zhejiang University, Hangzhou, China, in 2024. He joined the Research Group of Human-Mobility-Automation, ZJU in March 2023 and is currently pursuing a Master’s degree in Power Engineering and Engineering Thermophysics. His research interests include automated driving decision and motion sickness. 
+
+Daofei Li received the B.S. degree in Vehicle Engi-neering from the Jilin University, Changchun, China, in 2003, and the Ph.D. degree in Vehicle Engineering from the Shanghai Jiao Tong University, Shanghai, China, in 2008. Since June 2008, he joined the Institute for Power Machinery and Vehicular Engi-neering, Faculty of Engineering, Zhejiang University (ZJU), Hangzhou, China. He was a Visiting Scholar with the University of Missouri-Columbia in 2011, and later with the University of Michigan, Ann Arbor, Michigan from 2014 to 2016. He is currently Associate Professor with ZJU and directs the Research Group of Human-Mobility-Automation. His research interests include vehicle dynamics and control, driver model, motion sickness and autonomous driving. He is a member of IEEE and the IEEE Intelligent Transportation Systems Society.

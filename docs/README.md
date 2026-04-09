@@ -6,169 +6,163 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-08
-- 运行时间：2026-04-08 20:49:59 UTC
+- 最新运行日期：2026-04-09
+- 运行时间：2026-04-09 21:51:45 UTC
 - 运行状态：成功
-- 本次总论文数：49
-- 精读区：37
+- 本次总论文数：47
+- 精读区：35
 - 速读区：12
 
 ### 今日简报（AI）
-今日深度解析 49 篇 AI for Science 论文，重点攻克物理信息神经网络（PINN）在复杂流体与奇异摄动领域的计算难题。
-核心突破在于通过统一加权损失优化边界层问题，并实现了移动界面两相流的高精度模拟。
-推荐关注 AI 驱动的药物设计与波动力学建模，探索深度学习在跨学科工程中的落地潜力。
-- 详情：[/202604/08/README](/202604/08/README)
+今日深度研读 47 篇前沿论文，重点聚焦物理信息神经网络（PINNs）在复杂物理建模中的满分突破。
+PINNs 在处理两相流移动界面及椭圆障碍问题上展现出极高的稳定性，同时 Transformer 在免疫治疗预测中表现亮眼。
+建议深入探索物理约束与深度学习的融合机制，并关注生物标志物在 AI 辅助医疗中的落地潜力。
+- 详情：[/202604/09/README](/202604/09/README)
 
 ### 精读区论文标签
-1. [A Unified Weighted-Loss Physics-Informed Neural Network for Boundary Layer Problems in Singularly Perturbed PDEs](/202604/08/2603.29249v1-a-unified-weighted-loss-physics-informed-neural-network-for-boundary-layer-problems-in-singularly-perturbed-pdes)  
+1. [Physics-informed neural networks for solving two-phase flow problems with moving interfaces](/202604/09/2604.00948v1-physics-informed-neural-networks-for-solving-two-phase-flow-problems-with-moving-interfaces)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于奇异摄动偏微分方程的加权损失物理信息神经网络
-2. [Physics-informed neural networks for solving two-phase flow problems with moving interfaces](/202604/08/2604.00948v1-physics-informed-neural-networks-for-solving-two-phase-flow-problems-with-moving-interfaces)  
+   evidence：用于求解两相流偏微分方程的物理信息神经网络
+2. [Mixed Consistent PINNs for Elliptic Obstacle Problems with Stability Analysis](/202604/09/2604.01719v1-mixed-consistent-pinns-for-elliptic-obstacle-problems-with-stability-analysis)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于解决两相流问题的物理信息神经网络
-3. [Goal oriented error estimation for adaptive sampling of PINNS](/202604/08/2604.01835v1-goal-oriented-error-estimation-for-adaptive-sampling-of-pinns)  
+   evidence：用于椭圆障碍问题的物理信息神经网络
+3. [A Numerical Method for Coupling Parameterized Physics-Informed Neural Networks and FDM for Advanced Thermal-Hydraulic System Simulation](/202604/09/2604.02663v1-a-numerical-method-for-coupling-parameterized-physics-informed-neural-networks-and-fdm-for-advanced-thermal-hydraulic-system-simulation)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于偏微分方程的物理信息神经网络 (PINNs) 自适应采样
-4. [Revisiting Conservativeness in Fluid Dynamics: Failure of Non-Conservative PINNs and a Path-Integral Remedy](/202604/08/2604.01968v1-revisiting-conservativeness-in-fluid-dynamics-failure-of-non-conservative-pinns-and-a-path-integral-remedy)  
+   evidence：耦合参数化物理信息神经网络与有限差分法
+4. [General Explicit Network (GEN): A novel deep learning architecture for solving partial differential equations](/202604/09/2604.03321v1-general-explicit-network-gen-a-novel-deep-learning-architecture-for-solving-partial-differential-equations)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于流体动力学偏微分方程的物理信息神经网络 (PINNs)
-5. [A Numerical Method for Coupling Parameterized Physics-Informed Neural Networks and FDM for Advanced Thermal-Hydraulic System Simulation](/202604/08/2604.02663v1-a-numerical-method-for-coupling-parameterized-physics-informed-neural-networks-and-fdm-for-advanced-thermal-hydraulic-system-simulation)  
+   evidence：用于求解偏微分方程的深度学习架构
+5. [PINNs in PDE Constrained Optimal Control Problems: Direct vs Indirect Methods](/202604/09/2604.04920v1-pinns-in-pde-constrained-optimal-control-problems-direct-vs-indirect-methods)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于高级热工水力系统模拟的物理信息神经网络
-6. [Fast and Accurate Inverse Blood Flow Modeling from Minimal Cuff-Pressure Data via PINNs](/202604/08/2604.03221v1-fast-and-accurate-inverse-blood-flow-modeling-from-minimal-cuff-pressure-data-via-pinns)  
+   evidence：用于PDE最优控制的物理信息神经网络
+6. [Curvature-Aware Optimization for High-Accuracy Physics-Informed Neural Networks](/202604/09/2604.05230v1-curvature-aware-optimization-for-high-accuracy-physics-informed-neural-networks)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：结合一维模型与物理信息神经网络 (PINNs)
-7. [Amalgamation of Physics-Informed Neural Network and LBM for the Prediction of Unsteady Fluid Flows in Fractal-Rough Microchannels](/202604/08/2604.03504v1-amalgamation-of-physics-informed-neural-network-and-lbm-for-the-prediction-of-unsteady-fluid-flows-in-fractal-rough-microchannels)  
+   evidence：高精度物理信息神经网络的优化策略
+7. [Multiscale Physics-Informed Neural Network for Complex Fluid Flows with Long-Range Dependencies](/202604/09/2604.05652v1-multiscale-physics-informed-neural-network-for-complex-fluid-flows-with-long-range-dependencies)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于预测非稳态流体流动的物理信息神经网络 (PINN)
-8. [Lotka-Sharpe Neural Operators for Control of Population PDEs](/202604/08/2604.03892v1-lotka-sharpe-neural-operators-for-control-of-population-pdes)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于种群偏微分方程控制的算子学习
-9. [PINNs in PDE Constrained Optimal Control Problems: Direct vs Indirect Methods](/202604/08/2604.04920v1-pinns-in-pde-constrained-optimal-control-problems-direct-vs-indirect-methods)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于半线性偏微分方程的物理信息神经网络 (PINNs)
-10. [A Theory-guided Weighted $L^2$ Loss for solving the BGK model via Physics-informed neural networks](/202604/08/2604.04971v1-a-theory-guided-weighted-l2-loss-for-solving-the-bgk-model-via-physics-informed-neural-networks)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解BGK模型的物理信息神经网络
-11. [Curvature-Aware Optimization for High-Accuracy Physics-Informed Neural Networks](/202604/08/2604.05230v1-curvature-aware-optimization-for-high-accuracy-physics-informed-neural-networks)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于 PDE 的高精度物理信息神经网络优化
-12. [Multiscale Physics-Informed Neural Network for Complex Fluid Flows with Long-Range Dependencies](/202604/08/2604.05652v1-multiscale-physics-informed-neural-network-for-complex-fluid-flows-with-long-range-dependencies)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：提出了一种用于求解纳维-斯托克斯方程的多尺度物理信息神经网络 (PINN)。
-13. [Biomimetic PINNs for Cell-Induced Phase Transitions: UQ-R3 Sampling with Causal Gating](/202604/08/2603.29184v1-biomimetic-pinns-for-cell-induced-phase-transitions-uq-r3-sampling-with-causal-gating)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于相变的仿生物理信息神经网络
-14. [Stochastic Dimension Implicit Functional Projections for Exact Integral Conservation in High-Dimensional PINNs](/202604/08/2603.29237v1-stochastic-dimension-implicit-functional-projections-for-exact-integral-conservation-in-high-dimensional-pinns)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：高维物理信息神经网络（PINNs）中的精确积分守恒
-15. [Lie Generator Networks for Nonlinear Partial Differential Equations](/202604/08/2603.29264v1-lie-generator-networks-for-nonlinear-partial-differential-equations)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于非线性偏微分方程的神经算子
-16. [Lie Generator Networks for Nonlinear Partial Differential Equations](/202604/08/2603.29264v2-lie-generator-networks-for-nonlinear-partial-differential-equations)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：非线性偏微分方程的神经算子学习
-17. [Performance of Neural and Polynomial Operator Surrogates](/202604/08/2604.00689v1-performance-of-neural-and-polynomial-operator-surrogates)  
+   evidence：用于复杂流体流动的物理信息神经网络
+8. [Performance of Neural and Polynomial Operator Surrogates](/202604/09/2604.00689v1-performance-of-neural-and-polynomial-operator-surrogates)  
    标签：评分：9.0/10、query:pde-llm
    evidence：用于参数化偏微分方程的神经算子代理模型
-18. [Diffusion models with physics-guided inference for solving partial differential equations](/202604/08/2604.01242v1-diffusion-models-with-physics-guided-inference-for-solving-partial-differential-equations)  
+9. [Bias Inheritance in Neural-Symbolic Discovery of Constitutive Closures Under Function-Class Mismatch](/202604/09/2604.01335v1-bias-inheritance-in-neural-symbolic-discovery-of-constitutive-closures-under-function-class-mismatch)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：物理引导推理的扩散模型求解PDE
-19. [Macroscopic transport patterns of UAV traffic in 3D anisotropic wind fields: A constraint-preserving hybrid PINN-FVM approach](/202604/08/2604.01327v1-macroscopic-transport-patterns-of-uav-traffic-in-3d-anisotropic-wind-fields-a-constraint-preserving-hybrid-pinn-fvm-approach)  
+   evidence：反应扩散偏微分方程中本构闭包的神经符号发现
+10. [PI-JEPA: Label-Free Surrogate Pretraining for Coupled Multiphysics Simulation via Operator-Split Latent Prediction](/202604/09/2604.01349v1-pi-jepa-label-free-surrogate-pretraining-for-coupled-multiphysics-simulation-via-operator-split-latent-prediction)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于各向异性Eikonal值问题的混合PINN-FVM方法
-20. [Bias Inheritance in Neural-Symbolic Discovery of Constitutive Closures Under Function-Class Mismatch](/202604/08/2604.01335v1-bias-inheritance-in-neural-symbolic-discovery-of-constitutive-closures-under-function-class-mismatch)  
+   evidence：用于PDE模拟的物理信息神经算子代理模型
+11. [PI-JEPA: Label-Free Surrogate Pretraining for Coupled Multiphysics Simulation via Operator-Split Latent Prediction](/202604/09/2604.01349v2-pi-jepa-label-free-surrogate-pretraining-for-coupled-multiphysics-simulation-via-operator-split-latent-prediction)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：反应扩散偏微分方程本构闭包的神经符号发现
-21. [PI-JEPA: Label-Free Surrogate Pretraining for Coupled Multiphysics Simulation via Operator-Split Latent Prediction](/202604/08/2604.01349v1-pi-jepa-label-free-surrogate-pretraining-for-coupled-multiphysics-simulation-via-operator-split-latent-prediction)  
+   evidence：用于多物理场模拟的物理信息代理预训练
+12. [Deep learning accelerated solutions of incompressible Navier-Stokes equations on non-uniform Cartesian grids](/202604/09/2604.01800v1-deep-learning-accelerated-solutions-of-incompressible-navier-stokes-equations-on-non-uniform-cartesian-grids)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于多物理场偏微分方程模拟的神经算子代理
-22. [PI-JEPA: Label-Free Surrogate Pretraining for Coupled Multiphysics Simulation via Operator-Split Latent Prediction](/202604/08/2604.01349v2-pi-jepa-label-free-surrogate-pretraining-for-coupled-multiphysics-simulation-via-operator-split-latent-prediction)  
+   evidence：深度学习加速纳维-斯托克斯方程求解
+13. [Goal oriented error estimation for adaptive sampling of PINNS](/202604/09/2604.01835v1-goal-oriented-error-estimation-for-adaptive-sampling-of-pinns)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于多物理场模拟的算子分裂潜变量预测
-23. [Mixed Consistent PINNs for Elliptic Obstacle Problems with Stability Analysis](/202604/08/2604.01719v1-mixed-consistent-pinns-for-elliptic-obstacle-problems-with-stability-analysis)  
+   evidence：用于偏微分方程数值逼近的PINNS自适应采样
+14. [Generalization Bounds and Statistical Guarantees for Multi-Task and Multiple Operator Learning with MNO Networks](/202604/09/2604.01961v1-generalization-bounds-and-statistical-guarantees-for-multi-task-and-multiple-operator-learning-with-mno-networks)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于椭圆问题的物理信息神经网络
-24. [Variationally mimetic operator network approach to transient viscous flows](/202604/08/2604.02124v1-variationally-mimetic-operator-network-approach-to-transient-viscous-flows)  
+   evidence：多算子学习的统计保证
+15. [Revisiting Conservativeness in Fluid Dynamics: Failure of Non-Conservative PINNs and a Path-Integral Remedy](/202604/09/2604.01968v1-revisiting-conservativeness-in-fluid-dynamics-failure-of-non-conservative-pinns-and-a-path-integral-remedy)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于瞬态粘性流和Stokes问题的算子网络方法
-25. [WGFINNs: Weak formulation-based GENERIC formalism informed neural networks'](/202604/08/2604.02601v1-wgfinns-weak-formulation-based-generic-formalism-informed-neural-networks)  
+   evidence：流体动力学物理信息神经网络分析
+16. [Variationally mimetic operator network approach to transient viscous flows](/202604/09/2604.02124v1-variationally-mimetic-operator-network-approach-to-transient-viscous-flows)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：微分问题的算子网络方法
+17. [WGFINNs: Weak formulation-based GENERIC formalism informed neural networks'](/202604/09/2604.02601v1-wgfinns-weak-formulation-based-generic-formalism-informed-neural-networks)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于数据驱动发现控制方程的科学机器学习
+18. [WGFINNs: Weak formulation-based GENERIC formalism informed neural networks](/202604/09/2604.02601v2-wgfinns-weak-formulation-based-generic-formalism-informed-neural-networks)  
    标签：评分：9.0/10、query:pde-llm
    evidence：用于发现控制方程的科学机器学习
-26. [WGFINNs: Weak formulation-based GENERIC formalism informed neural networks](/202604/08/2604.02601v2-wgfinns-weak-formulation-based-generic-formalism-informed-neural-networks)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：科学机器学习中控制方程的数据驱动发现
-27. [ViraHinter: a dual-modal artificial intelligence framework for predicting virus-host interactions](/202604/08/2604.02842v1-virahinter-a-dual-modal-artificial-intelligence-framework-for-predicting-virus-host-interactions)  
-   标签：评分：9.0/10、query:ddi
-   evidence：用于预测病毒-宿主相互作用的深度学习框架
-28. [Generalized Transferable Neural Networks for Steady-State Partial Differential Equations](/202604/08/2604.03020v1-generalized-transferable-neural-networks-for-steady-state-partial-differential-equations)  
+19. [Generalized Transferable Neural Networks for Steady-State Partial Differential Equations](/202604/09/2604.03020v1-generalized-transferable-neural-networks-for-steady-state-partial-differential-equations)  
    标签：评分：9.0/10、query:pde-llm
    evidence：基于神经网络的偏微分方程求解器
-29. [Learning Contractive Integral Operators with Fredholm Integral Neural Operators](/202604/08/2604.03034v1-learning-contractive-integral-operators-with-fredholm-integral-neural-operators)  
+20. [Learning Contractive Integral Operators with Fredholm Integral Neural Operators](/202604/09/2604.03034v1-learning-contractive-integral-operators-with-fredholm-integral-neural-operators)  
    标签：评分：9.0/10、query:pde-llm
    evidence：学习非线性椭圆偏微分方程的解算子
-30. [High-Precision Phase-Shift Transferable Neural Networks for High-Frequency Function Approximation and PDE Solution](/202604/08/2604.03186v1-high-precision-phase-shift-transferable-neural-networks-for-high-frequency-function-approximation-and-pde-solution)  
+21. [High-Precision Phase-Shift Transferable Neural Networks for High-Frequency Function Approximation and PDE Solution](/202604/09/2604.03186v1-high-precision-phase-shift-transferable-neural-networks-for-high-frequency-function-approximation-and-pde-solution)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：基于神经网络的偏微分方程求解和函数逼近方法
-31. [General Explicit Network (GEN): A novel deep learning architecture for solving partial differential equations](/202604/08/2604.03321v1-general-explicit-network-gen-a-novel-deep-learning-architecture-for-solving-partial-differential-equations)  
+   evidence：用于高频PDE求解的神经网络
+22. [Lattice-Boltzmann-Driven Physics-Informed Neural Networks for Droplet Wettability on Rough Surfaces](/202604/09/2604.03481v1-lattice-boltzmann-driven-physics-informed-neural-networks-for-droplet-wettability-on-rough-surfaces)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的深度学习架构
-32. [Lattice-Boltzmann-Driven Physics-Informed Neural Networks for Droplet Wettability on Rough Surfaces](/202604/08/2604.03481v1-lattice-boltzmann-driven-physics-informed-neural-networks-for-droplet-wettability-on-rough-surfaces)  
+   evidence：用于液滴动力学的格子玻尔兹曼驱动物理信息神经网络
+23. [Amalgamation of Physics-Informed Neural Network and LBM for the Prediction of Unsteady Fluid Flows in Fractal-Rough Microchannels](/202604/09/2604.03504v1-amalgamation-of-physics-informed-neural-network-and-lbm-for-the-prediction-of-unsteady-fluid-flows-in-fractal-rough-microchannels)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于玻尔兹曼方程的物理信息神经网络
-33. [Simple yet Effective: Low-Rank Spatial Attention for Neural Operators](/202604/08/2604.03582v1-simple-yet-effective-low-rank-spatial-attention-for-neural-operators)  
+   evidence：利用PINN和纳维-斯托克斯方程预测流体流动
+24. [Simple yet Effective: Low-Rank Spatial Attention for Neural Operators](/202604/09/2604.03582v1-simple-yet-effective-low-rank-spatial-attention-for-neural-operators)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的神经算子
-34. [A Geometry-Aware Operator Learning Framework for Interface Problems on Varying Domains](/202604/08/2604.04061v1-a-geometry-aware-operator-learning-framework-for-interface-problems-on-varying-domains)  
+   evidence：用于PDE神经算子的低秩空间注意力
+25. [Lotka-Sharpe Neural Operators for Control of Population PDEs](/202604/09/2604.03892v1-lotka-sharpe-neural-operators-for-control-of-population-pdes)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于PDE界面问题的几何感知算子学习框架
-35. [Hybrid Fourier Neural Operator for Surrogate Modeling of Laser Processing with a Quantum-Circuit Mixer](/202604/08/2604.04828v1-hybrid-fourier-neural-operator-for-surrogate-modeling-of-laser-processing-with-a-quantum-circuit-mixer)  
+   evidence：用于人口偏微分方程的神经算子
+26. [A Geometry-Aware Operator Learning Framework for Interface Problems on Varying Domains](/202604/09/2604.04061v1-a-geometry-aware-operator-learning-framework-for-interface-problems-on-varying-domains)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于偏微分方程代理建模的傅里叶神经算子
-36. [FNO$^{\angle θ}$: Extended Fourier neural operator for learning state and optimal control of distributed parameter systems](/202604/08/2604.05187v1-fnoangle--extended-fourier-neural-operator-for-learning-state-and-optimal-control-of-distributed-parameter-systems)  
+   evidence：用于PDE界面问题的神经算子框架
+27. [A Theory-guided Weighted $L^2$ Loss for solving the BGK model via Physics-informed neural networks](/202604/09/2604.04971v1-a-theory-guided-weighted-l2-loss-for-solving-the-bgk-model-via-physics-informed-neural-networks)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于学习偏微分方程状态的傅里叶神经算子
-37. [A deep learning framework for jointly solving transient Fokker-Planck equations with arbitrary parameters and initial distributions](/202604/08/2604.06001v1-a-deep-learning-framework-for-jointly-solving-transient-fokker-planck-equations-with-arbitrary-parameters-and-initial-distributions)  
+   evidence：用于求解 BGK 模型的物理信息神经网络
+28. [FNO$^{\angle θ}$: Extended Fourier neural operator for learning state and optimal control of distributed parameter systems](/202604/09/2604.05187v1-fnoangle--extended-fourier-neural-operator-for-learning-state-and-optimal-control-of-distributed-parameter-systems)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：求解Fokker-Planck方程的深度学习框架
+   evidence：用于学习PDE状态和控制的扩展傅里叶神经算子
+29. [Physics-Informed Neural Optimal Control for Precision Immobilization Technique in Emergency Scenarios](/202604/09/2604.05758v1-physics-informed-neural-optimal-control-for-precision-immobilization-technique-in-emergency-scenarios)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于车辆动力学的物理信息神经网络
+30. [A deep learning framework for jointly solving transient Fokker-Planck equations with arbitrary parameters and initial distributions](/202604/09/2604.06001v1-a-deep-learning-framework-for-jointly-solving-transient-fokker-planck-equations-with-arbitrary-parameters-and-initial-distributions)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：求解 Fokker-Planck 方程的深度学习框架
+31. [Learning the Stellar Structure Equations via Self-supervised Physics-Informed Neural Networks](/202604/09/2604.06255v1-learning-the-stellar-structure-equations-via-self-supervised-physics-informed-neural-networks)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于求解方程的物理信息神经网络框架
+32. [AE-ViT: Stable Long-Horizon Parametric Partial Differential Equations Modeling](/202604/09/2604.06475v1-ae-vit-stable-long-horizon-parametric-partial-differential-equations-modeling)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于参数化偏微分方程的深度学习降阶模型
+33. [FOSSA: First-Order Optimality-Based Sensor Selection for PINN Inverse Problems, with Application to Electrocardiographic Imaging](/202604/09/2604.06534v1-fossa-first-order-optimality-based-sensor-selection-for-pinn-inverse-problems-with-application-to-electrocardiographic-imaging)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：PINN反问题的传感器选择
+34. [A Massively Scalable Ligand-Protein Dissociation Dynamic Database Derived from Atomistic Molecular Modelling](/202604/09/2604.06761v1-a-massively-scalable-ligand-protein-dissociation-dynamic-database-derived-from-atomistic-molecular-modelling)  
+   标签：评分：9.0/10、query:ddi
+   evidence：用于药物设计的配体-蛋白质解离动力学数据库
+35. [Identifying Topological Invariants of Non-Hermitian Systems via Domain-Adaptive Multimodal Model for Mathematics](/202604/09/2604.06998v1-identifying-topological-invariants-of-non-hermitian-systems-via-domain-adaptive-multimodal-model-for-mathematics)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于识别科学问题中拓扑不变量的大语言模型框架
 
 ### 速读区论文标签
-1. [Predictor-Based Output-Feedback Control of Linear Systems with Time-Varying Input and Measurement Delays via Neural-Approximated Prediction Horizons](/202604/08/2603.29117v1-predictor-based-output-feedback-control-of-linear-systems-with-time-varying-input-and-measurement-delays-via-neural-approximated-prediction-horizons)  
-   标签：评分：8.0/10、query:pde-llm
-   evidence：常微分方程延迟映射的算子学习
-2. [Latent-Y: A Lab-Validated Autonomous Agent for De Novo Drug Design](/202604/08/2603.29727v2-latent-y-a-lab-validated-autonomous-agent-for-de-novo-drug-design)  
+1. [BioCOMPASS: Integrating Biomarkers into Transformer-Based Immunotherapy Response Prediction](/202604/09/2604.00739v1-biocompass-integrating-biomarkers-into-transformer-based-immunotherapy-response-prediction)  
    标签：评分：8.0/10、query:ddi
-   evidence：用于从头药物设计和计算验证的 AI 智能体
-3. [Predicting Wave Reflection and Transmission in Heterogeneous Media via Fourier Operator-Based Transformer Modeling](/202604/08/2604.00132v1-predicting-wave-reflection-and-transmission-in-heterogeneous-media-via-fourier-operator-based-transformer-modeling)  
+   evidence：基于Transformer的免疫治疗反应预测
+2. [Event Embedding of Protein Networks : Compositional Learning of Biological Function](/202604/09/2604.00911v1-event-embedding-of-protein-networks--compositional-learning-of-biological-function)  
+   标签：评分：8.0/10、query:ddi
+   evidence：蛋白质相互作用网络的组合学习
+3. [Graph Neural Operator Towards Edge Deployability and Portability for Sparse-to-Dense, Real-Time Virtual Sensing on Irregular Grids](/202604/09/2604.01802v1-graph-neural-operator-towards-edge-deployability-and-portability-for-sparse-to-dense-real-time-virtual-sensing-on-irregular-grids)  
    标签：评分：8.0/10、query:pde-llm
-   evidence：基于傅里叶算子的Transformer求解麦克斯韦方程组
-4. [Geometry-informed neural atlas for boundary value problems of complex 3D geometries](/202604/08/2604.00285v1-geometry-informed-neural-atlas-for-boundary-value-problems-of-complex-3d-geometries)  
-   标签：评分：8.0/10、query:pde-llm
-   evidence：用于边界值问题的学习几何表示
-5. [Stability of Ginzburg-Landau pulses via Fredholm determinants of Birman-Schwinger operators](/202604/08/2603.29040v1-stability-of-ginzburg-landau-pulses-via-fredholm-determinants-of-birman-schwinger-operators)  
+   evidence：用于物理场的图神经算子
+4. [ViraHinter: a dual-modal artificial intelligence framework for predicting virus-host interactions](/202604/09/2604.02842v1-virahinter-a-dual-modal-artificial-intelligence-framework-for-predicting-virus-host-interactions)  
+   标签：评分：8.0/10、query:ddi
+   evidence：用于病毒-宿主相互作用预测的深度学习
+5. [Hybrid Energy-Based Models for Physical AI: Provably Stable Identification of Port-Hamiltonian Dynamics](/202604/09/2604.00277v2-hybrid-energy-based-models-for-physical-ai-provably-stable-identification-of-port-hamiltonian-dynamics)  
    标签：评分：7.0/10、query:pde-llm
-   evidence：偏微分方程中微分算子稳定性的数值方法
-6. [Derived Fields Preserve Fine-Scale Detail in Budgeted Neural Simulators](/202604/08/2603.29224v1-derived-fields-preserve-fine-scale-detail-in-budgeted-neural-simulators)  
+   evidence：用于识别物理系统动力学的AI技术
+6. [Geometry-informed neural atlas for boundary value problems of complex 3D geometries](/202604/09/2604.00285v1-geometry-informed-neural-atlas-for-boundary-value-problems-of-complex-3d-geometries)  
    标签：评分：7.0/10、query:pde-llm
-   evidence：纳维-斯托克斯方程的神经模拟器
-7. [Metriplector: From Field Theory to Neural Architecture](/202604/08/2603.29496v2-metriplector-from-field-theory-to-neural-architecture)  
+   evidence：用于控制方程的学习几何表示
+7. [MVNN: A Measure-Valued Neural Network for Learning McKean-Vlasov Dynamics from Particle Data](/202604/09/2604.00333v1-mvnn-a-measure-valued-neural-network-for-learning-mckean-vlasov-dynamics-from-particle-data)  
    标签：评分：7.0/10、query:pde-llm
-   evidence：一种解决泊松方程并应用于语言建模任务的神经架构。
-8. [Latent-Y: A Lab-Validated Autonomous Agent for De Novo Drug Design](/202604/08/2603.29727v1-latent-y-a-lab-validated-autonomous-agent-for-de-novo-drug-design)  
-   标签：评分：7.0/10、query:ddi
-   evidence：用于从头药物设计和计算验证的 AI 智能体
-9. [A Latent Risk-Aware Machine Learning Approach for Predicting Operational Success in Clinical Trials based on TrialsBank](/202604/08/2603.29041v1-a-latent-risk-aware-machine-learning-approach-for-predicting-operational-success-in-clinical-trials-based-on-trialsbank)  
-   标签：评分：6.0/10、query:ddi
-   evidence：用于临床试验成功预测的机器学习
-10. [HCLSM: Hierarchical Causal Latent State Machines for Object-Centric World Modeling](/202604/08/2603.29090v1-hclsm-hierarchical-causal-latent-state-machines-for-object-centric-world-modeling)  
+   evidence：从数据中学习相互作用力和动力学
+8. [A Residual Minimization approach for Nonlinear Partial Differential Equations set in Banach spaces](/202604/09/2604.00341v1-a-residual-minimization-approach-for-nonlinear-partial-differential-equations-set-in-banach-spaces)  
+   标签：评分：7.0/10、query:pde-llm
+   evidence：非线性偏微分方程数值解的残差最小化策略
+9. [Hybrid Energy-Based Models for Physical AI: Provably Stable Identification of Port-Hamiltonian Dynamics](/202604/09/2604.00277v1-hybrid-energy-based-models-for-physical-ai-provably-stable-identification-of-port-hamiltonian-dynamics)  
    标签：评分：6.0/10、query:pde-llm
-   evidence：用于连续物理和世界建模的状态空间模型
-11. [Metriplector: From Field Theory to Neural Architecture](/202604/08/2603.29496v1-metriplector-from-field-theory-to-neural-architecture)  
+   evidence：用于物理AI和系统辨识的能量模型
+10. [MVNN: A Measure-Valued Neural Network for Learning McKean-Vlasov Dynamics from Particle Data](/202604/09/2604.00333v2-mvnn-a-measure-valued-neural-network-for-learning-mckean-vlasov-dynamics-from-particle-data)  
    标签：评分：6.0/10、query:pde-llm
-   evidence：用于场论和语言建模的神经架构
-12. [Sampling at intermediate temperatures is optimal for training large language models in protein structure prediction](/202604/08/2603.29529v1-sampling-at-intermediate-temperatures-is-optimal-for-training-large-language-models-in-protein-structure-prediction)  
+   evidence：使用神经网络从粒子数据中学习McKean-Vlasov动力学
+11. [Derivative estimates for SDEs with singular and unbounded coefficients](/202604/09/2604.00685v1-derivative-estimates-for-sdes-with-singular-and-unbounded-coefficients)  
    标签：评分：6.0/10、query:pde-llm
-   evidence：用于蛋白质结构预测的Transformer模型
+   evidence：随机微分方程的PDE概率框架
+12. [On the error of the Euler scheme for approximation of solutions of nonlinear DDEs under inexact information](/202604/09/2604.01180v1-on-the-error-of-the-euler-scheme-for-approximation-of-solutions-of-nonlinear-ddes-under-inexact-information)  
+   标签：评分：6.0/10、query:pde-llm
+   evidence：非线性时滞微分方程解的近似
 
 
 <div class="dpr-home-promo-card">

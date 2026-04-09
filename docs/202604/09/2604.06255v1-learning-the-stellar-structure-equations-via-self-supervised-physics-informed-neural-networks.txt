@@ -1,0 +1,1165 @@
+Title: Learning the Stellar Structure Equations via Self-supervised Physics-Informed Neural Networks
+
+URL Source: https://arxiv.org/pdf/2604.06255v1
+
+Published Time: Thu, 09 Apr 2026 00:03:08 GMT
+
+Number of Pages: 27
+
+Markdown Content:
+# Learning the Stellar Structure Equations via Self-supervised Physics-Informed Neural Networks 
+
+## Manuel Ballester 1,+,* , Santiago Lopez-Tapia 2,+ , Seth Gossage 1, 3, 4 , Patrick Koller 1,2 , Philipp M. Srivastava 2, Ugur Demir 2, Yongseok Jo 1, Almudena P. Marquez 5, Christoph Wuersch 6,Souvik Chakraborty 7, Vicky Kalogera 1,3,4 , and Aggelos Katsaggelos 1,2 
+
+> 1
+
+SkAI Institute (NSF–Simons AI Institute for the Sky), Chicago, IL, USA 
+
+> 2
+
+Department of Electrical and Computer Engineering, Northwestern University, Chicago, IL, USA 
+
+> 3
+
+CIERA, Northwestern University, Chicago, IL, USA 
+
+> 4
+
+Department of Physics and Astronomy, Northwestern University, Chicago, IL, USA 
+
+> 5
+
+Department of Mathematics, University of Cadiz, Cadiz, Spain 
+
+> 6
+
+OST Eastern Switzerland University of Applied Sciences, Switzerland 
+
+> 7
+
+Indian Institute of Technology (IIT) Delhi, New Delhi, India 
+
+> +
+
+These authors contributed equally to this work 
+
+> *
+
+Corresponding author: manuel.ballester@northwestern.edu 
+
+## ABSTRACT 
+
+Stellar astrophysics relies critically on accurate descriptions of the physical conditions inside stars. Traditional solvers such as MESA (Modules for Experiments in Stellar Astrophysics), which employ adaptive finite-difference methods, can become computationally expensive and challenging to scale for large stellar population synthesis ( > 10 9 stars). In this work, we present an self-supervised physics-informed neural network (PINN) framework that provides a mesh-free and fully differentiable approach to solving the stellar structure equations under hydrostatic and thermal equilibrium. The model takes as input the stellar boundary conditions (at the center and surface) together with the chemical composition, and learns continuous radial profiles for mass Mr(r), pressure P(r), density ρ(r), temperature T (r), and luminosity Lr(r) by enforcing the governing structure equations through physics-based loss terms. To incorporate realistic microphysics, we introduce auxiliary neural networks that approximate the equation of state and opacity tables as smooth, differentiable functions of the local thermodynamic state. These surrogates replace traditional tabulated inputs and enable end-to-end training. Once trained for a given star, the model produces continuous solutions across the entire radial domain without requiring discretization or interpolation. Validation against benchmark MESA models across a range of stellar masses yields a Mean Relative Absolute Error of 3.06% and an average R2 score of 99 .98% . To our knowledge, this is the first demonstration that the stellar structure equations can be solved in a fully self-supervised and data-free fashion employing PINNs. This work establishes a foundation for scalable, physics-informed emulation of stellar interiors and opens the door to future extensions toward time-dependent stellar evolution. 
+
+## 1 Introduction 
+
+Understanding the internal structure of stars remains one of the central problems in stellar astrophysics 1, 2 . The internal radial profiles of fundamental physical quantities (such as pressure, density, temperature, luminosity and enclosed mass) govern the observable properties of the star, including its total luminosity (magnitude), effective temperature (color), total radius, and nucleosynthetic outputs 3, 4 . Accurately modeling these internal structures is therefore essential in order to connect theoretical predictions with observations across a wide range of astrophysical phenomena. The open-source code MESA (Modules for Experiments in Stellar Astrophysics) 5–9 represents the state-of-the-art in stellar structure modeling, combining macroscopic conservation laws with detailed microphysical processes (such as opacity, equation of state, and nuclear reaction networks). Despite its accuracy and flexibility, MESA remains computationally intensive for certain applications. Each stellar model typically requires iterative finite-difference solvers, repeated interpolation of large tabulated datasets, and adaptive mesh refinement, resulting in runtimes on the order of hours per star. While this cost is acceptable for individual studies, it becomes prohibitive for large-scale use cases such as stellar population synthesis 10–14 , which may require evaluating billions of single and binary stellar models. This computational challenge is expected to intensify with the advent of next-generation surveys, such as the Vera C. Rubin Observatory LSST 15 , which will produce massive volumes of data on stellar populations. These efforts demand fast, scalable, and physically consistent models capable of evaluating stellar properties across broad ranges of masses and compositions, often in real time. This motivates the development of alternative approaches that retain the physical fidelity of classical solvers while 1
+
+> arXiv:2604.06255v1 [astro-ph.SR] 6 Apr 2026
+
+significantly improving computational efficiency. …      
+
+> (pressure)
+> (luminosity)
+> …
+> …
+> Derivatives Network Input
+> CPDE Residuals (Eqs. 1-2)
+> CBC Conditions
+> Loss
+> yes
+> no
+> CDD Data-Driven
+> New W
+> Optimal W*
+> W
+
+Figure 1. Schematic of the Physics-Informed Neural Network (PINN) framework for stellar structure modeling. The network maps the normalized enclosed mass ( ˆ Mr) to the stellar state variables (pressure, radius, temperature, and luminosity). The training objective combines a physics-based loss CPDE , defined as the L2 norm of the equation residuals at collocation points, and a boundary-condition term CBC . An optional data-driven term CDD can be included in supervised settings, but is omitted in the fully self-supervised formulation considered in this work. Physics-Informed Neural Networks (PINNs) have recently emerged as a promising framework for solving differential equations by embedding physical laws directly into the training process 16–22 . Instead of relying on labeled input-output data, PINNs minimize the residuals of the governing equations, effectively using the equations themselves during training. Through automatic differentiation, the network can represent both the solution and its derivatives, enabling the continuous enforcement of differential constraints across the domain. In addition, architectural design choices can be used to encode known physical structure, further restricting the space of admissible solutions. Despite their rapid development, the application of PINNs to stellar astrophysics remains largely unexplored. Existing machine learning approaches for stellar modeling typically rely on supervised learning using precomputed stellar models 23–29 .While effective within their training domain, these approaches inherit biases from the underlying simulations and do not generalize reliably beyond them. In contrast, a fully self-supervised PINN trained solely on the governing equations and boundary conditions constitutes a data-free and independent solver 30–32 .However, directly applying standard PINNs to stellar structure problems proves challenging. The stellar structure equations are highly nonlinear, stiff, and tightly coupled, with solutions spanning many orders of magnitude and requiring strict enforcement of boundary conditions at both the stellar center and surface. In practice, naive PINN formulations often suffer from a number of challenges 33–41 , including the slow convergence, poor representation of sharp gradients, and violations of physical constraints, making them insufficient for accurate stellar modeling. A key contribution of this work is to show that accurate stellar structure modeling with PINNs does not arise from a single architectural choice, but rather from a carefully designed combination of recent advances in physics-informed learning. Our framework integrates: (i) hard-constraint enforcement of boundary conditions through analytic transformations, ensuring exact satisfaction of central and surface conditions 41–44 ; (ii) auxiliary neural networks with Random Fourier Feature embeddings 45–50 
+
+to model tabulated microphysics (equation of state and opacity) as smooth, differentiable functions; (iii) a SIREN-based architecture 51–53 for the main PINN to efficiently capture high-frequency features with a compact model; (iv) the Stochastic Projection PINN (SP-PINN) approach 54, 55 for gradient-free approximation of PDE derivatives, reducing computational cost; and (v) an active learning strategy based on Residual-Based Attention 56, 57 , which adaptively concentrates collocation points in regions where the solution is most challenging. While each of these components has been explored in isolation in prior work, their integration and adaptation to the stellar structure problem are essential to overcome the multiscale behavior, stiffness, and strict physical constraints of stellar interiors. Together, they enable stable and accurate training of a fully self-supervised model that acts as a continuous, mesh-free solver. The following sections describe each of these components in detail and how they are combined into a unified framework. In this work, we develop such an self-supervised PINN framework to directly solve the four canonical stellar structure equations under the assumption of hydrostatic and thermal equilibrium. The network takes as input the independent variable (either the radial coordinate r or, equivalently, the enclosed mass Mr) together with the stellar chemical composition (X,Y, Z).
+
+> 2/16
+
+The energy generation rate ε, including nuclear reactions and neutrino losses, is computed using classical finite-difference microphysical routines from MESA , ensuring physical consistency. The opacity κ and the equation of state (EoS) are modeled through auxiliary neural networks trained on tabulated data, enabling end-to-end differentiability. The resulting model learns continuous radial profiles of the stellar properties (mass enclosed, pressure, density, temperature, and luminosity) at randomly sampled collocation points, producing solutions that can be evaluated at arbitrary locations without discretization or interpolation. This mesh-free and differentiable formulation makes the approach particularly well suited for applications such as sensitivity analysis, inverse problems, and large-scale population synthesis. Validation against benchmark MESA models across a range of stellar masses demonstrates high accuracy, with a Mean Relative Absolute Error (MRAE) of 3.06% and an average R2 score of 99 .98% . While the present work focuses on equilibrium stellar structures, we also explore preliminary extensions toward time-dependent evolution, highlighting both the potential and current limitations of the approach. In summary, we introduce a data-free neural solver for the stellar structure equations that integrates realistic microphysics, enforces boundary conditions exactly, and combines multiple recent advances in physics-informed learning into a unified framework. This work represents a first step toward fully self-supervised, physics-informed modeling of stellar interiors with realistic microphysics, establishing a foundation for scalable simulations and future extensions to time-dependent stellar evolution and more complex astrophysical systems. 
+
+## 2 Methodology 
+
+2.1 Overview 
+
+As mentioned above, the goal of this work is to construct a PINN model that learns the internal structure of a star in hydrostatic and thermal equilibrium directly from the governing differential equations, without requiring precomputed training data. In this section, we describe the physical formulation, introduce the main variables and notation, and outline the overall modeling strategy. A star in equilibrium is characterized by the radial profiles of several coupled physical quantities: the pressure P, which balances gravitational contraction; the density ρ, which determines the local mass distribution; the temperature T , which governs the thermal state and energy transport; and the luminosity Lr, which represents the net energy flux passing through a spherical shell at radius r. These quantities are related through a system of coupled differential equations known as the stellar structure equations, expressing conservation of mass, momentum (hydrostatic equilibrium), energy, and energy transport 3.A fifth quantity, the enclosed mass Mr, defined as the total mass within radius r, plays a central role. Since Mr increases monotonically with r, there exists a one-to-one correspondence between these variables. We exploit this property by adopting 
+
+Mr as the independent variable. This Lagrangian formulation avoids coordinate singularities at the stellar center and leads to improved numerical stability. The PINN is trained by minimizing the residuals of the stellar structure equations at a set of collocation points sampled across the domain ˆMr ∈ [0, ˆMtotal ]. The network takes the normalized enclosed mass ˆMr as input and predicts the stellar variables ˆr, ˆP, ˆT , and ˆLr. Please observe that, in order to improve numerical stability, all physical quantities are normalized using solar reference values (we are using the standard dimensionless notation for the quantities with a hat, such as ˆMr = Mr/M⊙,ˆr = r/R⊙, and ˆP = P/P⊙). The boundary conditions at the stellar center and surface are enforced in the PINN model using a hard-constraint formulation, in which analytic transformations ensure that the network outputs satisfy the prescribed values by construction. The system is closed through three microphysical relations: the equation of state (EOS), the opacity κ, and the energy generation rate ε. We adopt a hybrid strategy. The EOS and opacity are modeled using auxiliary neural networks trained on tabulated microphysics, providing smooth and differentiable surrogates. In contrast, the energy generation rate (due to its stiffness and complexity) is computed using established finite-difference based routines from MESA .
+
+2.2 Stellar Structure Equations 
+
+Under the assumption of spherical symmetry, the internal structure of a star is described by a system of coupled differential equations governing mass conservation, momentum balance, energy transport, and energy conservation. In their most general form, these equations depend on both the enclosed mass coordinate Mr and time t, allowing for stellar evolution. Following the 
+
+> 3/16
+
+standard formulation, the time-dependent stellar structure equations can be written as 
+
+∂ ˆP
+
+∂ ˆMr
+
+= − βa ˆMr
+
+ˆr4 − βe
+
+ˆr2
+
+∂ 2 ˆr
+
+∂t2 , (1) 
+
+∂ ˆr
+
+∂ ˆMr
+
+= βb
+
+ˆr2 ˆρ , (2) 
+
+∂ ˆT
+
+∂ ˆMr
+
+= − βc ˆLr
+
+ˆr4 ∇( ˆMr,t), (3) 
+
+∂ ˆLr
+
+∂ ˆMr
+
+= βd
+
+
+
+ε( ˆMr,t) − T ∂ S
+
+∂t
+
+
+
+, (4) where the additional term in Eq. (1) accounts for dynamical acceleration, and the entropy term in Eq. (4) captures time-dependent thermal evolution. The dimensionless constants βa, βb, βc, βd , βe absorb physical constants and normalization factors and are further discussed and derived in the Supplementary Material (Section 1). This system describes the full time evolution of a star, including dynamical adjustments, thermal relaxation, and changes in internal structure driven by nuclear processes and entropy variations. However, solving this fully time-dependent system is significantly more challenging due to stiffness, multi-scale coupling, and the need to track entropy evolution consistently. The stellar structure equations are fully specified by the set of boundary conditions and microphysical inputs, primarily determined by the total initial stellar mass MT and its chemical composition (X,Y, Z), denoting the mass fractions of hydrogen, helium, and heavier elements (metals), with Y = 1 − X − Z. These quantities define the global properties of the star and enter the system through the equation of state, opacity, and energy generation rate. In this time-dependent formulation, the composition evolves according to nuclear reaction networks, introducing additional equations of the form dX dt , dY dt , and dZ dt .In this work, we focus on stars in hydrostatic and thermal equilibrium 58, 59 . Under these assumptions, the time-dependent terms vanish, 
+
+∂ 2 ˆr
+
+∂t2 ≈ 0, ∂ S
+
+∂t ≈ 0, dX dt ≈ dY dt ≈ dZ dt ≈ 0, (5) A central quantity in the formulation is the dimensionless temperature gradient, 
+
+∇ = d ln Td ln P , (6) which determines the dominant energy transport mechanism. In stellar interiors, energy is transported by radiative diffusion along or by radiative diffusion and convection together, depending on local stability conditions. This is modeled through the piecewise relation 
+
+∇ =
+
+
+
+∇rad , if ∇rad ≤ ∇ad ,
+
+∇conv , if ∇rad > ∇ad ,
+
+(7) where ∇ad is the adiabatic gradient obtained from the equation of state. The radiative gradient is given by 
+
+∇rad = 3κ ˆP ˆLr
+
+16 πacG ˆMr ˆT 4 , (8) while convective regions are identified through the Schwarzschild criterion ∇rad > ∇ad . In these regions, the effective gradient 
+
+∇conv is computed using mixing-length theory 5, 60, 61 (further detailed in the Supplementary Material, Section 2), which provides a local approximation to turbulent energy transport and drives the temperature gradient toward the adiabatic limit. The resulting system defines a nonlinear boundary-value problem with conditions imposed at both the stellar center and surface. At the center ( ˆMr = 0 ), regularity requires ˆr(0) = 0 and ˆLr(0) = 058 , while at the surface ( ˆMr = ˆMtotal ), the stellar variables match the specific atmospheric boundary conditions 62–65 . The details about the specific boundary value calculations can be found in 5 and in Section 3 of the Supplementary Material. While the general time-dependent formulation in Eqs. (1) –(4) provides the modeling of the stellar evolution, the present work mainly focuses on solving the equilibrium system. We will also explore in this manuscript some preliminary extensions of our framework to include time as an input, highlighting both the potential and current limitations of this approach. 
+
+> 4/16
+
+2.3 Microphysical Closures 
+
+The stellar structure equations involve five unknown fields ( ˆP, ˆr, ˆρ, ˆT , ˆLr) but provide only four differential relations. Closing the system requires additional microphysical relations: the equation of state, opacity, and energy generation rate. These quantities are introduced below and treated using a hybrid strategy combining learned surrogates and fixed physics operators. 
+
+> 2.3.1 Equation of State as an Auxiliary Network
+
+The equation of state provides the thermodynamic closure relating pressure, density, temperature, and composition. While the conventional formulation expresses pressure as P = P(ρ, T, X, Z), this representation would require differentiating through the EOS when evaluating the pressure gradient in Eq. (3), increasing computational cost during PINN training. To avoid this issue, we invert the EOS relation and train an auxiliary neural network to predict density directly from pressure, temperature, and composition: ˆρ = ˆρ net ( ˆP, ˆT , X, Z). (9) This formulation is physically equivalent but ensures that the auxiliary network appears only in algebraic form, avoiding the need for backpropagation through thermodynamic derivatives. The network is trained on tabulated EOS data constructed from standard sources (OPAL, SCVH, HELM, and PC) 66–69 , blended following established procedures 5. To accurately capture the sharp gradients and multi-scale structure present in EOS tables, the network employs Random Fourier Feature (RFF) 45 
+
+embeddings in the input layer together with a compact multilayer perceptron using sinusoidal activations. This design mitigates the spectral bias 70 of standard multilayer perceptrons (MLPs), enabling efficient representation of high-frequency variations without requiring large network capacity. The RFF parameterization is implemented following the approach of 71 . Once trained, the auxiliary model provides a smooth and differentiable surrogate that replaces traditional interpolation routines. Implementation details regarding table blending and network configuration are provided in the Supplementary Material (Section 4). 
+
+> 2.3.2 Opacity as an Auxiliary Network
+
+The opacity κ governs the efficiency of radiative energy transport and enters the temperature equation through the radiative gradient. The total opacity combines radiative and conductive contributions via the harmonic sum 1
+
+κ = 1
+
+κrad 
+
++ 1
+
+κcond 
+
+. (10) Following the same strategy as for the EOS, we train a second auxiliary neural network to produce a surrogate differentiable model that reproduces the discrete tabulated opacity data as a function of the thermodynamic state: 
+
+κ = κnet ( ˆP, ˆT , X, Z). (11) Parameterizing κ in terms of ( ˆP, ˆT ) ensures consistency with the EOS network and avoids additional coupling during training. The architecture mirrors that of the EOS surrogate, including Fourier feature embeddings and sinusoidal activations, and is trained on opacity tables constructed from standard radiative and conductive sources. Details of the tabulated data construction of κ and training procedure are provided in the Supplementary Material (Section 2), which is dedicated to the detailed analysis of the energy transport. 
+
+> 2.3.3 Energy Generation
+
+The local energy generation rate entering Eq. (4) is given by 
+
+ε = εnuc − εν + εgrav , (12) where εnuc represents nuclear energy release, εν accounts for thermal losses due to neutrinos, and εgrav captures energy exchange due to gravitational contraction or expansion. In the general time-dependent formulation, the gravitational contribution is directly related to entropy evolution, 
+
+εgrav = − T ∂ S
+
+∂t , (13) which reflects the conversion between thermal and gravitational energy. Under hydrostatic and thermal equilibrium, the entropy is time-independent and εgrav ≈ 0. The nuclear energy generation rate εnuc (ρ, T, Xi) exhibits an extreme sensitivity to temperature and spans many orders of magnitude across the stellar interior, reflecting the underlying nuclear reaction networks and Coulomb barrier penetration 
+
+> 5/16
+
+Figure 2. Architecture of the auxiliary network used to learn thermodynamic closures. The same architecture is employed for both the EOS (predicting ρ) and opacity ( κ), enabling smooth and differentiable approximations of tabulated microphysics. effects. In addition, neutrino losses εν (ρ, T, Xi) introduce further nonlinear and regime-dependent behavior. As a result, the total energy generation rate ε is a highly stiff function of the local thermodynamic state. Neural-network surrogates for stellar microphysics, including nuclear energy generation and equation-of-state quantities, have been developed in recent work, particularly in the context of stellar modeling and emulation 72, 73 . However, incorporating such surrogates within a physics-informed neural network framework introduces additional challenges. In particular, the strong stiffness and sharp local variations of ε can adversely affect training stability and significantly increase computational cost when coupled to the global PDE constraints. For these reasons, we evaluate the energy generation rate using the microphysical routines from MESA , which compute nuclear reaction rates and neutrino losses based on established physics and finite-difference schemes (see Section 5 of the Supplementary Material for more details). This hybrid approach preserves physical fidelity for the most complex microphysical processes while allowing the neural network to focus on learning the global structure of the stellar solution. 
+
+## 3 Physics-Informed Neural Network Formulation 
+
+3.1 Network architecture and physics-informed loss 
+
+We construct a PINN model that directly approximates the solution of the steady-state stellar structure equations. The model is based on a SIREN (Sinusoidal Representation Network) architecture 51 , implemented as a fully connected multi-layer perceptron with sinusoidal activation functions. The network takes the normalized enclosed mass coordinate ˆMr as input and outputs continuous approximations of the stellar variables, 
+
+ ˆPnet ( ˆMr;W ), ˆrnet ( ˆMr;W ), ˆT net ( ˆMr;W ), ˆLnet  
+
+> r
+
+( ˆMr;W ) ,
+
+where W denotes the trainable parameters of the network. This compact architecture is sufficient to represent the smooth yet highly nonlinear stellar profiles while maintaining a computationally efficient evaluation of derivatives. The use of sinusoidal activations enables accurate representation of high-frequency features and, very importantly, ensures stable gradient backpropagation. This is particularly advantageous in physics-informed settings where one has to calculate the derivatives of the output with respect to the input to evaluate the PDE residual. The network is trained in a fully self-supervised manner by minimizing the residuals of the governing equations. These residuals are evaluated at a set of collocation points { ˆM(i) 
+
+> r
+
+}Nc 
+
+> i=1
+
+sampled within the stellar interior. The residuals corresponding 
+
+> 6/16
+
+to the stellar structure equations are defined as 
+
+RP = ∂ ˆPnet 
+
+∂ ˆMr
+
++ βa ˆMr
+
+(ˆrnet )4 , (14) 
+
+Rr = ∂ ˆrnet 
+
+∂ ˆMr
+
+− βb
+
+(ˆrnet )2 ˆρ , (15) 
+
+RT = ∂ ˆT net 
+
+∂ ˆMr
+
++ βc ˆLnet 
+
+> r
+
+(ˆrnet )4 ∇( ˆMr), (16) 
+
+RL = ∂ ˆLnet 
+
+> r
+
+∂ ˆMr
+
+− βd ε, (17) where ˆρ, κ, and ε are obtained from the microphysical closures described in Sec. 2.3. The temperature gradient ∇ incorporates both radiative and convective transport through the piecewise formulation introduced in Eq. (7). The physics-informed loss is defined as the empirical L2 norm of these residuals, 
+
+LPDE (W ) = 1
+
+NcNc
+
+# ∑
+
+> i=1
+
+# ∑
+
+> k∈{ P,r,T,L}
+
+αk Rk( ˆM(i) 
+
+> r
+
+;W ) 2
+
+, (18) where αk are weighting coefficients balancing the contribution of each equation. The derivatives of the network outputs with respect to ˆMr are computed via automatic differentiation. To improve numerical stability across the wide dynamic range of stellar variables, Layer Normalization is applied before each hidden layer. 
+
+3.2 Hard imposition of boundary conditions 
+
+The stellar structure equations define a boundary-value problem with conditions specified at both the stellar center and surface. In the absence of data-driven supervision, minimizing the loss function LPDE alone does not uniquely determine a solution, and boundary conditions must be explicitly enforced. We therefore must impose central regularity conditions and surface boundary conditions obtained from an atmospheric model (the specific boundary values are detailed in Section 3 of the Supplementary Material). A common approach in PINNs is to impose boundary conditions through soft constraints by augmenting the loss function. However, in fully self-supervised settings, this strategy often leads to slow convergence and sensitivity to the relative weighting of loss terms. Instead, we adopt a hard-constraint formulation in which the boundary conditions are satisfied exactly by construction. The raw network outputs are transformed using analytic envelope functions that interpolate between the center and surface values, 
+
+gu( ˆMr;W ) = c1(m) fu( ˆMr;W ) + c2(m) us + c3(m) uc, (19) where m = ˆMr/ ˆMtotal ∈ [0, 1], fu denotes the unconstrained network output, and uc, us are the prescribed boundary values. The weighting functions are defined as 
+
+c1(m) = 1 − 14(m − m2) + 1 ,
+
+c2(m) = m
+
+4(m − m2) + 1 ,
+
+c3(m) = 1 − m
+
+4(m − m2) + 1 , (20) which ensure that gu(0) = uc and gu(1) = us exactly, while remaining smooth and differentiable across the domain. These graphs are shown in Figure 3. This construction restricts the optimization to the physically admissible solution space, eliminating the need for additional boundary-loss terms and significantly improving convergence stability. 
+
+## 4 Training procedure and results 
+
+To ensure robust convergence and generalization, we performed an extensive hyperparameter grid search, selecting configura-tions based on both validation performance and physical consistency. Guided by this process, the final training setup consists of 10,000 iterations with a batch size of 256. The physics-informed loss Lp is also used as an effective criterion for early stopping. 
+
+> 7/16
+
+Figure 3. Stellar profile predictions for relatively low- and high-mass stars. Each subfigure compares the ground-truth solution obtained from the classical MESA solver (blue) with the PINN prediction (red) for the normalized luminosity, pressure, radius, density, and temperature as functions of enclosed mass. Optimization is carried out using the Adam optimizer 74 with standard momentum parameters (β1 = 0.9, β2 = 0.999 ) and a weight decay of 10 −6. The learning rate follows a cosine annealing schedule 75 , initialized at 5 × 10 −4 and decaying to 5 × 10 −7.For interpolation experiments, the physics-informed loss is scaled by a factor λ = 5 × 10 −2.To accelerate training and alleviate the computational burden associated with automatic differentiation, we adopt the Stochastic Projection Physics-Informed Neural Network (SP-PINN) framework 54 . Instead of explicitly computing derivatives through backpropagation, this method approximates the PDE gradients via a Monte Carlo evaluation of nearby collocation points. In practice, we find that sampling a single neighboring point provides sufficient accuracy. To further improve efficiency, training batches are constructed such that each collocation point and its corresponding neighbor are included within the same batch. This enables the computation of all required quantities with a single forward pass, eliminating redundant evaluations and significantly reducing both memory usage and runtime. Collocation points are sampled using the residual-based attention (RBA) strategy 56, 57 as a type of active learning. This approach assigns importance weights to points based on the history of their PDE residuals, allowing the model to focus on regions where the governing equations or boundary conditions are not yet well satisfied. Importantly, this mechanism operates without requiring additional gradient computations, making it computationally efficient. Figure 4 shows the predicted stellar profiles for representative low- and high-mass stars with total masses MT = 1.6 M⊙ and 
+
+MT = 9.6 M⊙. The PINN accurately reproduces the reference solutions from MESA across all physical quantities, demonstrating its ability to capture both smooth trends and sharp transitions within the stellar interior. We evaluate the model across a range of stellar masses from 0.4 to 9.9 M⊙, using 96 uniformly spaced samples. All models are taken at a stage where approximately 99% of hydrogen has been burned, ensuring a stable equilibrium configuration as provided by MESA . Within this range, the model achieves an average Mean Relative Absolute Error (MRAE) of 3.06% and an average R2 score of 99 .98%. The MRAE between a ground-truth quantity Qi and a prediction ˆ Qi is defined as MRAE (Q, ˆQ) = 1
+
+N
+
+> N
+
+# ∑
+
+> i=1
+
+|Qi − ˆQi|
+
+σ (Qi) , (21) which provides a normalized and interpretable measure of error across variables with different scales. Unlike metrics such as MSE, RMSE, or MAE, the MRAE captures relative discrepancies and therefore better reflects the physical accuracy of the solution. 
+
+> 8/16
+
+Figure 4. Stellar profile predictions for relatively low- and high-mass stars. Each subfigure compares the ground-truth solution obtained from the classical MESA solver (blue) with the PINN prediction (red) for the normalized luminosity, pressure, radius, density, and temperature as functions of enclosed mass. 9/16 From a broad perspective, a PINN combines a physics-based loss with an optional data-driven term, 
+
+L (W ) = αPDE L PDE (W ) + αDD L DD (W ), (22) while hard constraints are imposed through the architecture. When αDD > 0 , the model effectively operates in a supervised regime, leveraging known input-output pairs and behaving as a physics-regularized interpolator. To highlight the importance of incorporating physical constraints, we compare our model performance with two additional models (using the same architecture and number of epochs): one trained purely on MESA data without enforcing the governing equations (Figure 5a), and another trained on MESA data together with the governing equations (Figure 5a). It should be emphasized that these two comparative models behave as intelligent interpolators rather than solvers, since the solution is known beforehand at specific points. We carried out this supervised training using 10% of the original MESA data (the full dataset for the stars under analysis contains around 4,000 track points), with the remaining data used for testing; this fraction was sufficient to achieve proper convergence. In the absence of the PDE loss ( αPDE = 0), as shown in Figure 5a, the network exhibits significantly larger errors as well as non-physical oscillations. Using qualitative metrics for these supervised interpolator models, the purely data-driven model achieved an average MRAE of 3.85%, while incorporating the governing equations reduced this to 2.05%. For comparison, the self-supervised, data-free solver model achieved 3.06%. While the best performance is obtained when combining both data and governing equations, strongly enforcing the equations alone can yield comparable (or in this case even better) performance than using data alone. This improvement can be attributed to the fact that the data are limited to the particular predefined points, whereas the governing equations are enforced through collocation points that can be freely and adaptively selected across the continuous domain through active learning to minimize the error, providing a stronger and more uniform constraint on the solution. This comparison emphasizes that enforcing the governing equations is essential for obtaining smooth and physically consistent solutions. As mentioned, our formulation sets αDD = 0 , resulting in a fully self-supervised model that acts as an independent solver of the stellar structure equations. Under the appropriate boundary conditions imposed through the architecture, the underlying PDE system admits a unique solution, making the problem well-posed. In this setting, the PINN can be interpreted as a mesh-free numerical solver, analogous in spirit to finite-difference or finite-volume methods, but now with the advantage of producing continuous and differentiable solutions across the domain. (a)  (b) 
+
+Figure 5. Fully supervised model with limited data. Performance of the same architecture but now (a) trained purely on 
+
+MESA data without enforcing the governing equations, and (b) trained with on MESA data and the governing equations. These models behave as intelligent interpolator rather than solvers. The performance across different stellar masses is summarized in Figure 6. The MRAE remains relatively uniform across the studied range, although lower-mass stars exhibit higher variance. This behavior is consistent with their increased sensitivity to stability conditions near the chosen evolutionary stage. Finally, we investigate extending the model to time-dependent stellar evolution by including time as an additional input. In this setting, the model produces reasonable estimates for global quantities such as the effective temperature Teff and luminosity 
+
+> 10/16
+
+Figure 6. Performance across stellar masses. Evaluation of the PINN model for stars with initial masses ranging from 0.4 to 9.9 M⊙. The plot shows the MRAE for each physical quantity as well as the total error. 
+
+Leff , which capture integrated properties of the stellar profile. However, the internal structure predictions become significantly noisier and less accurate. This behavior is illustrated in Figure 7, which shows the Hertzsprung–Russell diagram for stars with initial masses between 0.6 and 20 M⊙. While the overall trends are qualitatively captured, high-frequency noise and deviations from the reference solutions are evident. Our results indicate that the present formulation does not readily extend to time-dependent problems, and that more specialized approaches are required. 
+
+## 5 Discussion and conclusions 
+
+In this work, we present a first demonstration of an self-supervised PINN framework tailored to the stellar structure equations, combining several recent advances in the literature into a unified and physically consistent model. Standard PINNs, when applied directly, struggle to accurately reproduce stellar structure due to the stiffness of the equations, the strong coupling between variables, and the strict boundary conditions required at the stellar center and surface. To address these limitations, we introduce a set of complementary modifications. First, the use of physics-based loss terms combined with architectural transformations that enforce boundary conditions as hard constraints ensures that the learned solutions remain physically admissible throughout training. Second, auxiliary neural networks are employed to replace traditional tabulated microphysics (equation of state and opacity) with smooth and differentiable surrogates, enabling fully end-to-end training. The inclusion of Random Fourier Features (RFF) in these auxiliary models is essential to capture the sharp gradients present in the tabulated data, mitigating the spectral bias of standard MLPs. A key design consideration throughout this work is the trade-off between expressivity and computational efficiency. Both the auxiliary networks and the main PINN were carefully optimized to remain as compact as possible while still capturing the relevant physical behavior. While RFF embeddings proved critical for the auxiliary models, we found that using a SIREN architecture for the main PINN provides a better balance, enabling the representation of high-frequency features with fewer parameters and faster evaluation. Another important contribution is the integration of the Stochastic Projection PINN (SP-PINN) framework, which enables gradient-free approximation of derivatives required for the PDE residuals. By estimating derivatives from nearby collocation points, this approach significantly reduces the computational overhead associated with automatic differentiation, leading to faster training and lower memory usage. In addition, the use of a residual-based attention strategy for active learning further improves performance by concentrating collocation points in regions where the solution is more complex or less well-resolved. 
+
+> 11/16
+
+Figure 7. Hertzsprung–Russell diagram. Comparison between the proposed PINN model (dashed lines) and MESA 
+
+simulations (solid lines) for stars with initial masses between 0 .6 and 20 M⊙. The x-axis shows log (Teff ) and the y-axis log (L/L⊙). While the global trends are captured, noticeable noise and deviations highlight the limitations of the current model in time-dependent settings. Overall, the proposed framework produces accurate and smooth stellar profiles in hydrostatic and thermal equilibrium, capturing both radiative and convective transport regimes, as well as realistic energy generation rates computed from established microphysics. The agreement with classical finite-difference solvers such as MESA demonstrates that PINNs can serve as a viable alternative for modeling stellar interiors, while offering additional advantages such as differentiability and mesh-free evaluation. Despite these promising results, several limitations remain. Most notably, the current formulation is restricted to time-independent (equilibrium) stellar structure. Extending the model to include time evolution is non-trivial. Preliminary experiments show that directly adding time as an additional input leads to reasonable predictions for global quantities such as Teff and Leff (used for the HR plot) but fails to accurately reproduce the internal structure, introducing high-frequency noise. This indicates that the present architecture does not readily generalize to time-dependent problems. Future work may therefore explore hybrid approaches, such as combining finite-difference schemes in time with neural representations in space, or developing specialized architectures designed for evolutionary dynamics. Additionally, extending the auxiliary modeling of the energy generation rate ε to include time-dependent effects (with the gravitational term) could further improve consistency for evolving stars. With the addition of time, there should also be a focus on extending the analysis to the mass range 0.4 –10 M⊙
+
+to more extreme regimes (including very low-mass stars and high-mass stars approaching supernova conditions). In summary, this work establishes a foundation for data-free, physics-informed neural modeling of stellar interiors, opening the door to scalable and differentiable simulations for large-scale astrophysical applications. 
+
+## References 
+
+1. Kippenhahn, R., Weigert, A. & Weiss, A. Stellar structure and evolution , vol. 192 (Springer, 1990). 
+
+2. Hansen, C. J., Kawaler, S. D. & Trimble, V. An overview of stellar evolution. Stellar Interiors: Phys. Princ. Struct. Evol. 
+
+43–144 (2004). 
+
+3. Prialnik, D. An introduction to the theory of stellar structure and evolution (Cambridge University Press, 2009). 
+
+> 12/16
+
+4. Clayton, D. D. Principles of stellar evolution and nucleosynthesis (University of Chicago press, 1983). 
+
+5. Paxton, B. et al. Modules for experiments in stellar astrophysics (mesa). The Astrophys. J. Suppl. Ser. 192 , 3 (2011). 
+
+6. Paxton, B. et al. Modules for experiments in stellar astrophysics (mesa): planets, oscillations, rotation, and massive stars. 
+
+The Astrophys. J. Suppl. Ser. 208 , 4 (2013). 
+
+7. Paxton, B. et al. Modules for experiments in stellar astrophysics (mesa): binaries, pulsations, and explosions. The Astrophys. J. Suppl. Ser. 220 , 15 (2015). 
+
+8. Paxton, B. et al. Modules for experiments in stellar astrophysics (mesa): Convective boundaries, element diffusion, and massive star explosions. The Astrophys. J. Suppl. Ser. 234 (2018). 
+
+9. Paxton, B. et al. Modules for experiments in stellar astrophysics (mesa): pulsating variable stars, rotation, convective boundaries, and energy conservation. The Astrophys. J. Suppl. Ser. 243 , 10 (2019). 
+
+10. Bruzual, G. & Charlot, S. Stellar population synthesis at the resolution of 2003. Mon. Notices Royal Astron. Soc. 344 ,1000–1028 (2003). 
+
+11. Byrne, C. M., Eldridge, J. J. & Stanway, E. R. Bpass stellar evolution models incorporating alpha-enhanced composition–i. single star models from 0.1 to 316 m. arXiv preprint arXiv:2410.23167 (2024). 
+
+12. Conroy, C. & Gunn, J. E. The propagation of uncertainties in stellar population synthesis modeling. iii. model calibration, comparison, and evaluation. The Astrophys. J. 712 , 833–857 (2010). 
+
+13. Fragos, T. et al. Posydon: A general-purpose population synthesis code with detailed binary-evolution simulations. The Astrophys. J. Suppl. Ser. 264 , 45 (2023). 
+
+14. Andrews, J. J. et al. Posydon version 2: Population synthesis with detailed binary-evolution simulations across a cosmological range of metallicities. The Astrophys. J. Suppl. Ser. 281 , 3 (2025). 
+
+15. Ivezi´ c, Ž. Lsst survey: millions and millions of quasars. Proc. Int. Astron. Union 12 , 330–337 (2016). 
+
+16. Raissi, M., Perdikaris, P. & Karniadakis, G. E. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. J. Comput. physics 378 , 686–707 (2019). 
+
+17. Mao, Z., Jagtap, A. D. & Karniadakis, G. E. Physics-informed neural networks for high-speed flows. Comput. Methods Appl. Mech. Eng. 360 , 112789 (2020). 
+
+18. Cai, S., Mao, Z., Wang, Z., Yin, M. & Karniadakis, G. E. Physics-informed neural networks (pinns) for fluid mechanics: A review. Acta Mech. Sinica 37 , 1727–1738 (2021). 
+
+19. Karniadakis, G. E. et al. Physics-informed machine learning. Nat. Rev. Phys. 3, 422–440 (2021). 
+
+20. Patel, R. S., Bhartiya, S. & Gudi, R. D. Physics constrained learning in neural network based modeling. IFAC-PapersOnLine 
+
+55 , 79–85 (2022). 
+
+21. Djeumou, F., Neary, C., Goubault, E., Putot, S. & Topcu, U. Neural networks with physics-informed architectures and constraints for dynamical systems modeling. In Learning for Dynamics and Control Conference , 263–277 (PMLR, 2022). 
+
+22. Gazoulis, D., Gkanis, I. & Makridakis, C. G. On the stability and convergence of physics informed neural networks. IMA J. Numer. Analysis draf090 (2025). 
+
+23. Ness, M., Hogg, D. W., Rix, H.-W., Ho, A. Y. & Zasowski, G. The cannon: A data-driven approach to stellar label determination. The Astrophys. J. 808 , 16 (2015). 
+
+24. Ness, M. The data-driven approach to spectroscopic analyses. Publ. Astron. Soc. Aust. 35 , e003 (2018). 
+
+25. Ho, A. Y. et al. Label transfer from apogee to lamost: Precise stellar parameters for 450,000 lamost giants. The Astrophys. J. 836 , 5 (2017). 
+
+26. Sharma, K. et al. Application of convolutional neural networks for stellar spectral classification. Mon. Notices Royal Astron. Soc. 491 , 2280–2300 (2020). 
+
+27. Dafonte, C., Rodríguez, A., Manteiga, M., Gómez, Á. & Arcay, B. A blended artificial intelligence approach for spectral classification of stars in massive astronomical surveys. Entropy 22 , 518 (2020). 
+
+28. Weaver, W. B. Spectral classification of unresolved binary stars with artificial neural networks. The Astrophys. J. 541 ,298–305 (2000). 
+
+29. Leung, H. W. & Bovy, J. Deep learning of multi-element abundances from high-resolution spectroscopic data. Mon. Notices Royal Astron. Soc. 483 , 3255–3277 (2019). 
+
+> 13/16
+
+30. Lu, L. et al. Unsupervised learning with physics informed graph networks for partial differential equations: L. lu et al. 
+
+Appl. Intell. 55 , 617 (2025). 
+
+31. Wan, B., Lei, G., Guo, Y. & Zhu, J. Physics-informed neural networks based on unsupervised learning for multidomain electromagnetic analysis. IET Electr. Power Appl. 19 , e70083 (2025). 
+
+32. Jiang, B., Qin, C. & Wang, Q. An unsupervised physics-informed neural network method for ac power flow calculations. 
+
+IEEE Transactions on Power Syst. (2025). 
+
+33. Bonfanti, A., Bruno, G. & Cipriani, C. The challenges of the nonlinear regime for physics-informed neural networks. Adv. neural information processing systems 37 , 41852–41881 (2024). 
+
+34. Yan, L., Zhou, Y., Liu, H. & Liu, L. An improved method for physics-informed neural networks that accelerates convergence. IEEE Access 12 , 23943–23953 (2024). 
+
+35. Jahani-Nasab, M. & Bijarchi, M. A. Enhancing convergence speed with feature enforcing physics-informed neural networks using boundary conditions as prior knowledge. Sci. Reports 14 , 23836 (2024). 
+
+36. Zou, J. et al. Accelerating the convergence of physics-informed neural networks for seismic wave simulation. Geophysics 
+
+90 , T23–T32 (2025). 
+
+37. Zhao, C., Zhang, F., Lou, W., Wang, X. & Yang, J. A comprehensive review of advances in physics-informed neural networks and their applications in complex fluid dynamics. Phys. Fluids 36 (2024). 
+
+38. Chai, X., Cao, W., Li, J., Long, H. & Sun, X. Overcoming the spectral bias problem of physics-informed neural networks in solving the frequency-domain acoustic wave equation. IEEE Transactions on Geosci. Remote. Sens. 62 , 1–20 (2024). 
+
+39. Mao, Z. & Meng, X. Physics-informed neural networks with residual/gradient-based adaptive sampling methods for solving partial differential equations with sharp solutions. Appl. Math. Mech. 44 , 1069–1084 (2023). 
+
+40. Jia, X. et al. A multi-stage physics-informed neural network for high-resolution reconstruction of physical fields with sharp gradients. Comput. Methods Appl. Mech. Eng. 118253 (2026). 
+
+41. Lu, L. et al. Physics-informed neural networks with hard constraints for inverse design. SIAM J. on Sci. Comput. 43 ,B1105–B1132 (2021). 
+
+42. Márquez-Neila, P., Salzmann, M. & Fua, P. Imposing hard constraints on deep networks: Promises and limitations. arXiv preprint arXiv:1706.02025 (2017). 
+
+43. Alkhadhr, S. & Almekkawy, M. Wave equation modeling via physics-informed neural networks: Models of soft and hard constraints for initial and boundary conditions. Sensors 23 , 2792 (2023). 
+
+44. Xiao, Z., Ju, Y., Li, Z., Zhang, J. & Zhang, C. On the hard boundary constraint method for fluid flow prediction based on the physics-informed neural network. Appl. Sci. 14 , 859 (2024). 
+
+45. Rahimi, A. & Recht, B. Random features for large-scale kernel machines. Adv. neural information processing systems 20 
+
+(2007). 
+
+46. Wu, Y., Aguiar, M., Johansson, K. H. & Barreau, M. Iterative training of physics-informed neural networks with fourier-enhanced features. arXiv preprint arXiv:2510.19399 (2025). 
+
+47. Sallam, O. & Fürth, M. On the use of fourier features-physics informed neural networks (ff-pinn) for forward and inverse fluid mechanics problems. Proc. Inst. Mech. Eng. Part M: J. Eng. for Marit. Environ. 237 , 846–866 (2023). 
+
+48. Du, K., Huang, Z., Li, J., Tao, D. & Chen, Z. A label-free physics informed neural network with hard constraints and fourier features spectrally-enhanced for multi-frequency seismic structural dynamic response. Eng. Appl. Artif. Intell. 166 ,113640 (2026). 
+
+49. Ding, Y., Chen, S., Miyake, H. & Li, X. Physics-informed neural networks with fourier features for seismic wavefield simulation in time-domain nonsmooth complex media. IEEE Transactions on Geosci. Remote. Sens. (2025). 
+
+50. Xiong, X. et al. High-frequency flow field super-resolution via physics-informed hierarchical adaptive fourier feature networks. Phys. Fluids 37 (2025). 
+
+51. Sitzmann, V., Martel, J., Bergman, A., Lindell, D. & Wetzstein, G. Implicit neural representations with periodic activation functions. Adv. neural information processing systems 33 , 7462–7473 (2020). 
+
+52. Pezzoli, M., Antonacci, F. & Sarti, A. Implicit neural representation with physics-informed neural networks for the reconstruction of the early part of room impulse responses. arXiv preprint arXiv:2306.11509 (2023). 
+
+> 14/16
+
+53. Zhang, Q., Chen, R. & Yao, H. Adaptive siren-pinn with principled initialization: A frequency-aware and singularity-robust framework for solver-free acoustic seismic wave modeling. IEEE Transactions on Geosci. Remote. Sens. (2026). 
+
+54. Navaneeth, N. & Chakraborty, S. Stochastic projection based approach for gradient free physics informed learning. Comput. Methods Appl. Mech. Eng. 406 , 115842 (2023). 
+
+55. Garg, S. & Chakraborty, S. Neuropinns: Neuroscience inspired physics informed neural networks. arXiv preprint arXiv:2511.06081 (2025). 
+
+56. Anagnostopoulos, S. J., Toscano, J. D., Stergiopulos, N. & Karniadakis, G. E. Residual-based attention in physics-informed neural networks. Comput. Methods Appl. Mech. Eng. 421 , 116805 (2024). 
+
+57. Ramirez, I. et al. Residual-based attention physics-informed neural networks for spatio-temporal ageing assessment of transformers operated in renewable power plants. Eng. applications artificial intelligence 139 , 109556 (2025). 
+
+58. Pols, O. R. Stellar structure and evolution (Astronomical Institute Utrecht Utrecht, 2011). 
+
+59. MacDonald, J. The equations of stellar structure: mass conservation and hydrostatic equilibrium. Struct. Evol. Single Stars: An introduction 1 (2015). 
+
+60. Cox, J. P. & Giuli, R. T. Principles of Stellar Structure: Physical Principles , vol. 1 (Gordon and Breach, 1968). 
+
+61. Henyey, L., Vardya, M. & Bodenheimer, P. Studies in stellar evolution. iii. the calculation of model envelopes. Astrophys. Journal, vol. 142, p. 841 142 , 841 (1965). 
+
+62. Hauschildt, P. H., Allard, F. & Baron, E. The nextgen model atmosphere grid for 3000 ≤ t eff ≤ 10,000 k. The Astrophys. J. 
+
+512 , 377–385 (1999). 
+
+63. Hauschildt, P. H., Allard, F., Ferguson, J., Baron, E. & Alexander, D. R. The nextgen model atmosphere grid. ii. spherically symmetric model atmospheres for giant stars with effective temperatures between 3000 and 6800 k. The Astrophys. J. 525 ,871–880 (1999). 
+
+64. Castelli, F. & Kurucz, R. Modelling of stellar atmospheres, eds. n. piskunov et al. In IAU Symp , vol. 210, A20 (2003). 
+
+65. Allard, F., Hauschildt, P. H., Alexander, D. R., Tamanai, A. & Schweitzer, A. The limiting effects of dust in brown dwarf model atmospheres. The Astrophys. J. 556 , 357–372 (2001). 
+
+66. Rogers, F. & Nayfonov, A. Updated and expanded opal equation-of-state tables: implications for helioseismology. The Astrophys. J. 576 , 1064–1074 (2002). 
+
+67. Saumon, D., Chabrier, G. & van Horn, H. M. An equation of state for low-mass stars and giant planets. Astrophys. J. Suppl. v. 99, p. 713 99 , 713 (1995). 
+
+68. Timmes, F. X. & Swesty, F. D. The accuracy, consistency, and speed of an electron-positron equation of state based on table interpolation of the helmholtz free energy. The Astrophys. J. Suppl. Ser. 126 , 501–516 (2000). 
+
+69. Potekhin, A. Y. & Chabrier, G. Thermodynamic functions of dense plasmas: analytic approximations for astrophysical applications. Contributions to Plasma Phys. 50 , 82–87 (2010). 
+
+70. Jacot, A., Gabriel, F. & Hongler, C. Neural tangent kernel: Convergence and generalization in neural networks. Adv. neural information processing systems 31 (2018). 
+
+71. Shi, W. et al. Adaptive random fourier features gaussian kernel normalized lms algorithm. In 2024 IEEE International Conference on Signal Processing, Communications and Computing (ICSPCC) , 1–5 (IEEE, 2024). 
+
+72. Bellinger, E. P. et al. Asteroseismic determination of fundamental parameters of solar-type stars using multilayered neural networks. The Astrophys. J. 830 , 31 (2016). 
+
+73. Verma, K. et al. Machine learning in asteroseismology. Front. Astron. Space Sci. 8, 10 (2021). 
+
+74. Kingma, D. P. & Ba, J. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 (2014). 
+
+75. Loshchilov, I. & Hutter, F. Sgdr: Stochastic gradient descent with warm restarts. arXiv preprint arXiv:1608.03983 (2016). 
+
+## Author contributions statement 
+
+M.B., S.L.P, S.G., C.W., V.K. and A.K.K conceived the original idea. M.B. developed the methodology and wrote the manuscript draft. S.L.P. implemented the PINN program and wrote part of the refined manuscript. S.G. run the MESA models and wrote part of the refined manuscript. P.K. wrote the original sections related to the energy generation rate and refined the final manuscript. P.M.S. and U.D. interpreted the results and provided visualizations in the manuscript. A.M. performed a dimensional mathematical analysis of the stellar equations. C.W. and S.C. improved the PINN model and revised the manuscript. 
+
+> 15/16
+
+V.K. and A.K.K corrected the manuscript and supervised the project. Y.J. restructured the refined manuscript. All the authors attended discussions and provided relevant insights. All authors reviewed and approved the manuscript. 
+
+## Additional information 
+
+Acknowledgment: The authors gratefully acknowledge support from the NSF-Simons AI Institute for the Sky (SkAI), funded by the U.S. National Science Foundation and the Simons Foundation. This research used the DeltaAI advanced computing and data resource, which is supported by the National Science Foundation (award OAC 2320345) and the State of Illinois. DeltaAI is a joint effort of the University of Illinois Urbana-Champaign and its National Center for Supercomputing Applications. 
+
+> 16/16
+
+# Supplementary Material: Learning the Stellar Structure Equations via Self-supervised Physics-Informed Neural Networks 
+
+## Manuel Ballester 1,+,* , Santiago Lopez-Tapia 2,+ , Seth Gossage 1, 3, 4 , Patrick Koller 1,2 , Philipp M. Srivastava 2, Ugur Demir 2, Yongseok Jo 1, Almudena P. M ´arquez 5, Christoph Wuersch 6,Souvik Chakraborty 7, Vicky Kalogera 1,3,4 , and Aggelos Katsaggelos 1,2 
+
+> 1
+
+SkAI Institute (NSF–Simons AI Institute for the Sky), Chicago, IL, USA 
+
+> 2
+
+Department of Electrical and Computer Engineering, Northwestern University, Chicago, IL, USA 
+
+> 3
+
+CIERA, Northwestern University, Chicago, IL, USA 
+
+> 4
+
+Department of Physics and Astronomy, Northwestern University, Chicago, IL, USA 
+
+> 5
+
+Department of Mathematics, University of Cadiz, Cadiz, Spain 
+
+> 6
+
+OST Eastern Switzerland University of Applied Sciences, Switzerland 
+
+> 7
+
+Indian Institute of Technology (IIT) Delhi, New Delhi, India 
+
+> +
+
+These authors contributed equally to this work 
+
+> *
+
+Corresponding author: manuel.ballester@northwestern.edu 
+
+## ABSTRACT 
+
+Stellar astrophysics relies critically on accurate descriptions of the physical conditions inside stars. Traditional solvers such as MESA (Modules for Experiments in Stellar Astrophysics), which employ adaptive finite-difference methods, can become computationally expensive and challenging to scale for large stellar population synthesis ( > 10 9 stars). In this work, we present an self-supervised physics-informed neural network (PINN) framework that provides a mesh-free and fully differentiable approach to solving the stellar structure equations under hydrostatic and thermal equilibrium. The model takes as input the stellar boundary conditions (at the center and surface) together with the chemical composition, and learns continuous radial profiles for mass Mr(r), pressure P(r), density ρ(r), temperature T (r), and luminosity Lr(r) by enforcing the governing structure equations through physics-based loss terms. To incorporate realistic microphysics, we introduce auxiliary neural networks that approximate the equation of state and opacity tables as smooth, differentiable functions of the local thermodynamic state. These surrogates replace traditional tabulated inputs and enable end-to-end training. Once trained for a given star, the model produces continuous solutions across the entire radial domain without requiring discretization or interpolation. Validation against benchmark MESA models across a range of stellar masses yields a Mean Relative Absolute Error of 3.06% and an average R2 score of 99 .98% . To our knowledge, this is the first demonstration that the stellar structure equations can be solved in a fully self-supervised and data-free fashion employing PINNs. This work establishes a foundation for scalable, physics-informed emulation of stellar interiors and opens the door to future extensions toward time-dependent stellar evolution. 
+
+## 1 Governing equations of stellar structure 
+
+We consider a spherically symmetric, self-gravitating star whose internal state is described by the density ρ, temperature T ,pressure P, and chemical composition (Xi). All thermodynamic and transport quantities are functions of (ρ, T, Xi), and the system is governed by conservation of mass, momentum, and energy, together with a prescription for energy transport. 11.1 Eulerian formulation 
+
+The stellar structure equations can be written as 1
+
+ρ
+
+dP dr + GM r
+
+r2 + d2rdt 2 = 0, (1) 
+
+dM r
+
+dr = 4πr2ρ, (2) 
+
+dT dr = − GM rT
+
+4πr4P ∇(r,t), (3) 
+
+dL r
+
+dr = 4πr2ρ  εnuc − εν + εgrav 
+
+ , (4) where Mr is the enclosed mass and Lr is the luminosity crossing a sphere of radius r. The source terms represent nuclear energy generation ( εnuc ), thermal neutrino losses ( εν ), and gravitational energy exchange. The latter is related to entropy evolution through 
+
+εgrav = −T dS dt . (5) The dimensionless temperature gradient 
+
+∇ = d ln Td ln P (6) encodes the efficiency of energy transport and determines whether energy is carried predominantly by radiation or convection. Its modeling is described in detail in Section 2. 
+
+1.2 Microphysics and Closure 
+
+Equations (1) –(4) provide four differential relations for five unknowns (Mr, P, ρ, T, Lr) and must be supplemented by closure relations. In our formulation: • The opacity κ(P, T, X, Z), required to evaluate radiative transport, is also modeled via an auxiliary neural network (Section 2.2). • The equation of state (EOS) provides ρ = ρ(P, T, X, Z) and is represented by an auxiliary neural network (Section 4). • The energy generation rate ε is evaluated using classical finite-difference microphysical routines (Section 5). This hybrid strategy separates stiff microphysics from the learnable components of the model, improving numerical stability while preserving physical accuracy. 
+
+1.3 Lagrangian formulation 
+
+Since the enclosed mass Mr is a monotonically increasing function of radius, it is convenient to adopt Mr as the independent variable. Using the transformation 
+
+ddr = 4πr2ρ ddM r
+
+, (7) the system can be rewritten in Lagrangian form as 
+
+∂ P
+
+∂ Mr
+
+= − GM r
+
+4πr4 − 14πr2
+
+∂ 2r
+
+∂t2 , (8) 
+
+∂ r
+
+∂ Mr
+
+= 14πr2ρ , (9) 
+
+∂ T
+
+∂ Mr
+
+= − 3κLr
+
+64 π2ac T 3r4 , (10) 
+
+∂ Lr
+
+∂ Mr
+
+= ε − T ∂ S
+
+∂t . (11) In this work, we restrict attention to quasi-static stellar configurations in hydrostatic and thermal equilibrium, such that 
+
+∂ 2r
+
+∂t2 ≈ 0, ∂ S
+
+∂t ≈ 0, (12) reducing the system to a set of coupled ordinary differential equations. 
+
+> 2/11
+
+1.4 Non-dimensional formulation 
+
+To improve numerical conditioning and facilitate training of the physics-informed neural network, we introduce dimensionless variables normalized by solar reference values: ˆMr = Mr
+
+M⊙
+
+, ˆr = rR⊙
+
+, ˆP = PP⊙
+
+, ˆT = TT⊙
+
+, ˆLr = Lr
+
+L⊙
+
+. (13) This scaling follows standard dimensional analysis in stellar structure, where characteristic pressure, temperature, and density scales can be estimated from global stellar properties and hydrostatic balance. Substituting these variables into the equilibrium equations yields, for the case of radiative transfer, the following expression 
+
+∂ ˆP
+
+∂ ˆMr
+
+= βa ˆMr
+
+ˆr4 , (14a) 
+
+∂ ˆr
+
+∂ ˆMr
+
+= βb
+
+ˆr2 ˆρ , (14b) 
+
+∂ ˆT
+
+∂ ˆMr
+
+= βcκ ˆLr
+
+ˆT 3 ˆr4 , (14c) 
+
+∂ ˆLr
+
+∂ ˆMr
+
+= βd ε, (14d) where the dimensionless coefficients are 
+
+βa = − GM 2
+
+> ⊙
+
+4πP⊙R4
+
+> ⊙
+
+, βb = M⊙
+
+4πR3
+
+> ⊙
+
+ρ⊙
+
+,
+
+βc = − 3M⊙L⊙
+
+64 π2acT 4
+
+> ⊙
+
+R4
+
+> ⊙
+
+, βd = M⊙
+
+L⊙
+
+. (15) Under solar normalization, these coefficients reduce the dynamic range of the problem and improves optimization in the PINN framework. Observe that this is the dimensionless system corresponding to the governing equations enforced by the physics-informed network described in the main text. 
+
+## 2 Energy transport modeling 
+
+The luminosity enclosed within radius r determines the net outward photon energy flux. In spherical coordinates, 
+
+Fr = Lr
+
+4πr2 , (16) represents the flux transported through the stellar interior by radiative diffusion, convection, or a combination of both. The temperature gradient ∇(r,t) = d ln T /d ln P from the stellar structure equations determines which mechanism dominates. 
+
+2.1 Radiative transport 
+
+Photons propagate outward in a relatively transparent medium through radiative diffusion, following a random walk due to repeated absorption and re-emission. The corresponding temperature gradient is 
+
+∇rad = 3 κ P L r
+
+16 πacGM rT 4 , (17) where a is the radiation constant and c is the speed of light. The quantities P(r), Lr(r), Mr(r), and T (r) are provided by the stellar structure equations, while the opacity κ(ρ, T, X, Z) encapsulates the microphysical properties of the stellar material and constitutes the key additional input required to determine radiative energy transport, as discussed below. For completeness, the derivation of Eq. 17 from Eq. 16 is presented below. We now derive, for the completeness of the manuscript, the standard expression for the radiative temperature gradient, 
+
+∇rad 1. In spherical symmetry, the luminosity enclosed within radius r, denoted Lr, is defined as the total energy per unit time crossing a sphere of radius r, as given in Eq. 16. Deep in stellar interiors, the medium is typically optically thick, so radiative transfer can be treated in the diffusion approximation. In this limit, the radiative energy density is given by 
+
+urad = aT 4,
+
+> 3/11
+
+where a is the radiation constant. From radiative transport theory, the radiative energy flux may be written 
+
+Frad = −D ∇urad = − 4acT 3
+
+3κρ ∇T, (18) where D = c/(3κρ ), and the factor 1/3 arises from averaging over photon directions in an approximately isotropic radiation field. Under spherical symmetry, only the radial component is nonzero, so 
+
+Lr
+
+4πr2 = Frad = − 4acT 3
+
+3κρ 
+
+dT dr . (19) We now express dT /dr in terms of ∇ under hydrostatic equilibrium. Using ∇ = d ln T /d ln P and applying the chain rule, 
+
+dT dr = T ∇rad 
+
+1
+
+PdP dr . (20) The radial derivative of the pressure at hydrostatic equilibrium is given by 
+
+dP dr = − GM rρ
+
+r2 , (21) which, when substituted into Eq. 20, yields 
+
+dT dr = − GM rρ
+
+r2
+
+TP ∇rad . (22) Substituting this expression into Eq. 19 leads to 
+
+∇rad = 3κPL r
+
+16 πacGM rT 4 . (23) Whether radiation alone can transport the energy flux depends on the balance between the radiative temperature gradient and the adiabatic gradient ∇ad (r,t), which varies across stellar masses. A region is convectively stable when ∇rad (r,t) ≤ ∇ad (r,t), in which case ∇(r,t) = ∇rad (r,t). Physically, radiative diffusion is most efficient in regions where the gas is highly ionized and the opacity correspondingly low, allowing photons to transport energy outward with relatively small temperature gradients. 
+
+2.2 Opacity auxiliary network 
+
+Following the same strategy previously used to learn the density ρ from (P, T, X, Z) with an auxiliary network (trained on tabulated EOS data), we introduce an auxiliary network to model the opacity κ as a function of the same four-dimensional input. Before describing the network architecture and training procedure, we briefly outline how the opacity data are constructed. Radiative opacities are taken from the OPAL 2 tables at high temperatures ( 3.75 ≤ log T ≤ 8.7). Lower temperatures (2.7 ≤ log T ≤ 4.5) require a different table 3, and higher temperatures ( log T ≥ 8.7 ) are treated using an analytical formula 4
+
+that accounts for dominant Compton scattering. A smooth overlap of the different components of κrad is performed across the relevant ranges of log ρ and log T .Electron conduction opacities are taken from 5 over the range −6 ≤ log ρ ≤ 9.75 and 3 ≤ log T ≤ 9. Outside these ranges, the tables are extended using 6 for non-degenerate electrons and 7 for degenerate electrons. The total opacity is computed as the harmonic sum 1
+
+κ = 1
+
+κrad 
+
++ 1
+
+κcond 
+
+,
+
+and tabulated as a function of (ρ, T, X, Z). Using the EOS to relate density and pressure, we recast the input domain as 
+
+(P, T, X, Z), avoiding explicit coupling between auxiliary networks during PINN training. The auxiliary neural network is then trained to learn a smooth surrogate κ(P, T, X, Z), following the same architecture and training strategy as the EOS auxiliary network, later described in Sec. 4. 
+
+> 4/11
+
+2.3 The adiabatic gradient 
+
+The adiabatic temperature gradient measures how the temperature of a fluid element changes with pressure when displaced without heat exchange, and is defined as 
+
+∇ad =
+
+ d ln Td ln P
+
+
+
+> S
+
+. (24) Using thermodynamic identities, it can be written as 
+
+∇ad = P δρ T c P
+
+, δ = −
+
+ ∂ ln ρ∂ ln T
+
+
+
+> P
+
+. (25) An equivalent form is 
+
+∇ad = Γ3 − 1
+
+Γ1
+
+. (26) In practice, MESA evaluates these quantities consistently from EOS tables. 
+
+2.4 Convective transport 
+
+In regions where ∇rad > ∇ad , the medium becomes convectively unstable. The temperature gradient then satisfies ∇ad ≤ ∇ ≤
+
+∇rad , and we denote ∇ = ∇conv .Convective transport in MESA 8 is modeled using mixing-length theory (MLT). Convective elements travel a characteristic distance 
+
+Λ(r) = αMLT HP(r), (27) where HP = P/(ρg) is the pressure scale height. The superadiabaticity ∇ − ∇ad characterizes the buoyancy of a convective plasma element. MESA solves MLT equations to obtain ∇MLT (r) and the mixing coefficient Dconv (r). Convective overshooting is modeled as 
+
+Dov (z) = Dconv (r0) exp 
+
+
+
+− 2zf H P(r0)
+
+
+
+, (28) and affects chemical mixing but not directly the four stellar structure equations. The basic condition for convective energy transport 
+
+∇rad > ∇ad , (29) is known as the Schwarzschild criterion. The more refined Ledoux criterion implemented in MESA modifies this inequality to 
+
+∇rad > ∇L, (30) where ∇L = ∇ad + B, and B accounts for the impeding effect of compositional gradients on the motion of convective elements and their ability to transport energy efficiently. The actual total temperature gradient that accounts for radiative diffusion and convection is approximated as 
+
+∇ = ( 1 − ζ )∇rad + ∇ad , (31) (or ∇L in place of ∇ad under the Ledoux criterion) where ζ measures convective efficiency. Convection dominates in high-opacity or high-flux regions, while radiation dominates elsewhere. 
+
+## 3 Boundary conditions 
+
+The interior equations must be supplemented by boundary conditions at the center and at the stellar surface.  
+
+> Central boundary conditions.
+
+At the center ( r = 0), regularity requires 
+
+Mr = 0, Lr = 0. (32) The central temperature Tc and density ρc are free parameters that may be determined as part of the global solution 1. 
+
+> 5/11 Photospheric/outer boundary conditions.
+
+While the surface of a star is ill-defined, in practice, a choice must be made, and that is often the photosphere. The photosphere is defined as the point in the stellar atmosphere where the optical depth, τ,reaches a value of 2/3. This is roughly where the stellar plasma becomes opaque to photons, representing the lowest visible layer in the star’s atmosphere and effectively its visible “surface”. In general, a number of reasonable assumptions can be made to set the surface boundary conditions. MESA uses stellar atmosphere models to set the surface boundary conditions 8. MESA 
+
+uses the mass, radius, and luminosity to calculate the surface temperature and pressure ( Tsurf and Psurf ) for the model. Depending on the star, a particular atmosphere model may be more or less appropriate to use and several options are available. They may be either analytic (such as the Eddington T-τ relation) or numerical. In the former case, an integration of analytical relations is performed over a range of optical depths to obtain Psurf and Tsurf . In the latter case, tables are constructed by the PHOENIX 9, 10 , by the Castelli and Kurucz model 11 , or by the COND 12 . These tables are used for different regions and types of stars as detailed in MESA 8, resulting on various codes used to numerically solve non-local thermodynamic radiative transfer equations under various conditions. Finally, there is a relatively simple approach taken by MESA to set the boundary conditions, which derives from a constant opacity solution to radiative diffusion: 
+
+Psurf = τsurf g
+
+κsurf 
+
+
+
+1 + 1.6 × 10 −4
+
+ L/L⊙
+
+M/M⊙
+
+ 
+
+(33) where κsurf is the constant opacity (that may either be given or else calculated iteratively. Here τsur f is the surface optical depth which must be specified (often taken as τsurf = 2/3 as discussed above. In this way, Psurf may be calculated. To determine Tsurf 
+
+in this case, the Eddington T (τ) relation is used, given τsurf . I.e., 
+
+T (τ) = 34 T 4eff (τ + 2/3) (34) In this relation, Teff is the effective temperature, representing the temperature that the star would have if it were a perfect black body. It is given by the Stefan-Boltzmann law: 
+
+T 4eff = L
+
+4πR2σ (35) where σ is the Stefan-Boltzmann constant. Together, these central and surface boundary conditions, the EOS, and the microphysics described above define the boundary–value problem that we solve for the stellar structure variables {P, ρ, T, Lr, Mr}(r,t).
+
+## 4 Equation of State modeling 
+
+4.1 Generation of tabulated EOS data 
+
+The equation-of-state (EOS) data are provided in the form of a multidimensional table parameterized by four independent variables (log T, log Q, X, Z). Here (X, Z) specify the composition and log Q ≡ log ρ − 2 log T + 12 is a reparameterization of the density designed to reduce the dynamic range of the tabulated data. For each input 4-tuple, the EOS returns the total pressure and its constituent components ( P = Pgas + Prad with Prad = aT 4/3 ), the entropy S, the specific heats cV and cP, the adiabatic exponents Γ1 and Γ3 − 1, and the standard logarithmic derivatives 
+
+χT =
+
+ ∂ ln P
+
+∂ ln T
+
+
+
+> ρ
+
+, χρ =
+
+ ∂ ln P
+
+∂ ln ρ
+
+
+
+> T
+
+. (36) Because the EOS tables are constructed on a discrete grid, bicubic spline interpolation in (log T, log Q) is used to evaluate intermediate values, combined with quadratic interpolation in the composition variables (X, Z).In practice, MESA 8 constructs the EOS by combining several well-established reference models, each covering a different region of the input domain. The usual domain involves a metallicity range of 0 < Z < 0.04 and the rectangular (log T, log Q)
+
+region defined by 2.1 ≤ log T ≤ 8.2 and −10 ≤ log Q ≤ 5.69 . In this regime, the thermodynamic quantities are taken from the OPAL 2 and SCVH 13 tables, both blended smoothly across their overlap. Outside this usual region, MESA switches to analytic EOS formulations that are evaluated directly on the fly. For models with higher metallicity ( Z > 0.04 ), all thermodynamic quantities are computed across the entire (log T, log Q) plane from the HELM EOS 14 (which includes electron-positron pair production) and the PC EOS 15 (appropriate when the plasma approaches crystallization). For a metallicity still in the range 0 < Z < 0.04 but with points lying outside the main rectangular (log T, log Q)
+
+domain, the model uses HELM at relatively high temperatures and PC at comparatively lower temperatures but high densities. 
+
+> 6/11
+
+4.2 Auxiliary network for the EOS data 
+
+The PINN formulation relies on thermodynamic quantities provided by the EOS, which are available as discrete, precomputed tabulated data. Rather than directly using the MESA EOS module and its classical interpolation routines during training, we introduce an auxiliary neural network that learns a smooth, continuous surrogate of the EOS from the raw tabulated data described in the previous subsection. This auxiliary model is trained independently beforehand and subsequently embedded into the main PINN to provide thermodynamic closures during the solution of the stellar structure equations. A natural choice would be to train the auxiliary network to predict the pressure P as a function of (ρ, T, X, Z). However, in the PINN formulation of Eq. 14, derivatives of P with respect to the independent coordinate are required. Back-propagating these derivatives through both the PINN and the auxiliary EOS network would substantially increase computational cost and memory usage. To avoid this problem, we instead invert the EOS relationship and train the auxiliary network to predict the density ρ from (P, T, X, Z). This reformulation is fully equivalent from a physical standpoint, while ensuring that the auxiliary network is only queried for ρ, whose derivatives are not required in the PDE system. The auxiliary network is designed to accurately reproduce the sharp gradients and high-frequency structure present in the EOS tables. To this end, the input variables are first mapped through a Fourier feature embedding, which enriches the input representation with sinusoidal basis functions at various frequency scales. This mapping mitigates the spectral bias of standard MLPs and enables the network to resolve high resolution variations in the EOS without requiring a very deep network with a large parameter space. The network architecture follows a symmetric bottleneck design: an input layer is mapped to 256 units, followed by hidden layers of 1024 and 256 units, and a final linear layer producing a single scalar output corresponding to ρ. Sinusoidal activation functions are used throughout, and Layer Normalization is applied before each fully connected layer to stabilize training across the wide dynamic range of thermodynamic variables, as discussed previously. Trained solely on discrete EOS table entries using a mean-squared error loss, the auxiliary network implicitly learns a smooth interpolation manifold that represents the underlying thermodynamic relations of the EOS 16 . Unlike traditional piecewise linear or spline-based interpolation schemes, the periodic activations combined with Fourier feature embeddings allow the model to capture steep gradients and high-frequency structure without introducing spurious oscillations. Once trained, the auxiliary network serves as a global, differentiable surrogate of the stellar EOS, providing fast and consistent evaluations of 
+
+ρ(P, T, X, Z) during PINN training. It should be highlighted that coordinate-based Multi-Layer Perceptrons (MLPs), which form the foundation of our PINN’s architecture, inherently suffer from spectral bias; a phenomenon where the network rapidly learns low-frequency components but struggles to capture high-frequency details. This limitation is mathematically described by the Neural Tangent Kernel (NTK) framework 17 , which demonstrates that the convergence rate of the training error is governed by the eigenvalues of the NTK matrix. For standard MLPs, the eigenvalues associated with high-frequency features are exceedingly small and decay rapidly. Consequently, the network converges exponentially slower on the steep gradients present in stellar profiles, such as the sharp physical transitions near the stellar core and surface, compared to the smooth, low-frequency global trends. To overcome this spectral bias, we use the mentioned Random Fourier Features 18 as the input layer of the architecture, which map the input coordinate (the initial mass Mr) into a high-dimensional space using the transformation RFF (Mr) = [cos (2πBMr), sin (2πBMr)] T. Here, the frequency matrix is sampled from a normal distribution, B ∼ N (μ, σ 2). By processing the input through this RFF layer, we fundamentally alter the network’s NTK into a stationary kernel, shifting its spectrum toward higher frequencies and enabling the model to accurately fit high-gradient regions by simply adjusting the variance σ 2.In our implementation, the σ value is selected following 19 approach and a small set of stellar profiles calculated with MESA .
+
+## 5 Modeling energy sources 
+
+The luminosity equation ((4)) includes a net local energy source/sink term, 
+
+ε = εgrav + εnuc − εth , (37) which accounts for nuclear energy generation, thermal neutrino losses, and energy exchange associated with gravitational contraction and expansion. In our formulation, the generation rate ε also depends exclusively on (ρ, T, Xi). Given the variability and complexity of the function ε, rather than computing it with another auxiliary network (as done before with the EOS for ρ or for the opacity κ), it is now computed in our model following the classical approach described by MESA and briefly explained below. 
+
+> 7/11
+
+5.1 Gravitational energy term 
+
+A star may convert gravitational potential energy to thermal energy (and vice versa) through contraction or expansion. Using thermodynamic quantities supplied by the EoS (sec. 4), the gravitational term can be written as 8
+
+εgrav = − T c P
+
+
+
+(1 − χT · ∇ad ) d ln Tdt − χρ · ∇ad 
+
+d ln ρ
+
+dt 
+
+
+
+, (38) This formula is implemented in MESA using finite differences for the time derivative of the log stellar quantities ρ and T . When a star is in hydrothermal equilibrium, the time derivatives are effectively null and the εgrav term does not contribute as a source. 
+
+5.2 Nuclear energy generation 
+
+Stars maintain their internal pressure and luminosity by converting nuclear binding energy into thermal energy through thermonuclear reactions. In stellar evolution theory, this conversion appears as a local source term in the energy (luminosity) equation. In this subsection, we explain how this source term is defined, how it is computed from nuclear reaction networks, and how it is incorporated into our physics-informed neural network (PINN) framework.  
+
+> Energy source term in the stellar structure equations.
+
+The stellar structure equations describe how macroscopic quantities such as pressure, temperature, and luminosity vary inside a star. The luminosity L(m) denotes the total energy per unit time flowing outward through a spherical surface that encloses a mass m. The derivative dL /dm therefore represents the local rate at which energy is added to (or removed from) the stellar plasma per unit mass. To close the system of stellar structure equations, one must specify the local energy source associated with nuclear reactions. This source is described by the nuclear energy generation rate 
+
+εnuc (ρ, T, {Xi}), (39) which gives the rate at which nuclear binding energy is released as or absorbed from the thermal energy of the plasma, per unit mass. Here ρ is the local mass density, T the local temperature, and {Xi} the set of mass fractions of the nuclear species present, indexed by i.The luminosity equation including nuclear energy generation can be written as 
+
+dL dm = εnuc − εν,nuc , (40) where εν,nuc denotes the energy carried away by neutrinos produced directly in nuclear reactions. **The subscript ν indicates neutrino losses, while the subscript nuc specifies that these neutrinos originate from nuclear reactions rather than from thermal plasma processes.** Neutrinos weakly interact with the surrounding plasma and tend to escape freely from the stellar interior under normal conditions, sapping thermal energy from the star. Nuclear energy generation is a strictly local quantity: it involves no spatial derivatives and depends only on the instantaneous thermodynamic state and chemical composition at a given mass coordinate, at a given time.   
+
+> Reaction network as the origin of εnuc .
+
+The nuclear energy generation rate is computed from a nuclear reaction network. The values in our MESA models are based on the approx21.net network. The network describes how nuclear species participate in reactions and how much energy is released or absorbed as a result. Nuclear reaction data (thermal energy per nuclear reaction chain) in this case are taken from the Joint Institute for Nuclear Astrophysics (JINA) REACLIB database 20 .Nuclear species are labeled by an index i, and their abundances are expressed in terms of molar abundances 
+
+Yi = Xi
+
+Ai
+
+, (41) where Xi is the mass fraction and Ai the mass number of species i.In a general time-dependent stellar evolution calculation, the molar abundances evolve according to 
+
+dY i
+
+dt = ∑
+
+> r
+
+νir Rr(ρ, T, {Yj}), (42) where the sum runs over all nuclear reaction channels r, νir is the net stoichiometric coefficient of species i in reaction r, and 
+
+Rr is the reaction progress rate. In the present work, we do not solve these composition evolution equations dynamically. They are introduced only to define the nuclear energy generation rate under the assumption of a fixed chemical composition, appropriate for steady-state stellar structure.  
+
+> 8/11 Reaction progress rates.
+
+For a generic two-body thermonuclear reaction of the form i + j → k + · · · , the reaction progress rate is given by 
+
+Ri j = ρNA
+
+1 + δi j 
+
+YiYj ⟨σ v⟩i j (T ) f sc  
+
+> i j
+
+(ρ, T, {Y }), (43) where NA is Avogadro’s number, δi j avoids double counting of identical reactants, ⟨σ v⟩i j is the Maxwellian-averaged thermonu-clear reaction rate, and f sc  
+
+> i j
+
+is the electron-screening enhancement factor. Three-body reactions, such as the triple-α process, follow the same structure with an additional factor of ρNAY .Weak interactions and radioactive decays are treated as one-body processes, 
+
+Rweak  
+
+> i
+
+= Yi λi(ρ, T ), (44) where λi denotes the corresponding weak interaction rate.  
+
+> Definition of the nuclear energy generation rate.
+
+The nuclear energy generation rate is obtained by summing the energy released by all reaction channels, 
+
+εnuc (ρ, T, {Y }) = ∑
+
+> r
+
+Qr Rr(ρ, T, {Y }), (45) where Qr is the thermal energy deposited in the plasma per reaction. The Q-values are derived from nuclear mass differences and include corrections for positron annihilation as well as the subtraction of energy carried away by neutrinos produced in weak reaction channels. As a result, εnuc represents the net local heating of the plasma due to nuclear reactions.  
+
+> Physical regimes and stiffness.
+
+Different nuclear burning regimes dominate in different regions of the (ρ, T ) plane, such as the pp-chain and CNO cycle during hydrogen burning and the triple-α process during helium burning. The reaction rates depend extremely sensitively on temperature and span many orders of magnitude across stellar interiors. This stiffness, together with sharp regime transitions, makes nuclear energy generation challenging to be approximated by a neural network.  
+
+> Treatment in the PINN framework.
+
+In our physics-informed neural network framework, nuclear energy generation is treated as an explicit physics operator. During training, the network-predicted thermodynamic state (ρ, T, {Xi}) is passed to a fixed nuclear microphysics module that evaluates εnuc pointwise. This design preserves physical fidelity and allows the neural network to focus on solving the global stellar structure equations rather than learning highly stiff microphysical processes. 
+
+5.3 Thermal losses 
+
+In addition to energy conversion through nuclear reactions, stars lose energy through neutrino emission processes that are not directly tied to nuclear burning. These processes remove energy from the stellar plasma and act as local sink terms in the energy equation. In this subsection, we describe the physical origin of these thermal losses and how they are incorporated into the stellar structure equations and the PINN framework.  
+
+> Thermal neutrino losses in the energy equation.
+
+Thermal neutrino losses are described by a specific energy loss rate 
+
+εν,th (ρ, T, {Xi}), (46) which depends on the local density ρ, temperature T , and chemical composition. These losses enter the luminosity equation as 
+
+dL dm = εnuc − εν,th . (47) Unlike photons, which transport energy outward through radiative diffusion, neutrinos escape freely from stellar interiors under normal conditions, in which case they remove energy locally.  
+
+> Neutrino emission mechanisms.
+
+Several physical processes contribute to thermal neutrino emission, including electron– positron pair annihilation, plasmon decay, photoneutrino production, and bremsstrahlung during electron–ion scattering. Each mechanism dominates in a different region of the (ρ, T ) parameter space, but all play the same conceptual role as local energy sinks, producing neutrinos that tend to remove heat.  
+
+> Regime dependence.
+
+Thermal neutrino losses are negligible in low-mass main-sequence stars but become increasingly important in massive stars and during advanced evolutionary stages, where high temperatures and densities enhance neutrino emission rates. The relative importance of different emission mechanisms varies smoothly but nonlinearly across the stellar interior.  
+
+> 9/11 Mathematical formulation.
+
+The total thermal neutrino loss rate can be written as a sum over contributing processes, 
+
+εν,th (ρ, T ) = ∑
+
+> k
+
+ε(k) 
+
+> ν
+
+(ρ, T ), (48) where the index k labels the individual emission mechanisms. In practice, each term is evaluated using analytic fits or tabulated expressions that ensure numerical stability and continuity across different physical regimes.  
+
+> Coupling to the equation of state.
+
+Thermal neutrino emission depends sensitively on the thermodynamic state of the plasma, including electron degeneracy and relativistic effects. For consistency, the evaluation of εν,th must be compatible with the adopted equation of state to avoid double counting of energy losses.  
+
+> Treatment in the PINN framework.
+
+As with nuclear energy generation, thermal neutrino losses are treated as fixed physics operators in the PINN framework. During training, the neural network provides the local thermodynamic state (ρ, T, {Xi}),which is passed to a nuclear and neutrino microphysics module taken directly from MESA and not learned. This module evaluates the corresponding neutrino loss rate pointwise using established microphysical prescriptions. This separation preserves physical fidelity and ensures that the neural network focuses on solving the global stellar structure equations rather than attempting to learn highly nonlinear and regime-dependent microphysical loss processes. 
+
+## References 
+
+1. Pols, O. R. Stellar structure and evolution (Astronomical Institute Utrecht Utrecht, 2011). 
+
+2. Rogers, F. & Nayfonov, A. Updated and expanded opal equation-of-state tables: implications for helioseismology. The Astrophys. J. 576 , 1064–1074 (2002). 
+
+3. Ferguson, J. W. et al. Low-temperature opacities. The Astrophys. J. 623 , 585–596 (2005). 
+
+4. Buchler, J. R. & Yueh, W. R. Compton scattering opacities in a partially degenerate electron plasma at high temperatures. 
+
+Astrophys. Journal, vol. 210, Dec. 1, 1976, pt. 1, p. 440-446. Res. supported by Univ. Fla. Luxembourg Minist. des Aff. Cult. 210 , 440–446 (1976). 
+
+5. Cassisi, S., Potekhin, A., Pietrinferni, A., Catelan, M. & Salaris, M. Updated electron-conduction opacities: the impact on low-mass stellar models. The Astrophys. J. 661 , 1094–1104 (2007). 
+
+6. Hubbard, W. B. & Lampe, M. Thermal conduction by electrons in stellar matter. Astrophys. J. Suppl. vol. 18, p. 297 (1969) 
+
+18 , 297 (1969). 
+
+7. Yakovlev, D. & Urpin, V. Thermal and electrical conductivity in white dwarfs and neutron stars. Sov. Astron. Vol. 24, P. 303, 1980 24 , 303 (1980). 
+
+8. Paxton, B. et al. Modules for experiments in stellar astrophysics (mesa). The Astrophys. J. Suppl. Ser. 192 , 3 (2011). 
+
+9. Hauschildt, P. H., Allard, F. & Baron, E. The nextgen model atmosphere grid for 3000 ≤ t eff ≤ 10,000 k. The Astrophys. J. 
+
+512 , 377–385 (1999). 
+
+10. Hauschildt, P. H., Allard, F., Ferguson, J., Baron, E. & Alexander, D. R. The nextgen model atmosphere grid. ii. spherically symmetric model atmospheres for giant stars with effective temperatures between 3000 and 6800 k. The Astrophys. J. 525 ,871–880 (1999). 
+
+11. Castelli, F. & Kurucz, R. Modelling of stellar atmospheres, eds. n. piskunov et al. In IAU Symp , vol. 210, A20 (2003). 
+
+12. Allard, F., Hauschildt, P. H., Alexander, D. R., Tamanai, A. & Schweitzer, A. The limiting effects of dust in brown dwarf model atmospheres. The Astrophys. J. 556 , 357–372 (2001). 
+
+13. Saumon, D., Chabrier, G. & van Horn, H. M. An equation of state for low-mass stars and giant planets. Astrophys. J. Suppl. v. 99, p. 713 99 , 713 (1995). 
+
+14. Timmes, F. X. & Swesty, F. D. The accuracy, consistency, and speed of an electron-positron equation of state based on table interpolation of the helmholtz free energy. The Astrophys. J. Suppl. Ser. 126 , 501–516 (2000). 
+
+15. Potekhin, A. Y. & Chabrier, G. Thermodynamic functions of dense plasmas: analytic approximations for astrophysical applications. Contributions to Plasma Phys. 50 , 82–87 (2010). 
+
+16. Sitzmann, V., Martel, J., Bergman, A., Lindell, D. & Wetzstein, G. Implicit neural representations with periodic activation functions. Adv. neural information processing systems 33 , 7462–7473 (2020). 
+
+17. Jacot, A., Gabriel, F. & Hongler, C. Neural tangent kernel: Convergence and generalization in neural networks. Adv. neural information processing systems 31 (2018). 
+
+> 10/11
+
+18. Rahimi, A. & Recht, B. Random features for large-scale kernel machines. Adv. neural information processing systems 20 
+
+(2007). 
+
+19. Shi, W. et al. Adaptive random fourier features gaussian kernel normalized lms algorithm. In 2024 IEEE International Conference on Signal Processing, Communications and Computing (ICSPCC) , 1–5 (IEEE, 2024). 
+
+20. Cyburt, R., Schatz, H., Smith, K. & Warren, S. The JINA Reaclib Database and Nuclear Astrophysics Applications. In 
+
+APS Division of Nuclear Physics Meeting Abstracts , APS Meeting Abstracts, JD.008 (2007).
