@@ -1,0 +1,102 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-001.webp",
+      "caption": "Figure 7: Physical representation of Case 1 (zero-reference control) via spatiotemporal contour fields y(x, t). Time evolution progresses along the vertical axis while spatial domains periodically wrap across the horizontal. Results map the action of the final converged agents navigating two distinct parameter environments: an unseen interpolation (µ = 0.1125, right) and a mild extrapolation (µ = −0.25, left). All active models decisively suppress the rapid energy cascades intrinsic to the unforced KS PDE, though the ActNet-KAN policy establishes the smoothest stabilized invariant manifold, eliminating nearly all traveling wave signatures that persist under the MLP residual.",
+      "page": 15,
+      "index": 1,
+      "width": 932,
+      "height": 1123
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-002.webp",
+      "caption": "Figure 6: Comparative RL learning dynamics across three core physical tasks: (a) zero-reference stabilization, (b) four-mode cosine target tracking, and (c) mean-shifted offset cosine target tracking. Each subpanel illustrates the training convergence, periodic evaluation distribution across the validation domain, and post-training generalization capabilities. While all three parameter-conditioned encoders effectively constrain the KS system and stabilize chaotic transients, ActNet-KAN and Fourier explicitly dominate the MLP backbone in worst-case out-of-distribution tracking performance (far right columns).",
+      "page": 14,
+      "index": 2,
+      "width": 976,
+      "height": 756
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-003.webp",
+      "caption": "Figure 1: Architecture of the parameter-conditioned hypernetwork topology (Adapted from [72, 69]). The hypernetwork cleanly disentangles parametric adaptation from the spatial feedback control problem by conditioning both actor and critic weights on the continuous physical parameter, enabling cross-regime generalization without per-regime retraining.",
+      "page": 3,
+      "index": 3,
+      "width": 550,
+      "height": 316
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-004.webp",
+      "caption": "Figure 5: Direct multi-seed performance comparison of MLP, Fourier, and KAN encoders navigating the baseline GS = 2 (top row) and high-reuse GS = 4 (bottom row) training protocols. The three columns display rolling training rewards, periodic cross-domain evaluation means (bounded by 95% confidence intervals across 5 orthogonal random seeds), and final generalization profiles evaluated across 9 discrete forcing amplitudes (7 seen training values, 2 unseen interpolation/extrapolation values). Across both update settings, actuator architectures show overlapping asymptotic limits due to extreme chaotic sensitivity, but KAN consistently secures tighter lower-bound robustness (variance reduction) under out-of-distribution testing.",
+      "page": 13,
+      "index": 4,
+      "width": 979,
+      "height": 425
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-005.webp",
+      "caption": "Table 2: Consolidated architecture comparison corresponding to Section 3.2. Metrics reflect the mean performance and standard deviation across 5 independent seeds for both GS = 2 and GS = 4 settings. Here, the ’Test Range’ encapsulates the absolute minimum and maximum generalization rewards achieved across all seeds. The exponential run-cost penalty of GS = 4 is particularly severe for the ActNet-KAN encoder, making the GS = 2 regime mandatory for scalable experimental iteration.",
+      "page": 13,
+      "index": 5,
+      "width": 764,
+      "height": 194
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-006.webp",
+      "caption": "Figure 9: Spacetime evaluations y(x, t) for Case 3, combining four-mode geometric tracking with an explicitly enforced non-zero spatial background mean. This configuration tests the agents’ ability to maintain a prescribed standing wave pattern while simultaneously shifting the equilibrium state of the chaotic medium. Columns compare extrapolative (µ = −0.25) and interpolative (µ = 0.1125) forcing levels. While all models achieve functional tracking, the KAN and Fourier representations, leveraging their intrinsic periodic basis functions, provide significantly better spatial coherence and lower boundary distortion than the MLP under these multi-objective constraints.",
+      "page": 17,
+      "index": 6,
+      "width": 932,
+      "height": 1123
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-007.webp",
+      "caption": "Figure 4: Training, evaluation, and test reward domains across varying gradient-step (GS) configurations for the baseline MLP encoder. (a) Training curves illustrate sample efficiency, with higher GS yielding faster initial ascent. (b) Evaluation returns over the training period, showing mean and min–max ranges across 10 evaluation episodes per checkpoint. (c) Post-training generalization mapping the final policy across 9 discrete forcing configurations (7 seen training parameters µ ∈ [−0.225, 0.225] alongside 2 unseen interpolation/extrapolation targets). While higher GS configurations (e.g., GS = 4, 6) maximize early data reuse, they exhibit diminishing asymptotic returns and drastically increased wall-clock costs, motivating a moderate GS = 2 trade-off.",
+      "page": 12,
+      "index": 7,
+      "width": 979,
+      "height": 238
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-008.webp",
+      "caption": "Table 1: Quantitative summary of the gradient-step ablation study (Section 3.1) measuring the continuous-time control throughput against asymptotic accuracy for the MLP baseline. ’Runtime’ denotes total wall-clock hours for 7.5× 106 environment steps. The test block reports the full generalization range across evaluated µ configurations. Note how GS = 2 provides the most balanced compromise between minimizing runtime (39m 11s) and closing the performance gap with higher-reuse regimes.",
+      "page": 12,
+      "index": 8,
+      "width": 798,
+      "height": 186
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-009.webp",
+      "caption": "Table 4: Network details and parameter counts for each model variant (state dimension = 65, action dimension = 8, target hidden width = 256).",
+      "page": 24,
+      "index": 9,
+      "width": 982,
+      "height": 526
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-010.webp",
+      "caption": "Figure 2: Detailed internal structure of the Hypernetwork [72] encoders. Left: The ResNet backbone processes the parameter latent z, which is then split into respective heads to generate the exact topological weights, biases, and scales for the target network. Right: The ActNet backbone maps the physical parameter µ into a latent space, while parallel ActNet weight heads dynamically generate the full target network weights.",
+      "page": 9,
+      "index": 10,
+      "width": 829,
+      "height": 574
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-011.webp",
+      "caption": "Figure 3: FastTD3 and TQC Optimization Workflow. 1,024 KS environments are simulated in parallel with µ ∈ {−0.225, . . . , 0.225}. Rollouts populate a replay buffer which is sampled to compute a conservative target distribution via Truncated Quantile Critics by sorting pooled atoms from twin critics and dropping the top-d values (e.g., d = 5 out of 2M = 50, i.e., 10%), achieving robust continuous control under chaotic forcing.",
+      "page": 9,
+      "index": 11,
+      "width": 848,
+      "height": 390
+    },
+    {
+      "url": "assets/figures/arxiv/2604.06497v1/fig-012.webp",
+      "caption": "Figure 8: Spacetime evaluations y(x, t) for Case 2, requiring the agent to continuously force the chaotic KS medium into a structured four-mode spatial oscillation. Columns compare an extrapolative forcing environment (µ = −0.25) against an interpolative case (µ = 0.1125). Here, the policy must not only halt runaway turbulence but intelligently distribute specific energy profiles matching the structural geometry of the reward target. While the MLP allows significant phase distortion and temporal noise at the boundaries, ActNet-KAN retains sharp, coherent topological structures even outside the explicit training bounds.",
+      "page": 16,
+      "index": 12,
+      "width": 932,
+      "height": 1123
+    }
+  ]
+}
