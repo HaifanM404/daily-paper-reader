@@ -1,0 +1,1376 @@
+Title: A High-Order Fast Direct Solver for Surface PDEs on Triangles
+
+URL Source: https://arxiv.org/pdf/2604.03097v1
+
+Published Time: Mon, 06 Apr 2026 01:01:15 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+A HIGH-ORDER FAST DIRECT SOLVER FOR SURFACE PDES ON TRIANGLES ∗
+
+GENTIAN ZAVALANI †
+
+Abstract. We develop a triangular formulation of the hierarchical Poincaré–Steklov (HPS) method for elliptic partial differential equations on surfaces, allowing high-order discretizations on unstructured meshes and complex geometries. Classical HPS formulations rely on high-order quadrilateral meshes and tensor-product spectral discretizations, which enable efficient algorithms but restrict applicability to structured geometries. To overcome this restriction, we introduce a triangle-based hierarchical Poincaré–Steklov scheme (THPS) built on orthogonal Dubiner polynomial bases. As in the classical HPS framework, local solution operators and Dirichlet-to-Neumann maps are constructed and merged hierarchically, yielding a fast direct solver with O(N log N) complexity for repeated solves on meshes with N elements. The reuse of precomputed operators makes the method particularly effective for implicit time-stepping of surface PDEs. Numerical experiments demonstrate that the proposed method retains spectral accuracy and achieves high-order convergence for a range of static and time-dependent test problems. 
+
+Key words. spectral methods; HPS solver; domain decomposition; Dubiner polynomials; triangulated meshes; Turing patterns. 
+
+1. Introduction. Partial differential equations (PDEs) on surfaces arise in a wide range of applications, including fluid dynamics, materials science, and biological pattern formation. Their numerical solution requires discretization techniques that accurately capture both the underlying geometry and the associated surface differ-ential operators. Standard approaches include finite difference, finite element, and spectral methods. Finite difference schemes are simple to implement but offer only algebraic convergence, requiring many grid points and substantial memory. Surface finite element methods (SFEMs) [ 7] provide geometric flexibility but rely on low-order polynomial approximations—typically cubic or quartic [ 14 ]—which can lead to ill-conditioned systems and make high-order accuracy difficult to achieve despite the availability of efficient solvers such as multigrid [ 3] and UMFPACK [ 5]. Spectral methods, by contrast, attain very high accuracy with relatively few degrees of freedom by employing high-degree polynomial approximations, and spectral element methods extend this accuracy to flexible geometries [ 8], though at the cost of potentially dense linear systems. A particularly effective strategy combines high-order spectral dis-cretizations with fast direct solvers based on the hierarchical Poincaré–Steklov (HPS) method [ 11 , 20 , 21 ]. In this framework, local solution operators and Dirichlet-to-Neumann maps are constructed on each element and merged hierarchically, yielding efficient solvers with near-linear complexity for repeated solves. The reuse of precom-puted operators makes such methods especially attractive for implicit time-stepping schemes for surface PDEs. To date, the HPS framework has been most effective on quadrilateral surface meshes [ 9 , 10 , 20 , 21 ], as spectral collocation methods are remarkably efficient on tensor-product domains because of the inherent structure of the expansions they em-ploy. The main drawback, however, is the limited ability to handle complex geometries. In such settings, triangular elements are generally preferred due to their geometric flexibility. Therefore, it is tempting to try to marry the efficiency of tensor products 
+
+> ∗
+
+Submitted to the editors DATE. 
+
+> †
+
+Technische Universität Dresden, Institute of Numerical Mathematics, 01062 Dresden, Germany. Email: gentian.zavalani@tu-dresden.de 1
+
+> arXiv:2604.03097v1 [math.NA] 3 Apr 2026
+
+2 G. ZAVALANI 
+
+with the flexibility of triangular geometries. Although it has been noted in prior work that the HPS framework could, in principle, be extended to triangular elements, to the best of our knowledge no high-order formulation or implementation has been proposed. In this work, we develop a fast direct solver based on a high-order spectral discretiza-tion using triangular elements for surface PDEs. As in the classical HPS frame-work [ 9, 20 , 21 ], the construction requires (i) an orthogonal polynomial basis and (ii) a suitable set of approximation points. Here, we employ Dubiner polynomials [ 6 ]together with Chebyshev–Lobatto-type points on triangles [ 12 ], enabling efficient and accurate spectral collocation on triangular elements. For further discussion on the ad-vantages of direct solvers in high-order settings, we refer to [ 21 ].The paper is structured as follows. In Section 2, we describe triangular spectral element discretizations based on Dubiner polynomial bases, including the construction of interpolation and differ-entiation operators, as well as their efficient implementation on triangular elements. Section 3 then presents a detailed construction of high-order surface parametrizations and the associated metric tensor, which forms the basis for defining surface differential operators. Sections 4 and 5 develop the Schur complement framework for domain decomposition on surfaces, beginning with the formulation on a single element and extending to pairs of coupled (“glued”) elements. Section 6 discusses computational complexity. In Section 7, we extend the method to time-dependent problems. Finally, Section 8 presents numerical experiments demonstrating high-order convergence for a range of static and time-dependent test cases. Note that we do not try to compare the quadrilateral and the triangle-based HPS methods in terms of performance or computational cost, as such comparisons de-pend strongly on the problem setting and implementation details. Moreover, in the present state of the art, the quadrilateral-based HPS is to be preferred over the triangle-based HPS if a structured mesh can be used to discretize the computational domain, essentially due to the fact that computing derivatives is more expensive with the triangle-based HPS. 
+
+2. Dubiner polynomials on the reference triangle. As in quadrilateral based spectral element [ 9 ], triangular spectral element discretizations require an orthogonal polynomial basis together with a suitable set of interpolation nodes. On quadrilateral reference elements, such as the square [−1, 1]2, these ingredients arise naturally from tensor-product constructions based on Chebyshev polynomials and the associated Chebyshev points. For triangular elements, however, the tensor-product structure is no longer available. We therefore employ Dubiner polynomials [ 6] (also known as Proriol or Koornwinder polynomials [ 16 , 23 ]), which form an orthogonal basis on the reference triangle 
+
+∆2 = {(ξ , η) ∈ R2 : ξ ≥ 0, η ≥ 0, ξ + η ≤ 1}. The Dubiner basis is obtained by applying the classical collapsed-coordinate mapping to tensor-product Jacobi polynomials on the reference square and provides a natural high-order spectral discretization on triangular domains. More precisely, for total polynomial degree n, the Dubiner basis functions are 
+
+Φi, j(ξ , η) := Ci j 2 j(1 − η)i J0,0
+
+> i
+
+ 2ξ
+
+1 − η − 1
+
+
+
+J2i+1,0 
+
+> j
+
+(2η − 1), 0 ≤ i, j ≤ n, i + j ≤ n,HPS ON TRIANGULAR SURFACES 3where the normalization constant is 
+
+Ci j :=
+
+r 2(2i + 1)( i + j + 1)
+
+4i .
+
+Here Jα,β 
+
+> m
+
+denotes the Jacobi polynomial orthogonal with respect to the weight 
+
+w(x) = ( 1 − x)α (1 + x)β ,
+
+that is, Z 1
+
+> −1
+
+(1 − x)α (1 + x)β Jα,β 
+
+> m
+
+(x) Jα,β 
+
+> q
+
+(x) dx = 22m + 1 δmq .
+
+Let us consider now the space Π2,n(∆2) = span {Φi, j}i, j≥0, i+ j≤n, of polynomials defined on ∆2 and of total degree ≤ n. Dubiner basis functions Φi, j constitute an orthonormal basis of Π2,n(∆2). The cardinality of this set is Nn = (n+1)( n+2) 
+
+> 2
+
+.Let bXn :=
+
+n
+
+ξξξ i, j = ( ξi, η j) 0 ≤ i ≤ n, 0 ≤ j ≤ n − i
+
+o
+
+, denote a set of spectral nodes on the reference simplex ∆2, generated by the recursive, parameter-free construction [ 12 ]. In our implementation, the underlying one-dimensional seed grid consists of second-kind Chebyshev (Chebyshev–Lobatto) points, so that the induced triangular nodes coincide with Chebyshev boundary nodes on each edge. For simplicity, the subscript 
+
+(i, j) can be replaced by the single index m = 1, . . . , Nn with any arbitrary bijection 
+
+m ≡ m(i, j).For any function u defined on ∆2, we denote by Q∆2,nu ∈ Π2,n(∆2) the nth-order poly-nomial interpolant of u on ∆2, defined by the interpolation conditions 
+
+Q∆2,nu(ξξξ m) = u(ξξξ m), m = j, . . . , Nn.
+
+The polynomial Q∆2,nu(ξξξ ) can be expanded using a nodal or a modal representation. When using the nodal representation, the polynomial is represented in term of point values by way of a Lagrangian interpolant, which is defined as the polynomial of lowest degree that assumes at each value ξξξ j the corresponding value ˆu j so that the function coincides at each point: 
+
+Q∆2,nu(ξξξ ) = 
+
+> Nn
+
+# ∑
+
+> j=1
+
+ˆu j ℓ j(ξξξ ),
+
+where ℓ j is a Lagrange polynomial and ˆu j is the known solution value at point ξξξ j.Since there is not a closed-form expression of the Lagrange polynomials through an arbitrary set of points on the triangular element [ 15 ], a solution is to expand the polynomial Q∆2,nu(ξξξ ) using a modal representation: 
+
+Q∆2,nu(ξξξ ) = 
+
+> Nn
+
+# ∑
+
+> m=1
+
+¯um Φm(ξξξ ),
+
+where ¯um are the modal basis coefficients, which do not represent the value of a function at a point. Since Q∆2,nu(ξξξ j) and Φm(ξξξ ) span the same polynomial space, 4 G. ZAVALANI 
+
+any projection form will recover the exact expansion coefficient ¯um. By performing a collocation projection at the points ξξξ j such that 
+
+Q∆2,nu(ξξξ j) = u(ξξξ j) = 
+
+> Nn
+
+# ∑
+
+> m=1
+
+¯um Φm(ξξξ j),
+
+the coefficients ¯um can then be determined as: (2.1) ¯um =
+
+> Nn
+
+# ∑
+
+> j=1
+
+u(ξξξ j)
+
+
+
+Φm(ξξξ j)
+
+−1
+
+.
+
+The term Φm(ξξξ j) corresponds to the matrix of basis change, also known as the general-ized Vandermonde matrix V j,m = Φm(ξξξ j). It is not difficult to see that, the polynomial approximation Q∆2,nu(ξξξ ) of the solution u(ξξξ ) can then be written as 
+
+Q∆2,nu(ξξξ ) = 
+
+> Nn
+
+# ∑
+
+> m=1
+
+ˆu j
+
+ V j,m
+
+−1 Φm(ξξξ ).
+
+To compute derivatives of Q∆2,nu at the collocation points, we differentiate the Dubiner expansion: 
+
+∂ξ Q∆2,nu(ξξξ j) = 
+
+> Nn
+
+# ∑
+
+> m=1
+
+¯um ∂ξ Φm(ξξξ j), ∂η Q∆2,nu(ξξξ j) = 
+
+> Nn
+
+# ∑
+
+> m=1
+
+¯um ∂η Φm(ξξξ j).
+
+Define the derivative Vandermonde matrices 
+
+(Vξ ) j,m = ∂ξ Φm(ξξξ j), (Vη ) j,m = ∂η Φm(ξξξ j).
+
+Using (2.1), we obtain the nodal derivative vectors 
+
+uξ = Vξ V−1u, uη = Vη V−1u.
+
+Thus, the differentiation matrices on the reference triangle are (2.2) Dξ = Vξ V−1, Dη = Vη V−1,
+
+which map nodal values to directional derivatives in reference coordinates: 
+
+uξ = Dξ u, uη = Dη u.
+
+Here Dξ , Dη ∈ RNn×Nn , whereas in quadrilateral case they had dimension (n+1)2 ×(n+
+
+1)2, owing to the Cartesian tensor-product structure of the underlying mesh. 
+
+3. High-order parametric surface approximation. We consider a general elliptic surface PDE on Γ,(3.1) LΓu(x) = f (x), x ∈ Γ,
+
+where f (x) is a smooth function on Γ and LΓ is a variable-coefficient linear second-order elliptic surface operator. If Γ is not a closed surface, (3.1) may also be subject to boundary conditions, e.g., u(x) = h(x) for x ∈ ∂ Γ and some function h .HPS ON TRIANGULAR SURFACES 5To numerically solve (3.1) , we need to discretize LΓ, f , and h, and represent these objects in some finite-dimensional basis. The numerical error involved in a discretiza-tion of PDEs on curved surfaces depends on two properties of the discretization, the representation of the objective function and the representation of the geometry. Thus, a higher-order scheme is only possible with also a higher-order description of the surface approximation. Let Γh be a reference surface, composed of finitely many regular simplices with diameter h, topologically equivalent to the smooth surface Γ.The collection of these simplices is denoted by bKh, which provides a representation of 
+
+Γh:
+
+Γh = [ 
+
+> bE∈bKh
+
+bE, with N = | bKh|.
+
+We assume that the elements do not overlap, i.e., for bEi, bE j ∈ bKh, we have that int (bEi) ∩
+
+int (bE j) = /0 and if bEi ∩ bE j = I̸ = /0 and dim (I) = 1. Each element bE ∈ bKh is parametrized over a reference element ∆2 ⊂ R2 by an invertible and differentiable mapping: 
+
+μbE : ∆2 → bE,
+
+referred to as the affine mapping of bE.Additionally, we assume the existence of a bijective mapping X : Γh → Γ, such that the smooth surface Γ can be represented as a union of non-overlapping mapped elements: 
+
+Γ = [ 
+
+> bE∈bKh
+
+X(bE) = [ 
+
+> bE∈bKh
+
+X(μbE(∆2)) = : [ 
+
+> bE∈bKh
+
+XbE(∆2).
+
+With this property, Γh is referred to as the reference surface (or reference domain) of 
+
+Γ, and the collection {XbE}bE∈ bKh as its reference parametrization. The Jacobian of the parametrization XbE at x is 
+
+DXbE(x) : R2 → R3.
+
+The first fundamental form is the symmetric and positive definite matrix g ∈ R2×2
+
+defined as 
+
+g(x) := DXbE(x)T DXbE(x) ∀x ∈ ∆2.
+
+The corresponding volume element g(x) is given by 
+
+g(x) = pdet g(x).
+
+A detailed derivation of the tangential operators, the surface gradient ∇Γ, divergence 
+
+div Γ, and Laplace–Beltrami operator ∆Γ is presented in Appendix 9. 6 G. ZAVALANI 
+
+πk
+
+Ek
+
+Γh,n
+
+φk := πk ◦ μk
+
+bEk
+
+Γh
+
+μk
+
+∆2
+
+Fig. 1: Construction of a surface parametrization over the reference simplex ∆2 via closest-point projection from the piecewise affine approximation Γh.The reference manifold Γh is not used directly for an approximate discretization of functions on Γ, since it does not necessarily approximate the smooth manifold well enough. It just provides a reference domain for the parametrization X. For numer-ical computations and discretizations, we need another manifold in the proximate neighborhood of Γ. Let Q∆2,nX ∈ Π2,n(bE) be the nth-order polynomial (Lagrange) in-terpolant of the mapping X on the element bE of the reference manifold, with Lagrange nodes lying on the smooth surface Γ. In the following, we consider the restriction of the closest-point projection π to Γh as a mapping π : Γh → R3, and define an nth-order polynomial parametrization of the surface. 
+
+Definition 3.1 (Order -n simplex parametrization). Let φk : ∆2 ⊂ R2 → bEk ⊂ R3, φk =
+
+πk ◦ μk, k = 1, . . . , N, where πk is the closest point projection onto the surface Γ and μk is the affine map (see Figure 1). We say that the mesh is of order n if each element is obtained by polynomial interpolation (in total degree) of {φk(ξm, ηm)}Nn
+
+> m=1
+
+, sampled at the triangular spectral nodes {(ξm, ηm)}Nn
+
+> m=1
+
+.
+
+For every triangle bE ∈ bKh, we compute {φk(ξm, ηm)}Nn
+
+> m=1
+
+, and define an n-th order triangle E by applying polynomial interpolation of order n to the coordinates of the projected points {φk(ξm, ηm)}Nn
+
+> m=1
+
+, namely: 
+
+Q∆2,nφk(ξ , η) = 
+
+> n
+
+# ∑
+
+> i=0
+> n−i
+
+# ∑
+
+> j=0
+
+φk(ξi, η j) Φi, j(ξ , η), (ξ , η) ∈ ∆2, k = 1, . . . , N.
+
+Mapping the piecewise flat surface yields a higher-order approximation Γh,n :=
+
+Q∆2,nφk(Γh) of the surface Γ, which lies within the proximate neighborhood of Γ if the mesh size is small enough. In the following, we assume that h is chosen correspond-ingly. Associated with the discrete surface Γh,n is a set of surface elements 
+
+Kh,n := {Q∆2,nφk(bE) | bE ∈ bKh},
+
+such that Γh,n = S 
+
+> E∈Kh,n
+
+E.Given Γh,n, we can compute a nth -order approximation of the volume element 
+
+g(x),HPS ON TRIANGULAR SURFACES 7
+
+gn(x) = 
+
+q
+
+det  DQ∆2,nφk(x)T DQ∆2,nφk(x).
+
+4. High-order spectral collocation on a single element. We now describe a spectral collocation method for discretizing (3.1) on a single surface element Ek ⊂ Γ.The discretization is derived directly from the strong formulation of the problem. Functions defined on Ek ⊂ Γ are represented at the same interpolation nodes used for the geometry. Let u be a function defined on Ek, and define ui j := u(φk(ξi, η j)) . The corresponding Dubiner interpolant is then 
+
+u(ξ , η) = 
+
+> n
+
+# ∑
+
+> i=0
+> n−i
+
+# ∑
+
+> j=0
+
+ui j Φi, j(ξ , η), (ξ , η) ∈ ∆2.
+
+To discretize LΓ on the element Ek, we first compute the discrete operators on the reference simplex ∆2 and then map them to Ek using the numerical coordinate mapping 
+
+φk. Let M[u] ∈ RNn×Nn denote the diagonal multiplication matrix formed by placing the entries of u along the diagonal. Consider the local parametrization φk(ξ , η) =  x1(ξ , η), x2(ξ , η), x3(ξ , η). Using (2.2) , the components of the surface gradient are given by 
+
+DΓ  
+
+> xj
+
+= M[∂x j ξ ] Dξ + M[∂x j η] Dη , j = 1, 2, 3.
+
+For the second-order surface operator 1
+
+LΓu =
+
+> 3
+
+# ∑ 
+
+> i,j=1
+
+ai j ∂ Γ 
+
+> xi
+
+∂ Γ  
+
+> xj
+
+u +
+
+> 3
+
+# ∑
+
+> i=1
+
+bi ∂ Γ 
+
+> xi
+
+u + c u ,
+
+the discrete operator on the element Ek is 
+
+LEk =
+
+> 3
+
+# ∑
+
+> i=13
+
+# ∑
+
+> j=i
+
+M[ai j ] DΓ 
+
+> xi
+
+DΓ  
+
+> xj
+
++
+
+> 3
+
+# ∑
+
+> i=1
+
+MDΓ 
+
+> xi
+
++ M[c].
+
+Figure 2 illustrates the interface coupling between two triangular surface elements, enforcing continuity of both the solution and its binormal derivative. Using this discretization scheme, (3.1) can be written as Nn × Nn linear system. (4.1) LEk u = f .
+
+To prepare for the imposition of boundary conditions, we partition the index set 
+
+{1, . . . , Nn} for a given element Ek into interior ( Iint ) and boundary ( I∂ ) subsets, so that 
+
+{1, 2, . . . , Nn} = Iint ∪ I∂ ,
+
+with |Iint | = (n−1)( n−2) 
+
+> 2
+
+, points in the interior and |I∂ | = 3n on the boundary. This par-tition is used to divide both vectors and matrices into blocks. For instance, given a       
+
+> 1We identify ∂Γ
+> iwith the tangential derivative ∂ialong the surface Γ.
+
+8 G. ZAVALANI 
+
+matrix A, the submatrix Ai,b consists of the rows indexed by Iint and columns indexed by I∂ . The solution vector is written as 
+
+ui = u(Iint ) and ub = u(I∂ ).
+
+Partitioning the LEk and reordering the degrees of freedom in (4.1) in the order 
+
+{Iint , I∂ } (i.e. interior then boundary) gives a block linear system, (4.2) 
+
+"
+
+Li,i 
+
+> εk
+
+Li,b
+
+> εk
+
+Lb,i 
+
+> εk
+
+Lb,b
+
+> εk
+
+# ui
+
+ub
+
+
+
+=
+
+fi
+
+fb
+
+
+
+.
+
+To impose Dirichlet boundary conditions, we set u = hb on ∂ Ek, where hb ∈ R3n×1
+
+denotes the vector of boundary values of h(x). Substituting these into the system (4.2) and eliminating the boundary unknowns ub via a Schur complement [ 22 ] yields the reduced system: 
+
+Li,i 
+
+> Ek
+
+ui = fi − Li,b 
+
+> Ek
+
+hb.
+
+The interior solution is then expressed as 
+
+ui =
+
+
+
+Li,i
+
+> Ek
+
+−1
+
+fi − SEk hb,
+
+where SEk := −
+
+
+
+Li,i
+
+> Ek
+
+−1
+
+Li,b 
+
+> Ek
+
+is known as the solution operator and is of size (n+1)( n+2) 
+
+> 2
+
+×
+
+3n.
+
+5. Domain decomposition methods. The spectral collocation method described in the previous section converges very quickly as the number of points n increases provided the solution u is smooth. The matrix LEk that arises from the discretization has some structure and contains many zeros, but it is still considerably denser than the matrices produced by finite difference [ 17 ] or finite element methods [ 18 ]. One way to reduce this density is to use domain decomposition methods, which also lend themselves well to implementation on parallel computing architectures. In a domain decomposition approach, the computational domain Γ is partitioned into smaller elements Ek, for k = 1, . . . , N, which may touch or overlap. The original problem (3.1) is then reformulated on each element, resulting in a family of smaller subproblems, where each subproblem can be solved independently using spectral collocation. However, to ensure that the local solutions uk(x), each defined solely on a element Ek for k = 1, . . . , N, fit together and form a smooth solution of the PDE (3.1) on the entire computational domain Γ, they have to satisfy matching conditions. For two adjacent (non-overlapping) elements E1 and E2, the solution is required to be 
+
+C1-continuous across their common interface. In particular, both the solution and its binormal derivative must be continuous along the shared boundary. This requirement can be expressed as 
+
+u1(x) = u2(x), x ∈ ∂ E1 ∩ ∂ E2
+
+∂nb u1(x) = −∂nb u2(x), x ∈ ∂ E1 ∩ ∂ E2HPS ON TRIANGULAR SURFACES 9where nb denotes the outward-pointing binormal vector. The minus sign arises from the opposing orientations of the binormals on the two adjacent elements. While enforcing continuity of the solution is straightforward, ensuring continuity of the binormal derivative is more delicate. Among the available approaches, an effective strategy is to employ the Poincaré–Steklov operator [ 24 ], also known as the Dirichlet-to-Neumann (DtN) map. Originally introduced by V. A. Steklov, this operator maps prescribed Dirichlet data (i.e., solution values) to the corresponding Neumann data (binormal derivatives) on the boundary. For a given element Ek, the Dirichlet-to-Neumann operator, denoted by DtN Ek , computes the outward fluxes corresponding to prescribed Dirichlet boundary data. Having constructed the solution operators 
+
+SEk that solve the PDE locally on each element Ek, for k = 1, . . . , N, the Dirichlet-to-Neumann operator is defined as 
+
+DtN Ek = DEk SEk ,
+
+where 
+
+DEk = nk,x ◦ DΓ 
+
+> x
+
+(Ib; ·) + nk,y ◦ DΓ 
+
+> y
+
+(Ib; ·) + nk,z ◦ DΓ 
+
+> z
+
+(Ib; ·),
+
+and ◦ denotes the Hadamard (pointwise) product. 
+
+5.1. Merging Dirichlet-to-Neumann maps. Assume now that Γ is partitioned into adjacent elements. For simplicity, we consider the case of two elements, denoted by E1 and E2, as illustrated in Figure 2. We denote their common interface by I12 =
+
+∂ E1 ∩ ∂ E2 .(5.1) LΓu1(x) = f1(x), x ∈ E1, with u1(x) = h1(x), x ∈ ∂ E1 \ I12 ,
+
+(5.2) LΓu2(x) = f2(x), x ∈ E2, with u2(x) = h2(x), x ∈ ∂ E2 \ I12 ,
+
+with continuity conditions: 
+
+u1(x) = u2(x), x ∈ I12 ,
+
+∂nb u1(x) = −∂nb u2(x), x ∈ I12 .
+
+The patching problem (5.1) and (5.2) can be regarded as two decoupled, four-sided Dirichlet problems when given a suitable piece of Dirichlet data along I12 . That is, there exists an interface function uglue such that (5.1) and (5.2) is equivalent to (5.3) 
+
+LΓu1(x) = f1(x), x ∈ E1,
+
+u1(x) = h1(x), x ∈ ∂ E1 \ I12 ,
+
+u1(x) = uglue (x), x ∈ I12 .
+
+(5.4) 
+
+LΓu2(x) = f2(x), x ∈ E2,
+
+u2(x) = h2(x), x ∈ ∂ E2 \ I12 ,
+
+u2(x) = uglue (x), x ∈ I12 .
+
+To determine the unknown interface function uglue , we construct a solver referred to as the interface solution operator, denoted by Sglue , such that uglue (x) = Sglue 
+
+h1(x)
+
+h2(x)
+
+
+
+.10 G. ZAVALANI 
+
+This solver is constructed using local operators from each element. Specifically, we first build local solvers for the elements E1 and E2, and then combine parts of these operators to create the interface solution operator Sglue .Once the interface function uglue is determined, the two subproblems from equations (5.3) and (5.4) become independent and can be solved separately by applying spectral collocation on E1 and E2.
+
+E111
+
+E222
+
+u1 = h1
+
+u2 = h2
+
+LΓu1 = f1
+
+LΓu2 = f2
+
+nb
+
+u1(x) = u2(x) = uglue (x)
+
+∂nb u1(x) = −∂nb u2(x) Ib1
+
+Ib2
+
+Is1
+
+Is2
+
+Fig. 2: Interface coupling of two surface elements via continuity of the solution and its binormal derivative. Red points indicate boundary collocation points Ib1 and Ib2 , while blue points represent interface collocation points Is1 and Is2 , aligned for coupling. The right panel highlights the shared interface and point alignment used in the spectral collocation framework. Let Is1 , Is2 ⊂ { 1, . . . , 3n} be index sets corresponding to the shared interface points (i.e., the points which are interior to the merged domain Eglue := E1 ∪ E2) with respect to elements E1 and E2, and I1 and I2 the remaining indices corresponding to the boundary points (see Figure 2 for a diagram). As the points of E1 and E2 are identical along the shared interface I12 , continuity of the solution across I12 simply means that 2
+
+us1 
+
+> 1
+
+= us2 
+
+> 2
+
+, so let us denote these solution values by uglue .Continuity conditions across element interfaces are imposed locally using discrete Dirichlet-to-Neumann (DtN) operators. 
+
+DtN Ek = DEk SEk , k = 1, 2.
+
+Since DtN Ek maps from the triangle boundary to itself, it is a square matrix of size 
+
+3n × 3n. We define the boundary data vectors hb
+
+> 1
+
+, hb 
+
+> 2
+
+∈ R3n×1 for the two neighboring elements as 
+
+hb
+
+> 1
+
+(x) :=
+
+ h1(x)
+
+uglue (x)
+
+
+
+, hb
+
+> 2
+
+(x) :=
+
+ h2(x)
+
+uglue (x)
+
+
+
+,
+
+where h1(x) and h2(x) correspond to the non-shared boundary degrees of freedom, and uglue (x) represents the shared interface values between the two elements.     
+
+> 2The superscripts s1,s2denote restriction to interface indices HPS ON TRIANGULAR SURFACES
+
+11 The corresponding homogeneous solutions on each element are then given by 
+
+wk = SEk hbk , k = 1, 2.
+
+The continuity condition for the binormal derivative across the shared interface re-quires that (5.5) 
+
+
+
+DtN E1 hb 
+
+> 1
+
++ DE1 vvv1
+
+s1
+
++
+
+
+
+DtN E2 hb 
+
+> 2
+
++ DE2 vvv2
+
+s2
+
+= 0,
+
+where vvv′ 
+
+> k
+
+:= DEk vvvk denotes particular fluxes associated with particular solutions on each element. Rewriting the system (5.5) in terms of the interface unknown uglue ,we obtain separate linear systems for the homogeneous and particular interface un-knowns: 
+
+
+
+DtN s1s1 
+
+> E1
+
++ DtN s2s2
+
+> E2
+
+
+
+wglue = DtN s1b1 
+
+> E1
+
+h1 + DtN s2b2 
+
+> E2
+
+h2,(5.6) 
+
+
+
+DtN s1s1 
+
+> E1
+
++ DtN s2s2
+
+> E2
+
+
+
+vvvglue = vvv′s1 
+
+> 1
+
++ vvv′s2 
+
+> 2
+
+.(5.7) with local operators constructed on each element. By solving (5.6) , we obtain the interface solution operator Sglue , which is defined as follows: 
+
+Sglue := −
+
+
+
+DtN s1s1 
+
+> E1
+
++ DtN s2s2
+
+> E2
+
+−1 h
+
+DtN s1b1 
+
+> E1
+
+DtN s2b2
+
+> E2
+
+i
+
+.
+
+The Schur complement also allows us to write down the Dirichlet-to-Neumann op-erator for the merged domain. Using the new interface solution operator Sglue , we construct the new Dirichlet-to-Neumann operator 
+
+DtN glue :=
+
+"DtN b1b1 
+
+> E1
+
+00 DtN b2b2
+
+> E2
+
+#
+
++
+
+"DtN b1s1
+
+> E1
+
+DtN b2s2
+
+> E2
+
+#
+
+Sglue .
+
+In a similar manner, the specific flux for the merged domain is given by 
+
+vvv′ 
+
+> glue
+
+=
+
+"
+
+vvv′b1
+
+> 1
+
+vvv′b2
+
+> 2
+
+#
+
++
+
+"DtN b1s1
+
+> E1
+
+DtN b2s2
+
+> E2
+
+#
+
+vvvglue .
+
+The merging procedure follows the same construction as in the quadrilateral-based HPS framework [ 9, 21 ]. At each stage, two neighboring leaf elements are combined into a larger domain Eglue . This merging yields (i) a solution operator Sglue , which determines the interface values uglue in the interior of Eglue , and (ii) a Dirichlet-to-Neumann operator DtN glue , mapping boundary data to outward fluxes on Eglue . These operators fully characterize the solution on the merged domain. The resulting parent element is functionally equivalent to its children and can be recursively merged with neighboring domains until a factorization of the surface PDE over entire surface mesh has been computed. Since the algorithmic details are identical to the quadrilateral setting, we refer to [9] for a complete description. 12 G. ZAVALANI 
+
+6. Computational asymptotic complexity. For an order-n discretization using triangular spectral elements, the total number of degrees of freedom associated with the mesh {Ek}Nk=1 scales as N (n+1)( n+2) 
+
+> 2
+
+. As in the quadrilateral based HPS method [ 9 ,21 ], the computational complexity consists of three main stages and is governed by the number of local degrees of freedom. On each triangular patch, constructing the local solution operator SSSbEk and the corresponding Dirichlet-to-Neumann operator DtN bEk
+
+requires O(Nn 6) operations, since the local collocation matrices have size O(n2). The merging process over the hierarchical tree incurs a cost of O(N3/2n3), while the overall complexity of the solve stage is O(n2N log N + Nn 3). The memory requirements scale similarly to the solve stage, as each level of the hierarchy stores dense representations of the solution and Dirichlet-to-Neumann operators. 
+
+7. Time-dependent equations. While the triangle-based HPS scheme is designed to solve stationary problems modeled by linear elliptic PDEs, it can also be useful for accelerating time-dependent problems modeled by parabolic PDEs. We start by considering the reaction-diffusion systems, which are widely regarded as key mecha-nisms for pattern formation in a variety of contexts, including biological, chemical, physical, and even economic processes. A general reaction–diffusion system describ-ing N interacting species defined on a closed, smooth surface Γ ⊂ Ω ⊂ Rd+1 can be written in the form: (7.1) ∂ uuu
+
+∂t = ∇Γ · (D∇Γuuu) + FFF(uuu),
+
+where uuu := ( u1, u2, . . . , uN ), FFF represents the reaction kinetics, also referred to as the source term, and D denotes the diffusion tensor. The reason a fast direct solver for elliptic equations is useful is that each time step in (7.1) requires solving an elliptic problem, and when there are many timesteps it can become advantageous to use a direct solver. This is of course especially true if the complexity (as it is here) of the linear solver is good. In the discretization process, we handle the spatial discretization, as described in the previous sections, using a domain decomposition approach with spectral collocation on each element. This yields a system of ordinary differential equations (ODEs) in time, given by: (7.2) du uudt = LΓuuu + FFF(uuu).
+
+The term LΓuuu arises from the diffusion components, while FFF(uuu) originates from the reaction components. Because the diffusive term is typically stiff [ 25 ], the use of explicit schemes usually necessitates excessively small time steps. This can result in computations which are prohibitively expensive in three spatial dimensions. Fully implicit treatment, however, requires the implicit treatment of the nonlinear reaction term, FFF(uuu), at every time step. This can be particularly expensive and undesirable because the Jacobian of FFF(uuu) could be dense and is typically non-definite, or non-symmetric which makes fast iterative solution techniques [ 27 ] less efficient and more difficult to implement. Moreover, explicitly handling the nonlinear reaction term 
+
+FFF(uuu) is easy to implement and adds relatively little computational effort per time step. Additionally, many well-known time-stepping methods applied to (7.2) are HPS ON TRIANGULAR SURFACES 13 either first-order (such as backward Euler) or result in only a weak reduction of high-frequency error components (such as Crank-Nicolson). In this work, we employ the Implicit-Explicit Backward Differentiation Formula (IMEX-BDF) family of schemes [ 1], combining backward differentiation for implicit terms with Adams-Bashforth for explicit terms. Let ∆t > 0 denote the time step, and uuun(x) ≈ uuu(x, n∆t) represent the approximate solution at step n. Time discretization with the Mth order IMEX-BDF scheme yields a steady-state problem at each step: (7.3) (I − ω∆tL Γ) uuun+1 =
+
+> M−1
+
+# ∑
+
+> i=0
+
+aiuuun−i + ∆t
+
+> M−1
+
+# ∑
+
+> i=0
+
+bi FFF(uuun−i),
+
+which can be written more compactly as 
+
+Au uun+1 = fff n,
+
+where 
+
+A := I − ω∆tL Γ, fff n :=
+
+> M−1
+
+# ∑
+
+> i=0
+
+aiuuun−i + ∆t
+
+> M−1
+
+# ∑
+
+> i=0
+
+biFFF(uuun−i).
+
+For instance, using the IMEX-BDF1 scheme, where ω = 1, a0 = 1, b0 = 1, yields the equation 
+
+(I − ∆tL Γ) uuun+1 = uuun + ∆t F FF(uuun),
+
+which must be solved once per time step to compute uuun+1 from uuun, yielding a cost per time of O(N log N).The values of ω, ai, and bi for IMEX-BDF schemes of order 2 to 4 are given as fol-lows: IMEX-BDF2: ω = 23 , a =   43 , − 13
+
+ , b =   43 , − 23
+
+ ,
+
+IMEX-BDF3: ω = 611 , a =   18 11 , − 911 , 211 
+
+ , b =   18 11 , − 18 11 , 611 
+
+ ,
+
+IMEX-BDF4: ω = 12 25 , a =   48 25 , − 36 25 , 16 25 , − 325 
+
+ , b =   48 25 , − 72 25 , 48 25 , − 12 25 
+
+ .
+
+Regarding the accuracy of IMEX-BDF schemes, the following theorem provides im-portant insights: 
+
+Theorem 7.1 ([ 1], Theorem 2.1). An s-step IMEX-BDF scheme, as defined in (7.3) , cannot achieve an order of accuracy higher than s.
+
+8. Numerical examples. In this section, we assess the accuracy, convergence, and computational performance of the proposed triangular HPS method on a set of representative surface PDE problems. We begin with the Laplace–Beltrami equation on the sphere, where analytical solutions are available, allowing for a detailed study of spatial convergence. We then consider time-dependent diffusion problems and conclude with nonlinear reaction–diffusion systems to demonstrate the robustness of the method in more complex settings. 14 G. ZAVALANI 
+
+Laplace–Beltrami problem on the sphere. Following the convergence experiments in [ 9], we study the Laplace–Beltrami problem on the unit sphere Γ, seeking u such that (8.1) −∆Γu = f on Γ.
+
+Exact solutions are taken from the family of spherical harmonics Y m 
+
+> ℓ
+
+, which sat-isfy 
+
+−∆ΓY m 
+
+> ℓ
+
+= ℓ(ℓ + 1)Y m 
+
+> ℓ
+
+.
+
+We consider two geometrical configurations. First, the problem is restricted to the upper hemisphere, where we set 
+
+u(x) = Y 23 (x),
+
+and impose Dirichlet boundary conditions along the equator, 
+
+h(x) = 0.25 
+
+r 105 
+
+π (x21 − x22) x3.
+
+Second, we consider the closed unit sphere with 
+
+u(x) = Y 10 20 (x).
+
+In both cases, the forcing term is chosen as 
+
+f (x) = −ℓ(ℓ + 1)Y m 
+
+> ℓ
+
+(x),
+
+so that the exact solution satisfies (8.1). 10 !1 10 0    
+
+> h
+> 10 !10
+> 10 !5
+> 10 0
+> ku ! uhkL1
+> n= 5
+> n= 9
+> n= 11
+> n= 13
+> O(hn!1)
+
+Fig. 3: A high-order triangular patch mesh is used to discretize the Laplace–Beltrami equation on the upper hemisphere. The spectral discretization exhibits high-order convergence consistent with the rate O(hn−1).The solution is evaluated on a triangulated approximation of the sphere to assess the convergence of the triangle-based hierarchical HPS discretization. Figure 3 shows the spatial convergence under h-refinement for polynomial degrees n = 5, 9, 11 , and 13 .The relative L∞-error decays algebraically with the mesh size h, following the expected rate O(hn−1), with reference slopes included for comparison. The surface plots (left) illustrate the computed solutions on the triangulated geometry. Figure 4 presents analogous results for the closed sphere, exhibiting the same algebraic convergence behavior. HPS ON TRIANGULAR SURFACES 15 10 !1 10 0     
+
+> h
+> 10 !10
+> 10 !5
+> 10 0
+> ku ! uhkL1
+> n= 4
+> n= 8
+> n= 12
+> n= 16
+> n= 20
+> O(hn!1)
+
+Fig. 4: A high-order triangulated sphere mesh is used to approximate a spherical harmonic. The observed algebraic decay aligns with the fit rate hn−1.
+
+Surface diffusion equation on the sphere. Next, we assess the accuracy and con-vergence of the triangle-based HPS scheme for a time-dependent problem. As a benchmark with a known analytical solution, we consider isotropic diffusion on the surface of the unit sphere, 
+
+∂ u
+
+∂t = ∆Γu on Γ = {x ∈ R3 | ∥ x∥2 = 1}.
+
+The exact solution in spherical coordinates (ϑ , ϕ), where ϑ ∈ [0, π] is the polar angle and ϕ ∈ [0, 2π) is the azimuthal angle, is obtained via expansion in spherical harmonics 
+
+Y m 
+
+> ℓ
+
+:
+
+u(t, ϑ , ϕ) = 
+
+> ∞
+
+# ∑
+
+> ℓ=0
+> ℓ
+
+# ∑
+
+> m=−ℓ
+
+cℓm(0)Y m 
+
+> ℓ
+
+(ϑ , ϕ)e−ℓ(ℓ+1)t ,
+
+with modal coefficients determined by the projection of the initial data: 
+
+cℓm(0) = 
+
+Z
+
+> Γ
+
+(−1)mY −m 
+
+> ℓ
+
+(ϑ , ϕ) u(0, ϑ , ϕ) dS .
+
+To avoid effects due to spectral truncation and to isolate the numerical error, we consider the initial condition 
+
+u(0, ϑ , ϕ) = Y 01 (ϑ , ϕ) = 
+
+r 34π cos ϑ ,
+
+which leads to a closed-form analytic solution due to the orthogonality of the spherical harmonics: 
+
+u(t, ϑ , ϕ) = Y 01 (ϑ , ϕ) e−2t .
+
+The left panel of Figure 5 shows the computed solution at the final time t = 1, while the right panel illustrates the L∞-error as a function of polynomial degree for different mesh sizes. As expected, increasing the polynomial degree results in exponential convergence of the error, especially for finer meshes. 16 G. ZAVALANI 4 6 8 10 12 14 16     
+
+> Polynomial degree
+> 10 !15
+> 10 !10
+> 10 !5
+> 10 0
+> ku ! uhkL1
+> h= 0 :5000
+> h= 0 :2500
+> h= 0 :1250
+> h= 0 :0625
+
+Fig. 5: (Left) Computed solution at t = 1 using time step ∆t = 10 −3. (Right) L∞-error versus polynomial degree for different mesh sizes h. The simulations were performed using the implicit–explicit backward differentiation formula (IMEX–BDF4) scheme. 
+
+Numerical study of spatial pattern formation in Turing systems. Having established the method’s robustness for this simpler case, we now turn to a more complex and biologically motivated setting: the Turing model of spatial pattern formation, first proposed by Turing [ 26 ]. He showed that a system of two reacting and diffusing chemicals could give rise to spatial patterns in chemical concentrations from initial near-homogeneity. A comprehensive overview of commonly used reaction kinetics and their underlying motivation can be found in [ 19 ]. In this section, we consider the Turing model on a surface Γ involving an activator–inhibitor system [ 2]. Our aim is to investigate how the domain geometry, nonlinearities, and coupling of such systems influence the emergence of spatial patterns. The specific form of the system considered is: (8.2) 
+
+∂ u1
+
+∂t = δu1 ∆Γu1 + αu1
+
+ 1 − r1u22
+
+ + u2 (1 − r2u1) with u1(x, 0) = u01(x)
+
+∂ u2
+
+∂t = δu2 ∆Γu2 + β u2
+
+
+
+1 + αr1
+
+β u1u2
+
+
+
++ u1 (γ + r2u2) with u2(x, 0) = u02(x),
+
+where α, β , γ, r1, r2, δu1 and δu2 are the parameters of the reaction-diffusion system. In the context of (7.1), we have the following: 
+
+D =
+
+δu1 00 δu2
+
+
+
+, u =
+
+u1
+
+u2
+
+
+
+, F = αu1
+
+ 1 − r1u22
+
+ + u2 (1 − r2u1)
+
+β u2
+
+
+
+1 + αr1 
+
+> β
+
+u1u2
+
+
+
++ u1 (γ + r2u2)
+
+!
+
+.
+
+In this system, u1 and u2 are morphogens with u1 as the "activator" and u2 as the "inhibitor". If α = −γ, then (u1, u2) = ( 0, 0) is a unique equilibrium point of this system. The reaction term contributes to the formation of concentration peaks of u1 and u2,whereas the diffusion term tends to smooth these peaks. The interplay between these opposing processes—reaction-driven peak formation and diffusion-induced peak smoothing—leads to the emergence of characteristic Turing patterns. To understand when such patterns arise, we consider the conditions under which the reaction–diffusion system (8.2) supports them. Specifically, model (8.2) exhibits Turing pattern formation when the following two conditions, known as the Turing criteria, are satisfied: HPS ON TRIANGULAR SURFACES 17 (i) In the absence of diffusion, the system tends toward a spatially uniform, linearly stable steady state. (ii) The steady state becomes unstable in the presence of diffusion due to the introduction of random perturbations. It is well known that patterns produced by the Turing model are influenced by do-main geometry [ 4], and the nonlinear reaction term F(u), containing quadratic and cubic interactions, plays a key role in driving pattern development. To examine how geometry and nonlinearities affect pattern emergence, we simulate the reaction diffusion system (8.2) on curved surfaces using the high-order triangle based HPS scheme. The resulting stable patterns exhibit either spot-like or stripe-like structures, depending on the values of the coupling parameters r1 and r2. The cubic coupling parameter 
+
+r1 promotes the emergence of stripes, whereas the quadratic coupling parameter 
+
+r2 tends to favor spot formation [ 2]. Our numerical simulations indicate that, in general, spot patterns are more robust than stripes and reach a steady state significantly faster. Stripe patterns only emerge for very small values of r2, and their orientation varies depending on the initial conditions. In Figure 6, we illustrate examples of these basic cases 3. For the simulations, we adopt the parameter values 4 from [ 4 ]: 
+
+α = 0.899 , β = −0.91 , γ = −α, and δu1 = 0.516 δu2 , with δu2 = 5 · 10 −3. The initial conditions are taken to be random: u1(x, 0) = rand (x), u2(x, 0) = rand (x).
+
+Fig. 6: Turing model solution u1 on a Swiss cheese surface. Top: r1 = 3.5, r2 = 0 at 
+
+t = 0, 200 , 600 . Bottom: r1 = 0.02 , r2 = 0.2 at t = 0, 20 , 200 . Simulated with IMEX-BDF4. Next, we simulate the Turing model on two representative surfaces to investigate the influence of geometry on pattern formation. The first geometry is an asymmetric torus, 5 followed by a triangulated Stanford Bunny surface. In both cases, identical                                                   
+
+> 3The Swiss cheese surface defined implicitly by f(x) = ( x2+y2−4)2+ ( z2−1)2+ ( y2+z2−4)2+ ( x2−
+> 1)2+ ( z2+x2−4)2+ ( y2−1)2−15 .
+> 4Parameters follow the non-dimensionalized Turing model in [ 4], where all coefficients are dimension-less. The diffusion ratio ensures scale separation needed for pattern formation.
+> 5The surface is given implicitly by f(x) =  x2+y2+z2−d2+b22−4 ax +c2d2−4b2y2,with parameters
+> a=2,b=1.9,d=1, and c2=a2−b2.
+
+18 G. ZAVALANI 
+
+reaction–diffusion parameters are used. All simulations are carried out using the IMEX-BDF4 time-stepping scheme with reaction parameters r1 = 0.02 , r2 = 0.2. We evolve the system for 2000 time steps with a fixed time step size of ∆t = 0.1, corresponding to a final time of t = 200 . As shown in Figure 7, each row represents a different surface geometry (asymmetric torus, Stanford Bunny), while columns display the solution u at times t = 0, t = 20 , and t = 200 . For both meshes, we employ 10 th -order elements to capture the solution. The emergence and arrangement of spots differ noticeably across geometries, emphasizing that surface shape, in addition to the system parameters, plays a critical role in the development of Turing patterns. Unlike in one- or two-dimensional scenarios, where geometry is often simplified or ignored, solving reaction-diffusion equations on various surfaces with fixed parameters reveals distinct pattern transitions. 
+
+Fig. 7: Turing model solution u1 on the asymmetric torus and Stanford Bunny at times 
+
+t = 0, 20 , and 200 using IMEX-BDF4 with r1 = 0.02 , r2 = 0.2.In Figure 8, we show simulations on spherical meshes with radii r = 1, 2, 4, using 10 th -order elements and random initial data. The parameters are chosen to promote stripe formation, with r1 = 1.5, r2 = 0, α = 1.899 , γ = −α, and β = −0.95 , and diffusion coefficients set as δu1 = 0.516 δu2 , where δu2 = 5 · 10 −3. Simulations are run up to t = 200 
+
+with a time step of ∆t = 0.1. The results indicate that, as the domain expands, the number of high-activator stripes increases consistently, confirming theoretical and numerical predictions for two-dimensional growing domains [13]. We conclude this paragraph by investigating interacting Turing systems. Specifically, we consider a second Turing system in chemicals (u1, u2) that modulates the kinetic HPS ON TRIANGULAR SURFACES 19 
+
+r = 4
+
+r = 2
+
+r = 1
+
+Fig. 8: Pattern formation process of the reaction–diffusion model on the surface of a sphere corresponding to the concentration of the activator u, simulated at times 
+
+t = 0, 20 , 200 using the IMEX–BDF4 scheme for different sphere radii. terms in the (v1, v2) system to give the model: (8.3) 
+
+∂ v1
+
+∂t = δv1 ∆Γv1 + α′v1(1 − r1v22) + v2(1 − r2v1) + q1u1 + q2u1v2 + q3u1v22
+
+∂ v2
+
+∂t = δv2 ∆Γv2 + β ′v2
+
+
+
+1 + α′r1
+
+β ′ v1v2
+
+
+
++ v1(γ′ + r2v2) − q2u2v1 − q3u22v1
+
+∂ u1
+
+∂t = δu1 ∆Γu1 + αu1(1 − r1v22) + u2(1 − r2u1)
+
+∂ u2
+
+∂t = δu2 ∆Γu2 + β u2
+
+
+
+1 + αr1
+
+β u1u2
+
+
+
++ u1(γ + r2u2).
+
+This setup allows us to investigate how pattern properties change due to the interaction between the two coupled systems. For the simulations, we use the following parameter values: 
+
+• For the (v1, v2) system: 
+
+α′ = 0.398 , β ′ = −0.41 , γ′ = −α′, δv2 = 5 × 10 −3, δv1 = 0.122 δv2 .
+
+• For the (u1, u2) system: 
+
+α = 0.899 , β = −0.91 , γ = −α, δu2 = δv2 , δu1 = 0.516 δu2 .
+
+In Figure 9, we show the resulting patterns for the cases of linear, quadratic, and cubic coupling. When only linear coupling is present, the pattern of v1 becomes identical 20 G. ZAVALANI                 
+
+> (a) u1(b) v1, with q1̸=0(c) v1, with q2̸=0(d) v1, with q3̸=0
+
+Fig. 9: Patterns obtained from the coupled system (8.3) . Each panel isolates a single coupling mechanism: linear ( q1), quadratic ( q2), or cubic ( q3), with coupling strength 
+
+0.55 .                
+
+> (a) u1(b) v1, with q1̸=0(c) v1, with q2̸=0(d) v1, with q3̸=0
+
+Fig. 10: Patterns obtained from the coupled system (8.3) , using the same parameters as in Fig. 9, but with negative coupling coefficients set to −0.55 .to that of u1, indicating that the coupling completely overrides the dynamics of v1.With cubic coupling, the solution still consists of spots, and the overall structure remains similar to the uncoupled case, suggesting that this type of interaction does not significantly alter the pattern. The most noticeable change occurs with quadratic coupling: the spot pattern is distorted and appears overlaid on a background of stripes, showing that the quadratic term introduces a strong modulation and leads to a mixed pattern with both spots and labyrinthine features. When the coupling coefficients are negative (see Figure 10), the behavior changes significantly. The linear term produces a negative image of u1 in v1, effectively inverting the pattern. In the other two cases, the patterns in v1 appear as a superposition of stripes and spots. Specifically, quadratic coupling now favors spot formation, while cubic coupling leads to more spatially ordered spots. 
+
+9. Appendix. Tangential differential calculus on surfaces. We review the basic concepts of differential geometry relevant to our setting. We start by describing the parametric representation, then introduce the first fundamental form g, the tangential operators (gradient ∇Γ, divergence div Γ, and Laplace–Beltrami ∆Γ). Let Γ be a smooth surface embedded in Rd+1 locally parametrized by the mapping 
+
+Xi : ∆d −→ Rd+1 , i = 1, 2, . . . , K.
+
+Let ∂ jXi(s,t) be the column vector of j-th partial derivatives of Xi(y) for 1 ≤ j ≤ d
+
+at y ∈ ∆d . For immersed surfaces Γ ⊂ Rd+1 we will write DXi(y) : Rd → Rd+1 for the Jacobian of the parametrization ρi at y. The rank of DX i(y) = ( ∂ jXi(y)) dj=1 ∈ R(d+1)×d
+
+is d (full rank). This implies that {∂ jXi(y)}dj=1 are linearly independent and span the tangent hyperplane to Γ at x ∈ U ∩ Γ, where U is an open set. The first fundamental form is the symmetric and positive definite matrix g ∈ Rd×d defined HPS ON TRIANGULAR SURFACES 21 by 
+
+g(y) := DX i(y)T DX i(y).
+
+If g = ( gi j )di, j=1, then the components gi j read 
+
+gi j = ∂iXTi ∂ jXi = ∂iXi · ∂ jXi,
+
+which depends on the choice of parametrization. Given v ∈ C1(∆d , R), let ˜v : Γ → R be the corresponding function defined by ˜v := v ◦ ρ−1 
+
+> i
+
+.The tangential (or surface) gradient of ˜v is defined as the vector tangent to Γ that satisfies the chain rule 
+
+∇v(y) = DXi(y)T ∇Γ ˜v(x) ∀y ∈ ∆d .
+
+Since ∇Γ ˜v is spanned by {∂ jXi}dj=1, we get ∇Γ ˜v = DXiw for some w ∈ Rd whence w =
+
+g−1∇v and 
+
+∇Γ ˜v(x) = DXi(y)g(y)−1∇v(y) ∀y ∈ ∆d .
+
+If ˜v = ( ˜vi)d+1 
+
+> i=1
+
+: Γ → Rd+1 is a vector field of class C1, we define its tangential differential 
+
+DΓ ˜v ∈ R(d+1)×(d+1) as a matrix whose i-th row is (∇Γ ˜vi)T .
+
+DΓ ˜v =
+
+
+
+(∇Γ ˜v1)T
+
+(∇Γ ˜v2)T
+
+...
+
+(∇Γ ˜vd+1)T
+
+ =
+
+
+
+(∂ Γ 
+
+> 1
+
+v1, . . . , ∂ Γ
+
+> d+1
+
+v1)T
+
+(∂ Γ 
+
+> 1
+
+v2, . . . , ∂ Γ
+
+> d+1
+
+v2)T
+
+...
+
+(∂ Γ 
+
+> 1
+
+v3, . . . , ∂ Γ
+
+> d+1
+
+v3)T
+
+ ,
+
+for the d + 1 components of the tangential gradient. Here, we identify ∂ Γ 
+
+> i
+
+with the tangential derivative ∂i along the surface Γ.In addition, the tangential divergence of ˜v is the trace of DΓ ˜v
+
+div Γ ˜v(x) = trace (DΓ ˜v(x)) = 
+
+> d
+
+# ∑ 
+
+> i,j=1
+
+gi j (y)∂iXi(y) · ∂ jv(y) ∀y ∈ ∆d .
+
+provided g−1 = ( gi j )di, j=1. If both Γ and v : Γ → R are of class C2, then the Laplace– Beltrami (or surface Laplace) operator is now defined to be 
+
+∆Γ ˜v = 1
+
+pdet g(y) div 
+
+p det g(y)g(y)−1∇v(y)
+
+
+
+∀y ∈ ∆d .
+
+Funding. This work was supported by the German Research Foundation (DFG) through the project “Beyond uni-directional hierarchical wrinkle formation” (project number 386450667). 22 G. ZAVALANI 
+
+References. 
+
+[1] U. M. Ascher, S. J. Ruuth, and B. T. Wetton , Implicit-explicit methods for time-dependent partial differential equations , SIAM Journal on Numerical Analysis, 32 (1995), pp. 797–823. [2] R. Barrio, C. Varea, J. Aragón, and P. Maini , A two-dimensional numerical study of spatial pattern formation in interacting Turing systems , Bulletin of mathematical biology, 61 (1999), pp. 483–505. [3] W. L. Briggs, V. E. Henson, and S. F. McCormick , A multigrid tutorial , SIAM, 2000. [4] B. Bunow, J.-P. Kernevez, G. Joly, and D. Thomas , Pattern formation by reaction-diffusion instabilities: Application to morphogenesis in Drosophila , Journal of theoreti-cal biology, 84 (1980), pp. 629–649. [5] T. A. Davis , Algorithm 832: UMFPACK v4.3—an unsymmetric-pattern multifrontal method , ACM Transactions on Mathematical Software (TOMS), 30 (2004), pp. 196– 199. [6] M. Dubiner , Spectral methods on triangles and other domains , Journal of Scientific Computing, 6 (1991), pp. 345–390. [7] G. Dziuk and C. M. Elliott , Finite element methods for surface PDEs , Acta Numerica, 22 (2013), pp. 289–396. [8] B. Fornberg , A Practical Guide to Pseudospectral Methods , Cambridge University Press, 1998. [9] D. Fortunato , A high-order fast direct solver for surface pdes , SIAM Journal on Scientific Computing, 46 (2024), pp. A2582–A2606. [10] D. Fortunato and A. Townsend , Fast poisson solvers for spectral methods , IMA Journal of Numerical Analysis, 40 (2020), pp. 1994–2018. [11] A. Gillman and P.-G. Martinsson , A direct solver with O(n) complexity for variable coefficient elliptic pdes discretized via a high-order composite spectral collocation method ,SIAM Journal on Scientific Computing, 36 (2014), pp. A2023–A2046. [12] T. Isaac , Recursive, parameter-free, explicitly defined interpolation nodes for simplices ,SIAM Journal on Scientific Computing, 42 (2020), pp. A4046–A4062. [13] D. Jeong, Y. Li, Y. Choi, M. Yoo, D. Kang, J. Park, J. Choi, and J. Kim , Numerical simulation of the zebra pattern formation on a three-dimensional model , Physica A: Statistical Mechanics and its Applications, 475 (2017), pp. 106–116. [14] T. Jonsson, M. G. Larson, and K. Larsson , Cut finite element methods for elliptic prob-lems on multipatch parametric surfaces , Computer Methods in Applied Mechanics and Engineering, 324 (2017), pp. 366–394. [15] G. Karniadakis and S. Sherwin , Spectral/hp element methods for computational fluid dynamics , American Chemical Society, 2013. [16] T. Koornwinder , Two-variable analogues of the classical orthogonal polynomials , in Theory and application of special functions, Elsevier, 1975, pp. 435–495. [17] R. J. LeVeque , Finite difference methods for ordinary and partial differential equations: steady-state and time-dependent problems , SIAM, 2007. [18] R. W. Lewis, P. Nithiarasu, and K. N. Seetharamu , Fundamentals of the finite element method for heat and fluid flow , John Wiley & Sons, 2004. [19] P. K. Maini, K. J. Painter, and H. N. P. Chau , Spatial pattern formation in chemical and biological systems , Journal of the Chemical Society, Faraday Transactions, 93 (1997), pp. 3601–3610. [20] P.-G. Martinsson , A direct solver for variable coefficient elliptic pdes discretized via a composite spectral collocation method , Journal of Computational Physics, 242 (2013), pp. 460–479. HPS ON TRIANGULAR SURFACES 23 [21] P.-G. Martinsson , Fast direct solvers for elliptic PDEs , SIAM, 2019. [22] T. P. A. Mathew , Domain decomposition methods for the numerical solution of partial differential equations , Springer, 2008. [23] J. Proriol , Sur une famille de polynomes á deux variables orthogonaux dans un triangle ,Comptes rendus hebdomadaires des seances de l academie des sciences, 245 (1957), pp. 2459–2461. [24] A. Quarteroni and A. Valli , Numerical approximation of partial differential equations ,vol. 23, Springer Science & Business Media, 2008. [25] J. C. Strikwerda , Finite difference schemes and partial differential equations , SIAM, 2004. [26] A. M. Turing , The chemical basis of morphogenesis , Bulletin of mathematical biology, 52 (1990), pp. 153–197. [27] R. S. Varga , Matrix iterative methods , Prentice Hall Incorporated, 1962.
