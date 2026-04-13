@@ -1,0 +1,4882 @@
+Title: Higher-Order Multiscale Computational Method for Multi-Continuum Problems in Highly Heterogeneous Media
+
+URL Source: https://arxiv.org/pdf/2604.05315v1
+
+Published Time: Wed, 08 Apr 2026 00:25:22 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# Higher-Order Multiscale Computational Method for Multi-Continuum Problems in Highly Heterogeneous Media 
+
+Hao Dong a,∗, Jiayuan Peng a and Jian Huang b
+
+> aSchool of Mathematics and Statistics, Xidian University, No.2 South Taibai Road, Xi’an, 710071, Shaanxi, China
+> bSchool of Mathematics and Computational Science, Xiangtan University, , Xiangtan, 411105, Hunan, China
+
+A R T I C L E I N F O 
+
+> Keywords :porous media multi-continuum multiscale method
+
+A B S T R A C T 
+
+> This paper presents a high-accuracy higher-order multiscale method for solving multi-continuum problems in in highly heterogeneous media. First, microscopic unit cell functions are defined, leading to the derivation of macroscopic homogenized equations and formulas for calculating effective parameters, which yield a higher-order multi-scale (HOMS) asymptotic solution. Subsequently, the pointwise approximation properties of this solution to the original equations are analyzed, and its con-vergence rate in the integral norm is rigorously established under certain assumptions. Furthermore, a multiscale numerical algorithm is developed by integrating the finite element method (FEM), finite difference method, and interpolation technique. Finally, numerical experiments demonstrate the high accuracy, efficiency, and stability of the proposed HOMS numerical algorithm.
+
+1. Introduction 
+
+Porous media are functional materials composed of a solid skeleton and interconnected or isolated pores, which can be filled with gases, liquids, or other fluid phases. Such materials are widely found in both natural and engineered systems, with typical examples including soil, rocks, sand layers, wood, biological tissues, ceramic filters, and catalyst supports, as shown in Fig 1. Due to their internal structure featuring a vast number of typically interconnected pores, porous media provide physical pathways for fluid storage, transport, and reactions, making them a central focus of interdisciplinary research across fields such as fluid mechan-ics, geosciences, environmental engineering, biomedical en-gineering, and materials science. Accurately understanding and modeling fluid flow behavior in porous media is essen-tial for numerous critical technological applications. These include the efficient extraction of oil and gas resources, prediction and remediation of groundwater contamination, optimization of mass transport in porous electrodes of fuel cells, and long-term stability assessments in geological-scale carbon capture and storage processes. 
+
+Figure 1: Structure of sandstone (from Zhao et al. [1])  
+
+> ∗Corresponding author.
+> hao.dong@xidian.edu.cn (H. Dong)
+> ORCID (s):
+
+Some of the first studies on porous media treated the porous medium as a single continuum. Fluid flow in porous media is often described at the macroscopic scale by Darcy’s Law, which assigns effective properties to each representa-tive volume through local simulations to construct coarse-grid equations[2, 3]. Allaire et al. investigated the influence of different obstacles on fluid behavior by homogenizing the microscopic Stokes and Navier-Stokes equations, deriving macroscopic models including Darcy’s law, Stokes equa-tions, and Brinkman-type equations [4, 5, 6]. In terms of nu-merical methods, Efendiev et al. developed the Generalized Multiscale Finite Element Method (GMsFEM) and extended it to perforated domains, enabling efficient coarse-grid sim-ulations through the offline construction of local snapshot spaces and spectral decomposition[7, 8, 9, 10, 11, 12]. In contrast to the single-continuum problem, the multi-continuum problem refers to the coexistence of two or more overlapping and interacting continua within the same spatial region. Each continuum possesses its own distinct physical properties and field variables, and they are coupled through specific interaction terms. Park et al. proposed a multi-continuum model that partitions complex porous media into multiple interacting continua (e.g., matrix and fractures) and employs coupling terms to describe mass exchange between them, thereby capturing non-equilibrium flow phenomena beyond the capability of traditional single-continuum mod-els. [13, 14, 15, 16]. G.I. Barenblatt et al., addressing the issue of seepage in fractured rocks, introduced the pressure in pores and the pressure of liquid in fractures at each point in space. Considering liquid transfer between frac-tures and pores, they derived the fundamental equations for liquid seepage in fractured rocks and the general equa-tions for liquid seepage in porous media with dual poros-ity [17]. Eric T. Chun systematically studied the intrinsic connections and coupling mechanisms between multiscale methods and multi-continuum approaches, establishing a generalized multiscale computational framework capable of 
+
+: Preprint submitted to Elsevier Page 1 of 20 
+
+> arXiv:2604.05315v1 [math.NA] 7 Apr 2026
+
+efficiently simulating flow-heat transfer processes in com-plex fractured media [18]. K. Pruess et al. proposed the MINC method, which accurately captures transient thermal-fluid coupling between fractures and matrix by subdividing matrix blocks into multiple interacting continua, thereby addressing strongly non-equilibrium physical phenomena that traditional models fail to describe [19, 20, 21]. Xie et al. divided the perforated region into multiple continua based on the size of the holes, established macroscopic equations for each medium separately, and captured the coupling between them by imposing constraints on the local problems [22]. Ammosov et al. derived a multi-continuum model for coupled flow and transport equations by apply-ing the multi-continuum homogenization method, perform-ing multi-continuum expansions for both flow and trans-port solutions and formulating novel coupled constraint cell problems to capture multiscale characteristics, ultimately constructing a macroscopic system composed of homog-enized elliptic equations and convection-diffusion-reaction equations [23, 24]. Wu et al. proposed a triple-continuum model that treats fractures, matrix, and vugs as independent continua and established the mass exchange mechanisms among them. This model is capable of characterizing differ-ent connection patterns between vugs and fractures. In terms of numerical implementation, it accommodates non-Darcy flow and multiphase flow simulation [25, 26]. In previous studies on multiphase flow in porous media, the matrix system was commonly treated as a single con-tinuum with locally uniform pressure and fluid saturation distributions. Using traditional single-continuum models to describe flow in fractured rocks may lead to incorrect or even opposite conclusions, as such models fail to account for the non-equilibrium mass transfer between the matrix and frac-tures. Therefore, it is essential to establish multi-continuum coupling models that incorporate the interaction between the matrix and fractures to more accurately characterize flow behavior in complex fractured media. Furthermore, due to strong material heterogeneity and the complexity of micro-and meso-scale structures, the multi-continuum model is inherently a complex multiscale problem. Conventional numerical methods, such as finite element and finite volume methods, typically require extremely fine mesh discretiza-tion to achieve sufficiently accurate solutions, resulting in high computational cost and low efficiency—particularly in large-scale engineering applications. Moreover, for multi-continuum problems with strong nonlinearity and high-contrast parameters, the convergence and stability of tra-ditional methods face significant challenges. To address these issues, this paper develops the HOMS computational method tailored for multi-continuum problems in micro-scopic highly heterogeneous media. This approach achieves high-precision asymptotic solutions while substantially re-ducing computational resource consumption, striking a bal-ance between efficiency and accuracy. It provides a new theoretical framework and numerical tool for the efficient simulation of multiphase flow in complex fractured media. This paper primarily investigates multi-continuum prob-lems in in highly heterogeneous media and establishes a relatively comprehensive HOMS computational framework for addressing these challenges. The main contents are orga-nized as follows: In Section 2, a HOMS method is developed for multi-continuum problems in periodic composite struc-tures. This includes the definition of microscopic unit cell functions and the derivation of macroscopic equivalent pa-rameter calculation formulas along with the HOMS asymp-totic solution. In Section 3, the pointwise approximation properties of the HOMS solution to the original equations are analyzed. Furthermore, under certain assumptions, the convergence order of the solution in the integral norm is rigorously established. In Section 4 and Section 5 , the corresponding HOMS algorithm is presented. Numerical experiments are conducted to validate the high accuracy, efficiency, and stability of the proposed method, thereby demonstrating the necessity of incorporating second-order correction terms. In Section 6, the research findings of the paper are systematically summarized, and potential direc-tions for future investigation are proposed. 
+
+2. Higher-Order Multiscale Computational Method for Multi-Continuum Problems in in Highly Heterogeneous Media 
+
+2.1. Mathematical Model of the Multiscale Multi-Continuum Problem 
+
+For multi-continuum problems, we denote the solution of the 𝑙 -th continuum as 𝑢 𝜀 𝑙 , and assume each continuum interacts with the others. The governing equations for the continua can be formulated as: 
+
+𝑐 𝜀 𝑙 (𝒙 ) 𝜕𝑢 𝜀 𝑙 (𝒙 , 𝑡 )
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀 𝑙,𝑖𝑗 (𝒙 ) 𝜕𝑢 𝜀 𝑙 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝑄 𝜀 𝑙 
+
+(𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 ), … , 𝑢 𝜀 𝑁 (𝒙 , 𝑡 )) , (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),
+
+(1) where 𝑐 𝜀 𝑙 (𝒙 ) ( 𝑙 = 1, 2, ...𝑁 ) represents the multiscale porosity, 𝜅 𝜀 𝑙,𝑖𝑗 (𝒙 ) denotes the multiscale permeability, and 
+
+𝑄 𝜀 𝑙 
+
+(𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 ), … , 𝑢 𝜀 𝑁 (𝒙 , 𝑡 )) is the exchange term describing the interactions between continua. In the context of seepage flow in fissured rocks[17, 18, 19, 21, 27, 28], if only the interactions between the first continuum 𝑢 𝜀  
+
+> 1
+
+and the second continuum 𝑢 𝜀  
+
+> 2
+
+are considered, the governing equations for the multi-continuum problem can be written as follows: 
+
+⎧⎪⎪⎪⎨⎪⎪⎪⎩
+
+𝑐 𝜀  
+
+> 1
+
+(𝒙 ) 𝜕𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 )
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀  
+
+> 1,𝑖𝑗
+
+(𝒙 ) 𝜕𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝑞 (𝒙 , 𝑡 )+ 𝛼 (𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 ) − 𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 )), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑐 𝜀  
+
+> 2
+
+(𝒙 ) 𝜕𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 )
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀  
+
+> 2,𝑖𝑗
+
+(𝒙 ) 𝜕𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝑞 (𝒙 , 𝑡 )+ 𝛼 (𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 ) − 𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 )), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),
+
+(2) where 𝑞 (𝒙 , 𝑡 ) is the source term, and 𝛼 represents the in-tensity of liquid transfer between the two media, which is inversely proportional to 𝜀 2, i.e., 𝛼 = 𝑂 (1∕ 𝜀 2).  
+
+> :Preprint submitted to Elsevier Page 2 of 20
+
+The multi-continuum approach establishes an averaged model that differs from classical seepage theory. Instead of introducing a single liquid pressure at each point in space, it introduces two distinct pressures, 𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 ) and 𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 ) .Here, 𝑢 𝜀  
+
+> 1
+
+denotes the average pressure of the liquid in the fractures near a given point, while 𝑢 𝜀  
+
+> 2
+
+represents the average pressure of the liquid in the porous matrix in the vicinity of the same point. In this paper, we investigate multi-continuum problems in highly heterogeneous media. Considering the interactions between the two media, we establish the follow-ing model: 
+
+⎧⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎩
+
+𝑐 𝜀  
+
+> 1
+
+(𝒙 ) 𝜕𝑢 𝜀  
+
+> 1
+
+(𝒙 , 𝑡 )
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀  
+
+> 1,𝑖𝑗
+
+(𝒙 ) 𝜕𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
++𝑞 (𝒙 , 𝑡 )+ 1
+
+𝜀 𝑄 𝜀 
+
+> 1
+
+(𝒙 )(𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 )− 𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 )), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑐 𝜀  
+
+> 2
+
+(𝒙 ) 𝜕𝑢 𝜀  
+
+> 2
+
+(𝒙 , 𝑡 )
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀  
+
+> 2,𝑖𝑗
+
+(𝒙 ) 𝜕𝑢 𝜀  
+
+> 2
+
+(𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
++𝑞 (𝒙 , 𝑡 )+ 1
+
+𝜀 𝑄 𝜀 
+
+> 2
+
+(𝒙 )(𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 )− 𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 )), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑢 𝜀  
+
+> 1
+
+(𝒙 , 𝑡 ) = 0 , 𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 ) = 0 , (𝒙 , 𝑡 ) ∈ 𝜕 Ω × (0 , 𝑇 ∗),𝑢 𝜀 
+
+> 1
+
+(𝒙 , 0) = 𝑔 1(𝒙 ), 𝑢 𝜀 
+
+> 2
+
+(𝒙 , 0) = 𝑔 2(𝒙 ), 𝒙 ∈ Ω .
+
+(3) Here, Ω is a bounded convex domain in ℝ𝑑 (𝑑 = 2, 3) ,with 𝜕 Ω as its boundary; 𝜀 is a small periodic parame-ter, 𝑢 𝜀 𝑙 (𝒙 , 𝑡 )( 𝑙 = 1 , 2) is the unknown pressure field, 𝑐 𝜀 𝑙 (𝒙 )
+
+represents the multiscale porosity, 𝜅 𝜀 𝑙,𝑖𝑗 (𝒙 ) represents the multiscale permeability, 𝑄 𝜀 𝑙 (𝒙 ) is the exchange term and 
+
+𝑄 𝜀 𝑙 (𝒙 ) = 𝑂 (1∕ 𝜀 ); 𝑞 (𝒙 , 𝑡 ) denotes the heat source function, and 𝑔 𝑙 (𝒙 ) denotes the pressure at the initial moment. First, the following assumptions are made regarding the coefficients of problem (3): 
+
+(𝐴 1) Let 𝒚 = 𝒙 
+
+𝜀 denote the local coordinate in the mi-croscale unit cell 𝑌 = [0 , 1] 𝑑 . Then we have: 
+
+𝑄 𝜀  
+
+> 𝑙
+
+(𝒙 ) = 𝑄 𝑙 
+
+( 𝒙 
+
+𝜀 
+
+)
+
+= 𝑄 𝑙 (𝒚 ), 𝑐 𝜀  
+
+> 𝑙
+
+(𝒙 ) = 𝑐 𝑙 
+
+( 𝒙 
+
+𝜀 
+
+)
+
+= 𝑐 𝑙 (𝒚 ),𝜅 𝜀 𝑙,𝑖𝑗 (𝒙 ) = 𝜅 𝑙,𝑖𝑗 
+
+( 𝒙 
+
+𝜀 
+
+)
+
+= 𝜅 𝑙,𝑖𝑗 (𝒚 ),
+
+where 𝑄 𝑙 (𝒚 ), 𝑐 𝑙 (𝒚 ) and 𝜅 𝑙,𝑖𝑗 (𝒚 ) are all 1-periodic functions with respect to the variable 𝒚 .
+
+(𝐴 2) 𝜅 𝑙,𝑖𝑗 (𝒚 ) satisfies symmetry, i.e., 𝜅 𝑙,𝑖𝑗 (𝒚 ) = 𝜅 𝑙,𝑗𝑖 (𝒚 ); and there exist 𝛾 0, 𝛾 1 > 0 such that the following holds: 
+
+𝛾 0 |𝜉 |2 ≤ 𝜅 𝑙,𝑖𝑗 (𝒚 )𝜉 𝑖 𝜉 𝑗 ≤ 𝛾 1 |𝜉 |2 ,
+
+where 𝝃 = ( 𝜉 1, ⋯ , 𝜉 𝑛 )⊤ is any real vector in ℝ𝑑 .
+
+(𝐴 3) 𝑐 𝑙 (𝒚 ) ∈ 𝐿 ∞(Ω) and 𝜅 𝑙,𝑖𝑗 (𝒚 ) ∈ 𝐿 ∞(Ω) . There exist positive constants 𝐶 and 𝜅 such that 
+
+0 ≤ 𝐶 ≤ 𝑐 𝑙 (𝒚 ), 0 ≤ 𝜅 ≤ 𝜅 𝑙,𝑖𝑗 (𝒚 ).
+
+2.2. High-Order Multiscale Computational Model 
+
+For problem (3) , assume that the solution has the fol-lowing asymptotic expansion form: 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝑢 𝜀  
+
+> 1
+
+(𝒙 , 𝑡 ) = 𝑢 (0) 1 (𝒙 , 𝒚 , 𝑡 ) + 𝜀𝑢 (1) 1 (𝒙 , 𝒚 , 𝑡 )+ 𝜀 2𝑢 (2) 1 (𝒙 , 𝒚 , 𝑡 ) + 𝑂 (𝜀 3),𝑢 𝜀  
+
+> 2
+
+(𝒙 , 𝑡 ) = 𝑢 (0) 2 (𝒙 , 𝒚 , 𝑡 ) + 𝜀𝑢 (1) 2 (𝒙 , 𝒚 , 𝑡 )+ 𝜀 2𝑢 (2) 2 (𝒙 , 𝒚 , 𝑡 ) + 𝑂 (𝜀 3).
+
+(4) Substitute Eqs. (4) into problem (3) and apply the chain rule 
+
+𝜕 Φ𝜀 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
+= 𝜕 Φ( 𝒙 , 𝒚 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
++ 1
+
+𝜀 𝜕 Φ( 𝒙 , 𝒚 , 𝑡 )
+
+𝜕𝑦 𝑖 
+
+, (5) to expand the partial derivatives in problem (3). Then, con-solidate terms with like powers of 𝜀 on both sides. Through comparison, a sequence of equations can be obtained: 
+
+𝑂 ( 1
+
+𝜀 2 ) ∶ 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑦 𝑗 
+
+)
+
+= 0 ,𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑦 𝑗 
+
+)
+
+= 0 ,
+
+(6) 
+
+𝑂 ( 1
+
+𝜀 ) ∶ 
+
+⎧⎪⎪⎪⎪⎨⎪⎪⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (1) 1
+
+𝜕𝑦 𝑗 
+
+)
+
++𝑄 (𝒚 )(𝑢 (0) 2 − 𝑢 (0) 1
+
+) = 0 ,𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (1) 2
+
+𝜕𝑦 𝑗 
+
+)
+
++𝑄 (𝒚 )(𝑢 (0) 1 − 𝑢 (0) 2
+
+) = 0 ,
+
+(7) 
+
+𝑂 (𝜀 0) ∶ 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎪⎩
+
+𝑐 1(𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝑞 
+
++ 𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (1) 1
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (1) 1
+
+𝜕𝑦 𝑗 
+
+)
+
++ 𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2) 1
+
+𝜕𝑦 𝑗 
+
+)
+
++ 𝑄 1(𝒚 )(𝑢 (1) 2 − 𝑢 (1) 1
+
+),𝑐 2(𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝑞 
+
++ 𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (1) 2
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (1) 2
+
+𝜕𝑦 𝑗 
+
+)
+
++ 𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2) 2
+
+𝜕𝑦 𝑗 
+
+)
+
++ 𝑄 2(𝒚 )(𝑢 (1) 1 − 𝑢 (1) 2
+
+).
+
+(8) Next, the aforementioned three sets of equations are analyzed sequentially. The specific expressions of each term in (4) are solved recursively, and finally, the second-order two-scale expanded solution of problem (3) is assembled. According to the classical asymptotic homogenization theory[29, 30, 31], from Eqs. (6), it is known that 𝑢 (0)  
+
+> 𝑙
+
+is independent of the microscale 𝒚 , i.e., 
+
+𝑢 (0)  
+
+> 𝑙
+
+(𝒙 , 𝒚 , 𝑡 ) = 𝑢 (0)  
+
+> 𝑙
+
+(𝒙 , 𝑡 ). (9) 
+
+: Preprint submitted to Elsevier Page 3 of 20 Substituting Eq. (9) into Eqs. (7), the expression for 
+
+𝑢 (1)  
+
+> 𝑙
+
+(𝒙 , 𝒚 , 𝑡 ) can be constructively given as follows: 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝑢 (1) 1 (𝒙 , 𝒚 , 𝑡 ) = 𝑁 𝛼 11 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝑀 1(𝒚 )(𝑢 (0) 2 − 𝑢 (0) 1
+
+),𝑢 (1) 2 (𝒙 , 𝒚 , 𝑡 ) = 𝑁 𝛼 12 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝑀 2(𝒚 )(𝑢 (0) 1 − 𝑢 (0) 2
+
+),
+
+(10) where 𝑁 𝛼 1 
+
+> 𝑙
+
+(𝒚 ) and 𝑀 𝑙 (𝒚 ) are first-order auxiliary cell func-tions. Substituting Eqs. (9) and (10) into Eqs. (7), it can be obtained that 𝑁 𝛼 1 
+
+> 𝑙
+
+(𝒚 ) and 𝑀 𝑙 (𝒚 ) satisfy the following cell problem: 
+
+⎧⎪⎨⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 𝑙,𝑖𝑗 
+
+𝜕𝑁 𝛼 1 
+
+> 𝑙
+
+(𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= − 𝜕𝜅 𝑙,𝑖𝛼 1
+
+𝜕𝑦 𝑖 
+
+, 𝒚 ∈ 𝑌 , 𝑁 𝛼 1 
+
+> 𝑙
+
+(𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 , 
+
+(11) 
+
+⎧⎪⎨⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 𝑙,𝑖𝑗 
+
+𝜕𝑀 𝑙 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= 𝑄 𝑙 (𝒚 ), 𝒚 ∈ 𝑌 , 𝑀 𝑙 (𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 . 
+
+(12) Substituting Eqs. (9) and (10) into Eqs. (8) and integrat-ing over the unit cell 𝑌 yields the following homogenized problem: 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩
+
+𝑐 ∗1
+
+𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 ∗
+
+> 1,𝑖𝑗
+
+𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝑄 ∗1
+
+(𝑢 (0) 2 (𝒙 , 𝑡 ) − 𝑢 (0) 1 (𝒙 , 𝑡 )) +̄ 𝐾 1∗ 1𝑖 
+
+𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
+−̄ 𝐾 1∗ 2𝑖 
+
+𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
++ 𝑞 (𝒙 , 𝑡 ), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑐 ∗2
+
+𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑡 = 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 ∗
+
+> 2,𝑖𝑗
+
+𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
++ 𝑄 ∗2
+
+(𝑢 (0) 1 (𝒙 , 𝑡 ) − 𝑢 (0) 2 (𝒙 , 𝑡 )) +̄ 𝐾 2∗ 2𝑖 
+
+𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
+−̄ 𝐾 2∗ 1𝑖 
+
+𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
++ 𝑞 (𝒙 , 𝑡 ), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑢 (0) 1 (𝒙 , 𝑡 ) = 0 , 𝑢 (0) 2 (𝒙 , 𝑡 ) = 0 , (𝒙 , 𝑡 ) ∈ 𝜕 Ω × (0 , 𝑇 ∗),𝑢 (0) 1 (𝒙 , 0) = 𝑔 1(𝒙 ), 𝑢 (0) 2 (𝒙 , 0) = 𝑔 2(𝒙 ), 𝒙 ∈ Ω ,
+
+(13) where the homogenized material coefficients 𝑐 ∗ 
+
+> 𝑙
+
+, 𝜅 ∗ 
+
+> 𝑙,𝑖𝑗
+
+,̄ 𝐾 𝑙 ∗1𝑖 ,̄𝐾 𝑙 ∗2𝑖 and 𝑄 ∗ 
+
+> 𝑙
+
+are given as follows: 
+
+⎧⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎩
+
+𝑐 ∗ 
+
+> 𝑙
+
+= ∫𝑌 
+
+𝑐 𝑙 (𝒚 ) d 𝑌 , 𝜅 ∗ 
+
+> 𝑙,𝑖𝑗
+
+= ∫𝑌 
+
+(
+
+𝜅 𝑙,𝑖𝑗 (𝒚 ) + 𝜅 𝑙,𝑖𝛼 1 (𝒚 ) 𝜕𝑁 𝑗 𝑙 (𝒚 )
+
+𝜕𝑦 𝛼 1
+
+)
+
+d𝑌 ,̄ 𝐾 𝑙 ∗1𝑖 = ∫𝑌 
+
+(
+
+𝜅 𝑙,𝑖𝑗 (𝒚 ) 𝜕𝑀 1(𝒚 )
+
+𝜕𝑦 𝑗 
+
++ 𝑄 𝑙 (𝒚 )𝑁 𝑖 
+
+> 2
+
+(𝒚 )
+
+)
+
+d𝑌 ,̄ 𝐾 𝑙 ∗2𝑖 = ∫𝑌 
+
+(
+
+𝜅 𝑙,𝑖𝑗 (𝒚 ) 𝜕𝑀 1(𝒚 )
+
+𝜕𝑦 𝑗 
+
++ 𝑄 𝑙 (𝒚 )𝑁 𝑖 
+
+> 1
+
+(𝒚 )
+
+)
+
+d𝑌 , 𝑄 ∗ 
+
+> 𝑙
+
+= − ∫𝑌 
+
+𝑄 𝑙 (𝒚 ) (𝑀 1(𝒚 ) + 𝑀 2(𝒚 )) d𝑌 . 
+
+(14) To further solve for 𝑢 (2)  
+
+> 𝑙
+
+(𝒙 , 𝒚 , 𝑡 ), subtract the homog-enized equation in the homogenized problem (13) from Eqs. (8), and then apply Eqs. (9) and (10) to obtain: 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2) 1
+
+𝜕𝑦 𝑗 
+
+)
+
+= (𝑐 1(𝒚 ) − 𝑐 ∗1
+
+) 𝜕𝑢 (0) 1
+
+𝜕𝑡 
+
++ (𝑄 ∗1 + 𝑄 1(𝒚 ) (𝑀 1(𝒚 ) + 𝑀 2(𝒚 )))( 𝑢 (0) 2 − 𝑢 (0) 1
+
+)
+
++
+
+(
+
+𝜅 ∗1,𝛼 1𝛼 2 − 𝜅 1,𝛼 1𝛼 2 (𝒚 ) − 𝜕 (𝜅 1,𝑖𝛼 1 (𝒚 )𝑁 𝛼 21 (𝒚 ))
+
+𝜕𝑦 𝑖 
+
+− 𝜅 1,𝑎 1𝑗 (𝒚 ) 𝜕𝑁 𝛼 21 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+) 𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++
+
+(
+
+𝜅 1,𝑎 1𝑗 (𝒚 ) 𝜕𝑀 1(𝒚 )
+
+𝜕𝑦 𝑗 
+
++ 𝜕 (𝜅 1,𝑖𝛼 1 (𝒚 )𝑀 1(𝒚 ))
+
+𝜕𝑦 𝑖 
+
++ 𝑄 1(𝒚 )𝑁 𝛼 11 (𝒚 ) − ̄ 𝐾 1∗ 2𝛼 1
+
+) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++
+
+(̄𝐾 1∗ 1𝛼 𝑖 
+
+− 𝜕 (𝜅 1,𝑖𝛼 1 (𝒚 )𝑀 1(𝒚 ))
+
+𝜕𝑦 𝑖 
+
+− 𝜅 1,𝛼 1𝑗 (𝒚 ) 𝜕𝑀 1(𝒚 )
+
+𝜕𝑦 𝑗 
+
+− 𝑄 1(𝒚 )𝑁 𝛼 12 (𝒚 )
+
+) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝑎 1
+
+,𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2) 2
+
+𝜕𝑦 𝑗 
+
+)
+
+= (𝑐 2(𝒚 ) − 𝑐 ∗2
+
+) 𝜕𝑢 (0) 2
+
+𝜕𝑡 
+
++ (𝑄 ∗2 + 𝑄 2(𝒚 ) (𝑀 1(𝒚 ) + 𝑀 2(𝒚 )))( 𝑢 (0) 1 − 𝑢 (0) 2
+
+)
+
++
+
+(
+
+𝜅 ∗2,𝛼 1𝛼 2 − 𝜅 2,𝛼 1𝛼 2 (𝒚 ) − 𝜕 (𝜅 2,𝑖𝛼 1 (𝒚 )𝑁 𝛼 22 (𝒚 ))
+
+𝜕𝑦 𝑖 
+
+− 𝜅 2,𝛼 1𝑗 (𝒚 ) 𝜕𝑁 𝛼 22 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+) 𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++
+
+( 𝜕 (𝜅 2,𝑖𝛼 1 (𝒚 )𝑀 2(𝒚 ))
+
+𝜕𝑦 𝑖 
+
++ 𝜅 2,𝛼 1𝑗 (𝒚 ) 𝜕𝑀 2(𝒚 )
+
+𝜕𝑦 𝑗 
+
++ 𝑄 2(𝒚 )𝑁 𝛼 12 (𝒚 ) − ̄ 𝐾 2∗ 1𝛼 1
+
+) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++
+
+(̄𝐾 2∗ 2𝛼 1
+
+− 𝜕 (𝜅 2,𝑖𝛼 1 (𝒚 )𝑀 2(𝒚 ))
+
+𝜕𝑦 𝑖 
+
+− 𝜅 2,𝛼 1𝑗 (𝒚 ) 𝜕𝑀 2(𝒚 )
+
+𝜕𝑦 𝑗 
+
+− 𝑄 2(𝒚 )𝑁 𝛼 11 (𝒚 )
+
+) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
+,
+
+(15) 
+
+: Preprint submitted to Elsevier Page 4 of 20 According to Eqs. (15), 𝑢 (2)  
+
+> 𝑖
+
+(𝒙 , 𝒚 , 𝑡 ) is defined to have the following specific form: 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎩
+
+𝑢 (2) 1 (𝒙 , 𝒚 , 𝑡 ) = 𝐺 1(𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑡 + 𝑁 𝛼 1𝛼 21 (𝒚 ) 𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝐶 𝛼 11 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 11 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝐾 1(𝒚 )(𝑢 (0) 2 − 𝑢 (0) 1
+
+),𝑢 (2) 2 (𝒙 , 𝒚 , 𝑡 ) = 𝐺 2(𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑡 + 𝑁 𝛼 1𝛼 22 (𝒚 ) 𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝐶 𝛼 22 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 22 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐾 2(𝒚 )(𝑢 (0) 1 − 𝑢 (0) 2
+
+),
+
+(16) where 𝐺 𝑙 (𝒚 ), 𝑁 𝛼 1𝛼 2 
+
+> 𝑙
+
+(𝒚 ), 𝐶 𝛼 1 
+
+> 𝑙
+
+(𝒚 ), 𝐹 𝛼 1 
+
+> 𝑙
+
+(𝒚 ) and 𝐾 𝑙 (𝒚 ) are second-order auxiliary cell functions. Substituting Eqs. (16) into Eqs. (15), it is obtained that 
+
+𝐺 𝑙 (𝒚 ), 𝑁 𝛼 1𝛼 2 
+
+> 𝑙
+
+(𝒚 ), 𝐶 𝛼 1 
+
+> 𝑙
+
+(𝒚 ), 𝐹 𝛼 1 
+
+> 𝑙
+
+(𝒚 ) and 𝐾 𝑙 (𝒚 ) satisfy the follow-ing cell problems, respectively: 
+
+⎧⎪⎨⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 𝑙,𝑖𝑗 (𝒚 ) 𝜕𝐺 𝑙 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= 𝑐 𝑙 (𝒚 ) − 𝑐 ∗ 
+
+> 𝑙
+
+, 𝒚 ∈ 𝑌 , 𝐺 𝑙 (𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 , 
+
+(17) 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 𝑙,𝑖𝑗 (𝒚 ) 𝜕𝑁 𝛼 1𝛼 2 
+
+> 𝑙
+
+(𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= 𝜅 ∗ 
+
+> 𝑙,𝛼 1𝛼 2
+
+− 𝜅 𝑙,𝛼 1𝛼 2 (𝒚 )− 𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 𝑙,𝑖𝛼 1(𝒚 )𝑁 𝛼 2 
+
+> 𝑙
+
+(𝒚 )
+
+)
+
+−𝜅 𝑙,𝛼 1𝑗 (𝒚 )𝜕𝑁 𝛼 2 
+
+> 𝑙
+
+(𝒚 )
+
+𝜕𝑦 𝑗 
+
+, 𝒚 ∈ 𝑌 , 𝑁 𝛼 1𝛼 2 
+
+> 𝑙
+
+(𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 , 
+
+(18) 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝐶 𝛼 11 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= 𝜕 𝜕𝑦 𝑖 
+
+(𝜅 1,𝑖𝛼 1 (𝒚 )𝑀 1(𝒚 ))
+
++𝑄 1(𝒚 )𝑁 𝛼 11 (𝒚 )− ̄ 𝐾 1∗ 1𝛼 1 +𝜅 1,𝛼 1𝑗 (𝒚 ) 𝜕𝑀 1(𝒚 )
+
+𝜕𝑦 𝑗 
+
+, 𝒚 ∈ 𝑌 , 𝐶 𝛼 11 (𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 , 
+
+(19) 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝐶 𝛼 12 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= 𝜕 𝜕𝑦 𝑖 
+
+(𝜅 2,𝑖𝛼 1 (𝒚 )𝑀 2(𝒚 ))
+
++𝑄 2(𝒚 )𝑁 𝛼 12 (𝒚 )− ̄ 𝐾 2∗ 1𝑎 1 +𝜅 2,𝛼 1𝑗 (𝒚 ) 𝜕𝑀 2(𝒚 )
+
+𝜕𝑦 𝑗 
+
+, 𝒚 ∈ 𝑌 , 𝐶 𝛼 12 (𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 , 
+
+(20) 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝐹 𝛼 11 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= − 𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 1,𝑖𝛼 1 (𝒚 )𝑀 1(𝒚 )
+
+)
+
++̄𝐾 1∗ 1𝛼 1 −𝜅 1,𝛼 1𝑗 (𝒚 ) 𝜕𝑀 1(𝒚 )
+
+𝜕𝑦 𝑗 
+
+− 𝑄 1(𝒚 )𝑁 𝛼 12 (𝒚 ), 𝒚 ∈ 𝑌 , 𝐹 𝛼 11 (𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 , 
+
+(21) 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝐹 𝛼 12 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= − 𝜕 𝜕𝑦 𝑖 
+
+(𝜅 2,𝑖𝛼 1(𝒚 )𝑀 2(𝒚 ))
+
++̄𝐾 2∗ 2𝛼 1 −𝑄 2(𝒚 )𝑁 𝛼 11 (𝒚 )− 𝜅 2,𝛼 1𝑗 (𝒚 ) 𝜕𝑀 2(𝒚 )
+
+𝜕𝑦 𝑗 
+
+, 𝒚 ∈ 𝑌 , 𝐹 𝛼 12 (𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 , 
+
+(22) 
+
+⎧⎪⎪⎨⎪⎪⎩
+
+𝜕 𝜕𝑦 𝑖 
+
+(
+
+𝜅 𝑙,𝑖𝑗 (𝒚 ) 𝜕𝐾 𝑙 (𝒚 )
+
+𝜕𝑦 𝑗 
+
+)
+
+= 𝑄 ∗
+
+> 𝑙
+
++𝑄 𝑙 (𝒚 ) (𝑀 1(𝒚 ) + 𝑀 2(𝒚 )) , 𝒚 ∈ 𝑌 , 𝐾 𝑙 (𝒚 ) = 0 , 𝒚 ∈ 𝜕𝑌 . 
+
+(23) 
+
+Remark 1. Classical auxiliary cell functions are defined with periodic boundary conditions on the boundary of the unit cell Y. However, it should be emphasized that all auxil-iary cell functions in this paper adopt homogeneous Dirich-let boundary conditions. There are two main reasons for replacing the periodic boundary condition with the homo-geneous Dirichlet boundary condition. First, existing stud-ies have proved that the homogeneous Dirichlet bound-ary condition is a suitable boundary condition to replace the periodic boundary condition; second, the homogeneous Dirichlet boundary condition makes the practical numerical computation of the auxiliary cell problems more conve-nient [32, 33, 34, 35, 36, 37]. In summary, the expressions for the FOMS asymp-totic solution 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+(𝒙 , 𝑡 ) and the HOMS asymptotic solution 
+
+𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+(𝒙 , 𝑡 ) of problem (3) are given as follows, respectively: 
+
+⎧⎪⎪⎪⎪⎨⎪⎪⎪⎪⎩
+
+𝑢 (1 𝜀 )1 (𝒙 , 𝑡 ) = 𝑢 (0) 1 + 𝜀 
+
+[
+
+𝑁 𝛼 11 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝑀 1(𝒚 )( 𝑢 (0) 2 − 𝑢 (0) 1 )
+
+]
+
+,𝑢 (1 𝜀 )2 (𝒙 , 𝑡 ) = 𝑢 (0) 2 + 𝜀 
+
+[
+
+𝑁 𝛼 12 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝑀 2(𝒚 )( 𝑢 (0) 1 − 𝑢 (0) 2 )
+
+]
+
+,
+
+(24) 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩
+
+𝑢 (2 𝜀 )1 (𝒙 , 𝑡 ) = 𝑢 (0) 1 +𝜀 
+
+[
+
+𝑁 𝛼 11 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 
+
++𝑀 1(𝒚 )( 𝑢 (0) 2 −𝑢 (0) 1 )
+
+]
+
++𝜀 2
+
+[
+
+𝐺 1(𝒚 )𝜕𝑢 (0) 1
+
+𝜕𝑡 +𝑁 𝛼 1𝛼 21 (𝒚 ) 𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++𝐶 𝛼 11 (𝒚 )𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 11 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝐾 1(𝒚 )( 𝑢 (0) 2 − 𝑢 (0) 1 )
+
+]
+
+,𝑢 (2 𝜀 )2 (𝒙 , 𝑡 ) = 𝑢 (0) 2 +𝜀 
+
+[
+
+𝑁 𝛼 12 (𝒚 )𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++𝑀 2(𝒚 )( 𝑢 (0) 1 −𝑢 (0) 2 )
+
+]
+
++𝜀 2
+
+[
+
+𝐺 2(𝒚 )𝜕𝑢 (0) 2
+
+𝜕𝑡 +𝑁 𝛼 1𝛼 22 (𝒚 ) 𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++𝐶 𝛼 12 (𝒚 )𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++𝐹 𝛼 12 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐾 2(𝒚 )( 𝑢 (0) 1 − 𝑢 (0) 2 )
+
+]
+
+.
+
+(25) 
+
+: Preprint submitted to Elsevier Page 5 of 20 Theorem 2.1. The multi-continuum problem (3) in periodic composite structures possesses the following HOMS asymp-totic solution: 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩
+
+𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 ) ≈ 𝑢 (0) 1 +𝜀 
+
+[
+
+𝑁 𝛼 11 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 
+
++𝑀 1(𝒚 )( 𝑢 (0) 2 −𝑢 (0) 1 )
+
+]
+
++𝜀 2
+
+[
+
+𝐺 1(𝒚 )𝜕𝑢 (0) 1
+
+𝜕𝑡 +𝑁 𝛼 1𝛼 21 (𝒚 ) 𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++𝐶 𝛼 11 (𝒚 )𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 11 (𝒚 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝐾 1(𝒚 )( 𝑢 (0) 2 − 𝑢 (0) 1 )
+
+]
+
+,𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 ) ≈ 𝑢 (0) 2 +𝜀 
+
+[
+
+𝑁 𝛼 12 (𝒚 )𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++𝑀 2(𝒚 )( 𝑢 (0) 1 −𝑢 (0) 2 )
+
+]
+
++𝜀 2
+
+[
+
+𝐺 2(𝒚 )𝜕𝑢 (0) 2
+
+𝜕𝑡 +𝑁 𝛼 1𝛼 22 (𝒚 ) 𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++𝐶 𝛼 12 (𝒚 )𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++𝐹 𝛼 12 (𝒚 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐾 2(𝒚 )( 𝑢 (0) 1 − 𝑢 (0) 2 )
+
+]
+
+.
+
+(26) 
+
+3. Error Analysis of High-Order Multiscale Solution 
+
+This chapter analyzes the pointwise approximation prop-erties of the first-order multi-scale (FOMS) and HOMS asymptotic solutions derived in Section 2.1 with respect to the original equation. Under certain assumptions, it also proves the convergence order of the second-order two-scale asymptotic solution in the integral sense. 
+
+3.1. Pointwise Error Analysis 
+
+To compare the FOMS and HOMS solutions with the true solution of problem (3), we assume the domain Ω
+
+is composed of perfectly periodic unit cells, i.e., Ω =
+
+⋃ 
+
+> 𝒛 ∈𝑇 𝜀
+
+𝜀 (𝒛 + 𝑌 ), where 𝑇 𝜀 = { 𝒛 = ( 𝑧 1, ⋯ , 𝑧 𝑛 ) ∈ ℤ𝑛 , 𝜀 (𝒛 +
+
+𝑌 ) ⊂ Ω} . Then, the error functions for the FOMS solution 
+
+𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+(𝒙 , 𝑡 ) and the HOMS solution 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+(𝒙 , 𝑡 ) are defined as follows: 
+
+𝑢 (1 𝜀 )1Δ (𝒙 , 𝑡 ) = 𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 ) − 𝑢 (1 𝜀 )1 (𝒙 , 𝑡 ),𝑢 (1 𝜀 )2Δ (𝒙 , 𝑡 ) = 𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 ) − 𝑢 (1 𝜀 )2 (𝒙 , 𝑡 ), (27) 
+
+𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 ) = 𝑢 𝜀 
+
+> 1
+
+(𝒙 , 𝑡 ) − 𝑢 (2 𝜀 )1 (𝒙 , 𝑡 ),𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 ) = 𝑢 𝜀 
+
+> 2
+
+(𝒙 , 𝑡 ) − 𝑢 (2 𝜀 )2 (𝒙 , 𝑡 ). (28) Substituting the error function 𝑢 (1 𝜀 ) 
+
+> 𝑙 Δ
+
+(𝒙 , 𝑡 ) into problem (3), it can be obtained after calculation and simplification that 
+
+𝑢 (1 𝜀 ) 
+
+> 𝑙 Δ
+
+(𝒙 , 𝑡 ) satisfies the following residual problem: 
+
+⎧⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎩
+
+𝑐 𝜀  
+
+> 1
+
+(𝒙 ) 𝜕𝑢 (1 𝜀 )1Δ (𝒙 , 𝑡 )
+
+𝜕𝑡 − 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀  
+
+> 1,𝑖𝑗
+
+(𝒙 ) 𝜕𝑢 (1 𝜀 )1Δ (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
+= 𝑓 10 (𝒙 , 𝒚 , 𝑡 )+ 𝜀̃𝑓 1(𝒙 , 𝒚 , 𝑡 ), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑐 𝜀  
+
+> 2
+
+(𝒙 ) 𝜕𝑢 (1 𝜀 )2Δ (𝒙 , 𝑡 )
+
+𝜕𝑡 − 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀  
+
+> 2,𝑖𝑗
+
+(𝒙 ) 𝜕𝑢 (1 𝜀 ) 
+
+> 2Δ
+
+(𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
+= 𝑓 20 (𝒙 , 𝒚 , 𝑡 ) + 𝜀̃𝑓 2(𝒙 , 𝒚 , 𝑡 ), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑢 (1 𝜀 )1Δ (𝒙 , 𝑡 ) = 0 , 𝑢 (1 𝜀 )2Δ (𝒙 , 𝑡 ) = 0 , (𝒙 , 𝑡 ) ∈ 𝜕 Ω × (0 , 𝑇 ∗),𝑢 (1 𝜀 )1Δ (𝒙 , 0) = 𝜀̄ 𝜓 1(𝒙 ), 𝑢 (1 𝜀 )2Δ (𝒙 , 0) = 𝜀̄ 𝜓 2(𝒙 ), 𝒙 ∈ Ω ,
+
+(29) Among them, the interaction term in the residual problem 
+
+> 1
+
+𝜀 𝑄 𝜀 (𝒙 )( 𝑢 𝜀  
+
+> 2
+
+−𝑢 𝜀 
+
+> 1
+
+) contains terms of order 𝑂 (𝜀 2) after perform-ing the multiscale expansion of 𝑢 𝜀 𝑙 . Therefore, these terms can be incorporated into ̃ 𝑓 𝑙 (𝒙 , 𝒚 , 𝑡 ). The specific forms of 
+
+𝑓 𝑙 0(𝒙 , 𝑡 ),̃ 𝑓 𝑙 (𝒙 , 𝑡 ) and ̄ 𝜓 𝑙 (𝒙 )in Problem (29) are provided in Appendix A. Similarly, substituting the error function 𝑢 (2 𝜀 ) 
+
+> 𝑙 Δ
+
+(𝒙 , 𝑡 ) into problem (3), it can be obtained after calculation and simplifi-cation that 𝑢 (2 𝜀 ) 
+
+> 𝑙 Δ
+
+(𝒙 , 𝑡 ) satisfies the following residual problem: 
+
+⎧⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎩
+
+𝑐 𝜀  
+
+> 1
+
+(𝒙 ) 𝜕𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )
+
+𝜕𝑡 − 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀  
+
+> 1,𝑖𝑗
+
+(𝒙 ) 𝜕𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
+= 𝜀𝑓 1(𝒙 , 𝒚 , 𝑡 ), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑐 𝜀  
+
+> 2
+
+(𝒙 ) 𝜕𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )
+
+𝜕𝑡 − 𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 𝜀  
+
+> 2,𝑖𝑗
+
+(𝒙 ) 𝜕𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+)
+
+= 𝜀𝑓 2(𝒙 , 𝒚 , 𝑡 ), (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗),𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 ) = 0 , 𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 ) = 0 , (𝒙 , 𝑡 ) ∈ 𝜕 Ω × (0 , 𝑇 ∗),𝑢 (2 𝜀 )1Δ (𝒙 , 0) = 𝜀𝜓 1(𝒙 ), 𝑢 (2 𝜀 )2Δ (𝒙 , 0) = 𝜀𝜓 2(𝒙 ), 𝒙 ∈ Ω ,
+
+(30) Among them, the interaction term in the residual problem 
+
+> 1
+
+𝜀 𝑄 𝜀 (𝒙 )( 𝑢 𝜀  
+
+> 2
+
+− 𝑢 𝜀 
+
+> 1
+
+) contains terms of order 𝑂 (𝜀 3) after per-forming the multiscale expansion of 𝑢 𝜀 𝑙 . Therefore, these terms can be incorporated into 𝑓 𝑙 (𝒙 , 𝒚 , 𝑡 ). The specific forms of 𝑓 𝑙 (𝒙 , 𝑡 ) and 𝜓 𝑙 (𝒙 )in Problem (30) are provided in Ap-pendix A. In practical engineering applications, the small periodic parameter 𝜀 is often a fixed constant. Through the above analysis, it can be concluded that, the approximation ac-curacy of the FOMS solution 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+(𝒙 , 𝑡 ) to the true solution 
+
+𝑢 𝜀  
+
+> 𝑙
+
+(𝒙 , 𝑡 ) of the original problem (3) is of order 𝑂 (1) , which is clearly insufficient. In contrast, the approximation accuracy of the HOMS solution 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+(𝒙 , 𝑡 ) is of order 𝑂 (𝜀 ), which not only provides higher numerical accuracy but also precisely captures the oscillatory information at the microscale of highly heterogeneous media. 
+
+3.2. Error Analysis of High-Order Multiscale Solutions in the Integral Sense 
+
+Next, we proceed with the error analysis of HOMS solu-tions in the integral sense. First, the following assumptions are made: 
+
+(𝐵 1) 𝑐 𝑙 (𝒚 ) ∈ 𝐿 ∞(Ω) , 𝜅 𝑙,𝑖𝑗 (𝒚 ) ∈ 𝐿 ∞(Ω) .
+
+: Preprint submitted to Elsevier Page 6 of 20 (𝐵 2) Both 𝑐 𝑙 (𝒚 ) and 𝜅 𝑙,𝑖𝑗 (𝒚 ) are symmetric with respect to all mid-planes of the reference unit cell 𝑌 , while 𝜅 𝑙,𝑖𝑗 (𝒚 )
+
+is skew-symmetric with respect to all mid-planes of the reference unit cell 𝑌 [38, 39, 32] . 
+
+Lemma 3.1. If the multi-continuum problem (3) satisfies assumptions (𝐴 1)-(𝐴 3) and (𝐵 1)-(𝐵 2), then the normal derivatives of all cell functions 𝜎 𝑙 𝐶𝑌 (𝑁 𝛼 1 
+
+> 𝑙
+
+), 𝜎 𝑙 𝐶𝑌 (𝑀 𝑙 ), 𝜎 𝑙 𝐶𝑌 (𝐺 𝑙 ),
+
+𝜎 𝑙 𝐶𝑌 (𝑁 𝛼 1𝛼 2 
+
+> 𝑙
+
+), 𝜎 𝑙 𝐶𝑌 (𝐶 𝛼 1 
+
+> 𝑙
+
+), 𝜎 𝑙 𝐶𝑌 (𝐹 𝛼 1 
+
+> 𝑙
+
+), 𝜎 𝑙 𝐶𝑌 (𝐾 𝑙 ) are continuous on the boundary 𝜕𝑌 of the microscale unit cell domain 𝑌 , where 
+
+𝜎 𝑙 𝐶𝑌 = 𝑛 𝑖 𝜅 𝑙,𝑖𝑗 
+
+𝜕 Φ
+
+𝜕𝑦 𝑗 
+
+.
+
+Theorem 3.2. Let 𝑢 𝜀  
+
+> 𝑙
+
+(𝑥, 𝑡 ) be the solution of problem (3) ,and 𝑢 (0)  
+
+> 𝑙
+
+(𝑥, 𝑡 ) be the solution of the homogenized prob-lem (13) . Suppose assumptions (𝐴 1)-(𝐴 3) and (𝐵 1)-(𝐵 2)
+
+hold, and that 𝑢 (0)  
+
+> 𝑙
+
+(𝒙 , 𝑡 ) ∈ 𝐿 ∞ (0, 𝑇 ∗; 𝐻 4(Ω) ) and 𝜕𝑢 (0) 
+
+> 𝑙
+
+𝜕𝑡 ∈
+
+𝐿 ∞ (0, 𝑇 ∗; 𝐻 2(Ω) ) are satisfied. Then the following error estimate holds: 
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝑥, 𝑡 )‖‖‖𝐿 ∞(0,𝑇 ∗,𝐿 2(Ω) ) + ‖‖‖𝑢 (2 𝜀 )1Δ (𝑥, 𝑡 )‖‖‖𝐿 ∞(0,𝑇 ∗,𝐻 1(Ω) )+ ‖‖‖𝑢 (2 𝜀 )2Δ (𝑥, 𝑡 )‖‖‖𝐿 ∞(0,𝑇 ∗,𝐿 2(Ω) ) + ‖‖‖𝑢 (2 𝜀 )2Δ (𝑥, 𝑡 )‖‖‖𝐿 ∞(0,𝑇 ∗,𝐻 1(Ω) )
+
+≤ 𝐶 (𝑇 ∗)𝜀, 
+
+(31) 
+
+where 𝐶 (𝑇 ∗) is a constant independent of the small periodic parameter 𝜀 .Proof. First, by combining the chain rule (5) with Eqs. (13), we obtain: 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩
+
+𝜎 1 
+
+> 𝑌
+
+(𝑢 (2 𝜀 )1 ) = 𝑛 𝑖 𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )1
+
+𝜕𝑥 𝑗 
+
+= 𝑛 𝑖 𝜅 1,𝑖𝑗 
+
+( 𝜕 𝜕𝑥 𝑗 
+
++ 1
+
+𝜀 𝜕 𝜕𝑦 𝑗 
+
+)[
+
+𝑢 (0) 1 + 𝜀 
+
+(
+
+𝑁 𝛼 11
+
+𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝑀 1
+
+(𝑢 (0) 2 − 𝑢 (0) 1
+
+))
+
++ 𝜀 2(
+
+𝐺 1
+
+𝜕𝑢 (0) 1
+
+𝜕𝑡 + 𝐾 1
+
+(𝑢 (0) 2 − 𝑢 (0) 1
+
+)
+
++ 𝑁 𝛼 1𝛼 21
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝐶 𝛼 11
+
+𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 11
+
+𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
+)]
+
+= 𝑛 𝑖 𝜅 1,𝑖𝑗 
+
+[ 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝑗 
+
++𝜀 𝜕 𝜕𝑥 𝑗 
+
+(
+
+𝑁 𝛼 11
+
+𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++𝑀 1
+
+(𝑢 (0) 2 −𝑢 (0) 1
+
+))
+
++ 𝜀 2 𝜕 𝜕𝑥 𝑗 
+
+(
+
+𝐺 1
+
+𝜕𝑢 (0) 1
+
+𝜕𝑡 + 𝑁 𝛼 1𝛼 21
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝐶 𝛼 11
+
+𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 11
+
+𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐾 1
+
+(𝑢 (0) 2 − 𝑢 (0) 1
+
+))]
+
++ 𝜎 1 
+
+> 𝐶𝑌
+
+(𝑁 𝛼 11 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝜎 1 
+
+> 𝐶𝑌
+
+(𝑀 1)(𝑢 (0) 2 − 𝑢 (0) 1
+
+) + 𝜀 
+
+(
+
+𝜎 1 
+
+> 𝐶𝑌
+
+(𝑁 𝛼 1𝛼 21 ) 𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝜎 1 
+
+> 𝐶𝑌
+
+(𝐶 𝛼 11 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝜎 1 
+
+> 𝐶𝑌
+
+(𝐹 𝛼 11 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝜎 1 
+
+> 𝐶𝑌
+
+(𝐺 1) 𝜕𝑢 (0) 1
+
+𝜕𝑡 + 𝜎 1 
+
+> 𝐶𝑌
+
+(𝐾 1)(𝑢 (0) 2 − 𝑢 (0) 1
+
+))
+
+,𝜎 2 
+
+> 𝑌
+
+(𝑢 (2 𝜀 )2 ) = 𝑛 𝑖 𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )2
+
+𝜕𝑥 𝑗 
+
+= 𝑛 𝑖 𝜅 2,𝑖𝑗 
+
+( 𝜕 𝜕𝑥 𝑗 
+
++ 1
+
+𝜀 𝜕 𝜕𝑦 𝑗 
+
+)[
+
+𝑢 (0) 2 + 𝜀 
+
+(
+
+𝑁 𝛼 11
+
+𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝑀 2
+
+(𝑢 (0) 1 − 𝑢 (0) 2
+
+))
+
++ 𝜀 2(
+
+𝐺 2
+
+𝜕𝑢 (0) 1
+
+𝜕𝑡 +𝐾 1
+
+(𝑢 (0) 1 − 𝑢 (0) 2
+
+)
+
++ 𝑁 𝛼 1𝛼 21
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝐶 𝛼 12
+
+𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 12
+
+𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
+)]
+
+= 𝑛 𝑖 𝜅 2,𝑖𝑗 
+
+[𝜕𝑢 (0) 2
+
+𝜕𝑥 𝑗 
+
++ 𝜀 𝜕 𝜕𝑥 𝑗 
+
+(
+
+𝑁 𝛼 12
+
+𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++𝑀 2
+
+(𝑢 (0) 1 −𝑢 (0) 2
+
+))
+
++ 𝜀 2 𝜕 𝜕𝑥 𝑗 
+
+(
+
+𝐺 2
+
+𝜕𝑢 (0) 2
+
+𝜕𝑡 + 𝑁 𝛼 1𝛼 21
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝐶 𝛼 12
+
+𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 12
+
+𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝐾 2
+
+(𝑢 (0) 1 − 𝑢 (0) 2
+
+))]
+
++ 𝜎 2 
+
+> 𝐶𝑌
+
+(𝑁 𝛼 12 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝜎 2 
+
+> 𝐶𝑌
+
+(𝑀 2)(𝑢 (0) 1 − 𝑢 (0) 2
+
+) + 𝜀 
+
+(
+
+𝜎 2 
+
+> 𝐶𝑌
+
+(𝑁 𝛼 1𝛼 22 ) 𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝜎 2 
+
+> 𝐶𝑌
+
+(𝐶 𝛼 12 ) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ 𝜎 2 
+
+> 𝐶𝑌
+
+(𝐹 𝛼 12 ) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ 𝜎 2 
+
+> 𝐶𝑌
+
+(𝐺 2) 𝜕𝑢 (0) 2
+
+𝜕𝑡 + 𝜎 2 
+
+> 𝐶𝑌
+
+(𝐾 2)(𝑢 (0) 1 − 𝑢 (0) 2
+
+))
+
+.
+
+(32) 
+
+: Preprint submitted to Elsevier Page 7 of 20 Next, multiply both sides of the residual equation by 𝑢 (2 𝜀 )
+
+> 𝑙 Δ
+
+and integrate over Ω to obtain: 
+
+⎧⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎩
+
+− ∫Ω
+
+𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑗 
+
+)
+
+𝑢 (2 𝜀 )1Δ dΩ + ∫Ω
+
+𝑐 1(𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑡 𝑢 (2 𝜀 )1Δ dΩ = ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ dΩ ,
+
+− ∫Ω
+
+𝜕 𝜕𝑥 𝑖 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑗 
+
+)
+
+𝑢 (2 𝜀 )2Δ dΩ + ∫Ω
+
+𝑐 2(𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑡 𝑢 (2 𝜀 )2Δ dΩ = ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ dΩ ,
+
+(33) Using the formula to simplify Eqs. (33), we obtain: 
+
+⎧⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎩
+
+∫Ω
+
+𝑐 1(𝒚 )𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑡 𝑢 (2 𝜀 )1Δ dΩ + ∫Ω
+
+𝜅 1,𝑖𝑗 (𝒚 )𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑖 
+
+dΩ = ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ dΩ + ∫⋃ 
+
+> 𝒛 ∈𝑇 𝒛
+
+𝜕𝐸 𝒛 
+
+𝑟 1𝑢 (2 𝜀 )1Δ dΓ 𝒚 ,
+
+∫Ω
+
+𝑐 2(𝒚 )𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑡 𝑢 (2 𝜀 )2Δ dΩ + ∫Ω
+
+𝜅 2,𝑖𝑗 (𝒚 )𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑖 
+
+dΩ = ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ dΩ + ∫⋃ 
+
+> 𝒛 ∈𝑇 𝒛
+
+𝜕𝐸 𝒛 
+
+𝑟 2𝑢 (2 𝜀 )2Δ dΓ 𝒚 ,
+
+(34) where 𝑟 𝑙 = 𝑛 𝑖 𝜅 𝑙,𝑖𝑗 (𝑦 ) 𝜕𝑢 (2 𝜀 )
+
+> 𝑙 Δ
+
+𝜕𝑥 𝑗 
+
+= 𝜎 𝑌 (𝑢 (2 𝜀 ) 
+
+> 𝑙 Δ
+
+).Then, combining Eqs. (34) and the Hölder inequality, we calculate to obtain: 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎪⎩⟨𝑟 1, 𝑢 (2 𝜀 )1Δ 
+
+⟩ = ∫⋃ 
+
+> 𝒛 ∈𝑇𝜀
+
+𝜕𝐸 𝜀 
+
+𝑟 1𝑢 (2 𝜀 )1Δ dΓ 𝒚 
+
+= ∑
+
+> 𝑧 ∈𝑇𝜀
+
+∫𝜕𝐸 𝜀 
+
+𝜎 𝑌 
+
+(𝑢 𝜀  
+
+> 1
+
+− 𝑢 (2 𝜀 )1
+
+)𝑢 (2 𝜀 )1Δ dΓ 𝑦 
+
+= − ∑
+
+> 𝑧 ∈𝑇 𝜀
+
+∫𝜕𝐸 𝜀 
+
+𝜎 𝑌 
+
+(𝑢 (2 𝜀 )1
+
+)𝑢 (2 𝜀 )1Δ dΓ 𝑦 = 0 ,
+
+⟨𝑟 2, 𝑢 (2 𝜀 )2Δ 
+
+⟩ = ∫⋃ 
+
+> 𝒛 ∈𝑇𝜀
+
+𝜕𝐸 𝜀 
+
+𝑟 2𝑢 (2 𝜀 )2Δ dΓ 𝒚 
+
+= ∑
+
+> 𝑧 ∈𝑇 𝜀
+
+∫𝜕𝐸 𝜀 
+
+𝜎 𝑌 
+
+(𝑢 𝜀  
+
+> 2
+
+− 𝑢 (2 𝜀 )2
+
+)𝑢 (2 𝜀 )2Δ dΓ 𝑦 
+
+= − ∑
+
+> 𝑧 ∈𝑇 𝜀
+
+∫𝜕𝐸 𝜀 
+
+𝜎 𝑌 
+
+(𝑢 (2 𝜀 )2
+
+)𝑢 (2 𝜀 )2Δ dΓ 𝑦 = 0 .
+
+(35) Further, combining Eqs. (34) and Eqs. (35), it is straight-forward to verify that the following equation holds: 
+
+⎧⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎩
+
+∫Ω
+
+𝑐 1(𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑡 𝑢 (2 𝜀 )1Δ dΩ + ∫Ω
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑖 
+
+dΩ = ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ dΩ ,
+
+∫Ω
+
+𝑐 2(𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑡 𝑢 (2 𝜀 )2Δ dΩ + ∫Ω
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑖 
+
+dΩ = ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ dΩ .
+
+(36) From Eqs. (36), it is easily verified that the following two equations hold: 
+
+12
+
+𝜕 𝜕𝑡 ∫Ω
+
+𝑐 1(𝒚 )𝑢 (2 𝜀 )1Δ 𝑢 (2 𝜀 )1Δ dΩ + ∫Ω
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑖 
+
+dΩ = ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ dΩ ,
+
+(37) 
+
+12
+
+𝜕 𝜕𝑡 ∫Ω
+
+𝑐 2(𝒚 )𝑢 (2 𝜀 )2Δ 𝑢 (2 𝜀 )2Δ dΩ + ∫Ω
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑖 
+
+dΩ = ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ dΩ .
+
+(38) Subsequently, adding Eq. (37) to Eq. (38) and simplify-ing the calculation yields: 
+
+12
+
+𝜕 𝜕𝑡 ∫Ω
+
+𝑐 1(𝑦 )𝑢 (2 𝜀 )1Δ 𝑢 (2 𝜀 )1Δ dΩ + ∫Ω
+
+𝜅 1,𝑖𝑗 (𝑦 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑖 
+
+dΩ + 12
+
+𝜕 𝜕𝑡 ∫Ω
+
+𝑐 2(𝑦 )𝑢 (2 𝜀 )2Δ 𝑢 (2 𝜀 )2Δ dΩ + ∫Ω
+
+𝜅 2,𝑖𝑗 (𝑦 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑖 
+
+dΩ = ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ dΩ + ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ dΩ . (39) Then, integrating both sides over the time interval [0 , 𝑡 ]
+
+(0 < 𝑡 < 𝑇 ∗), and simplifying the calculation, we obtain: 
+
+∫
+
+𝑡 
+
+0
+
+𝜕 𝜕𝜏 
+
+[
+
+∫Ω
+
+𝑐 1(𝒚 )𝑢 (2 𝜀 )1Δ 𝑢 (2 𝜀 )1Δ dΩ 
+
+]
+
+d𝜏 
+
++ 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑖 
+
+dΩd 𝜏 
+
++ ∫
+
+𝑡 
+
+0
+
+𝜕 𝜕𝜏 
+
+[
+
+∫Ω
+
+𝑐 2(𝒚 )𝑢 (2 𝜀 )2Δ 𝑢 (2 𝜀 )2Δ dΩ 
+
+]
+
+d𝜏 
+
++ 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑖 
+
+dΩd 𝜏 
+
+= 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ dΩd 𝜏 + 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ dΩd 𝜏. 
+
+(40) After further calculation, it can be rearranged into the following equation: 
+
+∫Ω
+
+𝑐 1(𝒚 )(𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 ))2dΩ + ∫Ω
+
+𝑐 2(𝒚 )(𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 ))2dΩ + 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑖 
+
+dΩd 𝜏 
+
++ 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑖 
+
+dΩd 𝜏 
+
+= 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ dΩd 𝜏 + 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ dΩd 𝜏 
+
++ ∫Ω
+
+𝑐 1(𝒚 )(𝑢 (2 𝜀 )1Δ (𝒙 , 0) )2dΩ + ∫Ω
+
+𝑐 2(𝒚 )(𝑢 (2 𝜀 )2Δ (𝒙 , 0) )2dΩ .
+
+(41) 
+
+: Preprint submitted to Elsevier Page 8 of 20 Next, substituting the initial condition of the residual problem (30) into Eq. (41) yields: 
+
+∫Ω
+
+𝑐 1(𝒚 )(𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 ))2dΩ + ∫Ω
+
+𝑐 2(𝒚 )(𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 ))2dΩ + 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )1Δ 
+
+𝜕𝑥 𝑖 
+
+dΩd 𝜏 
+
++ 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )2Δ 
+
+𝜕𝑥 𝑖 
+
+dΩd 𝜏 
+
+= 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ dΩd 𝜏 + 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ dΩd 𝜏 
+
++ ∫Ω
+
+𝑐 1(𝒚 )(𝜀𝜓 1(𝒙 ))2dΩ + ∫Ω
+
+𝑐 2(𝒚 )(𝜀𝜓 2(𝒙 ))2dΩ .
+
+(42) In the following, we estimate both sides of Eq. (42) separately. First, for the left-hand side, using Assumption 
+
+(𝐴 2), (𝐴 3) and Poincaré-Friedrichs inequality, we obtain the following inequality: 
+
+∫Ω
+
+𝑐 1(𝒚 )(𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 ))2 dΩ + ∫Ω
+
+𝑐 2(𝒚 )(𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 ))2 dΩ + 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜅 1,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
+dΩd 𝜏 
+
++ 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜅 2,𝑖𝑗 (𝒚 ) 𝜕𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑗 
+
+𝜕𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
+dΩd 𝜏 
+
+≥ 𝐶 ‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
++ 2 𝐾 ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 1(Ω)
+
+d𝜏 
+
++ 𝐶 ‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
++ 2 𝐾 ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜏. 
+
+(43) Then, using Assumption (𝐴 2), (𝐴 3) and Young’s in-equality, and selecting the same parameter 𝜆 for any arbitrary 
+
+𝜏 ∈ [0 , 𝑡 ], the estimation of the right-hand side of Eq. (42) yields the following inequality: 
+
+∫Ω
+
+𝑐 1
+
+(𝜀𝜓 1(𝒙 ))2 dΩ + 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜀𝑓 1𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )dΩd 𝜏 
+
++ ∫Ω
+
+𝑐 2
+
+(𝜀𝜓 2(𝒙 ))2 dΩ + 2 ∫
+
+𝑡 
+
+0 ∫Ω
+
+𝜀𝑓 2𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )dΩd 𝜏 
+
+≤ 𝐶𝜀 2 + 2 
+
+[ 1
+
+𝜆 ∫
+
+𝑡 
+
+0
+
+(‖𝜀𝑓 1‖2 
+
+> 𝐿 2(Ω)
+
++ ‖𝜀𝑓 2‖2
+
+> 𝐿 2(Ω)
+
+)
+
+d𝜏 
+
++𝜆 ∫
+
+𝑡 
+
+0
+
+(‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖2 
+
+> 𝐿 2(Ω)
+
++ ‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖2
+
+> 𝐿 2(Ω)
+
+)
+
+d𝜏 
+
+]
+
+≤ 𝐶𝜀 2 + 𝜆 ∫
+
+𝑡 
+
+0
+
+‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖2
+
+> 𝐿 2(Ω)
+
+d𝜏 
+
++ 𝜆 ∫
+
+𝑡 
+
+0
+
+‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖2
+
+> 𝐿 2(Ω)
+
+d𝜏 
+
++ 𝑀 ∫
+
+𝑡 
+
+0 ∫
+
+𝜏 
+
+0
+
+‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖2
+
+> 𝐻 10 (Ω)
+
+d𝑠 d𝜏 
+
++ 𝑀 ∫
+
+𝑡 
+
+0 ∫
+
+𝜏 
+
+0
+
+‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖2
+
+> 𝐻 10 (Ω)
+
+d𝑠 d𝜏. 
+
+(44) Combining Eq. (43) and Eq. (44), we obtain the follow-ing inequality: 
+
+𝐶 ‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
++ 2 𝐾 ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜏 
+
++ 𝐶 ‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
++ 2 𝐾 ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜏 
+
+≤ 𝐶𝜀 2 + 𝜆 ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
+d𝜏 
+
++ 𝜆 ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
+d𝜏 
+
++ 𝑀 ∫
+
+𝑡 
+
+0 ∫
+
+𝜏 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝑠 d𝜏 
+
++ 𝑀 ∫
+
+𝑡 
+
+0 ∫
+
+𝜏 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝑠 d𝜏. 
+
+(45) Defining 𝛿 1 = min( 𝐶, 2𝐾 ) and 𝛿 2 = max( 𝜆, 𝑀 ),Eq. (45) can be further simplified as: 
+
+𝛿 1
+
+(‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
++ ‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
++ ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜏 + ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜏 
+
+)
+
+≤ 𝐶𝜀 2 + 𝛿 2
+
+(
+
+∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
+d𝜏 
+
++ ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
+d𝜏 
+
++ ∫
+
+𝑡 
+
+0 ∫
+
+𝜏 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝑠 d𝜏 
+
++ ∫
+
+𝑡 
+
+0 ∫
+
+𝜏 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝑠 d𝜏 
+
+)
+
+.
+
+(46) Without loss of generality, defining 𝐶 = 𝐶 ∕𝛿 1 and 
+
+𝛿 = 𝛿 2∕𝛿 1, Eq. (46) can be further simplified as: 
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
++ ‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
++ ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜏 + ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜏 
+
+≤ 𝐶𝜀 2 + 𝛿 
+
+(
+
+∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
+d𝜏 
+
++ ∫
+
+𝑡 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐿 2(Ω)
+
+d𝜏 
+
++ ∫
+
+𝑡 
+
+0 ∫
+
+𝜏 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜍 d𝜏 
+
++ ∫
+
+𝑡 
+
+0 ∫
+
+𝜏 
+
+0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+2
+
+> 𝐻 10 (Ω)
+
+d𝜍 d𝜏 
+
+)
+
+.
+
+(47) 
+
+: Preprint submitted to Elsevier Page 9 of 20 Subsequently, applying Gronwall’s inequality to Eq. (47) yields: 
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖ 
+
+> 2
+> 𝐿 2(Ω)
+
++ ‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖
+
+> 2
+> 𝐿 2(Ω)
+
++ ∫
+
+> 𝑡
+> 0
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖  
+
+> 2
+> 𝐻 10(Ω)
+
+d𝜏 + ∫
+
+> 𝑡
+> 0
+
+‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖  
+
+> 2
+> 𝐻 10(Ω)
+
+d𝜏 
+
+≤ 𝐶 (𝑇 ∗)𝜀 2, ∀ 𝑡 ∈ [0 , 𝑇 ∗].
+
+(48) Then, applying the mean value inequality to Eq. (48), we obtain the following inequality: 
+
+‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖𝐿 2(Ω) 
+
++ ‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖𝐿 2(Ω) 
+
++ ‖‖‖𝑢 (2 𝜀 )1Δ (𝒙 , 𝑡 )‖‖‖𝐿 2(0 ,𝑡 ;𝐻 10 (Ω)) 
+
++ ‖‖‖𝑢 (2 𝜀 )2Δ (𝒙 , 𝑡 )‖‖‖𝐿 2(0 ,𝑡 ;𝐻 10 (Ω)) 
+
+≤ 𝐶 (𝑇 ∗)𝜀, ∀𝑡 ∈ [0 , 𝑇 ∗].
+
+(49) Finally, utilizing the arbitrariness of the time variable 𝑡 ,the following inequality holds: 
+
+‖‖‖𝑢 (2 𝜀 )1Δ 
+
+‖‖‖𝐿 ∞(0 ,𝑇 ∗;𝐿 2(Ω)) + ‖‖‖𝑢 (2 𝜀 )1Δ 
+
+‖‖‖𝐿 2(0 ,𝑇 ∗;𝐻 01 (Ω)) 
+
++ ‖‖‖𝑢 (2 𝜀 )2Δ 
+
+‖‖‖𝐿 ∞(0 ,𝑇 ∗;𝐿 2(Ω)) + ‖‖‖𝑢 (2 𝜀 )2Δ 
+
+‖‖‖𝐿 2(0 ,𝑇 ∗;𝐻 01 (Ω)) 
+
+≤ 𝐶 (𝑇 ∗)𝜀. 
+
+(50) In summary, Theorem 3.2 is proved. 
+
+4. Numerical Algorithms and Experiments 
+
+This chapter presents the corresponding algorithm for the HOMS computational model established in Section 2.2, and conducts numerical experiments to validate the effec-tiveness of the method and the necessity of introducing the second-order correction term. Based on the HOMS asymptotic solution for the mul-tiscale problem (3) provided in Section 2.2, the HOMS algorithm for solving multi-continuum problems in highly heterogeneous media is given as follows: 1. Determine the geometric configuration of the refer-ence unit cell 𝑌 and the homogenized macroscopic region Ω, as well as the material parameters of each constituent phase. Then, perform finite element dis-cretization of the unit cell 𝑌 and the homogenized macroscopic region Ω using triangular meshes in two dimensions or tetrahedral meshes in three dimen-sions. Let 𝐽 ℎ1 = {𝐾 } and 𝐽 ℎ0 = {𝑒 } denote a family of regular tetrahedral mesh partitions of the unit cell 𝑌 and the homogenized macroscopic do-main Ω, respectively, where ℎ1 = max 𝐾 {ℎ𝐾 } and 
+
+ℎ0 = max 𝑒 {ℎ𝑒 }. Then define the conforming fi-nite element space on the reference unit cell 𝑌 as 
+
+𝑉 ℎ1 (𝑌 ) = 
+
+{
+
+𝑣 ∈ 𝐶 0(𝑌 ) ∶ 𝑣 |𝜕𝑌 = 0 , 𝑣 |𝐾 ∈ 𝑃 (𝐾 )
+
+}
+
+⊂𝐻 10 (𝑌 ), and the conforming finite element space on the homogenized macroscopic domain Ω as 𝑉 ℎ0 (Ω) = 
+
+{
+
+𝑣 ∈ 𝐶 0(Ω) ∶ 𝑣 |𝑒 ∈ 𝑃 (𝑒 )
+
+}
+
+⊂ 𝐻 10 (Ω) .
+
+2. Solve for the first-order cell functions 𝑁 𝛼 1 
+
+> 𝑙
+
+(𝒚 ) and 
+
+𝑀 𝑙 (𝒚 ) using the variational formulation in the finite element space 𝑉 ℎ0 (𝑌 ).
+
+∫𝑌 
+
+𝜅 𝑙,𝑖𝑗 (𝑦 ) 𝜕𝑁 𝛼 1 
+
+> 𝑙
+
+(𝑦 )
+
+𝜕𝑦 𝑗 
+
+𝜕𝜑 ℎ1
+
+𝜕𝑦 𝑖 
+
+d𝑌 
+
++ ∫𝑌 
+
+𝜅 𝑙,𝑖𝛼 1 (𝑦 ) 𝜕𝜑 ℎ1
+
+𝜕𝑦 𝑖 
+
+d𝑌 = 0 , ∀𝜑 ℎ1 ∈ 𝑉 ℎ1 (𝑌 ).
+
+(51) 3. Then, using the obtained first-order cell functions and Eqs. (13), solve for the homogenized coefficients 
+
+𝑐 ∗ 
+
+> 𝑙
+
+, 𝜅 ∗ 
+
+> 𝑙,𝑖𝑗
+
+,̄ 𝐾 𝑙 ∗1𝑖 ,̄ 𝐾 𝑙 ∗2𝑖 and 𝑄 ∗ 
+
+> 𝑙
+
+. Subsequently, establish the following coupled finite difference-finite element discretization scheme for solving the homogenized problem (3): 
+
+⎧⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩
+
+∫Ω
+
+𝑐 ∗
+
+> 1
+
+𝑢 (0) ,𝑛 +1 1 − 𝑢 (0) ,𝑛 
+
+> 1
+
+Δ𝑡 𝜈 ℎ0 dΩ = − 12 ∫Ω
+
+𝜅 ∗
+
+> 1,𝑖𝑗
+
+( 𝜕𝑢 (0) ,𝑛 +1 1
+
+𝜕𝑥 𝑗 
+
++ 𝜕𝑢 (0) ,𝑛 
+
+> 1
+
+𝜕𝑥 𝑗 
+
+)
+
+𝜕𝜈 ℎ0
+
+𝜕𝑥 𝑖 
+
+dΩ + 12 ∫Ω
+
+𝑄 ∗1
+
+(𝑢 (0) ,𝑛 +1 2 − 𝑢 (0) ,𝑛 +1 1
+
+) 𝜈 ℎ0 dΩ + 12 ∫Ω
+
+𝑄 ∗1
+
+(𝑢 (0) ,𝑛  
+
+> 2
+
+− 𝑢 (0) ,𝑛 
+
+> 1
+
+) 𝜈 ℎ0 dΩ + 12 ∫Ω̄ 𝐾 1∗ 1𝑖 
+
+( 𝜕𝑢 (0) ,𝑛 +1 
+
+> 2
+
+𝜕𝑥 𝑗 
+
++ 𝜕𝑢 (0) ,𝑛 
+
+> 2
+
+𝜕𝑥 𝑗 
+
+)
+
+𝜈 ℎ0 dΩ − 12 ∫Ω̄ 𝐾 1∗ 2𝑖 
+
+( 𝜕𝑢 (0) ,𝑛 +1 
+
+> 1
+
+𝜕𝑥 𝑖 
+
++ 𝜕𝑢 (0) ,𝑛 
+
+> 1
+
+𝜕𝑥 𝑖 
+
+)
+
+𝜈 ℎ0 dΩ + ∫Ω
+
+𝑞𝜈 ℎ0 dΩ , ∀𝜈 ℎ0 ∈ 𝑉 ℎ0 (Ω) , 𝑡 ∈ (0 , 𝑇 ∗),
+
+∫Ω
+
+𝑐 ∗
+
+> 2
+
+𝑢 (0) ,𝑛 +1 2 − 𝑢 (0) ,𝑛 
+
+> 2
+
+Δ𝑡 𝜈 ℎ0 dΩ = − 12 ∫Ω
+
+𝜅 ∗2,𝑖𝑗 
+
+( 𝜕𝑢 (0) ,𝑛 +1 2
+
+𝜕𝑥 𝑗 
+
++ 𝜕𝑢 (0) ,𝑛 
+
+> 2
+
+𝜕𝑥 𝑗 
+
+)
+
+𝜕𝜈 ℎ0
+
+𝜕𝑥 𝑖 
+
+dΩ + 12 ∫Ω
+
+𝑄 ∗
+
+> 2
+
+(𝑢 (0) ,𝑛 +1 1 − 𝑢 (0) ,𝑛 +1 2
+
+) 𝜈 ℎ0 dΩ + 12 ∫Ω
+
+𝑄 ∗
+
+> 2
+
+(𝑢 (0) ,𝑛  
+
+> 1
+
+− 𝑢 (0) ,𝑛 
+
+> 2
+
+) 𝜈 ℎ0 dΩ + 12 ∫Ω̄ 𝐾 2∗ 1𝑖 
+
+( 𝜕𝑢 (0) ,𝑛 +1 1
+
+𝜕𝑥 𝑖 
+
++ 𝜕𝑢 (0) ,𝑛 
+
+> 1
+
+𝜕𝑥 𝑖 
+
+)
+
+𝜈 ℎ0 dΩ − 12 ∫Ω̄ 𝐾 2∗ 2𝑖 
+
+( 𝜕𝑢 (0) ,𝑛 +1 2
+
+𝜕𝑥 𝑖 
+
++ 𝜕𝑢 (0) ,𝑛 
+
+> 2
+
+𝜕𝑥 𝑖 
+
+)
+
+𝜈 ℎ0 dΩ + ∫Ω
+
+𝑞𝜈 ℎ0 dΩ , ∀𝜈 ℎ0 ∈ 𝑉 ℎ0 (Ω) , 𝑡 ∈ (0 , 𝑇 ∗).
+
+(52) 4. Using the mesh 𝐽 ℎ1 = { 𝐾 } and the finite element space 𝑉 ℎ0 (𝑌 ) employed for solving the first-order cell functions, determine the second-order cell functions 
+
+𝐺 𝑙 (𝒚 ), 𝑁 𝛼 1𝛼 2 
+
+> 𝑙
+
+(𝒚 ), 𝐶 𝛼 1 
+
+> 𝑙
+
+(𝒚 ), 𝐹 𝛼 1 
+
+> 𝑙
+
+(𝒚 ) and 𝐾 𝑙 (𝒚 ) according to the cell problems (17)-(23). 
+
+: Preprint submitted to Elsevier Page 10 of 20 5. For any point (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗), the values of the first-order and second-order cell functions and the homogenized solutions at that point are obtained using interpolation methods. The partial derivatives of the homogenized solution 𝑢 (0)  
+
+> 𝑙
+
+with respect to the spatial variables, 𝜕𝑢 (0) 
+
+> 𝑙
+> 𝜕𝑥 𝛼 1
+
+and 𝜕 2𝑢 (0)  
+
+> 𝑙
+> 𝜕𝑥 𝛼 1𝜕𝑥 𝛼 2
+
+, are computed using the element average method[40, 41]. The partial deriva-tive with respect to time, 𝜕𝑢 (0)  
+
+> 𝑙
+> 𝜕𝑡
+
+, can be obtained from (52). Finally, the HOMS solution of the multiscale problem (3) at any point (𝒙 , 𝑡 ) ∈ Ω × (0 , 𝑇 ∗) is calculated according to formula (25). 6. The reference solution 𝑢 𝜀  
+
+> 𝑙
+
+for problem (3) is computed using the refined FEM over the highly heterogeneous media domain Ω.
+
+5. Numerical Experiments 
+
+In this section, we present four numerical examples to verify the effectiveness and stability of the HOMS method. For simplicity, we assume each medium is isotropic in this paper (and the anisotropic case is handled similarly). All numerical experiments are conducted on an HP desktop workstation equipped with an 3th Gen Intel(R) Core(TM)17-13700 processor (2.10 GHz) and 32.0 GB of internal mem-ory, and all numerical simulations are performed based on Freefem++ software. The relative errors of 𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 (2 𝜀 )
+
+> 𝑙
+
+under the corresponding norms are denoted as: Lerr10 (𝑡 ) = 
+
+‖‖‖𝑢 1𝑒 − 𝑢 (0) 1
+
+‖‖‖𝐿 2
+
+‖‖𝑢 1𝑒 ‖‖𝐿 2
+
+, Lerr11 (𝑡 ) = 
+
+‖‖‖𝑢 1𝑒 − 𝑢 (1𝜀 )1
+
+‖‖‖𝐿 2
+
+‖‖𝑢 1𝑒 ‖‖𝐿 2
+
+,
+
+Lerr12 (𝑡 ) = 
+
+‖‖‖𝑢 1𝑒 − 𝑢 (2𝜀 )1
+
+‖‖‖𝐿 2
+
+‖‖𝑢 1𝑒 ‖‖𝐿 2
+
+, Herr10 (𝑡 ) = 
+
+|||𝑢 1𝑒 − 𝑢 (0) 1
+
+|||𝐻 1
+
+||𝑢 1𝑒 ||𝐻 1
+
+,
+
+Herr11 (𝑡 ) = 
+
+|||𝑢 1𝑒 − 𝑢 (1𝜀 )1
+
+|||𝐻 1
+
+||𝑢 1𝑒 ||𝐻 1
+
+, Herr12 (𝑡 ) = 
+
+|||𝑢 1𝑒 − 𝑢 (2𝜀 )1
+
+|||𝐻 1
+
+||𝑢 1𝑒 ||𝐻 1
+
+,
+
+Lerr20 (𝑡 ) = 
+
+‖‖‖𝑢 2𝑒 − 𝑢 (0) 2
+
+‖‖‖𝐿 2
+
+‖‖𝑢 2𝑒 ‖‖𝐿 2
+
+, Lerr21 (𝑡 ) = 
+
+‖‖‖𝑢 2𝑒 − 𝑢 (1𝜀 )2
+
+‖‖‖𝐿 2
+
+‖‖𝑢 2𝑒 ‖‖𝐿 2
+
+,
+
+Lerr22 (𝑡 ) = 
+
+‖‖‖𝑢 2𝑒 − 𝑢 (2𝜀 )2
+
+‖‖‖𝐿 2
+
+‖‖𝑢 2𝑒 ‖‖𝐿 2
+
+, Herr20 (𝑡 ) = 
+
+|||𝑢 2𝑒 − 𝑢 (0) 2
+
+|||𝐻 1
+
+||𝑢 2𝑒 ||𝐻 1
+
+,
+
+Herr21 (𝑡 ) = 
+
+|||𝑢 2𝑒 − 𝑢 (1𝜀 )2
+
+|||𝐻 1
+
+||𝑢 2𝑒 ||𝐻 1
+
+, Herr22 (𝑡 ) = 
+
+|||𝑢 2𝑒 − 𝑢 (2𝜀 )2
+
+|||𝐻 1
+
+||𝑢 2𝑒 ||𝐻 1
+
+.
+
+5.1. Example 1. 2D porous media 
+
+For the two-dimensional case of problem (3), consider the macroscopic domain Ω = ( 𝑥 1, 𝑥 2) = [0 , 1] 2 and the microscopic unit cell 𝑌 = ( 𝑦 1, 𝑦 2) = [0 , 1] 2 as shown in Fig. 2, where 𝜀 = 1∕8 .The input parameters for the validation example are given in Table 1. The source term, initial pressure, and boundary conditions for this problem are as follows: 
+
+𝑞 (𝒙 , 𝑡 ) = 1 × 10 5, 𝑔 1(𝒙 ) = 10 , 𝑔 2(𝒙 ) = 10 ,𝑢 𝜖 
+
+> 1
+
+(𝒙 , 𝑡 ) = 10 , 𝑢 𝜖 
+
+> 2
+
+(𝒙 , 𝑡 ) = 10 .
+
+Figure 2: The schematic of 2D periodic media 
+
+Table 1 
+
+Input parameters Material parameters Matrix / Porous 
+
+𝑐 1 5 ∕ 2 
+
+𝑐 2 4.5 ∕ 1 .5
+
+𝜅 1,𝑖𝑗 100 ∕ 1 
+
+𝜅 2,𝑖𝑗 50 ∕ 1 
+
+𝑄 1 20 / 0.25 
+
+𝑄 2 20 / 0.25 
+
+Table 2 
+
+Summary of computational cost 
+
+Multiscale eqs. Cell eqs. Homogenized eqs. FEM Elements 56,064 858 8,590 
+
+FEM Nodes 28,353 470 4,416 
+
+FEM HOMS Time 168.284 s 61.164 s 
+
+Given that the analytical solution 𝑢 𝜀  
+
+> 𝑙
+
+for problem (3) is difficult to obtain directly, this paper uses the finite element reference solution 𝑢 𝜀 𝑙,𝐹 𝑒 computed on an extremely fine mesh as a substitute. By comparing and analyzing this finite el-ement reference solution with the asymptotic solutions of various orders obtained through the two-scale method, the accuracy of the HOMS solution is validated. To this end, tetrahedral mesh partitions are performed for the macro-scopic domain, the unit cell domain, and the homogenized domain. Table 2 lists the element and node information for the three sets of meshes, as well as a comparison of computation times between the refined FEM and the HOMS method. Set the time step as Δ𝑡 = 0.02 , then compute the solutions 𝑢 𝜀 𝑙 , 𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+of problem (3) over the time interval [0 , 1] . Denote the 𝐿 2 norm and 𝐻 1 seminorm as 
+
+‖ ⋅ ‖𝐿 2(Ω) and | ⋅ |𝐻 1(Ω) , respectively. Fig. 3 and Fig. 4 display the distribution profiles of 𝑢 (0)  
+
+> 𝑙
+
+,
+
+𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+, 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 𝜀 𝑙 at time 𝑡 = 1 .0. Fig. 5 shows the evolution of the relative errors in the 𝐿 2 norm and 𝐻 1 seminorm for 
+
+𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+, and 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+over the time interval [0 , 1] .From the mesh information in Table 2, it can be ob-served that the computational grid resource overhead re-quired by the second-order two-scale method is significantly smaller than that of the direct FEM, and its efficiency is also markedly superior to the FEM. As shown in Fig. 3 and 
+
+: Preprint submitted to Elsevier Page 11 of 20 (a) 𝑢 (0) 1 (b) 𝑢 (1 𝜀 )1
+
+(c) 𝑢 (2 𝜀 )1 (d) 𝑢 𝜀 
+
+> 1
+
+Figure 3: The pressure field at 𝑡 = 1 .0 of first-continuum media. 
+
+(a) 𝑢 (0) 2 (b) 𝑢 (1 𝜀 )2
+
+(c) 𝑢 (2 𝜀 )2 (d) 𝑢 𝜀 
+
+> 2
+
+Figure 4: The pressure field at 𝑡 = 1 .0 of second-continuum media. 
+
+Fig. 4, the approximation accuracy of the HOMS solution is significantly better than that of both the homogenized solution and the FOMS solution. Only the HOMS solution effectively captures the local oscillatory behavior of the highly heterogeneous media. From Fig. 5, it can be observed that under the 𝐿 2 norm, the relative errors of 𝑢 (2 𝜀 )1 and 𝑢 (2 𝜀 )2 are only about 6% and 6%, respectively; under the 𝐻 1 seminorm, the relative errors of 𝑢 (2 𝜀 )1 and 𝑢 (2 𝜀 )2 are only approximately 8% and 9%, significantly lower than those of the homog-enized solution and the FOMS solution, thus meeting the 
+
+(a) (b) 
+
+(c) (d) 
+
+Figure 5: Evolution of the relative errors of the 𝐿 2 norm and 
+
+𝐻 1 seminorm over time: (a) Lerr1; (b) Herr1; (c) Lerr2; (d) Herr2. 
+
+requirements for engineering computations. Furthermore, as shown in Fig. 5, the HOMS method exhibits excellent numerical stability over time and can be effectively applied to the computation of dynamic problem (3) that evolves with time. 
+
+5.2. Example 2. 3D porous media 
+
+For the three-dimensional case of problem (3), consider the macroscopic domain Ω = ( 𝑥 1, 𝑥 2, 𝑥 3) = [0 , 1] 3 and the microscopic unit cell 𝑌 = ( 𝑦 1, 𝑦 2, 𝑦 3) = [0 , 1] 3 as shown in Fig. 6, where 𝜀 = 1∕5 .
+
+Figure 6: The schematic of 3D periodic media 
+
+The input parameters for the validation example are given in Table 3. The source term, initial pressure, and boundary conditions for this problem are as follows: 
+
+𝑞 (𝒙 , 𝑡 ) = 1 × 10 5, 𝑔 1(𝒙 ) = 60 , 𝑔 2(𝒙 ) = 60 ,𝑢 𝜖 
+
+> 1
+
+(𝒙 , 𝑡 ) = 60 , 𝑢 𝜖 
+
+> 2
+
+(𝒙 , 𝑡 ) = 60 .
+
+Given that the analytical solution 𝑢 𝜀  
+
+> 𝑙
+
+for problem (3) is difficult to obtain directly, this paper uses the finite element reference solution 𝑢 𝜀 𝑙,𝐹 𝑒 computed on an extremely fine mesh as a substitute. By comparing and analyzing this finite el-ement reference solution with the asymptotic solutions of 
+
+: Preprint submitted to Elsevier Page 12 of 20 Table 3 
+
+Input parameters Material parameters Matrix / Channel 
+
+𝑐 1 50 ∕ 25 
+
+𝑐 2 125 ∕ 15 
+
+𝜅 1,𝑖𝑗 800 ∕ 30 
+
+𝜅 2,𝑖𝑗 1000 ∕ 50 
+
+𝑄 1 250 ∕ 25 
+
+𝑄 2 250 ∕ 25 
+
+Table 4 
+
+Summary of computational cost 
+
+Multiscale eqs. Cell eqs. Homogenized eqs. FEM elements 565,341 83,536 93,750 
+
+FEM nodes 93,714 16,914 17,576 
+
+FEM FOMS time 8970.49 s 2629.17 s 
+
+various orders obtained through the two-scale method, the accuracy of the HOMS solution is validated. To this end, tetrahedral mesh partitions are performed for the macro-scopic domain, the unit cell domain, and the homogenized domain. Table 4 lists the element and node information for the three sets of meshes, as well as a comparison of computation times between the refined FEM and the HOMS method. Set the time step as Δ𝑡 = 0.002 , then compute the solutions 𝑢 𝜀 𝑙 , 𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+of problem (3) over the time interval [0 , 1] . Denote the 𝐿 2 norm and 𝐻 1 seminorm as 
+
+‖ ⋅ ‖𝐿 2(Ω) and | ⋅ |𝐻 1(Ω) , respectively. Fig. 7 and Fig. 8 display the distribution profiles of 𝑢 (0)  
+
+> 𝑙
+
+,
+
+𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+, 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 𝜀 𝑙 at time 𝑡 = 1 .0. Fig. 5 shows the evolution of the relative errors in the 𝐿 2 norm and 𝐻 1 seminorm for 
+
+𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+, and 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+over the time interval [0 , 1] .From the mesh information in Table 4, it can be observed that the computational grid resource overhead required by the HOMS method is significantly smaller than that of the direct FEM, and its efficiency is also markedly superior to the FEM. As shown in Fig. 7 and Fig. 8, the approxima-tion accuracy of the HOMS solution is significantly better than that of both the homogenized solution and the FOMS solution. Only the HOMS solution effectively captures the local oscillatory behavior of the highly heterogeneous me-dia. From Fig. 9, it can be observed that under the 𝐿 2
+
+norm, the relative errors of 𝑢 (2 𝜀 )1 and 𝑢 (2 𝜀 )2 are only about 6% and 1%, respectively; under the 𝐻 1 seminorm, the relative errors of 𝑢 (2 𝜀 )1 and 𝑢 (2 𝜀 )2 are only approximately 12% and 10%, significantly lower than those of the homogenized solution and the FOMS solution, thus meeting the requirements for engineering computations. Furthermore, as shown in Fig. 9, the HOMS method exhibits excellent numerical stability over time and can be effectively applied to the computation of dynamic problem (3) that evolves with time. 
+
+(a) 𝑢 (0) 1 (b) 𝑢 (1 𝜀 )1
+
+(c) 𝑢 (2 𝜀 )1 (d) 𝑢 𝜀 
+
+> 1
+
+Figure 7: The pressure field in 𝑥 3 = 0 .5 at 𝑡 = 1 .0 of first-continuum media. 
+
+(a) 𝑢 (0) 2 (b) 𝑢 (1 𝜀 )2
+
+(c) 𝑢 (2 𝜀 )2 (d) 𝑢 𝜀 
+
+> 2
+
+Figure 8: The pressure field in 𝑥 3 = 0 .5 at 𝑡 = 1 .0 of second-continuum media. 
+
+5.3. Example 3. 2D channel media 
+
+For the two-dimensional case of problem (3), consider the macroscopic domain Ω = ( 𝑥 1, 𝑥 2) = [0 , 1] 2 and the microscopic unit cell 𝑌 = ( 𝑦 1, 𝑦 2) = [0 , 1] 2 as shown in Fig. 10, where 𝜀 = 1∕8 .The input parameters for the validation example are given in Table 5. The source term, initial pressure, and 
+
+: Preprint submitted to Elsevier Page 13 of 20 (a) (b) 
+
+(c) (d) 
+
+Figure 9: Evolution of the relative errors of the 𝐿 2 norm and 
+
+𝐻 1 seminorm over time: (a) Lerr1; (b) Herr1; (c) Lerr2; (d) Herr2. 
+
+Figure 10: The schematic of 2D periodic media 
+
+Table 5 
+
+Input parameters Material parameters Matrix / Porous 
+
+𝑐 1 50 ∕ 25 
+
+𝑐 2 30 ∕ 10 
+
+𝜅 1,𝑖𝑗 100 ∕ 4 
+
+𝜅 2,𝑖𝑗 50 ∕ 5 
+
+𝑄 1 30 ∕ 30 
+
+𝑄 2 30 ∕ 30 
+
+boundary conditions for this problem are as follows: 
+
+𝑞 (𝒙 , 𝑡 ) = 1 × 10 5, 𝑔 1(𝒙 ) = 60 , 𝑔 2(𝒙 ) = 60 ,𝑢 𝜖 
+
+> 1
+
+(𝒙 , 𝑡 ) = 60 , 𝑢 𝜖 
+
+> 2
+
+(𝒙 , 𝑡 ) = 60 .
+
+Given that the analytical solution 𝑢 𝜀 𝑙 for problem (3) is difficult to obtain directly, this paper uses the finite element reference solution 𝑢 𝜀 𝑙,𝐹 𝑒 computed on an extremely fine mesh as a substitute. By comparing and analyzing this finite el-ement reference solution with the asymptotic solutions of various orders obtained through the HOMS method, the accuracy of the HOMS solution is validated. To this end, tetrahedral mesh partitions are performed for the macro-scopic domain, the unit cell domain, and the homogenized 
+
+Table 6 
+
+Summary of computational cost 
+
+Multiscale eqs. Cell eqs. Homogenized eqs. FEM elements 56,832 1,946 15,080 
+
+FEM nodes 28,737 1,034 7,701 
+
+FEM HOMS time 232.122 s 77.028 s 
+
+domain. Table 6 lists the element and node information for the three sets of meshes, as well as a comparison of computation times between the refined FEM and the HOMS method. Set the time step as Δ𝑡 = 0.02 , then compute the solutions 𝑢 𝜀 𝑙 , 𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+of problem (3) over the time interval [0 , 1] . Denote the 𝐿 2 norm and 𝐻 1 seminorm as 
+
+‖ ⋅ ‖𝐿 2(Ω) and | ⋅ |𝐻 1(Ω) , respectively. Fig. 11 and Fig. 12 display the distribution profiles of 𝑢 (0)  
+
+> 𝑙
+
+,
+
+𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+, 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 𝜀 𝑙 at time 𝑡 = 1 .0. Fig. 13 shows the evolution of the relative errors in the 𝐿 2 norm and 𝐻 1 seminorm for 
+
+𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+, and 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+over the time interval [0 , 1] .
+
+(a) 𝑢 (0) 1 (b) 𝑢 (1 𝜀 )1
+
+(c) 𝑢 (2 𝜀 )1 (d) 𝑢 𝜀 
+
+> 1
+
+Figure 11: The pressure field at 𝑡 = 1 .0 of first-continuum media. 
+
+From the mesh information in Table 6, it can be observed that the computational grid resource overhead required by the HOMS method is significantly smaller than that of the direct FEM, and its efficiency is also markedly superior to the FEM. As shown in Fig. 11 and Fig. 12, the approxima-tion accuracy of the HOMS solution is significantly better than that of both the homogenized solution and the FOMS solution. Only the HOMS solution effectively captures the local oscillatory behavior of the highly heterogeneous me-dia. From Fig. 13, it can be observed that under the 𝐿 2
+
+: Preprint submitted to Elsevier Page 14 of 20 (a) 𝑢 (0) 2 (b) 𝑢 (1 𝜀 )2
+
+(c) 𝑢 (2 𝜀 )2 (d) 𝑢 𝜀 
+
+> 2
+
+Figure 12: The pressure field at 𝑡 = 1 .0 of second-continuum media. 
+
+(a) (b) 
+
+(c) (d) 
+
+Figure 13: Evolution of the relative errors of the 𝐿 2 norm and 
+
+𝐻 1 seminorm over time: (a) Lerr1; (b) Herr1; (c) Lerr2; (d) Herr2. 
+
+norm, the relative errors of 𝑢 (2𝜀 )1 and 𝑢 (2 𝜀 )2 are only about 7% and 5%, respectively; under the 𝐻 1 seminorm, the relative errors of 𝑢 (2 𝜀 )1 and 𝑢 (2 𝜀 )2 are only approximately 10% and 8%, significantly lower than those of the homogenized solution and the FOMS solution, thus meeting the requirements for engineering computations. Furthermore, as shown in Fig. 13, the HOMS method exhibits excellent numerical stability over time and can be effectively applied to the computation of dynamic problem (3) that evolves with time. 
+
+Table 7 
+
+Input parameters Material parameters Matrix / Channel 
+
+𝑐 1 5 ∕ 100 
+
+𝑐 2 125 ∕ 15 
+
+𝜅 1,𝑖𝑗 800 ∕ 30 
+
+𝜅 2,𝑖𝑗 1000 ∕ 50 
+
+𝑄 1 250 ∕ 25 
+
+𝑄 2 250 ∕ 25 
+
+5.4. Example 4. 3D channel media 
+
+For the three-dimensional case of problem (3), consider the macroscopic domain Ω = ( 𝑥 1, 𝑥 2, 𝑥 3) = [0 , 1] 3 and the microscopic unit cell 𝑌 = ( 𝑦 1, 𝑦 2, 𝑦 3) = [0 , 1] 3 as shown in Fig. 14, where 𝜀 = 1∕4 .
+
+Figure 14: The schematic of 3D periodic media 
+
+The input parameters for the validation example are given in Table 7. The source term, initial pressure, and boundary conditions for this problem are as follows: 
+
+𝑞 (𝒙 , 𝑡 ) = 1 × 10 5, 𝑔 1(𝒙 ) = 0 , 𝑔 2(𝒙 ) = 0 ,𝑢 𝜖 
+
+> 1
+
+(𝒙 , 𝑡 ) = 0 , 𝑢 𝜖 
+
+> 2
+
+(𝒙 , 𝑡 ) = 0 .
+
+Given that the analytical solution 𝑢 𝜀 𝑙 for problem (3) is difficult to obtain directly, this paper uses the finite element reference solution 𝑢 𝜀 𝑙,𝐹 𝑒 computed on an extremely fine mesh as a substitute. By comparing and analyzing this finite el-ement reference solution with the asymptotic solutions of various orders obtained through the HOMS method, the accuracy of the HOMS solution is validated. To this end, tetrahedral mesh partitions are performed for the macro-scopic domain, the unit cell domain, and the homogenized domain. Table 8 lists the element and node information for the three sets of meshes, as well as a comparison of computation times between the refined FEM and the HOMS method. Set the time step as Δ𝑡 = 0.002 , then compute the solutions 𝑢 𝜀 𝑙 , 𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+of problem (3) over the time interval [0 , 1] . Denote the 𝐿 2 norm and 𝐻 1 seminorm as 
+
+‖ ⋅ ‖𝐿 2(Ω) and | ⋅ |𝐻 1(Ω) , respectively. Fig. 15 and Fig. 16 display the distribution profiles of 𝑢 (0)  
+
+> 𝑖
+
+,
+
+𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+, 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+and 𝑢 𝜀 𝑙 at time 𝑡 = 1 .0. Fig. 17 shows the evolution of the relative errors in the 𝐿 2 norm and 𝐻 1 seminorm for 
+
+𝑢 (0)  
+
+> 𝑙
+
+, 𝑢 (1 𝜀 ) 
+
+> 𝑙
+
+, and 𝑢 (2 𝜀 ) 
+
+> 𝑙
+
+over the time interval [0 , 1] .From the mesh information in Table 8, it can be observed that the computational grid resource overhead required by 
+
+: Preprint submitted to Elsevier Page 15 of 20 Table 8 
+
+Summary of computational cost 
+
+Multiscale eqs. Cell eqs. Homogenized eqs. FEM elements 941,440 161,850 93,750 
+
+FEM nodes 164,945 29,380 17,576 
+
+FEM HOMS time 14892.6 s 4217.79 s 
+
+(a) 𝑢 (0) 1 (b) 𝑢 (1 𝜀 )1
+
+(c) 𝑢 (2 𝜀 )1 (d) 𝑢 𝜀 
+
+> 1
+
+Figure 15: The pressure field in 𝑥 3 = 0 .375 at 𝑡 = 1 .0 of first-continuum media. 
+
+the HOMS method is significantly smaller than that of the direct FEM, and its efficiency is also markedly superior to the FEM. As shown in Fig. 15 and Fig. 16, the approxima-tion accuracy of the HOMS solution is significantly better than that of both the homogenized solution and the FOMS solution. Only the HOMS solution effectively captures the local oscillatory behavior of the highly heterogeneous me-dia. From Fig. 17, it can be observed that under the 𝐿 2
+
+norm, the relative errors of 𝑢 (2 𝜀 )1 and 𝑢 (2 𝜀 )2 are only about 2% and 2%, respectively; under the 𝐻 1 seminorm, the relative errors of 𝑢 (2 𝜀 )1 and 𝑢 (2 𝜀 )2 are only approximately 17% and 15%, significantly lower than those of the homogenized solution and the FOMS solution, thus meeting the requirements for engineering computations. Furthermore, as shown in Fig. 17, the HOMS method exhibits excellent numerical stability over time and can be effectively applied to the computation of dynamic problem (3) that evolves with time. 
+
+6. Summary and Outlook 
+
+6.1. Summary of Research Findings 
+
+This paper investigates multi-continuum problems in highly heterogeneous media, and develops corresponding 
+
+(a) 𝑢 (0) 2 (b) 𝑢 (1 𝜀 )2
+
+(c) 𝑢 (2 𝜀 )2 (d) 𝑢 𝜀 
+
+> 2
+
+Figure 16: The pressure field in 𝑥 3 = 0 .375 at 𝑡 = 1 .0 of second-continuum media. 
+
+(a) (b) 
+
+(c) (d) 
+
+Figure 17: Evolution of the relative errors of the 𝐿 2 norm and 
+
+𝐻 1 seminorm over time: (a) Lerr1; (b) Herr1; (c) Lerr2; (d) Herr2. 
+
+multiscale computational models, multiscale algorithms, and convergence theories. The main achievements are as follows: 1. A high-precision HOMS framework has been es-tablished, defining auxiliary cell functions, deriving macroscopic homogenized equations and equivalent parameter calculation formulas, and further obtaining the HOMS asymptotic solution. 2. Under the assumption of local equilibrium among the continua, the approximation properties of the HOMS 
+
+: Preprint submitted to Elsevier Page 16 of 20 solution to the original equation in the pointwise sense are analyzed, and the convergence order of the HOMS asymptotic solution in the integral sense is proved. 3. By integrating the finite element method, finite differ-ence method, and interpolation method, a correspond-ing HOMS numerical algorithm has been developed. Numerical experiments were conducted, verifying the effectiveness of the established HOMS method and the necessity of introducing the second-order correc-tion term. In summary, the work in this paper provides a powerful numerical simulation tool for studying the physical and mechanical properties of highly heterogeneous media. Fur-thermore, the proposed method has broad applicability for the numerical solution of other multi-continuum problems. 
+
+6.2. Prospects for Future Research Directions 
+
+Multiscale analysis, as an interdisciplinary field, deeply integrates fundamental theories from materials science, mathematics, and mechanics, and is closely linked with engineering practice, exhibiting significant foundational, cross-disciplinary, and cutting-edge characteristics. Based on the research presented in this paper, the author believes the following directions warrant further in-depth exploration and refinement: 1. This paper mainly analyzes the coupling interaction of two-fluid continuous media. However, in practical scenarios such as hydrogeology and fractured rock masses in engineering, multi-continuum systems exist widely in nature. Therefore, future research can ex-tend the existing model from two continua to multi-continua. 2. This paper focuses on linear multi-continuum prob-lems. In practical applications, however, factors such as non-Darcy effects induced by high flow velocity, coupling between medium deformation and stress, and interfacial effects between multiphase fluids will lead to significant nonlinear characteristics. Linear mod-els are difficult to accurately describe the above real physical mechanisms. Hence, it is necessary to further study nonlinear multi-continuum coupling problems in the future, and establish nonlinear governing equa-tions and solution methods that are more consistent with actual engineering and natural scenarios. 3. The media considered in this paper are periodic me-dia. In natural hydrogeological fracture networks and engineered porous media systems, affected by forma-tion conditions, evolution processes, external distur-bances and other factors, the pore distribution, fracture morphology and structural parameters of the media usually exhibit irregular random distribution char-acteristics. Random media problems will be further investigated in future work. 4. This paper focuses on the analysis of two-scale fluid-medium systems. In practical engineering and natural scenarios, however, fluid flow often presents three-scale coupling characteristics involving micro-pores, meso-structures, and macro-reservoirs/aquifers. A two-scale framework cannot fully reflect the multi-scale seepage mechanism of fluids in real scenarios. In the future, the research scale can be extended to three-scale fluid-medium systems, and a three-scale coupled fluid pressure solution model covering micro-meso-macro scales can be established to better meet the practical demands of various fields such as hydroge-ology and engineering fractures. 
+
+A. appendix 
+
+The specific forms of 𝑓 10 (𝒙 , 𝒚 , 𝑡 ) and 𝑓 20 (𝒙 , 𝒚 , 𝑡 ) are given as follows: 
+
+𝑓 10 (𝒙 , 𝒚 , 𝑡 ) = (𝑐 ∗1 − 𝑐 1
+
+) 𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑡 
+
+− (𝑄 ∗ + 𝑄 1
+
+(𝑀 1 + 𝑀 2
+
+))( 𝑢 (0) 2 (𝒙 , 𝑡 ) − 𝑢 (0) 1 (𝒙 , 𝑡 ))
+
++
+
+(
+
+𝜅 1,𝑖𝑗 − 𝜅 ∗1,𝑖𝑗 + 𝜅 1,𝑖𝛼 1
+
+𝜕𝑁 𝑗 
+
+> 1
+
+𝜕𝑦 𝛼 1
+
++ 𝜕 (𝜅 1,𝛼 1𝑖 𝑁 𝑗 
+
+> 1
+
+)
+
+𝜕𝑦 𝛼 1
+
+) 𝜕 2𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
++
+
+(̄𝐾 1∗ 2𝑖 − 𝑄 1𝑁 𝑖  
+
+> 1
+
+− 𝜅 1,𝑖𝛼 1
+
+𝜕𝑀 1
+
+𝜕𝑦 𝑗 
+
+− 𝜕 (𝜅 1,𝑗𝑖 𝑀 1
+
+)
+
+𝜕𝑦 𝑗 
+
+) 𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
++
+
+(
+
+𝑄 1𝑁 𝑖  
+
+> 2
+
+−̄ 𝐾 1∗ 1𝑖 + 𝜅 1,𝑖𝛼 1
+
+𝜕𝑀 1
+
+𝜕𝑦 𝑗 
+
++ 𝜕 (𝜅 1,𝑗𝑖 𝑀 1
+
+)
+
+𝜕𝑦 𝑗 
+
+) 𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
+(53) 
+
+𝑓 20 (𝒙 , 𝒚 , 𝑡 ) = (𝑐 ∗2 − 𝑐 2
+
+) 𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑡 
+
+− (𝑄 ∗ + 𝑄 2
+
+(𝑀 1 + 𝑀 2
+
+)( 𝑢 (0) 1 (𝒙 , 𝑡 ) − 𝑢 (0) 2 (𝒙 , 𝑡 ))
+
++
+
+(
+
+𝜅 2,𝑖𝑗 − 𝜅 ∗2,𝑖𝑗 + 𝜅 2,𝑖𝛼 1
+
+𝜕𝑁 𝑗 
+
+> 2
+
+𝜕𝑦 𝛼 1
+
++ 𝜕 (𝜅 2,𝛼 1𝑖 𝑁 𝑗 
+
+> 2
+
+)
+
+𝜕𝑦 𝛼 1
+
+) 𝜕 2𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
++
+
+(̄𝐾 2∗ 2𝑖 − 𝑄 2𝑁 𝑖  
+
+> 2
+
+− 𝜅 2,𝑖𝛼 1
+
+𝜕𝑀 2
+
+𝜕𝑦 𝑗 
+
+− 𝜕 (𝜅 2,𝑗𝑖 𝑀 2
+
+)
+
+𝜕𝑦 𝑗 
+
+) 𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
++
+
+(
+
+𝑄 2𝑁 𝑖  
+
+> 1
+
+−̄ 𝐾 2∗ 1𝑖 + 𝜅 2,𝑖𝛼 1
+
+𝜕𝑀 2
+
+𝜕𝑦 𝑗 
+
++ 𝜕 (𝜅 2,𝑗𝑖 𝑀 2
+
+)
+
+𝜕𝑦 𝑗 
+
+) 𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 
+
+(54) The specific forms of ̃ 𝑓 1(𝒙 , 𝒚 , 𝑡 ) and ̃ 𝑓 2(𝒙 , 𝒚 , 𝑡 ) are given as follows: ̃𝑓 1(𝒙 , 𝒚 , 𝑡 ) = 
+
+(
+
+𝜅 1,𝑖𝑗 (𝒚 )𝑁 𝛼 11 (𝒚 ) 𝜕 3𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝑀 1(𝒚 )( 𝜕 2𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+− 𝜕 2𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+)
+
+− 𝑐 1(𝒚 )𝑀 1(𝒚 )( 𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑡 − 𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑡 
+
+)
+
+− 𝑐 1(𝒚 )𝑁 𝛼 11 (𝒚 ) 𝜕 2𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑡𝜕𝑥 𝛼 1
+
++ 𝑄 1(𝒚 )𝑂 (1) 
+
+)
+
+(55) 
+
+: Preprint submitted to Elsevier Page 17 of 20 ̃𝑓 2(𝒙 , 𝒚 , 𝑡 ) = 
+
+(
+
+𝜅 2,𝑖𝑗 (𝒚 )𝑁 𝛼 12 (𝒚 ) 𝜕 3𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝑀 2(𝒚 )( 𝜕 2𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+− 𝜕 2𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+)
+
+− 𝑐 2(𝒚 )𝑀 2(𝒚 )( 𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑡 − 𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑡 
+
+)
+
+− 𝑐 2(𝒚 )𝑁 𝛼 12 (𝒚 ) 𝜕 2𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑡𝜕𝑥 𝛼 1
+
++ 𝑄 2(𝒚 )𝑂 (1) 
+
+)
+
+(56) The specific forms of ̃ 𝜓 1(𝒙 ) and ̃ 𝜓 2(𝒙 ) are given as follows: ̃𝜓 1(𝒙 ) = − 𝑁 𝛼 11 (𝒚 ) 𝜕𝑔 1(𝒙 )
+
+𝜕𝑥 𝛼 1
+
+−𝑀 1(𝒚 )(𝑔 2(𝒙 )− 𝑔 1(𝒙 )) (57) ̃𝜓 2(𝒙 ) = − 𝑁 𝛼 12 (𝒚 ) 𝜕𝑔 2(𝒙 )
+
+𝜕𝑥 𝛼 1
+
+−𝑀 2(𝒚 )(𝑔 1(𝒙 )− 𝑔 2(𝒙 )) (58) The specific forms of 𝑓 1(𝒙 , 𝒚 , 𝑡 ) and 𝑓 2(𝒙 , 𝒚 , 𝑡 ) are given as follows: 
+
+𝑓 1 =
+
+(
+
+𝑄 1
+
+(
+
+𝐺 1
+
+𝜕𝑢 (0) 1
+
+𝜕𝑡 +𝑁 𝛼 1𝛼 21
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ (𝐶 𝛼 11 −𝐹 𝛼 12
+
+) 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝛼 1
+
++ (𝐹 𝛼 11 − 𝐶 𝛼 12
+
+) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ ( 𝐾 1 + 𝐾 2)( 𝑢 (0) 2 − 𝑢 (0) 1 ) − 𝐺 2
+
+𝜕𝑢 (0) 2
+
+𝜕𝑡 
+
+− 𝑁 𝛼 1𝛼 22
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
+)
+
+−𝑐 1
+
+(
+
+𝑁 𝛼 11
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑡𝜕𝑥 𝛼 1
+
++ 𝑀 1
+
+( 𝜕𝑢 (0) 2
+
+𝜕𝑡 − 𝜕𝑢 (0) 1
+
+𝜕𝑡 
+
+))
+
++ 𝜅 1,𝑖𝑗 
+
+(
+
+𝑁 𝛼 11
+
+𝜕 3𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝑀 1
+
+( 𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+− 𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+)
+
++ 𝜕𝐺 1
+
+𝜕𝑦 𝑗 
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑡 + 𝜕𝑁 𝛼 1𝛼 21
+
+𝜕𝑦 𝑗 
+
+𝜕 3𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝜕𝐶 𝛼 11
+
+𝜕𝑦 𝑗 
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝛼 1
+
++ 𝜕𝐹 𝛼 11
+
+𝜕𝑦 𝑗 
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝛼 1
+
++ 𝜕𝐾 1
+
+𝜕𝑦 𝑗 
+
+( 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝑖 
+
+− 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝑖 
+
+))
+
++ 𝜕 (𝜅 1,𝑖𝑗 𝐺 1)
+
+𝜕𝑦 𝑖 
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑗 𝜕𝑡 
+
++ 𝜕 (𝜅 1,𝑖𝑗 𝑁 𝛼 1𝛼 21 )
+
+𝜕𝑦 𝑖 
+
+𝜕 3𝑢 (0) 1
+
+𝜕𝑥 𝑗 𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝜕 (𝜅 1,𝑖𝑗 𝐶 𝛼 11 )
+
+𝜕𝑦 𝑖 
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝜕 (𝜅 1,𝑖𝑗 𝐹 𝛼 11 )
+
+𝜕𝑦 𝑖 
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝜕 (𝜅 1,𝑖𝑗 𝐾 1)
+
+𝜕𝑦 𝑖 
+
+( 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝑗 
+
+− 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝑗 
+
+)
+
+− 𝜀𝑐 1
+
+(
+
+𝐺 1
+
+𝜕 2𝑢 (0) 1
+
+𝜕 2𝑡 + 𝑁 𝛼 1𝛼 21
+
+𝜕 3𝑢 (0) 1
+
+𝜕𝑡𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝐶 𝛼 11
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑡𝜕𝑥 𝛼 1
+
++𝐹 𝛼 11
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑡𝜕𝑥 𝛼 1
+
++𝐾 1
+
+( 𝜕𝑢 (0) 2
+
+𝜕𝑡 − 𝜕𝑢 (0) 1
+
+𝜕𝑡 
+
+))
+
++𝜀𝜅 1,𝑖𝑗 
+
+(
+
+𝐺 1
+
+𝜕 3𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑡 
+
++𝐶 𝛼 11
+
+𝜕 3𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++𝐹 𝛼 11
+
+𝜕 3𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++𝑄 1𝑂 (1) +𝑁 𝛼 1𝛼 21
+
+𝜕 4𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++𝐾 1
+
+( 𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+− 𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+)))
+
+(59) 
+
+𝑓 2 =
+
+(
+
+𝑄 2
+
+(
+
+𝐺 2
+
+𝜕𝑢 (0) 2
+
+𝜕𝑡 +𝑁 𝛼 1𝛼 22
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ (𝐶 𝛼 12 −𝐹 𝛼 11
+
+) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ (𝐹 𝛼 12 − 𝐶 𝛼 11
+
+) 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝛼 1
+
++ ( 𝐾 1 + 𝐾 2)( 𝑢 (0) 1 − 𝑢 (0) 2 ) − 𝐺 1
+
+𝜕𝑢 (0) 1
+
+𝜕𝑡 
+
+− 𝑁 𝛼 1𝛼 21
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
+)
+
+−𝑐 2
+
+(
+
+𝑁 𝛼 12
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑡𝜕𝑥 𝛼 1
+
++ 𝑀 2
+
+( 𝜕𝑢 (0) 1
+
+𝜕𝑡 − 𝜕𝑢 (0) 2
+
+𝜕𝑡 
+
+))
+
++ 𝜅 2,𝑖𝑗 
+
+(
+
+𝑁 𝛼 12
+
+𝜕 3𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝑀 2
+
+( 𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+− 𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+)
+
++ 𝜕𝐺 2
+
+𝜕𝑦 𝑗 
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑡 + 𝜕𝑁 𝛼 1𝛼 22
+
+𝜕𝑦 𝑗 
+
+𝜕 3𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝜕𝐶 𝛼 12
+
+𝜕𝑦 𝑗 
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝛼 1
+
++ 𝜕𝐹 𝛼 12
+
+𝜕𝑦 𝑗 
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝛼 1
+
++ 𝜕𝐾 2
+
+𝜕𝑦 𝑗 
+
+( 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝑖 
+
+− 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝑖 
+
+))
+
++ 𝜕 (𝜅 2,𝑖𝑗 𝐺 2)
+
+𝜕𝑦 𝑖 
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑗 𝜕𝑡 
+
++ 𝜕 (𝜅 2,𝑖𝑗 𝑁 𝛼 1𝛼 22 )
+
+𝜕𝑦 𝑖 
+
+𝜕 3𝑢 (0) 2
+
+𝜕𝑥 𝑗 𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝜕 (𝜅 2,𝑖𝑗 𝐶 𝛼 12 )
+
+𝜕𝑦 𝑖 
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝜕 (𝜅 2,𝑖𝑗 𝐹 𝛼 12 )
+
+𝜕𝑦 𝑖 
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝜕 (𝜅 2,𝑖𝑗 𝐾 2)
+
+𝜕𝑦 𝑖 
+
+( 𝜕𝑢 (0) 1
+
+𝜕𝑥 𝑗 
+
+− 𝜕𝑢 (0) 2
+
+𝜕𝑥 𝑗 
+
+)
+
+− 𝜀𝑐 2
+
+(
+
+𝐺 2
+
+𝜕 2𝑢 (0) 2
+
+𝜕 2𝑡 + 𝑁 𝛼 1𝛼 22
+
+𝜕 3𝑢 (0) 2
+
+𝜕𝑡𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++ 𝐶 𝛼 12
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑡𝜕𝑥 𝛼 1
+
++ 𝐹 𝛼 12
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑡𝜕𝑥 𝛼 1
+
++ 𝐾 2
+
+𝜕𝑢 (0) 1
+
+𝜕𝑡 − 𝐾 2
+
+𝜕𝑢 (0) 2
+
+𝜕𝑡 + 𝑄 1𝑂 (1) 
+
+)
+
++ 𝜀𝜅 2,𝑖𝑗 
+
+(
+
+𝐺 2
+
+𝜕 3𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑡 +𝐶 𝛼 12
+
+𝜕 3𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++𝐹 𝛼 12
+
+𝜕 3𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1
+
++ 𝑁 𝛼 1𝛼 22
+
+𝜕 4𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
++𝐾 2
+
+𝜕 2𝑢 (0) 1
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+− 𝐾 2
+
+𝜕 2𝑢 (0) 2
+
+𝜕𝑥 𝑖 𝜕𝑥 𝑗 
+
+))
+
+(60) The specific forms of 𝜓 1(𝒙 ) and 𝜓 2(𝒙 ) are given as follows: 
+
+𝜓 1(𝒙 ) = − 𝑁 𝛼 11 (𝒚 ) 𝜕𝑔 1(𝒙 )
+
+𝜕𝑥 𝛼 1
+
+− 𝑀 1(𝒚 )(𝑔 2(𝒙 )− 𝑔 1(𝒙 ))− 𝜀𝐺 1(𝒚 ) 𝜕𝑢 (0) 1 (𝒙 , 𝑡 )
+
+𝜕𝑡 
+
+||||𝑡 =0 
+
+− 𝜀𝑁 𝛼 1𝛼 21 (𝒚 ) 𝜕 2𝑔 1(𝒙 )
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
+− 𝜀𝐶 𝛼 11 (𝒚 ) 𝜕𝑔 1(𝒙 )
+
+𝜕𝑥 𝛼 1
+
+− 𝜀𝐹 𝛼 11 (𝒚 ) 𝜕𝑔 2(𝒙 )
+
+𝜕𝑥 𝛼 1
+
+− 𝜀𝐾 1(𝒚 )(𝑔 2(𝒙 )− 𝑔 1(𝒙 )),
+
+(61) 
+
+: Preprint submitted to Elsevier Page 18 of 20 𝜓 2(𝒙 ) = − 𝑁 𝛼 12 (𝒚 ) 𝜕𝑔 2(𝒙 )
+
+𝜕𝑥 𝛼 1
+
+− 𝑀 2(𝒚 )(𝑔 1(𝒙 )− 𝑔 2(𝒙 ))− 𝜀𝐺 2(𝒚 ) 𝜕𝑢 (0) 2 (𝒙 , 𝑡 )
+
+𝜕𝑡 
+
+||||𝑡 =0 
+
+− 𝜀𝑁 𝛼 1𝛼 22 (𝒚 ) 𝜕 2𝑔 2(𝒙 )
+
+𝜕𝑥 𝛼 1 𝜕𝑥 𝛼 2
+
+− 𝜀𝐶 𝛼 12 (𝒚 ) 𝜕𝑔 (
+
+> 2
+
+𝒙 )
+
+𝜕𝑥 𝛼 1
+
+− 𝜀𝐹 𝛼 12 (𝒚 ) 𝜕𝑔 1(𝒙 )
+
+𝜕𝑥 𝛼 1
+
+− 𝜀𝐾 2(𝒚 )(𝑔 1(𝒙 ) − 𝑔 2(𝒙 )),
+
+(62) 
+
+References 
+
+[1] N. Zhao, L. Wang, L. Sima, Y. Guo, and H. Zhang, “Understanding stress-sensitive behavior of pore structure in tight sandstone reservoirs under cyclic compression using mineral, morphology, and stress analyses,” Journal of Petroleum Science and Engineering 218 , 110987 (2022). [2] P. Henning and M. Ohlberger, “The heterogeneous multiscale finite element method for elliptic homogenization problems in perforated domains,” NUMERISCHE MATHEMATIK 113 , 601–629 (2009). [3] M. Hillairet, “On the Homogenization of the Stokes Problem in a Perforated Domain,” ARCHIVE FOR RATIONAL MECHANICS AND ANALYSIS 230 , 1179–1228 (2018). [4] G. Allaire, “Homogenization of the navier-stokes equations in open sets perforated with tiny holes i. abstract framework, a volume distri-bution of holes,” Archive for Rational Mechanics & Analysis (1991). [5] G. Allaire, “Homogenization of the navier-stokes equations in open sets perforated with tiny holes ii: Non-critical sizes of the holes for a volume distribution and a surface distribution of holes,” Archive for Rational Mechanics & Analysis (1991). [6] G. Allaire, “Homogenization of the navier-stokes equations with a slip boundary condition,” Communications on Pure and Applied Mathematics (1991). [7] Y. Efendiev, J. Galvis, and T. Y. Hou, “Generalized multiscale finite element methods (gmsfem),” Journal of Computational Physics 251 ,116–135 (2013). [8] E. T. Chung, M. Vasilyeva, and Y. Wang, “A conservative local multiscale model reduction technique for Stokes flows in hetero-geneous perforated domains,” JOURNAL OF COMPUTATIONAL AND APPLIED MATHEMATICS 321 , 389–405 (2017). [9] E. T. Chung, Y. Efendiev, G. Li, and M. Vasilyeva, “Generalized multiscale finite element methods for problems in perforated het-erogeneous domains,” APPLICABLE ANALYSIS 95 , 2254–2279 (2016). [10] E. T. Chung, W. T. Leung, and M. Vasilyeva, “Mixed GMsFEM for second order elliptic problem in perforated domains,” JOURNAL OF COMPUTATIONAL AND APPLIED MATHEMATICS 304 , 84–99 (2016). [11] E. T. Chung, Y. Efendiev, W. T. Leung, M. Vasilyeva, and Y. Wang, “Online adaptive local multiscale model reduction for heterogeneous problems in perforated domains,” APPLICABLE ANALYSIS 96 ,2002–2031 (2017). [12] W. Xie, J. Galvis, Y. Yang, and Y. Huang, “On time integrators for Generalized Multiscale Finite Element Methods applied to advection-diffusion in high-contrast multiscale media,” JOURNAL OF COM-PUTATIONAL AND APPLIED MATHEMATICS 460 (2025). [13] J. S. R. Park and V. H. Hoang, “Hierarchical multiscale finite element method for multi-continuum media,” JOURNAL OF COMPUTA-TIONAL AND APPLIED MATHEMATICS 369 (2020). [14] J. S. R. Park and V. H. Hoang, “Homogenization of a multiscale multi-continuum system,” APPLICABLE ANALYSIS 101 , 1271– 1298 (2022). [15] J. S. R. Park, S. W. Cheung, T. Mai, and V. H. Hoang, “Multiscale simulations for upscaled multi-continuum flows,” JOURNAL OF COMPUTATIONAL AND APPLIED MATHEMATICS 374 (2020). [16] J. S. R. Park, S. W. Cheung, and T. Mai, “Multiscale simulations for multi-continuum Richards equations,” JOURNAL OF COMPUTA-TIONAL AND APPLIED MATHEMATICS 397 (2021). [17] G. I. Barenblatt, Y. P. Zheltov, and I. N. Kochina, “Basic concepts in the theory of seepage ofhomogeneous liquids in fissured rocks,” Journal of Applied Mathematics 24 , 5–1303 (1960). [18] E. T. Chung, Y. Efendiev, T. Leung, and M. Vasilyeva, “Coupling of multiscale and multi-continuum approaches,” GEM - International Journal on Geomathematics 8, 9–41 (2017). [19] K. Pruess and T. N. Narasimhan, “On fluid reserves and the produc-tion of superheated steam from fractured, vapor-dominated geother-mal reservoirs,” Journal of Geophysical Research 87 , 9329 (1982). [20] K. Pruess and T. N. Narasimhan, “Practical method for modeling fluid and heat flow in fractured porous media,” Society of Petroleum Engineers Journal 25 , 14–26 (1985). [21] Y. S. Wu and K. Pruess, “A multiple-porosity method for simulation of naturally fractured petroleum reservoirs,” Spe Reservoir Engineer-ing 3, 327–336 (1988). [22] W. Xie, Y. Efendiev, Y. Huang, W. T. Leung, and Y. Yang, “Mul-ticontinuum homogenization in perforated domains,” JOURNAL OF COMPUTATIONAL PHYSICS 530 (2025). [23] D. Ammosov, J. Huang, W. T. Leung, and B. Shan, “Multicontinuum homogenization for coupled flow and transport equations,” JOUR-NAL OF COMPUTATIONAL AND APPLIED MATHEMATICS 
+
+471 (2026). [24] A. D. A., H. J., L. W. T., and S. B., “Generalized multiscale finite element method for multicontinuum coupled flow and transport model,” Lobachevskii journal of mathematics , 45 (2024). [25] Y.-S. Wu, Y. Di, Z. Kang, and P. Fakcharoenphol, “A multiple-continuum model for simulating single-phase and multiphase flow in naturally fractured vuggy reservoirs,” Journal of Petroleum Science and Engineering 78 , 13–22 (2011). [26] X. Li, D. Zhang, and S. Li, “A multi-continuum multiple flow mech-anism simulator for unconventional oil and gas recovery,” Journal of Natural Gas Science and Engineering 26 , 652–669 (2015). [27] H. Kazemi, L. S. Merrill, K. L. Porterfield, and P. R. Zeman, “Nu-merical simulation of water-oil flow in naturally fractured reservoirs,” Society of Petroleum Engineers Journal 16 , 317–326 (1976). [28] J. E. Warren and P. J. Root, “The behavior of naturally fractured reser-voirs,” Society of Petroleum Engineers Journal 3, 245–255 (1963). [29] Bensoussan and Alain, Asymptotic analysis for periodic structures / 
+
+(Asymptotic analysis for periodic structures /, 1978). [30] O. Oleinik, A. Shamaev, and G. Yosifian, “Mathematical problems in elasticity and homogenization,” (2012). [31] D. Cioranescu and P. Donato, “An introduction to homogenization,” Oxford University Press, (1999). [32] X. Wang, L. Cao, and Y. Wong, “MULTISCALE COMPUTATION AND CONVERGENCE FOR COUPLED THERMOELASTIC SYS-TEM IN COMPOSITE MATERIALS,” MULTISCALE MODEL-ING & SIMULATION 13 , 661–690 (2015). [33] H. Dong, J. Cui, Y. Nie, Z. Yang, and Z. Yang, “Multiscale computa-tional method for heat conduction problems of composite structures with diverse periodic configurations in different subdomains,” COM-PUTERS & MATHEMATICS WITH APPLICATIONS 76 , 2549– 2565 (2018). [34] L. Cao, “Multiscale asymptotic expansion and finite element methods for the mixed boundary value problems of second order elliptic equation in perforated domains,” NUMERISCHE MATHEMATIK 
+
+103 , 11–45 (2006). [35] H. Dong, J. Cui, Y. Nie, and Z. Yang, “Second-order two-scale com-putational method for damped dynamic thermo-mechanical problems of quasi-periodic composite materials,” JOURNAL OF COMPUTA-TIONAL AND APPLIED MATHEMATICS 343 , 575–601 (2018). 
+
+: Preprint submitted to Elsevier Page 19 of 20 [36] H. Dong, Y. Nie, J. Cui, Z. Yang, and Z. Wang, “SECOND-ORDER TWO-SCALE ANALYSIS METHOD FOR DYNAMIC THERMO-MECHANICAL PROBLEMS OF COMPOSITE STRUCTURES WITH CYLINDRICAL PERIODICITY,” INTERNATIONAL JOURNAL OF NUMERICAL ANALYSIS AND MODELING 15 ,834–863 (2018). [37] Q.-l. Dong, L.-q. Cao, X. Wang, and J.-z. Huang, “Multiscale nu-merical algorithms for elastic wave equations with rapidly oscillating coefficients,” APPLIED MATHEMATICS AND COMPUTATION 
+
+336 , 16–35 (2018). [38] L. Cao and J. Cui, “Asymptotic expansions and numerical algorithms of eigenvalues and eigenfunctions of the Dirichlet problem for sec-ond order elliptic equations in perforated domains,” NUMERISCHE MATHEMATIK 96 , 525–581 (2004). [39] Y. Feng and J. Cui, “Multi-scale analysis and FE computation for the structure of composite materials with small periodic configuration under condition of coupled thermoelasticity,” INTERNATIONAL JOURNAL FOR NUMERICAL METHODS IN ENGINEERING 60 ,1879–1910 (2004). [40] Q.-L. Dong and L.-Q. Cao, “Multiscale asymptotic expansions and numerical algorithms for the wave equations of second order with rapidly oscillating coefficients,” APPLIED NUMERICAL MATHE-MATICS 59 , 3008–3032 (2009). [41] Q.-L. Dong and L.-Q. Cao, “Multiscale asymptotic expansions meth-ods and numerical algorithms for the wave equations in perforated domains,” APPLIED MATHEMATICS AND COMPUTATION 232 ,872–887 (2014). 
+
+: Preprint submitted to Elsevier Page 20 of 20
