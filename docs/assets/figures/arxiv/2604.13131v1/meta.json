@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-001.webp",
+      "caption": "Figure 4: Reconstruction accuracy as a function of training data density for two Davies Reef holdout depths. The dotted horizontal line shows the physics-only FD baseline, which is constant (independent of training depth count). (a) 5.0m holdout: PINN RMSE remains at ∼0.27 ◦C from 3 to 17 training depths, well below the FD baseline (0.58 ◦C), while statistical baselines degrade. (b) 9.1m holdout: NN and IDW collapse from ∼0.13 ◦C to >1.8 ◦C at 3 training depths, while the PINN holds at 0.32 ◦C, again below the FD line (0.75 ◦C). The heat equation provides regularization that prevents catastrophic degradation under sparse data, and the neural network adds value beyond the physics alone. PINN lines show the mean across 5 seeds; translucent dots show individual seed RMSE values, and shaded bands show ±1 standard deviation.",
+      "page": 11,
+      "index": 1,
+      "width": 674,
+      "height": 782
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-002.webp",
+      "caption": "Figure 6: Depth-resolved thermal stress profiles. (a) Davies Reef: cumulative Degree Heating Days (DHD, ◦Cdays) vs. depth. The dashed gray line shows satellite-derived DHD (constant with depth). The orange curve shows PINNreconstructed DHD, which attenuates from the surface value with increasing depth. Diamond markers show loggerobserved DHD computed over matched time windows. The shaded region shows the difference between satellite and PINN-reconstructed DHD at each depth. (b) Rib Reef: the most dramatic depth attenuation, with DHD dropping from 3.33 at 1m to 0.14 at 9m while satellite DHD remains constant at 3.08. (c) Kelso Reef: moderate thermal stress attenuating with depth. Myrmidon Reef is omitted because its maximum monthly mean (MMM) threshold of 30.34 ◦C exceeded all observed temperatures during 2020–2024, yielding DHD= 0 at every depth; this is consistent with its exposed outer-shelf location where stronger currents and upwelling suppress thermal accumulation.",
+      "page": 15,
+      "index": 2,
+      "width": 969,
+      "height": 387
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-003.webp",
+      "caption": "Figure 1: Conceptual overview of the PINN framework. Left: Satellite SST provides a surface boundary condition while sparse AIMS temperature loggers supply subsurface observations at discrete depths, leaving gaps in between. Center: A physics-informed neural network embeds the 1D vertical heat equation as a soft constraint, enforces the satellite SST as a hard boundary condition at the surface, and jointly learns effective thermal diffusivity (κ) and light attenuation (Kd). Right: The trained PINN produces continuous depth-resolved temperature and Degree Heating Day (DHD) profiles, revealing that thermal stress attenuates with depth; this vertical structure is invisible to satellite-only monitoring.",
+      "page": 2,
+      "index": 3,
+      "width": 966,
+      "height": 379
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-004.webp",
+      "caption": "Table 2: PINN training hyperparameters.",
+      "page": 7,
+      "index": 4,
+      "width": 862,
+      "height": 452
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-005.webp",
+      "caption": "Figure 3: Holdout validation results across four reefs. (a) Holdout RMSE (◦C) for each method across all reef– depth combinations at full training depth; FD denotes the physics-only finite-difference baseline. Stars mark the best method per row. (b) PINN RMSE vs. best baseline RMSE for each holdout experiment. Points below the diagonal indicate PINN superiority. Point size scales with the number of training depths; colors indicate reef identity. (c) Win fraction by reef (horizontal stacked bars): proportion of holdout experiments won by each method. PINN RMSE values are means across 5 random seeds; standard deviations are typically below 0.01 ◦C (median ±0.002 ◦C), confirming low initialization sensitivity (see Section 5.3 for details).",
+      "page": 10,
+      "index": 5,
+      "width": 969,
+      "height": 520
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-006.webp",
+      "caption": "Figure 5: Time series comparison at four holdout depths: (a) Davies Reef 18.5m, (b) Myrmidon Reef 14.7m, (c) Rib Reef 9.0m, (d) Kelso Reef 19.0m. Gray: CRW satellite SST; blue dots: held-out logger observations; orange: PINN predictions. The inset in (a) zooms into a December–February summer window where the PINN separates from SST and tracks the sub-surface logger. At Davies (17 training depths), the PINN captures the seasonal depth offset. At Myrmidon, Rib, and Kelso (5, 2, and 2 training depths respectively), the PINN remains pulled toward SST, particularly during summer peaks when the surface-to-depth offset is largest.",
+      "page": 13,
+      "index": 6,
+      "width": 969,
+      "height": 517
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-007.webp",
+      "caption": "Table 1: Summary of temperature logger data at each reef. “Archive depths” is the total across the full multi-decade AIMS archive; “Window depths” is the number of unique depths with data in the selected study period. Observations are after quality control and temporal aggregation. †Nearest mass bleaching event; occurs after the Davies study window.",
+      "page": 4,
+      "index": 7,
+      "width": 933,
+      "height": 196
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-008.webp",
+      "caption": "Figure 2: Study area showing the four Great Barrier Reef sites in the central GBR. Inset shows location on the northeast Australian coast. Each site is instrumented with AIMS temperature loggers at multiple depths. Archivewide depth counts (Davies: 30, Myrmidon: 19, Rib: 14, Kelso: 12) differ from the depths available in each study window (Table 1). Map lines delineate study areas and do not necessarily depict accepted national boundaries. Basemap: Esri World Topographic Map.",
+      "page": 4,
+      "index": 8,
+      "width": 869,
+      "height": 627
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13131v1/fig-009.webp",
+      "caption": "Figure 7: Learned physical parameters across reefs and holdout experiments (5 random seeds per configuration; each dot is one seed). (a) Effective thermal diffusivity κ (×10−4 m2 s−1). The gray band shows the literature range for turbulent mixing on coral reefs (1–5 × 10−4 m2 s−1; Monismith [18]). Most learned values fall within or near this range. Tight clustering within configurations confirms low sensitivity to random initialization. (b) Light attenuation coefficient Kd (m−1). The gray band shows the literature range for clear coral reef water (0.04–0.15m−1; Kirk [23]). Inter-reef variation in Kd reflects differences in water clarity and depth coverage.",
+      "page": 16,
+      "index": 9,
+      "width": 964,
+      "height": 1118
+    }
+  ]
+}
