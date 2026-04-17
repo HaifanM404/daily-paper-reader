@@ -1,0 +1,3414 @@
+Title: A Multilevel Monte Carlo Virtual Element Method for Uncertainty Quantification of Elliptic Partial Differential Equations
+
+URL Source: https://arxiv.org/pdf/2604.08135v2
+
+Published Time: Thu, 16 Apr 2026 00:52:47 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+# A Multilevel Monte Carlo Virtual Element Method for Uncertainty Quantification of Elliptic Partial Differential Equations ∗Paola F. Antonietti a, Francesca Bonizzoni a, Ilaria Perugia b, Marco Verani a 
+
+> a
+
+MOX, Dipartimento di Matematica, Politecnico di Milano, Milano, Italy  
+
+> b
+
+Faculty of Mathematics, University of Vienna, Vienna, Austria 
+
+April 16, 2026 
+
+Abstract 
+
+We introduce a Monte Carlo Virtual Element estimator based on Virtual Element discretizations for stochastic elliptic partial differential equations with random diffusion coefficients. We prove estimates for the statistical approximation error for both the solution and suitable linear quantities of interest. A Mul-tilevel Monte Carlo Virtual Element method is also developed and analyzed to mitigate the computational cost of the plain Monte Carlo strategy. The proposed approach exploits the flexibility of the Virtual Element method on general polytopal meshes and employs sequences of coarser spaces constructed via mesh agglomer-ation, providing a practical realization of the multilevel hierarchy even in complex geometries. This strategy substantially reduces the number of samples required on the finest level to achieve a prescribed accuracy. We prove convergence of the multilevel method and analyze its computational complexity, showing that it yields significant cost reductions compared to standard Monte Carlo methods for a prescribed accuracy. Extensive numerical experiments support the theoretical results and demonstrate the efficiency of the proposed method. 
+
+Keywords : Multilevel Monte Carlo, Virtual Element Methods, Stochastic Partial Differential Equations, Un-certainty Quantification, Polytopal Meshes, Mesh Agglomeration 
+
+AMS subject classification : 65N30, 65N15, 60H15, 60H35, 65C30, 65C05 
+
+# 1 Introduction 
+
+Differential models with uncertain data are common in engineering, the social sciences, and the life sciences. Indeed, models’ input data, such as coefficients or the source term, are often uncertain due to, e.g., intrinsic vari-ability or measurement errors. A typical approach to handling such uncertainties is to model the uncertain data as random fields and analyze statistical quantities associated with solutions to the resulting stochastic PDEs. These quantities often include the expected value of the solution or functionals (quantity of interest, QoI) that depend on it. The Monte Carlo (MC) method is widely used to approximate solutions to stochastic PDEs by solving the corresponding deterministic problem repeatedly with independent realizations of the random input and computing statistical measures. However, this method can be impractical when each deterministic problem is computationally expensive, since the error decreases at a rate of O(M −1/2), where M is the number of samples. To overcome this limitation, Multilevel Monte Carlo (MLMC) methods have been developed. The key idea is to combine many inexpensive coarse simulations with fewer costly fine ones, achieving an improved complexity–error balance. Our approach builds on the MLMC framework for infinite-dimensional integration introduced by Giles in the context of stochastic differential equations [20, 21]. It was then extended to elliptic PDEs with random coefficients in [5, 16, 14, 25] and more recently in [6, 24]. For a review of MLMC and its variants, see [22]. The effectiveness of MLMC depends on the availability of a sequence of coarser discretizations to approximate the corresponding deterministic problem. For example, in the Finite Element method, a se-quence of coarser meshes is required for practical MLMC implementation. In complex geometries, constructing 
+
+> ∗
+
+This research has been partially funded by the European Union (ERC, NEMESIS, project number 101115663). Views and opinions expressed are, however, those of the author(s) only and do not necessarily reflect those of the European Union or the European Research Council Executive Agency. Neither the European Union nor the granting authority can be held responsible for them. This research was also funded in part by the Austrian Science Fund (FWF) 10.55776/F65. The present research is part of the activities of “Dipartimento di Eccellenza 2023-2027”. PA and MV also acknowledge MUR–PRIN/PNRR 2022 grant n. P2022BH5CB, funded by MUR. FB also acknowledges INdAM - GNCS Project CUP E53C24001950001. PFA, FB and MV are members of INdAM-GNCS. 
+
+1
+
+> arXiv:2604.08135v2 [math.NA] 15 Apr 2026
+
+such a sequence of coarser (simplicial or hexahedral) meshes can be challenging. On the other hand, mesh agglomeration, which merges groups of fine-mesh elements into larger cells of arbitrary polygonal or polyhedral shape, provides a robust, automatic way to generate necessary coarser problems [4, 2, 19, 3]. This has driven the development of discretization techniques capable of handling general polytopal meshes. Several polytopal methods that have been developed in the last decades are based on nonconforming approximation spaces, such as Discontinuous Galerkin (DG) methods [18, 13] or Hybrid High-Order (HHO) methods [15, 17]. In contrast, the Virtual Element (VE) method relies on conforming approximation spaces. In this paper, we focus on the VE method that has been proposed in the seminal papers [8, 9, 10] and further successfully developed for a wide set of problems in computational sciences; see, e.g., the monographs [11] and [1], and the references therein. In this work, we consider a stochastic elliptic PDE with random diffusion coefficients and aim to approximate both the expected value of the solution and that of a linear quantity of interest. We introduce and analyse a novel multilevel Monte Carlo Virtual Element (MLMC-VE) method for this purpose. VE methods allow, simultaneously, the natural construction of multilevel discretizations on general polytopal meshes required in the multilevel framework, and guarantee stability and approximation properties across levels. Given the virtual nature of the basis functions, the design and analysis of MLMC-VE is far from being a straightforward extension of the FEM case, as it requires careful use of the projectors of the virtual functions in the polynomial space. We first derive novel VE a priori error estimates for linear quantities of interest of the solution to determin-istic elliptic problems. Building on this result, we present Monte Carlo Virtual Element (MC-VE) estimators for the expectation of linear quantities of interest of the solution to stochastic elliptic problems with a random diffusion coefficient. We prove error bounds for the MC-VE estimator, showing that as expected, the MC convergence rate is 1/2, so to halve the error, one should quadruple the sample size M . Given that, for each sample, the MC-VE method requires the solution of a VE problem, the overall computational complexity of the MC-VE method might become very large even for not too small error tolerances, as in the classical Monte Carlo setting. Next, to reduce the computational complexity of the MC-VE method, we propose a multilevel Monte Carlo Virtual Element (MLMC-VE) that uses a hierarchy of VE discretizations. The MLMC-VE es-timator significantly reduces the sample count on the finest meshes, thereby improving efficiency. Exploiting the linearity of the expectation, the method computes the difference between expectations of the solutions (or their QoI) at two consecutive levels of accuracy. The advantage lies in reducing problem variance, thereby decreasing the number of samples required at finer (and more expensive) levels. We prove convergence, discuss computational complexity, and show that it significantly decreases the computational cost to achieve a given accuracy compared to standard Monte Carlo methods. Numerical experiments confirm the theoretical error estimates and show the computational benefits of our approach. To the best of our knowledge, this is one of the first results that incorporate stochastic modeling techniques into the VE framework to address uncertainty and to develop stochastic virtual element methods, in which deterministic VE spaces are coupled with stochastic approximation spaces to represent random variables and stochastic fields. In this direction, we also mention the recent paper [27], which proposes stochastic VE methods for two- and three-dimensional linear elasticity problems. The rest of the paper is organized as follows. In Section 2, we introduce the model problem, namely an elliptic PDE with stochastic diffusion coefficient, together with the functional setting. In Section 3, we provide a brief overview of the conforming Virtual Element discretization of the corresponding deterministic model problem, and in Section 4, we derive novel a priori error estimates for a linear QoI. In Section 5, we introduce the MC-VE method and derive estimates for the statistical approximation error for both the solution and the linear quantity of interest. The extension to the multilevel setting is addressed in Section 6, where we introduce and establish error estimates for the MLMC-VE estimators, for both the solution and the quantity of interest. Extensive numerical experiments are presented and discussed in Section 7. Finally, in Section 8, we draw some conclusions and discuss possible future extensions. 
+
+# 2 Problem setting 
+
+In this section, we introduce the model problem considered in this work, namely, an elliptic partial differential equation with a stochastic diffusion coefficient. Let (Ω , F, P) be a probability space, where Ω denotes the set of outcomes, F the σ-algebra of events, and 
+
+P : Ω → [0 , 1] a probability measure. Moreover, let D ⊂ R2 be an open, bounded, convex polygonal domain with boundary ∂D . In this work, we focus on the following elliptic PDE with stochastic diffusion coefficient: 2given f ∈ L2(D) and a : Ω × D → R, find u : Ω × D → R such that, almost surely in Ω,
+
+{ −∇ · (a∇u) = f in D, u = 0 on ∂D. (1) Given the realization a(ω, ·), the weak formulation of (1) reads: find u(ω, ·) ∈ V = H10 (D) such that, for all 
+
+v ∈ V ,
+
+ˆ
+
+> D
+
+a(ω, ·)∇u(ω, ·) · ∇ v dx =
+
+ˆ
+
+> D
+
+f v dx, (2) which is well-posed by the Lax-Milgram lemma, provided that a(ω, ·) is uniformly bounded below and above in 
+
+D by positive constants. We make the following assumption. 
+
+Assumption 2.1. For almost all ω ∈ Ω, the realizations a(ω, ·) of the diffusion coefficient belong to L∞(D)
+
+and satisfy 
+
+0 < a min (ω) ≤ a(ω, x ) ≤ amax (ω) < ∞ a.e. in D, 
+
+where 
+
+amin (ω) = ess inf x∈D a(ω, x ), amax (ω) = ess sup x∈D a(ω, x ).
+
+Note, in particular, that a random field a(ω, x ) satisfying Assumption 2.1 may not be uniformly bounded over Ω. Under Assumption 2.1, repeated application of the Lax-Milgram lemma yields the almost surely well-posedness of problem (1), namely, for almost every ω ∈ Ω, problem (2) admits a unique solution u(ω, ·) ∈ V
+
+and there exists a positive constant C independent of ω such that 
+
+∥u(ω, ·)∥V ≤ Ca min (ω)−1∥f ∥L2(D).
+
+Assumption 2.2. For any p ≥ 1, a−1 
+
+> min
+
+∈ Lp(Ω) and a ∈ Lp(Ω , C 0(D)) .
+
+Under Assumption 2.2, it can be proved that u ∈ Lp(Ω , V ) for any p ≥ 1 and, for a constant C > 0,
+
+∥u∥Lp(Ω ,V ) ≤ C∥a−1
+
+> min
+
+∥Lp(Ω) ∥f ∥L2(D), (3) where the Bochner norm is defined by 
+
+∥·∥ Lp(Ω ,V ) =
+
+(ˆ
+
+> Ω
+
+| · | pH1(D)
+
+)1/p 
+
+.
+
+Note that Assumption 2.2 holds, for example, for random fields a(ω, x ) that are uniformly bounded in Ω × D, as well as for log-normal random fields a(ω, x ) = e Y (ω,x ) with Y : Ω × R mean-zero Gaussian random field fulfilling, for some L, s > 0 and for all x1, x 2 ∈ D,
+
+E[|Y (ω, x 1) − Y (ω, x 2)|2] ≤ L∥x1 − x2∥s
+
+> 2
+
+.
+
+Remark 2.1. For simplicity, we have assumed that the forcing term is deterministic. Nevertheless, the results mentioned above, as well as the forthcoming analysis, extend to the more general case where f = f (ω, x ) is a sufficiently regular random field (namely, f ∈ Lp(Ω , L 2(D)) for any p > 1). More general boundary conditions, other than homogeneous Dirichlet, can be handled with minor modifications. Moreover, the proposed methodology naturally extends to the three-dimensional case D ⊂ R3.
+
+The present work aims to approximate the expected value of the solution u to problem (1), i.e., 
+
+E[u] = 
+
+ˆ
+
+> Ω
+
+u(ω, ·) d P(ω) ∈ V
+
+and the expected value of a quantity of interest Q : V → R of u, i.e., 
+
+E[Q(u)] = 
+
+ˆ
+
+> Ω
+
+Q(u(ω, ·)) d P(ω) ∈ R,
+
+where we assume that Q : V → R is a linear operator defined, for a given q ∈ L2(D), as 
+
+Q(v) = 
+
+ˆ
+
+> D
+
+qv. (4) 33 The Virtual Element Method 
+
+In this section, we provide a brief overview of the conforming virtual element (VE) method and the main the-oretical results that form the basis for the design and study of the Monte Carlo and Multilevel Monte Carlo VE discretizations introduced in this paper. Here and in the following, we will make use of the notation ≲ to denote a bound that holds up to a positive multiplicative constant C that may vary at different occurrences, but it is independent of the mesh size, the polynomial degree, and the model’s parameters. We consider the following elliptic PDE with a deterministic diffusion coefficient: given f : D → R and 
+
+α : D → R, find u : D → R such that 
+
+{ −∇ · (α∇u) = f in D, u = 0 on ∂D, (5) where we assume f ∈ L2(D) and α uniformly bounded from above and below in D by positive constants being 
+
+αmin = ess inf x∈D α(x), αmax = ess sup x∈D α(x). (6) The weak formulation of (5) reads as follows: find u ∈ H10 (D) such that 
+
+A(u, v ) = F (v) ∀v ∈ H10 (D), (7) where 
+
+A(u, v ) : H10 (D) × H10 (D) → R, A(u, v ) = 
+
+ˆ
+
+> D
+
+α ∇u · ∇ v, (8) 
+
+F (v) : H10 (D) → R, F (v) = 
+
+ˆ
+
+> D
+
+f v. (9) The remainder of this section is devoted to introduce the VE spaces, the bilinear forms, and the corresponding discrete problem. 
+
+3.1 Virtual Element spaces 
+
+Let Th be a decomposition of D into nP non-overlapping (open) polygons Eℓ with flat faces, i.e., D = ∪nP 
+
+> ℓ=1
+
+¯Eℓ
+
+with Eℓ ∩ Eℓ′ = ∅ for ℓ̸ = ℓ′. Let hE = diam( E) denote the diameter of the element E, and h = max E∈T h hE
+
+denote the meshsize. We assume that there exist constants γ, c > 0 independent of h and E such that • each element E ∈ T h is star-shaped with respect to a ball of radius γ h E ,• the distance between any two vertices of E is larger than c h E .We denote by H1(Th) the broken H1 space on Th:
+
+H1(Th) = {v ∈ L2(D) : v|E ∈ H1(E) ∀E ∈ T h}
+
+and by |·| 2 
+
+> H1(Th)
+
+= ∑ 
+
+> E∈T h
+
+|·| 2 
+
+> H1(E)
+
+the broken H1 seminorm. Let p ∈ N be fixed. For any E ∈ T h, we introduce the following notation: (i) Pp(E) is the set of polynomials on E of total degree less than or equal to p;(ii) B(∂E ) = {v ∈ C0(∂E ) s.t. v|e ∈ Pp(e) for all edges e ⊂ ∂E };(iii) Π∇,E p : H1(E) → Pp(E) is the energy projection operator, which is defined, up to a constant, by 
+
+ˆ
+
+> E
+
+∇(w − Π∇,E p w) · ∇ qp dx = 0 ∀ qp ∈ Pp(E). (10) To fix the constant and complete the definition of Π∇,E p w, we further require 
+
+
+
+1
+
+|∂E |
+
+ˆ
+
+> ∂E
+
+(w − Π∇,E p w) ds = 0 , if p = 1 ,
+
+1
+
+|E|
+
+ˆ
+
+> E
+
+(w − Π∇,E p w) dx = 0 , if p > 1; 
+
+(iv) Π0,E p : L2(E) → Pp(E) is the L2-orthogonal projection operator defined by 
+
+(qp, w − Π0,E p w) 
+
+> L2(E)
+
+= 0 ∀ qp ∈ Pp(E). (11) 4Since Π∇,E p and Π0,E p provide the best approximation in Pp(E) with respect to the H1(E) seminorm and in the L2(E) norm, respectively, from [7, Lemma 4.2], it follows that, for all u ∈ Hs+1 (E), s ≥ 1, letting μs =min {s, p },
+
+∣∣u − Π∇,E p u∣∣H1(E) ≲ hμs
+
+> E
+
+ps ∥u∥Hs+1 (E) , (12) 
+
+∥∥u − Π0,E p u∥∥L2(E) ≲ hμs+1 
+
+> E
+
+ps+1 ∥u∥Hs+1 (E) . (13) Moreover, the global operators Π∇
+
+> h,p
+
+, Π0 
+
+> h,p
+
+are defined as Π(·)
+
+> h,p
+
+|E = Π (·),E h,p with (·) = ∇, 0 and, for all u ∈ Hs+1 (D),
+
+s ≥ 1, fulfill 
+
+∣∣u − Π∇
+
+> h,p
+
+u∣∣H1(Th) ≲ hμs
+
+ps ∥u∥Hs+1 (D) , (14) 
+
+∥∥u − Π0
+
+> h,p
+
+u∥∥L2(D) ≲ hμs+1 
+
+ps+1 ∥u∥Hs+1 (D) . (15) Additionally, for all u ∈ H1(D), we have 
+
+∥∥u − Π0
+
+> h,p
+
+u∥∥L2(D) ≲ hp |u|H1(D) . (16) Finally, from (10), we have the following local and global stability properties: 
+
+∣∣Π∇,E p u∣∣H1(E) ≤ | u|H1(E) , ∣∣Π∇
+
+> h,p
+
+u∣∣H1(Th) ≤ | u|H1(D) . (17) We can now introduce the local enhanced VE space of order p ≥ 1:
+
+W Ep =
+
+{
+
+w ∈ V Ep s.t. (w − Π∇,E p w, q ) 
+
+> L2(E)
+
+= 0 for all q ∈ Pp(E)/Pp−2(E)
+
+}
+
+, (18) where V Ep denotes the local augmented VE space 
+
+V Ep = {w ∈ H1(E) s.t. w ∈ Bp(∂E ) and ∆w ∈ Pp(E)} ,
+
+and Pp(E)/Pp−2(E) denotes the set of polynomials of total degree p on E that are L2-orthogonal to all poly-nomials of total degree p − 2 on E (with the convention P−1 = ∅). Note, in particular, that Pp(E) ⊂ W Eh,p (E).The space W Eh,p is equipped with the following set of (local) degrees of freedom (DOFs): • nodal values at all nE vertices of the polygon E;• nodal values at the p − 1 internal Gauss-Lobatto quadrature points of each edge e ∈ ∂E ;• (for p ≥ 2) moments up to order p − 2 in E, namely, for w ∈ W Ep ,
+
+(w, q p−2)L2(E) for all qp−2 ∈ Pp−2.
+
+We have that dim( W Ep ) = nE p + p(p−1) 2 . It is important to note that both the energy and the L2-orthogonal projection operators are computable solely in terms of the DOFs defined above. The global enhanced VE space of degree p is defined by 
+
+Wh,p = {v ∈ H10 (D) s.t. v|E ∈ W Ep for all E ∈ T h
+
+} . (19) It is equipped with the following set of (global) DOFs: • nodal values at all nV vertices of Th;• nodal values at the p − 1 internal Gauss-Lobatto quadrature points of each of the ne edges of Th;• (for p ≥ 2) moments up to order p − 2 in each of the nP polygons of Th, namely, for w ∈ Wh,p ,
+
+(w, q p−2)L2(E) for all qp−2 ∈ Pp−2, for all E ∈ T h,
+
+and it has dimension Nh,p = dim( Wh,p ) = nV + ( p − 1) ne + nP p(p−1) 2 . It was shown in [26, Corollary 2.3] that, for any w ∈ Hs+1 (D), s ≥ 1, there exists a VE function wI ∈ Wh,p such that 
+
+|w − wI |H1(D) ≲ hμs
+
+ps−1 ∥w∥Hs+1 (D) , (20) where we recall the definition μs = min {s, p }.
+
+Remark 3.1. We point out that, although the above result (20) is expected to be valid with ps instead of ps−1,in the following, we use (20) , which is the current state of the art. 
+
+53.2 Virtual Element bilinear forms 
+
+Let AE (u, v ) = ´ 
+
+> E
+
+α(x)∇u · ∇ v dx. Given an arbitrary pair of VE functions vh,p , w h,p ∈ W Ep , the quantity 
+
+AE (vh,p , w h,p ) = ´ 
+
+> E
+
+α ∇vh,p · ∇ wh,p is not computable in terms of the VE DOFs. Thus, we introduce the computable approximation AEh : W Ep × W Ep → R, given by 
+
+AEh (vh,p , w h,p ) = AE (Π ∇,E p vh,p , Π∇,E p wh,p ) + SE ((Id − Π∇,E p )vh, (Id − Π∇,E p )wh
+
+) , (21) where SE : W Ep × W Ep → R denotes a computable, symmetric, stabilizing bilinear form satisfying, for all 
+
+wh ∈ W Ep with Π∇,E p wh,p = 0 ,
+
+s⋆(p)AE (wh,p , w h,p ) ≲ SE (wh,p , w h,p ) ≲ s⋆(p)AE (wh,p , w h,p ) (22) for some positive constants s⋆(p), s ⋆(p), with s⋆(p) ≥ 1, which may depend only on p.
+
+Remark 3.2. In our numerical experiments, we define the stabilizing form SE as follows: 
+
+SE (vh,p , w h,p ) = αENE∑
+
+> r=1
+
+DOF r
+
+(
+
+(Id − Π∇,E p )vh,p 
+
+)
+
+DOF r
+
+(
+
+(Id − Π∇,E p )wh,p 
+
+)
+
+,
+
+where αE = 1
+
+> |E|
+
+´ 
+
+> E
+
+α dx,NE = dim( W Eh,p ), and {DOF r }NE 
+
+> r=1
+
+denotes the set of local DOFs introduced in Sec-tion 3.1. For α ∈ W 1,∞(D) and sufficiently fine meshes, SE satisfies (22) .
+
+The global VE bilinear form Ah : Wh,p × Wh,p → R is then defined, for all vh,p , w h,p ∈ Wh,p , as 
+
+Ah(vh,p , w h,p ) = ∑
+
+> E∈T h
+
+AEh (vh,p , w h,p ).
+
+The global VE bilinear form is continuous and coercive: for all vh,p , w h,p ∈ Wh,p ,
+
+Ah(vh,p , w h,p ) ≲ s⋆(p)αmax |vh,p |H1(D) |wh,p |H1(D) ,Ah(vh,p , v h,p ) ≳ s⋆(p)αmin |vh,p |2 
+
+> H1(D)
+
+.
+
+3.3 The discrete problem 
+
+The VE discretization of problem (5) reads as follows: find uh,p ∈ Wh,p such that 
+
+Ah(uh,p , v h,p ) = Fh(vh,p ) ∀vh,p ∈ Wh,p , (23) where 
+
+Fh(vh,p ) = ∑
+
+> E∈T h
+
+ˆ
+
+> E
+
+(
+
+Π0,E p f
+
+)
+
+vh,p = ∑
+
+> E∈T h
+
+ˆ
+
+> E
+
+(
+
+Π0,E p f
+
+) ( 
+
+Π0,E p vh,p 
+
+)
+
+.
+
+From the stability of the L2 projection in the L2 norm and the Poincaré inequality, for all vh,p ∈ Wh,p , we have 
+
+|Fh(vh,p )| ≲ ∥f ∥L2(D) |vh,p |H1(D) ,
+
+which, together with the coercivity of Ah, implies 
+
+|uh,p |H1(D) ≲ s⋆(p)−1α−1 
+
+> min
+
+∥f ∥L2(D) , (24) Then, the discrete problem (23) is well-posed. Moreover, if u ∈ Hs+1 (D), s ≥ 1, the following error estimates has been proven, e.g., in [7, Theorem 4.1, Remark 4.4, and Remark 4.5]: 
+
+|u − uh,p |H1(D) ≲ s⋆(p)
+
+s⋆(p)
+
+αmax 
+
+αmin 
+
+hμs
+
+ps ∥u∥Hs+1 (D),
+
+∥u − uh,p ∥L2(D) ≲ s⋆(p)
+
+s⋆(p)
+
+αmax 
+
+αmin 
+
+hμs+1 
+
+ps+1 ∥u∥Hs+1 (D),
+
+(25) with μs = min {s, p }.
+
+64 A priori Virtual Element error estimates for a linear quantity of interest 
+
+In this section, we present novel a priori VE error estimates for a linear QoI of the solution in the deterministic setting. Recalling that V = H10 (D), and Q : V → R is the linear operator defined in (4), we are interested in estimating Q(u) − Q (uh,p ), where u ∈ V is the solution of (7), and uh,p ∈ Wh,p is the VE approximation to u,i.e., it satisfies (23). For vh,p ∈ Wh,p , let us define 
+
+Qh(vh,p ) = 
+
+ˆ
+
+> D
+
+(Π 0
+
+> p,h
+
+q) vh,p , (26) which, unlike Q(uh,p ), is a computable quantity, since it holds 
+
+Qh(vh,p ) = 
+
+ˆ
+
+> D
+
+(Π 0
+
+> p,h
+
+q) (Π 0
+
+> p,h
+
+vh,p ) = Q(Π 0
+
+> p,h
+
+vh,p ). (27) The following result is an extension of L2-error estimates for virtual elements, cf. [12, Section 3.4]. 
+
+Theorem 4.1. Let z be the solution of the auxiliary problem 
+
+−∇ · (α∇z) = q in D, z = 0 on ∂D. (28) 
+
+Assume that f ∈ Hs−1(D), q ∈ Ht−1(D), u ∈ Hs+1 (D), z ∈ Ht+1 (D), s, t ≥ 1, and 
+
+∥z∥Ht+1 (D) ≲ α−1 
+
+> min
+
+∥q∥Ht−1(D) , ∥u∥Hs+1 (D) ≲ α−1 
+
+> min
+
+∥f ∥Hs−1(D) . (29) 
+
+Then, setting μ = min {s, t, p }, we have 
+
+|Q (u − uh,p )| ≲ s⋆(p)
+
+s⋆(p)
+
+( αmax 
+
+αmin 
+
+)2
+
+α−1
+
+> min
+
+h2μ
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+, (30) 
+
+|Q (u) − Q h(uh,p )| ≲ s⋆(p)
+
+s⋆(p)
+
+( αmax 
+
+αmin 
+
+)2
+
+α−1
+
+> min
+
+h2μ
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+. (31) 
+
+Proof. Let us set μs = min {s, p } and μt = min {t, p }. We denote by zI the VE function in Wh,p corresponding to z ∈ Ht+1 (D) as in (20), for which there holds |z − zI |H1(D) ≲ hμt 
+
+> pt−1
+
+∥z∥Ht+1 (D). Using the auxiliary problem (28), we have 
+
+|Q (u − uh,p )| = |A(z, u − uh,p )| ≤ |A(z − zI , u − uh,p )| + |A(zI , u − uh,p )| (32) 
+
+=: (I) + ( II ). (33) By the continuity of A, (25), (20), and (29), there holds 
+
+(I) ≤ αmax |u − uh,p |H1(D)|z − zI |H1(D) ≲ s⋆(p)
+
+s⋆(p)
+
+α2
+
+> max
+
+αmin 
+
+hμs+μt
+
+ps+t−1 ∥u∥Hs+1 (D) ∥z∥Ht+1 (D)
+
+≲ s⋆(p)
+
+s⋆(p)
+
+( αmax 
+
+αmin 
+
+)2
+
+α−1
+
+> min
+
+hμs+μt
+
+ps+t−1 ∥f ∥Hs−1(D) ∥q∥Ht−1(D) .
+
+For the second term, we write 
+
+(II ) ≤
+
+∣∣∣∑
+
+> E
+
+AE (zI − Π∇,E p zI , u − uh,p )
+
+∣∣∣ +
+
+∣∣∣∑
+
+> E
+
+AE (Π ∇,E p zI , u − uh,p )
+
+∣∣∣ =: ( III ) + ( IV ),
+
+and estimate (III ) and (IV ) separately. Before doing so, we prove that 
+
+∑
+
+> E
+
+∣∣zI − Π∇,E p zI
+
+∣∣2 
+
+> H1(E)
+
+≲ h2μt
+
+p2t−2 ∥z∥2 
+
+> Ht+1 (D)
+
+, (34) 
+
+∑
+
+> E
+
+∣∣uh,p − Π∇,E p uh,p 
+
+∣∣2 
+
+> H1(E)
+
+≲ h2μs
+
+p2s ∥u∥2 
+
+> Hs+1 (D)
+
+(35) 7To prove (34), we use the triangle inequality, the stability of Π∇,E p in (17), and the estimates (20) and (14): 
+
+∑
+
+> E
+
+∣∣zI − Π∇,E p zI
+
+∣∣2 
+
+> H1(E)
+
+≤ ∑
+
+> E
+
+(
+
+|zI − z|H1(E) + ∣∣z − Π∇,E p z∣∣H1(E) + ∣∣Π∇,E p (z − zI )∣∣H1(E)
+
+)2
+
+≲ ∑
+
+> E
+
+(
+
+|zI − z|H1(E) + ∣∣z − Π∇,E p z∣∣H1(E)
+
+)2
+
+≲
+
+(
+
+|zI − z|2 
+
+> H1(D)
+
++ ∣∣z − Π∇,E p z∣∣2
+
+> H1(Th)
+
+)
+
+≲ h2μt
+
+p2t−2 ∥z∥2 
+
+> Ht+1 (D)
+
+.
+
+The proof of (35) follows the same lines, replacing zI by uh,p , z by u, and using (25) instead of (20). We now estimate (III ). Using the continuity of AE , the discrete Cauchy-Schwarz inequality, and the estimates (34) and (25), we obtain 
+
+(III ) ≤ αmax 
+
+∑
+
+> E
+
+∣∣zI − Π∇,E p zI
+
+∣∣H1(E) |u − uh,p |H1(E)
+
+≤ αmax 
+
+( ∑ 
+
+> E
+
+∣∣zI − Π∇,E p zI
+
+∣∣2
+
+> H1(E)
+
+)1/2
+
+|u − uh,p |H1(D)
+
+≲ s⋆(p)
+
+s⋆(p)
+
+α2
+
+> max
+
+αmin 
+
+hμs+μt
+
+ps+t−1 ∥z∥Ht+1 (D) ∥u∥Hs+1 (D)
+
+≲ s⋆(p)
+
+s⋆(p)
+
+( αmax 
+
+αmin 
+
+)2
+
+α−1
+
+> min
+
+hμs+μt
+
+ps+t−1 ∥q∥Ht−1(D) ∥f ∥Hs−1(D) ,
+
+where, in the last step, we used (29). In order to estimate (IV ), let us preliminary observe that there holds 
+
+AE (zI , Π∇,E p uh,p ) = AE (Π ∇,E p zI , Π∇,E p uh,p )= AEh (zI , u h,p ) − SE (( I − Π∇,E p )zI , (I − Π∇,E p )uh,p ),
+
+where we employed the orthogonality property of Π∇,E p and the definition of AEh . Hence, we have 
+
+(IV ) = 
+
+∣∣∣∑
+
+> E
+
+AE (zI , Π∇,E p (u − uh,p )) 
+
+∣∣∣
+
+=
+
+∣∣∣∑
+
+> E
+
+(AE (zI , Π∇,E p u) − AEh (zI , u h,p ) + SE (( I − Π∇,E p )zI , (I − Π∇,E p )uh,p )) ∣∣∣
+
+=
+
+∣∣∣ ∑
+
+> E
+
+(AE (zI , Π∇,E p u − u) + SE (( I − Π∇,E p )zI , (I − Π∇,E p )uh,p ))
+
++ F (zI ) − Fh(zI )
+
+∣∣∣
+
+≤
+
+∣∣∣ ∑
+
+> E
+
+AE (zI − Π∇,E p zI , Π∇,E p u − u)
+
+∣∣∣ +
+
+∣∣∣ ∑
+
+> E
+
+SE (( I − Π∇,E p )zI , (I − Π∇,E p )uh,p )
+
+∣∣∣
+
++ |F (zI ) − Fh(zI )|.
+
+Since 
+
+AE (zI − Π∇,E p zI , Π∇,E p u − u) ≤ αmax 
+
+∣∣zI − Π∇,E p zI
+
+∣∣H1(E)
+
+∣∣Π∇,E p u − u∣∣H1(E)
+
+≲ αmax 
+
+∣∣zI − Π∇,E p zI
+
+∣∣2 
+
+> H1(E)
+
++ αmax 
+
+∣∣Π∇,E p u − u∣∣2 
+
+> H1(E)
+
+,
+
+using (34) and the estimate in (14), we obtain 
+
+∣∣∣∑
+
+> E
+
+AE (zI − Π∇,E p zI , Π∇,E p u − u)
+
+∣∣∣
+
+≲αmax 
+
+h2μt
+
+p2t−2 ∥z∥2 
+
+> Ht+1 (D)
+
++ αmax 
+
+h2μs
+
+p2s ∥u∥2
+
+> Hs+1 (D)
+
+≲ αmax 
+
+αmin 
+
+α−1
+
+> min
+
+h2 min {μs,μ t}
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+,
+
+8where, in the last step, we used again (29). Furthermore, the bilinearity and symmetry of SE , together with the equivalence (22), imply 
+
+SE (( I − Π∇,E p )zI , (I − Π∇,E p )uh,p )= 12 SE ((I − Π∇,E p )zI + ( I − Π∇,E p )uh,p , (I − Π∇,E p )zI + ( I − Π∇,E p )uh,p 
+
+)
+
+− 12 SE (( I − Π∇,E p )zI , (I − Π∇,E p )zI ) − 12 SE (( I − Π∇,E p )uh,p , (I − Π∇,E p )uh,p )
+
+≲ s⋆(p)AE ((I − Π∇,E p )zI + ( I − Π∇,E p )uh,p , (I − Π∇,E p )zI + ( I − Π∇,E p )uh,p 
+
+)
+
+≤ s⋆(p)αmax 
+
+∣∣(I − Π∇,E p )zI + ( I − Π∇,E p )uh,p 
+
+∣∣2
+
+> H1(E)
+
+≲ s⋆(p)αmax 
+
+∣∣(I − Π∇,E p )zI
+
+∣∣2 
+
+> H1(E)
+
++ s⋆(p)αmax 
+
+∣∣(I − Π∇,E p )uh,p 
+
+∣∣2 
+
+> H1(E)
+
+.
+
+Therefore, using (34) and (35), we obtain 
+
+∣∣∣ ∑
+
+> E
+
+SE (( I − Π∇,E p )zI , (I − Π∇,E p )uh,p )
+
+∣∣∣
+
+≲ s⋆(p)αmax 
+
+h2 min {μs,μ t}
+
+p2 min {s,t −1}
+
+(
+
+∥z∥2 
+
+> Ht+1 (D)
+
++ ∥u∥2
+
+> Hs+1 (D)
+
+)
+
+≲ s⋆(p) αmax 
+
+αmin 
+
+α−1
+
+> min
+
+h2 min {μs,μ t}
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+,
+
+where, in the last step, we used again (29). Finally, for |F (zI ) − Fh(zI )|, we have 
+
+|F (zI ) − Fh(zI )| = |(F − Fh)( zI − z) + ( F − Fh)( z)|
+
+=
+
+∣∣∣∑
+
+> E
+
+ˆ
+
+> E
+
+(f − Π0,E p f )( zI − z) + ∑
+
+> E
+
+ˆ
+
+> E
+
+(f − Π0,E p f )( z − Π0,E p z)
+
+∣∣∣
+
+=
+
+∣∣∣∑
+
+> E
+
+ˆ
+
+> E
+
+(f − Π0,E p f )( I − Π0,E p )( zI − z) + ∑
+
+> E
+
+ˆ
+
+> E
+
+(f − Π0,E p f )( z − Π0,E p z)
+
+∣∣∣
+
+≤ ∥f − Π0
+
+> h,p
+
+f ∥L2(D)(∥(I − Π0
+
+> h,p
+
+)( zI − z)∥L2(D) + ∥z − Π0
+
+> h,p
+
+z∥L2(D))
+
+≲ ∥f − Π0
+
+> h,p
+
+f ∥L2(D)
+
+( hp |z − zI |H1(D) + ∥z − Π0
+
+> p
+
+z∥L2(D)
+
+)
+
+≲ hmin {s,p +2 }+μt
+
+ps+t−1 ∥f ∥Hs−1(D) ∥z∥Ht+1 (D) (36) 
+
+≲ α−1
+
+> min
+
+hmin {s,p +2 }+μt
+
+ps+t−1 ∥f ∥Hs−1(D) ∥q∥Ht−1(D) ,
+
+where we also employed (16) and the error estimate ∥f − Π0,E p f ∥L2(D) ≲ hmin {s−1,p +1 } 
+
+> ps−1
+
+∥f ∥Hs−1(D), which holds as f ∈ Hs−1(D). Collecting the above results, we obtain, for the term (IV ),
+
+(IV ) ≲ s⋆(p) αmax 
+
+αmin 
+
+α−1
+
+> min
+
+h2 min {μs,μ t}
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+.
+
+This, together with the estimate obtained for (III ), gives 
+
+(II ) ≲ s⋆(p)
+
+s⋆(p)
+
+( αmax 
+
+αmin 
+
+)2
+
+α−1
+
+> min
+
+h2 min {μs,μ t}
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+,
+
+which, combined with the estimate obtained for (I), yields 
+
+|Q (u − uh,p )| ≲ s⋆(p)
+
+s⋆(p)
+
+( αmax 
+
+αmin 
+
+)2
+
+α−1
+
+> min
+
+h2 min {μs,μ t}
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+.
+
+Then, estimate (30) follows, owing to min {μs, μ t} = min {s, t, p }.To obtain (31), we observe that there holds 
+
+|Q (u) − Q h(uh,p )| = |Q (u) − Q h(u) + Qh(u) − Q h(uh,p )|
+
+=
+
+∣∣∣
+
+ˆ
+
+> D
+
+(q − Π0
+
+> p,h
+
+q)u +
+
+ˆ
+
+> D
+
+Π0
+
+> p,h
+
+q(u − uh,p )
+
+∣∣∣
+
+=
+
+∣∣∣
+
+ˆ
+
+> D
+
+(q − Π0
+
+> p,h
+
+q)( u − Π0
+
+> p,h
+
+u) + 
+
+ˆ
+
+> D
+
+(Π 0
+
+> p,h
+
+q − q)( u − uh,p ) + Q(u − uh,p )
+
+∣∣∣
+
+≤ ∥q − Π0
+
+> p,h
+
+q∥L2(D)
+
+(∥u − Π0
+
+> p,h
+
+u∥L2(D) + ∥u − uh,p ∥L2(D)
+
+) + Q(u − uh,p ).
+
+9Then, using the L2 projection error estimates (notice that q ∈ Ht−1(D) implies 
+
+∥q − Π0,E p q∥L2(D) ≲ hmin {t−1,p +1 }
+
+pt−1 ∥q∥Ht−1(D)
+
+and the estimate in (25), we have 
+
+|Q (u) − Q h(uh)| ≲ α∗(p)
+
+s⋆(p)
+
+αmax 
+
+αmin 
+
+hμs+min {t,p +2 }
+
+ps+t ∥q∥Ht−1(D) ∥u∥Hs+1 (D) + Q(u − uh,p )
+
+≲ α∗(p)
+
+s⋆(p)
+
+αmax 
+
+αmin 
+
+α−1
+
+> min
+
+hμs+min {t,p +2 }
+
+ps+t ∥q∥Ht−1(D) ∥f ∥Hs−1(D) + Q(u − uh,p ).
+
+This, together with (30) gives (31). 
+
+Remark 4.1. The presence of p2 min {s,t −1} in the denominators in estimates (30) and (31) of Theorem 4.1 is a consequence of the use, in the proof, of the best approximant zI in the “enhanced” VE space Wh,p , which was proven in to satisfy (20) . However, a closer inspection of the proof of Theorem 4.1 shows that only the degrees of freedom of zI are actually used, together with the consistency of method (23) when tested with the function zI .Therefore, if the right-hand side Fh(vh,p ) of method (23) were defined as 
+
+Fh(vh,p ) = ∑
+
+> E∈T h
+
+ˆ
+
+> E
+
+(
+
+Π0,E p−2f
+
+)
+
+vh,p ,
+
+that is employing Π0,E p−2 instead of Π0,E p , one could use the best approximant in the “classical” VE space (see [7] for its definition), say zcI , instead of zI , without modifying the argument. In fact, since only the degrees of freedom of the approximant enter the analysis, there is no difference between choosing zI or zcI . We stress that modifying the definition of the right-hand side Fh is necessary for this argument. Indeed, with the original definition of Fh, the required consistency property would not longer hold when testing with zcI . Consequently, the estimate of term (IV ) in the proof of Theorem 4.1 could not be reproduced after replacing zI by zcI . The advantage of this alternative approach is that, for zcI , the analogue of estimate (20) would involve pmin {s,t }
+
+in the denominator, instead of pmin {s,t −1}; see [7, Lemma 4.3], resulting in the presence of p2 min {s,t } instead of p2 min {s,t −1} in the denominators in estimates (30) and (31) .
+
+# 5 The MC-VE method 
+
+In this section, we propose a method for approximating the expected value of the solution u of the elliptic problem with stochastic coefficient (1), as well as the expected value of Q(u).A widely used strategy to discretize integrals in probability is the Monte Carlo method, which relies on the following operator: 
+
+EM [w] = 1
+
+M
+
+> M
+
+∑
+
+> i=1
+
+w(i), (37) where w(i) = w(ωi), i = 1 , . . . , M , are M independent identically distributed (i.i.d.) samples of the stochastic function w(ω). Possible examples are w(i) = u(ωi, ·) and w(i) = Q(u(ωi, ·)) , where u(ωi, ·) is the unique solution of (2) with ω = ωi. We recall from [5] that the following holds (note that E[w] is deterministic, whereas EM [w]
+
+is a random variable because its value depends on the considered samples): 
+
+∥E[w] − EM [w]∥L2(Ω ,V ) ≤ M −1/2∥w∥L2(Ω ,V ) ∀w ∈ L2(Ω , V ). (38) As the aim of the present work is to approximate the expected value of the solution u to problem (1) as well as its quantity of interest Q(u), we combine MC with the VE method of order p defined over a polytopal mesh of meshsize h. As a result, we get the following MC-VE estimators for E[u] and E[Q(u)] :
+
+EM [Π ∇
+
+> h,p
+
+uh,p ] = 1
+
+M
+
+> M
+
+∑
+
+> i=1
+
+Π∇
+
+> h,p
+
+u(i) 
+
+> h,p
+
+∈ L2(Ω , H 1(Th)) , (39) 
+
+EM [Q(Π 0
+
+> h,p
+
+uh,p )]= 1
+
+M
+
+> M
+
+∑
+
+> i=1
+
+Q(Π 0
+
+> h,p
+
+u(i)
+
+> h,p
+
+) ∈ L2(Ω) , (40) 10 where u(i) 
+
+> h,p
+
+= uh,p (ωi, ·), i = 1 , . . . , M , are M i.i.d. samples of the stochastic VE solution uh,p (ω, ·), obtained by solving M VE problems of the form (23), each corresponding to a sample a(ωi, ·) of the stochastic diffusion coefficient. We define the Bochner seminorm 
+
+∥·∥ L2(Ω ,H 1(Th)) =
+
+(ˆ
+
+> Ω
+
+| · | 2
+
+> H1(Th)
+
+)1/2
+
+,
+
+which is a norm for functions with zero mean on each element of Th. In L2(Ω , V ), ∥·∥ L2(Ω ,H 1(Th)) = ∥·∥ L2(Ω ,V ).Since in all the cases when it is used below it is actually a norm, we have defined it with the ∥·∥ symbol. 
+
+Remark 5.1. Although the natural choice in (39) would be EM [uh,p ] (and EM [Q(uh,p ] in (40) ), this is not practical, since the virtual function uh,p is not known in closed form. For this reason, we use the projection 
+
+Π∇
+
+> h,p
+
+uh,p , which is computable from the DOFs. 
+
+In the following proposition, we derive estimates for the statistical approximation error for both the solution and the quantity of interest. For the latter, we use the analogue of the estimate derived in Theorem 4.1 for a deterministic diffusion coefficient. In the case of problem (2), this estimate becomes, with μ = min {s, t, p },
+
+|Q (u)−Q h(uh,p )|
+
+≲ s⋆(p)
+
+s⋆(p)
+
+( amax (ω)
+
+amin (ω)
+
+)2
+
+amin (ω)−1 h2 μ
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+. (41) 
+
+Proposition 5.1. Assume that u ∈ L2(Ω , H s+1 (D)) , s ≥ 1. Then, the following error bound on E[u] holds, with μs = min {s, p }:
+
+∥E[u] − EM [Π ∇
+
+> h,p
+
+uh,p ]∥L2(Ω ,H 1(Th)) 
+
+≲ s⋆(p)
+
+s⋆(p) max 
+
+{∥∥∥∥
+
+amax 
+
+amin 
+
+∥∥∥∥L2(Ω) 
+
+, ∥∥a−1
+
+> min
+
+∥∥L2(Ω) 
+
+} ( 
+
+hμs
+
+ps + M −1/2
+
+) (
+
+∥u∥L2(Ω ,H s+1 (D)) + ∥f ∥L2(D)
+
+)
+
+, (42) 
+
+where ∥·∥ L2(Ω ,H s+1 (D)) is the standard Bochner norm. Moreover, under the assumptions of Theorem 4.1, the following error bound on E[Q(u)] holds, with μ = min {s, t, p }:
+
+∥E[Q(u)] − EM [Q(Π 0
+
+> h,p
+
+uh,p )] ∥L2(Ω) 
+
+≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥( amax 
+
+amin 
+
+)2∥∥∥∥L2(Ω) 
+
+∥∥a−1
+
+> min
+
+∥∥L2(Ω) 
+
+(
+
+h2μ
+
+p2 min {s,t −1} + M −1/2
+
+) (
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+. (43) 
+
+Proof. The proof of (42) follows the same steps as the proof of [5, Theorem 4.3]. We include the proof here for completeness. By the triangle inequality, we get 
+
+∥E[u] − EM [Π ∇
+
+> h,p
+
+uh,p ]∥L2(Ω ,H 1(Th)) 
+
+≤ ∥ E[u] − E[Π ∇
+
+> h,p
+
+uh,p ]∥L2(Ω ,H 1(Th)) 
+
+︸ ︷︷ ︸
+
+> (I)
+
++ ∥E[Π ∇
+
+> h,p
+
+uh,p ] − EM [Π ∇
+
+> h,p
+
+uh,p ]∥L2(Ω ,H 1(Th)) 
+
+︸ ︷︷ ︸
+
+> (II )
+
+.
+
+We estimate (I) by using the approximation and stability properties (14) and (17) of Π∇
+
+> h,p
+
+, as well as the error estimate (25) of the VE method: 
+
+∥E[u] − E[Π ∇
+
+> h,p
+
+uh,p ]∥L2(Ω ,H 1(Th)) = ∥E[u − Π∇
+
+> h,p
+
+uh,p ]∥L2(Ω ,H 1(Th)) 
+
+≤ E[∣∣u − Π∇
+
+> h,p
+
+uh,p 
+
+∣∣H1(Th)]
+
+≤ E[∣∣u − Π∇
+
+> h,p
+
+u∣∣H1(Th)] + E[∣∣Π∇
+
+> h,p
+
+(u − uh,p )∣∣H1(Th)]
+
+≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥
+
+amax 
+
+amin 
+
+∥∥∥∥L2(Ω) 
+
+hμs
+
+ps ∥u∥L2(Ω ,H s+1 (D)) .
+
+For (II ), we use the MC error estimate (38) and the stability estimates (17) and (24) obtaining 
+
+(II ) ≤ M −1/2 ∥∥Π∇
+
+> h,p
+
+uh,p 
+
+∥∥L2(Ω ,H 1(Th)) ≲ M −1/2 ∥uh,p ∥L2(Ω ,H 1(Th)) 
+
+≲ s⋆(p)−1 ∥∥a−1
+
+> min
+
+∥∥L2(Ω) M −1/2 ∥f ∥L2(D) ,
+
+from which (42) follows, taking into account that s⋆(p)−1 ≤ s⋆(p) 
+
+> s⋆(p)
+
+.11 The error bound (43) follows similarly, by adding and subtracting the term E[Q(Π 0
+
+> h,p
+
+uh,p )] into ∥E[Q(u)] −
+
+EM [Q(Π 0
+
+> h,p
+
+u)] ∥L2(Ω) :
+
+∥E[Q(u)] − EM [Q(Π 0
+
+> h,p
+
+uh,p )] ∥L2(Ω) 
+
+≤ ∥ E[Q(u)] − E[Q(Π 0
+
+> h,p
+
+uh,p )] ∥L2(Ω) 
+
+︸ ︷︷ ︸
+
+> (I)
+
++ ∥E[Q(Π 0
+
+> h,p
+
+uh,p )] − EM [Q(Π 0
+
+> h,p
+
+uh,p )] ∥L2(Ω) 
+
+︸ ︷︷ ︸
+
+> (II )
+
+.
+
+Thanks to the linearity of the operator E[·], and using Q(Π 0
+
+> h,p
+
+uh,p ) = Qh(uh,p ) (see (27)), there holds: 
+
+(I) = ∥E[Q(u) − Q h(uh,p )] ∥L2(Ω) = E[|Q (u) − Q h(uh,p )|]
+
+≲ s⋆(p)
+
+s⋆(p) E
+
+[( amax 
+
+amin 
+
+)2
+
+a−1
+
+> min
+
+] h2μ
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+,
+
+where, in the last step, we applied (41). From (38), the definition of Q, the Cauchy-Schwarz inequality, and the 
+
+L2(D) stability of Π0
+
+> h,p
+
+, we have 
+
+(II ) ≲ M −1/2 ∥∥Q(Π 0
+
+> h,p
+
+uh,p )∥∥L2(Ω) ≤ M −1/2 ∥q∥L2(D) ∥uh,p ∥L2(Ω ,L 2(D)) .
+
+Using the Poincaré inequality and the stability property in (24), we obtain 
+
+(II ) ≲ s⋆(p)−1 ∥∥a−1
+
+> min
+
+∥∥L2(Ω) M −1/2 ∥q∥L2(D) ∥f ∥L2(D) .
+
+The above estimates of (I) and (II ) give (43), taking onto account that 
+
+max 
+
+{ s⋆(p)
+
+s⋆(p) E
+
+[( amax 
+
+amin 
+
+)2
+
+a−1
+
+> min
+
+]
+
+, s ⋆(p)−1 ∥∥a−1
+
+> min
+
+∥∥L2(Ω) 
+
+}
+
+≤ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥( amax 
+
+amin 
+
+)2∥∥∥∥L2(Ω) 
+
+∥∥a−1
+
+> min
+
+∥∥L2(Ω) .
+
+Remark 5.2. The regularity assumption in Proposition 5.1 is satisfied provided that the diffusion coefficient a
+
+is sufficiently smooth. For instance, if a(ω, ·) ∈ W 1,∞(D) satisfies ∥a(ω, ·)∥W 1,∞(D) ≤ C uniformly over ω ∈ Ω,the elliptic regularity theory ensures that ∥u(ω, ·)∥H2(D) is bounded uniformly over ω ∈ Ω, and thus fulfills 
+
+u ∈ L2(Ω , H 2(D)) . This holds, for example, if a(ω, x ) is given by the following Karhunen–Loève-type expansion: 
+
+a(ω, x ) = ¯ a(x) + 
+
+> J
+
+∑
+
+> j=1
+
+βj φj (x)Yj (ω),
+
+where ¯a ∈ W 1,∞(D) is uniformly positive, {Yj }Jj=1 is a set of independent uniformly distributed random variables Yj ∼ U ([ −1, 1]) , {φj }Jj=1 ⊂ W 1,∞(D), and {βj }Jj=1 is a set of non-negative coefficients such that 
+
+βj ∥φj ∥W 1,∞(D) ≤ C j −n for some n > 1 and constant C > 0 independent of j.For diffusion coefficients with ω-dependent lower and upper bounds amin (ω), amax (ω), proving that u ∈
+
+L2(Ω , H 2(D)) requires a more delicate analysis, since ∥u(ω, ·)∥H2(D) has an ω-dependent upper bound. In [25, Theorem 2.1], it is proved that, if a ∈ Lp(Ω , C t( ¯D)) and f ∈ Ht−1(D) for some 0 < t ≤ 1 and any p < ∞,then u ∈ Lp(Ω , H 2(D)) . For instance, this applies when the diffusion coefficient in problem (1) is lognormal, namely, a(ω, x ) = exp( Y (ω, x )) , with Y being a Gaussian random field whose mean is Hölder continuous and whose covariance function is Lipschitz continuous. 
+
+Remark 5.3. The choice M = O(p2s h−2μs ) balances the MC error ( O(M −1/2)) with the VE discretiza-tion error ( O(hμs p−s)) in (42) , resulting in the overall error of O(hμs p−s s ⋆(p) 
+
+> s⋆(p)
+
+). This is the optimal choice of M , given the smoothness of u, the mesh size h and the order p, to achieve a prescribed tolerance. Anal-ogously, the choice M = O(p4 min {s,t −1} h−4μ) balances the MC error ( O(M −1/2)) with the VE discretization error ( O(h2μ p−2 min {s,t −1} s⋆(p) 
+
+> s⋆(p)
+
+)) in (43) .
+
+Remark 5.4. One could alternatively define a MC-VE estimator for E[u] employing the L2 projector: 
+
+EM [Π 0
+
+> h,p
+
+uh,p ] = 1
+
+M
+
+> M
+
+∑
+
+> i=1
+
+Π0
+
+> h,p
+
+u(i) 
+
+> h,p
+
+∈ L2(Ω , L 2(D)) , (44) 12 for which the following bound can be proved along the same steps as in the proof of Proposition 5.1: 
+
+∥E[u] − EM [Π 0
+
+> h,p
+
+uh,p ]∥L2(Ω ,L 2(D)) ≲
+
+(
+
+hμs+1 
+
+ps+1 + M −1/2
+
+)
+
+. (45) 
+
+This estimator provides no control in the L2(Ω , H 1(Th)) norm. The use of definition (44) is particularly helpful in applications where multiple functionals Q of the solution of the form (4) are of interest. Indeed, noting that 
+
+EM [Q(Π 0
+
+> h,p
+
+uh,p )] = Q(EM [Π 0
+
+> h,p
+
+uh,p ]) , one can compute the MC-VE estimator EM [Π 0
+
+> h,p
+
+uh,p ] for E[u], and then the MC-VE estimator for E[Q(u)] can be obtained by simply applying the functional Q to EM [Π 0
+
+> h,p
+
+uh,p ], for all occurrences of Q, allowing for substantial computational savings. For the error analysis, we observe that the following holds 
+
+∥E[Q(u)] − EM [Q(Π 0
+
+> h,p
+
+uh,p )] ∥L2(Ω) = ∥Q (E[u] − EM [Π 0
+
+> h,p
+
+uh,p ])∥L2(Ω) 
+
+≤ ∥ q∥L2(D)∥E[u] − EM [Π 0
+
+> h,p
+
+uh,p ]∥L2(Ω ,L 2(D)) ,
+
+where the equality follows from Fubini’s theorem and the linearity of Q, and the inequality follows from the Cauchy-Schwarz inequality. Hence, by using (45) , we could directly derive an upper bound of the error ∥E[Q(u)] −
+
+EM [Q(Π 0
+
+> h,p
+
+uh,p )] ∥L2(Ω) . This bound, however, would not be sharp; cf. (43) .
+
+To alleviate the computational burden of the MC-VE method without compromising accuracy, we study the multi-level h-version of the MC-VE method (MLMC-VE) in the following section. This approach considers multiple spatial resolution levels: the estimator is first computed on a coarse mesh using the MC-VE method, and subsequent correction terms are added to improve accuracy. 
+
+# 6 The MLMC-VE method 
+
+The MLMC-VE method we introduce in this section relies on a sequence of nested polygonal meshes {T ℓ}ℓ≥0
+
+discretizing the domain D:
+
+T0 ⊆ T 1 ⊆ · · · ⊆ T ℓ ⊆ · · · ⊆ T L ⊆ · · · , (46) where each Tℓ is a refinement of Tℓ−1, and Tℓ has meshsize hℓ. Let Vℓ denote the VE space of degree p (fixed and independent of ℓ) on the mesh Tℓ. The sequence of meshes (46) induces the sequence {Vℓ}ℓ≥0 of conforming VE spaces, which are not nested, although their polynomial subspaces are. This structure guarantees improved approximation properties as ℓ → ∞ , almost surely in Ω:
+
+∥u(ω, ·) − uhℓ+1 ,p (ω, ·)∥V ≤ ∥ u(ω, ·) − uhℓ,p (ω, ·)∥V ,
+
+∥u(ω, ·) − uhℓ,p (ω, ·)∥Vℓ→∞ 
+
+−−−→ 0,
+
+where u(ω, ·) denotes the solution of (2), and uhℓ+1 ,p (ω, ·) ∈ Vℓ denotes its VE approximation, i.e., the solution of (23). Since p is fixed, to simplify the notation we set Π∇ 
+
+> ℓ
+
+= Π ∇ 
+
+> hℓ,p
+
+and uhℓ,p = uℓ. Given the finite sequence 
+
+{T ℓ}Lℓ=0 of the first L + 1 nested meshes from (46), and the corresponding sequence {Vℓ}Lℓ=0 of VE spaces, we define the MLMC-VE estimator for E[u] as 
+
+EL[u] = 
+
+> L
+
+∑
+
+> ℓ=1
+
+EMℓ [wℓ] = 
+
+> L
+
+∑
+
+> ℓ=1
+
+1
+
+MℓMℓ∑
+
+> i=1
+
+w(i) 
+
+> ℓ
+
+∈ L2(Ω , H 1(TL)) , (47) where 
+
+wℓ = Π ∇ 
+
+> ℓ
+
+uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1, w(i) 
+
+> ℓ
+
+= Π ∇ 
+
+> ℓ
+
+u(i) 
+
+> ℓ
+
+− Π∇
+
+> ℓ−1
+
+u(i)
+
+> ℓ−1
+
+,
+
+and u(i)0 = 0 . Note that the MLMC-VE estimator (47) consists of the sum over the L levels of the MC-VE estimators of the increments wℓ, using a level-dependent number Mℓ of samples. 
+
+Remark 6.1. Since u(i) 
+
+> ℓ
+
+and u(i) 
+
+> ℓ−1
+
+are VE functions belonging to two different, non-nested VE spaces Vℓ and 
+
+Vℓ−1, respectively, an MLMC-VE estimator of the type 
+
+EL[u] = 
+
+> L
+
+∑
+
+> ℓ=1
+
+EMℓ [uℓ − uℓ−1],
+
+would not be computable. This is why, in our definition (47) , we insert the projection operators Π∇ 
+
+> ℓ
+
+and Π∇
+
+> ℓ−1
+
+,which makes the estimator computable. 
+
+13 Similarly to (47), we define the MLMC-VE estimator for E[Q(u)] as 
+
+EL[Q(u)] = 
+
+> L
+
+∑
+
+> ℓ=1
+
+EMℓ [Q(νℓ)] = 
+
+> L
+
+∑
+
+> ℓ=1
+
+1
+
+MℓMℓ∑
+
+> i=1
+
+Q(ν(i) 
+
+> ℓ
+
+) ∈ L2(Ω) , (48) where 
+
+νℓ = Π 0 
+
+> ℓ
+
+uℓ − Π0
+
+> ℓ−1
+
+uℓ−1, ν(i) 
+
+> ℓ
+
+= Π 0 
+
+> ℓ
+
+u(i) 
+
+> ℓ
+
+− Π0
+
+> ℓ−1
+
+u(i)
+
+> ℓ−1
+
+.
+
+In the next theorem, we establish error estimates for the MLMC-VE estimators (47) and (48). 
+
+Theorem 6.1 (Error estimate for the MLMC-VE estimators) . Assume that u ∈ L2(Ω , H s+1 (D)) , s ≥ 1. Then, we have, with μs = min {s, p }∥E[u] − EL[u]∥L2(Ω ,H 1(TL)) 
+
+≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥
+
+amax 
+
+amin 
+
+∥∥∥∥L2(Ω) 
+
+p−s
+
+(
+
+hμs 
+
+> L
+
++ M −1/21 hμs 
+
+> 1
+
++
+
+> L
+
+∑
+
+> ℓ=2
+
+M −1/2 
+
+> ℓ
+
+(hμs 
+
+> ℓ
+
++ 2 hμs
+
+> ℓ−1
+
+)
+
+)
+
+∥u∥L2(Ω ,H s+1 (D)) . (49) 
+
+Moreover, under the assumptions of Theorem 4.1, the following error bound holds, with μ = min {s, t, p }:
+
+∥E[Q(u)] − EL[Q(u)] ∥L2(Ω) 
+
+≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥( amax 
+
+amin 
+
+)2
+
+a−1
+
+> min
+
+∥∥∥∥L2(Ω) 
+
+p−2 min {s,t −1}
+
+(
+
+h2μL + M −1/21 h2μ 
+
+> 1
+
++
+
+> L
+
+∑
+
+> ℓ=2
+
+M −1/2 
+
+> ℓ
+
+(h2μℓ + h2μℓ−1)
+
+)(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+.
+
+(50) 
+
+Proof. We start proving (49). By the triangular inequality, we get 
+
+∥E[u] − EL[u]∥L2(Ω ,H 1(TL)) 
+
+≤ ∥ E[u] − E[Π ∇ 
+
+> L
+
+uL]∥L2(Ω ,H 1(TL)) 
+
+︸ ︷︷ ︸
+
+> (I)
+
++ ∥E[Π ∇ 
+
+> L
+
+uL] − EL[u]∥L2(Ω ,H 1(TL)) 
+
+︸ ︷︷ ︸
+
+> (II )
+
+.
+
+For (I), proceeding as in the proof of Proposition 5.1, we obtain 
+
+(I) ≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥
+
+amax 
+
+amin 
+
+∥∥∥∥L2(Ω) 
+
+hμs
+
+> L
+
+ps ∥u∥L2(Ω ,H s+1 (D)) .
+
+We focus now on the second term (II ). Expressing Π∇ 
+
+> L
+
+uL as the telescopic sum 
+
+Π∇ 
+
+> L
+
+uL =
+
+> L
+
+∑
+
+> ℓ=1
+
+(Π ∇ 
+
+> ℓ
+
+uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1) = 
+
+> L
+
+∑
+
+> ℓ=1
+
+wℓ,
+
+the linearity of the expectation, together with (47) and (38), yields 
+
+(II ) = 
+
+∥∥∥∥∥
+
+> L
+
+∑
+
+> ℓ=1
+
+(E[wℓ] − EMℓ [wℓ]) 
+
+∥∥∥∥∥L2(Ω ,H 1(TL)) 
+
+≤
+
+> L
+
+∑
+
+> ℓ=1
+
+∥E[wℓ] − EMℓ [wℓ]∥L2(Ω ,H 1(TL)) 
+
+≤
+
+> L
+
+∑
+
+> ℓ=1
+
+M −1/2 
+
+> ℓ
+
+∥wℓ∥L2(Ω ,H 1(TL)) ,
+
+where the last inequality follows from (38). We estimate ∥wℓ∥L2(Ω ,H 1(TL)) as follows: 
+
+∥wℓ∥L2(Ω ,H 1(TL)) = ∥Π∇ 
+
+> ℓ
+
+(uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1)∥L2(Ω ,H 1(TL)) 
+
+≲ ∥∥uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1
+
+∥∥L2(Ω ,H 1(TL)) 
+
+≲ ∥uℓ − u∥L2(Ω ,H 1(TL)) + ∥∥u − Π∇
+
+> ℓ−1
+
+u∥∥L2(Ω ,H 1(TL)) 
+
++ ∥∥Π∇
+
+> ℓ−1
+
+(u − uℓ−1)∥∥L2(Ω ,H 1(TL)) 
+
+≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥
+
+amax 
+
+amin 
+
+∥∥∥∥L2(Ω) 
+
+(hμs 
+
+> ℓ
+
++ 2 hμs
+
+> ℓ−1
+
+)
+
+ps ∥u∥L2(Ω ,H s+1 (D)) ,
+
+14 where we used the identity Π∇ 
+
+> ℓ
+
+(Π ∇
+
+> ℓ−1
+
+uℓ−1) = Π ∇
+
+> ℓ−1
+
+uℓ−1, which is a consequence of the fact that the meshes are nested, cf. (46), the triangle inequality, the stability and approximation properties of the projection operators, as well as the error estimate (25). Then, we obtain 
+
+(II ) ≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥
+
+amax 
+
+amin 
+
+∥∥∥∥L2(Ω) 
+
+> L
+
+∑
+
+> ℓ=1
+
+(Mℓ)−1/2 (hμs 
+
+> ℓ
+
++ 2 hμs
+
+> ℓ−1
+
+)
+
+ps ∥u∥L2(Ω ,H s+1 (D)) ,
+
+which concludes the proof of (49). The proof of (50) works similarly. First, we sum and subtract E[Q(u)] and use the triangular inequality: 
+
+∥E[Q(u)] − EL[Q(u)] ∥L2(Ω ,V )
+
+≤ ∥ E[Q(u)] − E[Q(Π 0
+
+> L
+
+uL)] ∥L2(Ω) 
+
+︸ ︷︷ ︸
+
+> (I)
+
++ ∥E[Q(Π 0
+
+> L
+
+uL)] − EL[Q(u)] ∥L2(Ω) 
+
+︸ ︷︷ ︸
+
+> (II )
+
+.
+
+The term (I) is the same as in the proof of Proposition 5.1, hence there holds 
+
+(I) ≲ s⋆(p)
+
+s⋆(p) E
+
+[( amax 
+
+amin 
+
+)2
+
+a−1
+
+> min
+
+] h2μL
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+.
+
+To estimate (II ), we express Π0
+
+> L
+
+uL as telescopic sum 
+
+Π0
+
+> L
+
+uL =
+
+> L
+
+∑
+
+> ℓ=1
+
+(Π 0 
+
+> ℓ
+
+uℓ − Π0
+
+> ℓ−1
+
+uℓ−1) = 
+
+> L
+
+∑
+
+> ℓ=1
+
+νℓ,
+
+and we use the linearity of the expectation, the linearity of Q, together with (48) and (38): 
+
+(II ) ≤
+
+> L
+
+∑
+
+> ℓ=1
+
+M −1/2 
+
+> ℓ
+
+∥Q (νℓ)∥L2(Ω) .
+
+Finally, we estimate ∥Q (νℓ)∥L2(Ω) as follows: 
+
+∥Q (νℓ)∥L2(Ω) = ∥Q (Π 0 
+
+> ℓ
+
+uℓ − Π0
+
+> ℓ−1
+
+uℓ−1)∥L2(Ω) 
+
+≤ ∥Q (Π 0 
+
+> ℓ
+
+uℓ − u)∥L2(Ω) + ∥Q (u − Π0
+
+> ℓ−1
+
+uℓ−1)∥L2(Ω) 
+
+≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥( amax 
+
+amin 
+
+)2
+
+a−1
+
+> min
+
+∥∥∥∥L2(Ω) 
+
+h2μℓ + h2μℓ−1
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+,
+
+where we used (41). Then, we obtain 
+
+(II ) ≲ s⋆(p)
+
+s⋆(p)
+
+∥∥∥∥( amax 
+
+amin 
+
+)2
+
+a−1
+
+> min
+
+∥∥∥∥L2(Ω) 
+
+> L
+
+∑
+
+> ℓ=1
+
+(Mℓ)−1/2 h2μℓ + h2μℓ−1
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+,
+
+which concludes the proof of (50). 
+
+Remark 6.2. Employing the MC-VE estimator defined in (44) in the construction of EL[u] (cf. (47) ), one could easily adapt the above proof and obtain an estimate for the error ∥E[u] − EL[u]∥L2(Ω ,L 2(D)) .
+
+The previous theorem gives the error estimate for the MLMC-VE method for any distribution of number of samples per level {Mℓ}Lℓ=1 . The following result, being a multilevel version of Remark 5.3, specifies how to choose the number of samples Mℓ at each mesh level ℓ to achieve an overall error of order O(hμs 
+
+> L
+
+p−s s ⋆(p) 
+
+> s⋆(p)
+
+) for the MLMC-VE estimator. 
+
+Theorem 6.2. Consider the same assumptions as in Theorem 6.1. Moreover, assume, for simplicity, that 
+
+hℓ−1 = 2 hℓ for all ℓ = 1 , . . . , L . Then, the MLMC-VE estimator EL[u] with 
+
+Mℓ ∼
+
+(
+
+hμs 
+
+> ℓ
+
+h−μs 
+
+> L
+
+ℓ(1+ ε)
+
+)2
+
+(51) 
+
+samples (with ε > 0 arbitrarily small) on the mesh level ℓ admits the error bound 
+
+∥E[u] − EL[u]∥L2(Ω ,H 1(TL)) ≲ s⋆(p)
+
+s⋆(p)
+
+hμs
+
+> L
+
+ps ∥u∥L2(Ω ,H s+1 (D)) . (52) 15 Similarly, for the MLMC-VE estimator EL[Q(u)] , with 
+
+Mℓ =
+
+(
+
+h2μℓ h−2μL ℓ(1+ ε)
+
+)2
+
+samples on the mesh level ℓ, the following bound holds: 
+
+∥E[Q(u)] − EL[Q(u)] ∥L2(Ω) ≲ s⋆(p)
+
+s⋆(p)
+
+h2μL
+
+p2 min {s,t −1}
+
+(
+
+∥q∥2 
+
+> Ht−1(D)
+
++ ∥f ∥2
+
+> Hs−1(D)
+
+)
+
+.
+
+Proof. With hℓ−1 = 2 hℓ and Mℓ as in (51), we get 
+
+M −1/21 hμs 
+
+> 1
+
++
+
+> L
+
+∑
+
+> ℓ=2
+
+M −1/2 
+
+> ℓ
+
+(hμs 
+
+> ℓ
+
++ 2 hμs
+
+> ℓ−1
+
+) = M −1/21 hμs 
+
+> 1
+
++
+
+> L
+
+∑
+
+> ℓ=2
+
+M −1/2 
+
+> ℓ
+
+(hμs 
+
+> ℓ
+
++ 2 2 μs hμs 
+
+> ℓ
+
+)= M −1/21 hμs 
+
+> 1
+
++ (1 + 2 μs+1 )
+
+> L
+
+∑
+
+> ℓ=2
+
+M −1/2 
+
+> ℓ
+
+hμs 
+
+> ℓ
+
+∼ h−μs 
+
+> 1
+
+hμs 
+
+> L
+
+hμs 
+
+> 1
+
++ (1 + 2 μs+1 )
+
+> L
+
+∑
+
+> ℓ=2
+
+hμs
+
+> L
+
+hμs
+
+> ℓ
+
+ℓ−(1+ ε)hμs
+
+> ℓ
+
+< (1 + 2 μs+1 ) hμs
+
+> LL
+
+∑
+
+> ℓ=1
+
+ℓ−(1+ ε) = C(ε)(1 + 2 μs+1 ) hμs 
+
+> L
+
+,
+
+where C(ε) is a positive constant depending on ε (more precisely, C(ε) = ζ(1 + ε), with ζ the Riemann zeta function). Inserting this into (49) gives (52). The result for the QoI can be proved with a similar argument. A practical choice for the sample sizes, which avoids requiring knowledge of the solution’s regularity, is discussed in Section 7.2 below. 
+
+Remark 6.3. For the MLMC-VE estimator, we write 
+
+∥∥E[u] − EL[u]∥∥2 
+
+> L2(Ω ,H 1(TL))
+
+= ∥∥E[u − Π∇ 
+
+> L
+
+uL]∥∥2 
+
+> L2(Ω ,H 1(TL))
+
++ V[EL[u]] = ∥∥E[u − Π∇ 
+
+> L
+
+uL]∥∥2 
+
+> L2(Ω ,H 1(TL))
+
++
+
+> L
+
+∑
+
+> ℓ=1
+
+V[Π ∇ 
+
+> ℓ
+
+uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1]
+
+Mℓ
+
+,
+
+(53) 
+
+where V[EL[u]] := ∥∥EL[u] − E[EL[u]] ∥∥2
+
+> L2(Ω ,H 1(TL))
+
+. The first identity follows from E[EL[u]] = E[Π ∇ 
+
+> L
+
+uL], which implies 
+
+V[EL[u]] = ∥∥EL[u] − E[Π ∇ 
+
+> L
+
+uL]∥∥2 
+
+> L2(Ω ,H 1(TL))
+
+,
+
+while the second identity follows from 
+
+V[EMℓ [Π ∇ 
+
+> ℓ
+
+uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1]] = 1
+
+Mℓ
+
+V[Π ∇ 
+
+> ℓ
+
+uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1].
+
+The error split in (53) is known as bias–variance decomposition. The first term is the bias component of the error, which is due to the VE discretization error at the finest level L. The second term is the variance component of the error, which is due to the sampling error. Assume that one wants to define the estimator 
+
+EL[u] by selecting the finest level L and the number of samples Mℓ per level such that 
+
+∥∥E[u] − EL[u]∥∥L2(Ω ,H 1(TL)) ≤ ε, 
+
+for a prescribed tolerance ε > 0. To achieve this, the tolerance is typically distributed between the bias and the variance: 
+
+ε2 = ε2bias + ε2var ,
+
+where, for θ ∈ (0 , 1) , ε2bias = θε 2 controls the space discretization error and ε2var = (1 − θ)ε2 cotrols the sampling error. An extensive discussion on the optimal choice of the splitting parameter can be found in [23]. The most common choice is θ = 1 /2, yielding an equal splitting of the total tolerance between the bias and variance components. Following the bias–variance decomposition, the finest level L is chosen so that the discretization error is below εbias , and the number of samples Mℓ at each level ℓ is selected so as to minimize the variance contribution to the total error for a given computational cost. This leads to 
+
+Mℓ ∝
+
+√
+
+V[Π ∇ 
+
+> ℓ
+
+uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1]
+
+Cℓ
+
+,
+
+where Cℓ denotes the cost of computing a single realization of Π∇ 
+
+> ℓ
+
+uℓ − Π∇
+
+> ℓ−1
+
+uℓ−1 (see, e.g., [16]). 
+
+16 7 Numerical results 
+
+In this section, we first verify the convergence estimate of the VE error for a linear QoI in the deterministic case, as established in Section 4. We then proceed to validate 
+
+7.1 Verification of the estimates of the VE error for the QoI 
+
+Let us consider problem (5) on D = (0 , 1) × (0 , 1) ⊂ R2 with α = 1 and f (x1, x 2) = 32 π2uex (x1, x 2), whose analytical solution is uex (x1, x 2) = sin(4 πx 1) sin(4 πx 2). We use the sequence of non-nested meshes represented in Figure 1. Taking q(x) = 1 in the definition of the quantity of interest (4), we get Q(uex ) = 0 . We compute the approximation Qh(uh) using the VE method of order p = 1 , 2, 3. The resulting errors represented in Figure 2 demonstrate that |Q (uex ) − Q h(uh)| = O(h2p), as proved in Theorem 4.1. 
+
+Figure 1: Sequence of non-nested Voronoi meshes used in the numerical tests of Section 7.1.          
+
+> 10 −210 −1
+> 10 −13
+> 10 −10
+> 10 −7
+> 10 −4
+> 10 −1
+> h[-]
+> |Q (uex ) − Q h(uh)|
+> p= 1 p= 2 p= 3
+> h2h4h6
+
+Figure 2: VE error for the QoI, |Q (uex ) − Q h(uh)|, for p = 1 , 2, 3.
+
+7.2 Practical selection of MC and MLMC sample sizes 
+
+We discuss the practical selection of MC and MLMC sample sizes, taking into account the comparison between the MC-VE and MLMC-VE methods. Since the smoothness of the solution u may not be known a priori, we adopt the following choice of the number M of MC samples: 
+
+M =
+
+{ p2ph−2p, for EM [u],p4ph−4p, for EM [Q(u)] . (54) 17 Under the assumptions in the previous sections, this choice ensures the error bounds 
+
+∥E[u] − EM [Π ∇
+
+> h,p
+
+uh,p ]∥L2(Ω ,H 1(Th)) = O(hμs ),
+
+∥E[Q(u)] − EM [Q(Π 0
+
+> h,p
+
+uh,p )] ∥L2(Ω) = O(h2μ),
+
+where we recall the defintions μs = min {s, p } and μ = min {s, t, p }.Similarly, the practical choice we adopt for the number of MLMC samples Mℓ at the level ℓ is 
+
+Mℓ =
+
+(
+
+hpℓ h−pL ℓ(1+ ε)
+
+)2
+
+, for EM [u],
+
+(
+
+h2pℓ h−2pL ℓ(1+ ε)
+
+)2
+
+, for EM [Q(u)] .
+
+(55) ensuring the error bounds 
+
+∥E[u] − EL[u]∥L2(Ω ,H 1(TL)) = O(hμs 
+
+> L
+
+),
+
+∥E[Q(u)] − EL[Q(u)] ∥L2(Ω) = O(h2μL ).
+
+If the solution has high regularity, then the order of convergence μs of the MC-VE and MLMC-VE errors on 
+
+E[u] is equal to p, and the order of convergence 2μ of the MC-VE and MLMC-VE errors on E[Q(u)] is equal to 2p, provided that the function q defining the QoI is sufficiently smooth. However, if the solution is expected to have low regularity (and q has low regularity, in case of E[Q(u)] ), the use of high orders p is typically not beneficial. Therefore, we limit the following discussion to the case p ≤ s (and p ≤ t, in case of E[Q(u)] ). Given the practical choice (55), we estimate the computational complexity of the algorithm for the computation of the MLMC-VE estimator of E[u] as follows. 
+
+Theorem 7.1. Let Nℓ denote the number of degrees of freedom of the VE space of degree p on the mesh Tℓ, and assume that Nℓ = O(2 2ℓp2) (this holds, for example, for Cartesian meshes). Moreover, assume that, at each level ℓ, the VE equations for each sample u(i) 
+
+> ℓ
+
+are solved employing a multigrid method, and that Mℓ is chosen according to (55) . Then, the complexity CM LM C (L) for computing the MLMC-VE estimator EL[u] ensuring an accuracy of order O(hpL) satisfies 
+
+CM LM C (L) ≲
+
+{ NLL3+2 ε, if p = 1 ,N pLp2(1 −p), if p ≥ 2. (56) 
+
+Proof. Choosing Mℓ as in (55), using hℓ ∼ 2−ℓ and assuming that the complexity of the multigrid algorithm at level ℓ is proportional to Nℓ, then there holds 
+
+CM LM C (L) ≲
+
+> L
+
+∑
+
+> ℓ=1
+
+MℓNℓ ∼
+
+> L
+
+∑
+
+> ℓ=1
+
+(
+
+hpℓ h−pL ℓ(1+ ε)
+
+)2
+
+Nℓ ∼
+
+> L
+
+∑
+
+> ℓ=1
+
+(
+
+2p(L−ℓ)ℓ(1+ ε)
+
+)2
+
+22ℓp2
+
+= p222LL∑
+
+> ℓ=1
+
+22p(L−ℓ)22( ℓ−L)ℓ2(1+ ε) ∼ NLL∑
+
+> ℓ=1
+
+2(ℓ−L)(2 −2p)ℓ2(1+ ε)
+
+(57) We now estimate the sum in (57). • For p = 1 , there holds 
+
+> L
+
+∑
+
+> ℓ=1
+
+2(ℓ−L)(2 −2p)ℓ2(1+ ε) =
+
+> L
+
+∑
+
+> ℓ=1
+
+ℓ2(1+ ε) =
+
+> L−1
+
+∑
+
+> ℓ′=0
+
+(L − ℓ′)2(1+ ε) = O(L3+2 ε).
+
+• For p ≥ 2, then 2 − 2p is negative and we call it −k with k > 0. Then, there holds 
+
+> L
+
+∑
+
+> ℓ=1
+
+2(ℓ−L)(2 −2p)ℓ2(1+ ε) =
+
+> L
+
+∑
+
+> ℓ=1
+
+2k(L−ℓ)ℓ2(1+ ε) =
+
+> L−1
+
+∑
+
+> ℓ′=0
+
+(2 k)ℓ′
+
+(L − ℓ′)2(1+ ε)
+
+= O(2 kL ) = O(2 2L(p−1) ) = O(( NLp−2)(p−1) ).
+
+Hence, (56) follows. 18 From Theorem 7.1, the computational advantage of the MLMC-VE method with respect to the MC-VE method on the finest mesh TL is evident. Indeed, choosing M as in (54) and using NL = O(2 2Lp2), the complexity CM C (L) for computing the MC-VE estimator of E[u] to ensure an accuracy of order O(hpL) is estimated as 
+
+CM C (L) = M N L = O(p2ph−2pL )NL = O(N p+1  
+
+> L
+
+)
+
+Comparing (56) in Theorem 7.1 with the above result indicates that the MLMC-VE method achieves the same accuracy of MC-VE with a substantial reduction of the complexity in the considered case p ≤ s.For the QoI, following similar steps as above, we can show that the practical choice of the number of samples Mℓ in (55) for the computation of the MLMC-VE estimator of E[Q(u)] results into a computational complexity O(N 2pL p2(1 −2p)), independently of whether p = 1 or p ≥ 2, which is substantially smaller than the complexity of computing the MC-VE estimator EM [Q(u)] on the finest mesh TL with the practical choice of M
+
+as in (54), which is O(N 2p+1  
+
+> L
+
+).
+
+7.3 Verification of the error estimates for the MLMC-VE method 
+
+Let us consider problem (1) defined on D = (0 , 1) × (0 , 1) ⊂ R2 with constant forcing term f (ω, x 1, x 2) = 1 
+
+and random diffusion coefficient a(ω, x 1, x 2) = 5 + x1 + x2 + ( 8
+
+> π2
+
+)2.5Y (ω) sin ( π 
+
+> 4
+
+(x1 + 1) ) sin( π 
+
+> 4
+
+(x2 + 1) ), where 
+
+Y ∼ U ([ −1, 1]) is a uniformly distributed random variable. This example is taken from [5, Section 6]. With the aim of approximating E[u] by means of the MLMC-VE estimator, we consider a sequence of nested meshes made of square elements with side length 1/2ℓ, ( hℓ = √22ℓ+1 ), for ℓ = 1 , . . . , 6. In Figure 3, we show the number of samples Mℓ per mesh level ℓ required to achieve ∥E[u] − EL[u]∥L2(Ω ,V b) = O(hpL) for L = 6 , as predicted by Theorem 7.1. We recall that EL[u] = ∑Lℓ=1 EMℓ [wℓ], see (47). In particular, Figure 3 (left) displays in semilog scale the number of samples per level 
+
+{
+
+Mℓ =
+
+(
+
+hpℓ h−pL ℓ(1+ ε)
+
+)2
+
+, ℓ = 1 , . . . , 6
+
+}
+
+needed to compute the MLMC estimator EL[u] with L = 6 and ε = 1 e − 10 , for different values of the order p = 1 , 2, 3. In Figure 3 (right), we plot in semilog scale the total number of samples ∑Lℓ=1 Mℓ versus the maximum level L for L = 1 , . . . , 6. As expected, the number of samples increases as the maximum level L
+
+increases, and the rate of increase grows with the order p.                             
+
+> 01234567
+> 10 1
+> 10 3
+> 10 5
+> 10 7
+> 10 9
+> ℓ[-] Number of samples per level
+> Mℓ(p= 1 )Mℓ(p= 2 )Mℓ(p= 3 )
+> 01234567
+> 10 −1
+> 10 2
+> 10 5
+> 10 8
+> 10 11
+> L[-] Total number of samples MLMC ( p= 1 )MLMC ( p= 2 )MLMC ( p= 3 )
+
+Figure 3: (Left) Number of samples per level {Mℓ}6 
+
+> ℓ=1
+
+needed to compute the MLMC-VE estimator EL[u] = 
+
+∑Lℓ=1 EMℓ [wℓ] with L = 6 according to (55) with ε = 1 e−10 . (Right) Total number of samples ∑Lℓ=1 Mℓ needed to compute the MLMC estimator EL[u] for increasing L = 2 , . . . , 6. Both figures are in semilog scale. For the orders p = 1 , 2, we compute the MLMC-VE estimator EL[u] for increasing values of L (L = 1 , . . . , 5
+
+for p = 1 and L = 1 , . . . , 4 for p = 2 , respectively). Since the analytical solution E[u] is unknown, for each p,we consider, as the reference solution, the MLMC-VE estimator with the maximum level L + 1 (i.e., maximum level 6 for p = 1 and maximum level 5 for p = 2 ). In Figure 4 (left), we plot in loglog scale the H1(D) norm of the errors of the MC-VE method and MLMC-VE method versus hL. The theoretical estimates obtained in Sections 5 and 6 are confirmed (see Proposition 5.1 and Remark 5.3 for the MC-VE method, and Theorem 6.2 for the MLMC-VE method). Indeed, the plots clearly show that both the MC-VE and MLMC-VE errors converge with order O(hpL):
+
+∥E[u] − EM [Π ∇
+
+> h,p
+
+uh]∥H1(D) = O(hpL), ∥E[u] − EL[u]∥H1(D) = O(hpL).
+
+19 Figure 4 (right) reports the MLMC-VE errors versus the maximum level L in semilog scale, for L = 1 , . . . , 6.The results shows exponential decay in L with approximate slope of 0.8 for p = 1 and 1.5 for p = 2 . In the same setting, to assess the relative accuracy of MLMC-VE and MC-VE, we fix several levels of computational complexity and plot in loglog scale the corresponding errors for each method in Figure 5. We recall that, with the choices and the notation of Section 7.2, the computational complexity CM LM C (LM LM C ) for MLCM with maximum level LM LCM is, up to a constant, ∑LM LM C  
+
+> ℓ=1
+
+MℓNℓ, and the computational complexity CM C (LM C )
+
+for MC at level LM C is M N LM C . For a fixed value of CM LM C , the accuracy of the MLMC-VE method improves as p increases. In contrast, for a fixed CM C , the MC-VE method produces solutions with a level of accuracy independent of p. More importantly, at a given computational complexity, MLMC-VE consistently achieves higher accuracy, yielding errors roughly one order of magnitude smaller than those of MC-VE. Finally, in Figure 6 (left), we plot in loglog scale the MLMC-VE error on E[Q(u)] for the choice Q(u) = ´ 
+
+> D
+
+u dx. The number of samples Mℓ per level is fixed according to (55), and the predicted rate of convergence 
+
+|E[Q(u)] − EL[Q(u)] | = O(h2pL ).
+
+is confirmed. The same errors are plotted in loglog scale versus the computational complexity in Figure 6 (right), where it is again evident that MLMC-VE consistently achieves higher accuracy than MC-VE.                       
+
+> 10 −210 −110 0
+> 10 −5
+> 10 −4
+> 10 −3
+> 10 −2
+> 10 −1
+> hL[-] Errors on  E[u]
+> MLMC ( p= 1 )MLMC ( p= 2 )MC ( p= 1 )MC ( p= 2 )hLh2
+> L
+> 0123456
+> 10 −5
+> 10 −4
+> 10 −3
+> 10 −2
+> 10 −1
+> L[-] Errors on  E[u]
+> MLMC ( p= 1 )MLMC ( p= 2 )L−0.8
+> L−1.5
+
+Figure 4: (Left) MC-VE and MLMC-VE errors on E[u] in the H1(D) norm, plotted versus hL in loglog scale. (Right) MLMC-VE errors on E[u] in the H1(D) norm, plotted versus L in semilog scale.                
+
+> 10 010 110 210 310 410 510 610 710 810 9
+> 10 −5
+> 10 −4
+> 10 −3
+> 10 −2
+> 10 −1
+> Computational complexity Errors on  E[u]
+> MLMC ( p= 1 )MLMC ( p= 2 )MC ( p= 1 )MC ( p= 2 )
+
+Figure 5: MLMC-VE and MC-VE errors on E[u] in the H1(D) norm versus the computational complexity in loglog scale. 20 10 −2 10 −1 10 0                           
+
+> 10 −8
+> 10 −7
+> 10 −6
+> 10 −5
+> 10 −4
+> 10 −3
+> 10 −2
+> 10 −1
+> hL[-]
+> Errors on  E[Q(u)]
+> MLMC ( p= 1 )MLMC ( p= 2 )MC ( p= 1 )
+> MC ( p= 2 )h2
+> Lh4
+> L
+> 10 010 110 210 310 410 510 610 710 810 910 10 10 11 10 12
+> 10 −8
+> 10 −7
+> 10 −6
+> 10 −5
+> 10 −4
+> 10 −3
+> 10 −2
+> Computational complexity
+> Errors on  E[Q(u)]
+> MLMC ( p= 1 )MLMC ( p= 2 )MC ( p= 1 )
+> MC ( p= 2 )
+
+Figure 6: (Left) MLMC-VEM errors on E[Q(u)] plotted versus hL in loglog scale. (Right) MLMC-VEM errors on E[Q(u)] versus the computational complexity in loglog scale. Q(u) = ´ 
+
+> D
+
+u dx.
+
+7.4 Validation test 
+
+In this section, we present some numerical results to demonstrate the practical capabilities of the proposed scheme. We consider problem (1) defined over the rectangular domain D = (0 , 4) × (0 , 1) , which is split into seven non-overlapping regions {Dr }7 
+
+> r=1
+
+(see Figure 7) modeling rock strata in the subsurface. We take the forcing term constant and equal to 1. The random diffusion coefficient is defined as a(ω, x ) = ∑7 
+
+> r=1
+
+χDr (x)Yr (ω),where {Yr }7 
+
+> r=1
+
+are uniformly distributed random variables. In particular, 
+
+a(ω, x )|Dr = Yr (ω) ∈ R for all r = 1 , . . . , 7,
+
+so that the realizations of the random diffusion coefficient are piecewise constant over the regions, with each local coefficient following a uniform distribution. This example goes beyond the theoretical framework considered in the previous sections, as the solution of problem (1) with a discontinuous diffusion coefficient does not satisfy the regularity assumption u ∈ Lp(Ω , H 2(D)) (see Proposition 5.1 and Theorem 6.1). The MLMC-VE method 
+
+Figure 7: Subdivision of the rectangular domain into subregions, as considered in Section 7.4. is defined on the sequence of four nested polygonal meshes {T ℓ}3 
+
+> ℓ=0
+
+represented in Figure 8. The sequence satisfies hℓ ≃ hℓ−1 
+
+> 2
+
+and is constructed using a mesh-agglomeration strategy. Specifically, starting from the fine (triangular) mesh TL = T3, at each level ℓ = L − 1, . . . , 0, we recursively group fine-level elements into coarse agglomerates so that each coarse cell is the union of a set of fine cells. For the numerical simulations, we use the algorithm proposed in [4, 3] and implemented in MAGNET , an open-source Python library for mesh agglomeration in two and three dimensions based on Graph Neural Networks (see [2]). We first consider the case Yr ∼ U ([1 , 10]) for all r = 1 , . . . , 7, modeling the setting where the diffusivity of all regions is comparable (ranging between 1 and 10), namely, all regions are composed of the same material. In Figure 9, we compare the MLMC estimator (top) with the MC estimator (middle) of E[u]. The pointwise absolute difference is plotted in Figure 9 (bottom), showing agreement between the two approximations up to the third decimal place. The same quantities are then computed for Yr ∼ U ([1 , 2]) for all r̸ = 7 and Y7 ∼ U ([1 , 100]) .This configuration models a case in which the first six regions have comparable diffusivity (varying within the 21 Figure 8: Sequence of nested meshes used in the numerical tests of Section 7.4, obtained via a mesh-agglomeration strategy from a fine triangular grid shown in the top–right panel. 
+
+Figure 9: (Top): MLMC-VE approximation of E[u] for a(ω, x ) = ∑7 
+
+> r=1
+
+χDr (x)Yr (ω), where Yr ∼ U ([1 , 10]) for all r = 1 , . . . , 7. (Middle): MC approximation of E[u]. (Bottom): Absolute value of the difference of the two approximations divided by the maximum norm of the MLMC-VE approximation. 22 Figure 10: (Top): MLMC-VE approximation of E[u] for a(ω, x ) = ∑7 
+
+> r=1
+
+χDr (x)Yr (ω), where Yr ∼ U ([1 , 2]) for all r̸ = 7 and Y7 ∼ U ([1 , 100]) . (Middle): MC approximation of E[u]. (Bottom): Absolute value of the difference of the two approximations divided by the maximum norm of the MLMC-VE approximation. smaller interval [1 , 2] ), whereas the seventh region (the red one in Figure 7) has a much larger diffusivity, ranging from 1 to 100 . The latter region can therefore be interpreted as a layer made of a different material. The MLMC and the MC estimators, as well as their pointwise absolute difference, are reported in Figure 10. Again, we observe agreement between the two approximations to three decimal digits. Moreover, a comparison between Figures 9 and 10 shows that the pointwise profile of the estimators is affected by the range of variation of the random variables {Yr }7
+
+> r=1
+
+, becoming flatter in regions characterized by higher diffusivity. Finally, we consider the QoI defined as the average over the physical domain D and compare the MC-VE and MLMC-VE estimators of its expected value. We observe agreement to five decimal digits in both configurations: when the diffusivity of all regions is comparable, and when the first six regions have comparable diffusivity, whereas the seventh has a larger diffusivity. 
+
+# 8 Conclusions 
+
+In this work, we introduced a Monte Carlo Virtual Element method for stochastic elliptic partial differential equations with random diffusion coefficients and proved error estimates for the statistical approximation error of both the solution and relevant (linear) quantities of interest. We also developed and analyzed a Multi-level Monte Carlo Virtual Element method that integrates stochastic sampling with a hierarchy of VE spaces constructed from agglomerated meshes. We proved the convergence of the proposed Multilevel Monte Carlo Virtual Element method and demonstrated that the MLMC-VE strategy yields significant cost reductions com-pared with the standard Monte Carlo approach. Numerical experiments demonstrate the theoretical bounds and the computational efficiency of the proposed approach. Possible future developments include extending the proposed analysis to the p-version of the Virtual Element method and stochastic multiphysics models with uncertain data. Another promising direction is the investigation of adaptive multilevel strategies to further reduce computational costs. 23 Acknowledgments 
+
+The author sincerely thanks Matteo Caldana and Lorenzo Mascotto for their helpful discussions and valuable suggestions during the development of this work. 
+
+# References 
+
+[1] P. F. Antonietti, L. Beirão da Veiga, and G. Manzini, editors. The Virtual Element Method and its Appli-cations , volume 31 of SEMA SIMAI Springer Series . Springer, Cham, Switzerland, 2022. [2] P. F. Antonietti, M. Caldana, I. Mazzieri, and A. Re Fraschini. MAGNET: an open-source library for mesh agglomeration by Graph Neural Networks. Engineering with Computers , 41(6):4825 – 4850, 2025. [3] P. F. Antonietti, M. Corti, and G. Martinelli. Polytopal mesh agglomeration via geometrical deep learning for three-dimensional heterogeneous domains. Mathematics and Computers in Simulation , 241:335–353, 2026. [4] P. F. Antonietti, N. Farenga, E. Manuzzi, G. Martinelli, and L. Saverio. Agglomeration of polygonal grids using graph neural networks with applications to multigrid solvers. Computers & Mathematics with Applications , 154:45–57, 2024. [5] A. Barth, C. Schwab, and N. Zollinger. Multi-level Monte Carlo finite element method for elliptic PDEs with stochastic coefficients. Numerische Mathematik , 119(1):123–161, 2011. [6] J. Beck, Y. Liu, E. von Schwerin, and R. Tempone. Goal-oriented adaptive finite element multilevel Monte Carlo with convergence rates. Computer Methods in Applied Mechanics and Engineering , 402:115582, 2022. [7] L. Beirão da Veiga, A. Chernov, L. Mascotto, and A. Russo. Basic principles of hp virtual elements on quasiuniform meshes. Mathematical Models and Methods in Applied Sciences , 26(8):1567–1598, 2016. [8] L. Beirão da Veiga, F. Brezzi, A. Cangiani, G. Manzini, L. D. Marini, and A. Russo. Basic principles of Virtual Element methods. Mathematical Models and Methods in Applied Sciences , 23(01):199–214, 2013. [9] L. Beirão da Veiga, F. Brezzi, and L. D. Marini. Virtual Elements for linear elasticity problems. SIAM Journal on Numerical Analysis , 51(2):794–812, 2013. [10] L. Beirão da Veiga, F. Brezzi, L. D. Marini, and A. Russo. The Hitchhiker’s guide to the Virtual Element Method. Mathematical Models and Methods in Applied Sciences , 24(08):1541–1573, 2014. [11] L. Beirão da Veiga, F. Brezzi, L. D. Marini, and A. Russo. The Virtual Element Method. Acta Numerica ,32:123–202, 2023. [12] S. C. Brenner, Q. Guan, and L.-Y. Sung. Some estimates for virtual element methods. Computational Methods in Applied Mathematics , 17(4):553–574, 2017. [13] A. Cangiani, Z. Dong, E. H. Georgoulis, and P. Houston. hp-Version Discontinuous Galerkin Methods on Polygonal and Polyhedral Meshes . Springer Publishing Company, Incorporated, 1st edition, 2017. [14] J. Charrier, R. Scheichl, and A. L. Teckentrup. Finite element error analysis of elliptic pdes with random coefficients and its application to multilevel Monte Carlo methods. SIAM Journal on Numerical Analysis ,51(1):322–352, 2013. [15] M. Cicuttin, A. Ern, and N. Pignet. Hybrid high-order methods: a primer with applications to solid mechanics . SpingerBriefs in Mathematics. Springer, 2021. [16] K. A. Cliffe, M. B. Giles, R. Scheichl, and A. L. Teckentrup. Multilevel Monte Carlo methods and appli-cations to elliptic PDEs with random coefficients. Computing and Visualization in Science , 14(3), 2011. [17] D. A. Di Pietro and J. Droniou. The Hybrid High-Order Method for Polytopal Meshes: Design, Analysis, and Applications . Springer Nature, 2020. [18] D. A. Di Pietro and A. Ern. Mathematical Aspects of Discontinuous Galerkin Methods , volume 69 of 
+
+Mathématiques et Applications . Springer, 2012. [19] M. Feder, A. Cangiani, and L. Heltai. R3MG: R-tree based agglomeration of polytopal grids with applica-tions to multilevel methods. Journal of Computational Physics , 526, 2025. 24 [20] M. Giles. Improved Multilevel Monte Carlo Convergence using the Milstein Scheme. In A. Keller, S. Hein-rich, and H. Niederreiter, editors, Monte Carlo and Quasi-Monte Carlo Methods 2006 , pages 343–358, Berlin, Heidelberg, 2008. Springer Berlin Heidelberg. [21] M. B. Giles. Multilevel Monte Carlo path simulation. Operations Research , 56(3):607–617, 2008. [22] M. B. Giles. Multilevel Monte Carlo methods. Acta Numerica , 24:259–328, 2015. [23] A.-L. Haji-Ali, F. Nobile, E. von Schwerin, and R. Tempone. Optimization of mesh hierarchies in multilevel Monte Carlo samplers. Stochastics and Partial Differential Equations Analysis and Computations , 4:76–112, 2016. [24] C. Schwab and A. Stein. Multilevel Monte Carlo FEM for elliptic PDEs with Besov random tree priors. 
+
+Stochastics and Partial Differential Equations: Analysis and Computations , 12:1574–1627, 2024. [25] A. L. Teckentrup, R. Scheichl, M. B. Giles, and E. Ullmann. Further analysis of multilevel Monte Carlo methods for elliptic PDEs with random coefficients. Numerische Mathematik , 125(3):569–600, 2013. [26] O. Čertík, F. Gardini, G. Manzini, L. Mascotto, and G. Vacca. The p- and hp -versions of the virtual element method for elliptic eigenvalue problems. Computers & Mathematics with Applications , 79(7):2035– 2056, 2020. [27] Z. Zheng and U. Nackenhorst. Stochastic virtual element methods for uncertainty propagation of stochastic linear elasticity. Computational Mechanics , 73(3):667–684, 2024. 25
