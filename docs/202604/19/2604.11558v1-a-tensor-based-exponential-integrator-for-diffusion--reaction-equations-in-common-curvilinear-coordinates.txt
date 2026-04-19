@@ -1,0 +1,1264 @@
+Title: A tensor-based exponential integrator for diffusion--reaction equations in common curvilinear coordinates
+
+URL Source: https://arxiv.org/pdf/2604.11558v1
+
+Published Time: Tue, 14 Apr 2026 02:49:07 GMT
+
+Number of Pages: 29
+
+Markdown Content:
+# A tensor-based exponential integrator for diffusion–reaction equations in common curvilinear coordinates 
+
+## Marco Caliari ∗ Fabio Cassini †
+
+## April 14, 2026 
+
+Abstract 
+
+In this paper, we study a tensor-based method for the numerical solu-tion of a class of diffusion–reaction equations defined on spatial domains that admit common curvilinear coordinate representations. Typical exam-ples in 2D include disks (polar coordinates), and in 3D balls or cylinders (spherical or cylindrical coordinates) as well as spheres for problems in-volving the Laplace–Beltrami operator. The proposed approach is based on a carefully chosen finite difference discretization of the Laplace op-erators that yields matrices with a structured representation as sums of Kronecker products. For the time integration, we introduce a novel split variant of the exponential Euler method that effectively handles the stiff-ness and avoids the severe time step size restriction of classical explicit methods. By exploiting the peculiar form of the obtained discretized op-erators and the chosen splitting strategy, we compute the needed action of the φ1 matrix function through suitable tensor-matrix products in a μ-mode framework. We demonstrate the efficiency the approach on a wide range of physically relevant 2D and 3D examples of coupled diffusion– reaction systems generating Turing patterns with up to 10 6 degrees of freedom. 
+
+# 1 Introduction 
+
+Diffusion–reaction equations represent one of the most elementary yet effective approaches to mathematically model many interesting biological, physical and chemical phenomena. We mention here, among the others, the seminal books [7, 33, 36]. Despite their apparent simplicity, the presence of a nonlinear reaction term does not allow to determine, in general, an analytical solution. For this reason, researchers put a great effort to study appropriate numerical techniques to find approximated solutions to such models [25]. 
+
+> ∗
+
+University of Verona, Italy, marco.caliari@univr.it 
+
+> †
+
+University of Padua, Italy, cassini@math.unipd.it 
+
+1
+
+> arXiv:2604.11558v1 [math.NA] 13 Apr 2026
+
+Concerning particularly the time discretization, one of the major difficul-ties of developing accurate and computationally feasible numerical methods for diffusion–reaction equations stems from the linear part, i.e., the Laplace op-erator. In fact, the presence of this diffusive term leads us to address a stiff 
+
+problem, for which classical explicit time integration methods can not be em-ployed unless a (typically impractical) time step size restriction is imposed [22]. On the other hand, the usage of stiff-resistant schemes usually requires the eval-uation of special functions, such as the inverse (e.g., for implicit methods [3]) or exponential-like functions (e.g., for exponential integrators [24]). The efficient computation of such functions is a crucial task to obtain a numerical integrator that can be used in practice. In this sense, the geometry of the spatial domain under consideration plays a fundamental role, since peculiar techniques can be adopted. For instance, for constant-coefficient equations and periodic bound-ary conditions, a pseudospectral Fourier decomposition can be exploited. The Kronecker sum structure of the discretized operator on the Cartesian product of intervals in two and three dimensions, namely 
+
+I2 ⊗ A1 + A2 ⊗ I1 and I3 ⊗ I2 ⊗ A1 + I3 ⊗ A2 ⊗ I1 + A3 ⊗ I2 ⊗ I1, (1) is another relevant example. Here Aμ is the discretization matrix of a differential operator, Iμ an identity matrix of suitable size, and ⊗ denotes the Kronecker product. In these cases, actions of matrix functions can be computed with high efficiency by writing an equivalent matrix or tensor formulation of the task [4, 9, 10, 11, 15, 16, 17]. Clearly, the just mentioned tensor techniques are not valid for arbitrary domains and linear differential operators, since in general they do not admit a compatible Kronecker sum structure. In this manuscript, we are particularly interested in the numerical solu-tion to coupled systems of diffusion–reaction equations for which a component 
+
+w : (0 , t ∗]×Ω → R satisfies the prototypical Partial Differential Equation (PDE) 
+
+(∂tw(t, x) = ∆ w(t, x) + g(w(t, x)) , t ∈ (0 , t ∗], x ∈ Ω ⊂ Rd,w(0 , x) = w0(x), (2) completed with appropriate boundary conditions. The linear operator ∆ de-notes the Laplace operator when the spatial domain Ω is a disk, a three-di-mensional ball, or a cylinder. On the other hand, it denotes the Laplace– Beltrami operator when Ω is a sphere. In the numerical experiments, we will also consider an anomalous diffusion case on a disk in which the Laplace oper-ator is substituted by an anomalous (superdiffusive) counterpart. The explicit form of the operator ∆ in curvilinear coordinates, for each of the mentioned domains, will be recalled in the next section. The study of systems of equa-tions whose components are in the form (2) is of great interest in the literature, especially for the formation of the so-called Turing patterns (that is, spatially inhomogeneous states which may develop in the long time regime when per-turbing equilibria of the system). From the practical point of view, the arising patterns are often present in nature, see for instance References [5, 17, 20, 34]. 2While these phenomena are usually studied on the square or the cube, we high-light that the geometry of the domain itself may trigger different morphological classes of patterns (see, for instance, References [2, 18, 19, 28, 30, 38]). Given the adequate expression by common curvilinear coordinate system of the spatial domains in (2), in this paper we show how we can suitably adapt and generalize the aforementioned efficient matrix- and tensor-oriented approaches to the case under consideration here. In particular, we also present how to couple the techniques with a novel exponential integrator for the time marching, namely a split version of the exponential Euler method, which does not show a time step size restriction. The remaining part of the manuscript is then structured as follows. We recall the relevant differential operators in curvilinear systems in Section 2. We proceed in Section 3 by discussing an appropriate space discretization for each of them. We introduce the novel split version of the exponential Euler method and present how to efficiently compute the action of the φ1 matrix function in Section 4. We finally present in Section 5 several numerical experiments in two and three dimensions taken from relevant models available in the literature and draw the conclusions in Section 6. 
+
+# 2 Semidiscretization in common curvilinear sys-tems 
+
+Given the prototypical equation (2) and the spatial domains Ω mentioned in the introduction, we recall here the differential operators in the curvilinear systems and present their discretizations. For the coordinate systems, we have: 
+
+Polar coordinates. If Ω is the disk of radius ρ∗, then ( ρ, θ ) ∈ (0 , ρ ∗] × [0 , 2π)and the Laplace operator becomes ∆ = ∆ D =
+
+ 1
+
+ρ∂∂ρ + ∂2
+
+∂ρ 2
+
+
+
++ 1
+
+ρ2
+
+∂2
+
+∂θ 2 . (3a) 
+
+Spherical coordinates. If Ω is the sphere of radius ρ∗ in R3, then following the mathematics convention ( θ, ϕ ) ∈ [0 , 2π) × (0 , π ) and the Laplace–Beltrami operator becomes ∆ = ∆ S = 1sin 2 ϕ∂2
+
+∂θ 2 +
+
+
+
+cot ϕ ∂∂ϕ + ∂2
+
+∂ϕ 2
+
+
+
+. (3b) If Ω is the three-dimensional ball (solid sphere), then ( ρ, θ, ϕ ) ∈ (0 , ρ ∗] ×
+
+[0 , 2π) × (0 , π ) and the Laplace operator becomes ∆ = ∆ B =
+
+ 2
+
+ρ∂∂ρ + ∂2
+
+∂ρ 2
+
+
+
++ 1
+
+ρ2 sin 2 ϕ∂2
+
+∂θ 2 + 1
+
+ρ2
+
+
+
+cot ϕ ∂∂ϕ + ∂2
+
+∂ϕ 2
+
+
+
+. (3c) 
+
+Cylindrical coordinates If Ω is the cylinder of radius ρ∗ and height z∗, then (ρ, θ, z ) ∈ (0 , ρ ∗] × [0 , 2π) × [0 , z ∗] and the Laplace operator becomes ∆ = ∆ C =
+
+ 1
+
+ρ∂∂ρ + ∂2
+
+∂ρ 2
+
+
+
++ 1
+
+ρ2
+
+∂2
+
+∂θ 2 + ∂2
+
+∂z 2 . (3d) 3We now introduce the discretization points ρi, θj , ϕk, and zk for the spatial variables, and approximate the differential operators by finite differences. For ease of notation, without loss of generality, in this and in the following section we consider n discretization points in each coordinate. Then, PDE (2) can be transformed into the following system of Ordinary Differential Equations (ODEs) in vector form 
+
+(w′(t) = M w(t) + g(w(t)) = f (w(t)) , t ∈ (0 , t ∗],
+
+w(0) = w0, (4) where w(t) is the vector of the unknowns, M is the matrix which discretizes the differential operator, and g(w(t)) is a nonlinear function. We stress that we employ the expression vector form since later on we will solve equivalent matrix 
+
+and tensor oriented formulations. The matrix M turns out to be the sum of Kronecker products of matrices which discretize one-dimensional operators. In fact, for polar coordinates on the disk we have 
+
+w(t) ∈ Rn2
+
+, wi+( j−1) n(t) ≈ w(t, ρ i, θ j ),
+
+∆D ≈ M = I ⊗ Aρ, 2 + Aθ ⊗ Dρ ∈ Rn2×n2
+
+, (5a) while for spherical coordinates on the sphere we have 
+
+w(t) ∈ Rn2
+
+, wj+( k−1) n(t) ≈ w(t, θ j , ϕ k),
+
+∆S ≈ M = Dϕ ⊗ Aθ + Aϕ ⊗ I ∈ Rn2×n2
+
+. (5b) Concerning the remaining three-dimensional cases, for the ball in spherical co-ordinates we have 
+
+w(t) ∈ Rn3
+
+, wi+( j−1) n+( k−1) n2 (t) ≈ w(t, ρ i, θ j , ϕ k),
+
+∆B ≈ M = I ⊗ I ⊗ Aρ, 3 + Dϕ ⊗ Aθ ⊗ Dρ + Aϕ ⊗ I ⊗ Dρ ∈ Rn3×n3
+
+, (5c) while for the cylinder in cylindrical coordinates we have 
+
+w(t) ∈ Rn3
+
+, wi+( j−1) n+( k−1) n2 (t) ≈ w(t, ρ i, θ j , z k),
+
+∆C ≈ M = I ⊗ I ⊗ Aρ, 2 + I ⊗ Aθ ⊗ Dρ + Az ⊗ I ⊗ I ∈ Rn3×n3
+
+. (5d) In all the previous cases, I denotes the identity matrix, Dρ and Dϕ denote the diagonal matrices of entries ρ−2 
+
+> i
+
+and sin −2 ϕk, respectively, and the remaining 
+
+n × n matrices denote appropriate discretizations of the differential operators, namely 
+
+Aρ,d ≈ d − 1
+
+ρ∂∂ρ + ∂2
+
+∂ρ 2 , d ∈ { 2, 3},Aθ ≈ ∂2
+
+∂θ 2 , Aϕ ≈ cot ϕ ∂∂ϕ + ∂2
+
+∂ϕ 2 , Az ≈ ∂2
+
+∂z 2 .
+
+(6) The exact expression of these matrices will be derived in the next section. Here, we simply note that, together with the nonlinear term g, they take into account the boundary conditions of the original PDE. 43 Space discretization by finite differences 
+
+In this section, we derive appropriate space discretizations of the above one-dimensional operators by second-order centered finite differences. We assume equispaced points in each coordinate, with space step sizes hρ, hθ , hϕ, and hz .Concerning the coordinate θ, the discretization and the arising matrix Aθ
+
+for the relevant operator in formula (6) (with periodic boundary conditions) are 
+
+θj = jh θ , j = 1 , . . . , n, hθ = 2πn , Aθ = 1
+
+h2
+
+> θ
+
+
+
+−2 1 11 −2 . . .. . . . . . 11 1 −2
+
+ . (7) This is a symmetric circulant tridiagonal matrix, with explicitly known eigen-pairs (see, e.g., Reference [6]), that we will employ in each numerical experiment in Section 5. For all the remaining matrices, namely Aρ,d , Aϕ and Az , we derive discretizations that yield a tridiagonal matrix 
+
+A =
+
+
+
+a1 b1
+
+c1
+
+. . . . . .. . . . . . bn−1
+
+cn−1 an
+
+ . (8) The specific values of aℓ, bℓ, and cℓ clearly depend on the underlying operator with its boundary conditions, but in all cases A enjoys favorable properties which we will summarize in Proposition 1. We start by considering the coordinate ρ and A = Aρ, 2, that is the dis-cretization of the operator in formula (6) for d = 2 with homogeneous Neumann boundary conditions at ρ = ρ∗. This will be employed in the numerical experi-ments in Sections 5.1, 5.2, and 5.6. We notice that the singularity of the operator at ρ = 0 introduced by the coordinate system does not affect the smoothness of our solutions. Therefore, we employ standard second-order centered finite differences on the computational grid ρi = ρ1 + ( i − 1) hρ, i = 1 , . . . , n , with 
+
+ρ1 > 0 and hρ = ( ρ∗ − ρ1)/(n − 1). The first point ρ1 and hρ are chosen as follows. We introduce the virtual node ρ0 = ρ1 − hρ and write the centered approximation at ρ1 as 
+
+ 1
+
+ρ∂w ∂ρ + ∂2w∂ρ 2
+
+
+
+> ρ=ρ1
+
+≈ 1
+
+ρ1
+
+w2 − w0
+
+2hρ
+
++ w2 − 2w1 + w0
+
+h2
+
+> ρ
+
+.
+
+We now require, as in Reference [29], the resulting coefficient in front of w0 to be zero. Therefore, we get 
+
+
+
+hρ = ρ∗ − ρ1
+
+n − 1 ,
+
+− 12ρ1hρ
+
++ 1
+
+h2
+
+> ρ
+
+= 0 ,
+
+5which gives 
+
+hρ = ρ∗
+
+n − 12
+
+,ρ1 = hρ
+
+2 .
+
+(9) Notice that in this way we obtained the so-called half-point discretization also used, e.g., in References [2, 6]. To summarize, the discretization and the ele-ments of the matrix A = Aρ, 2 in (8) are given by 
+
+ρi = hρ
+
+2 + ( i − 1) hρ, hρ = ρ∗
+
+n − 12
+
+,aℓ = − 2
+
+h2
+
+> ρ
+
+, bℓ = 2ℓ
+
+(2 ℓ − 1) h2
+
+> ρ
+
+, cℓ = 2ℓ
+
+(2 ℓ + 1) h2
+
+> ρ
+
+, c n−1 = 2
+
+h2
+
+> ρ
+
+.
+
+(10) Proceeding in the same way for A = Aρ, 3, that is the discretization of the operator in formula (6) with Neumann boundary conditions at ρ = ρ∗ (which will be used in the numerical experiment in Section 5.5), we obtain hρ = ρ∗/n 
+
+and, as first discretization point, ρ1 = hρ. Therefore, the resulting discretization is 
+
+ρi = hρ + ( i − 1) hρ, hρ = ρ∗
+
+n ,aℓ = − 2
+
+h2
+
+> ρ
+
+, bℓ = ℓ + 1 
+
+ℓh 2
+
+> ρ
+
+, cℓ = ℓ
+
+(ℓ + 1) h2
+
+> ρ
+
+, c n−1 = 2
+
+h2
+
+> ρ
+
+. (11) Concerning A = Aϕ, that is the discretization for the coordinate ϕ of the operator in formula (6) (which will be used in the numerical experiments in Sections 5.4 and 5.5), we proceed similarly as done for Aρ,d . In particular, we avoid the singularities of the operator at ϕ = 0 and ϕ = π by introducing the symmetric computational grid ϕk = ϕ1 + ( k − 1) hϕ, k = 1 , . . . , n , with ϕ1 > 0and hϕ = ( π − 2ϕ1)/(n − 1), and apply second-order centered finite differences. We choose the first point ϕ1 as follows. We assume ϕ1 = σh ϕ and require the coefficient in front of the virtual node to be zero. Then, the real number σ and the space grid size hϕ are obtained by solving the nonlinear system 
+
+
+
+hϕ = π − 2σh ϕ
+
+n − 1 ,
+
+− cot( σh ϕ)2hϕ
+
++ 1
+
+h2
+
+> ϕ
+
+= 0 .
+
+(12) The existence of a unique solution ( σ, h ϕ) is proved in Appendix A. To sum-marize, the discretization points and the elements (8) of the tridiagonal matrix 
+
+A = Aϕ are given by 
+
+ϕk = σh ϕ + ( k − 1) hϕ, hϕ = πn − 1 + 2 σ ,aℓ = − 2
+
+h2
+
+> ϕ
+
+, bℓ = 1
+
+h2
+
+> ϕ
+
++ cot(( σ + ℓ − 1) hϕ)2hϕ
+
+, cℓ = bn−ℓ.
+
+(13) 6For A = Az , that is the coordinate z and the discretization of the operator in formula (6) with Neumann boundary conditions at z = 0 and Dirichlet boundary conditions at z = z∗ (which will be used in the numerical experiment in Section 5.6), we get 
+
+zk = ( k − 1) hz , hz = z∗
+
+n ,aℓ = − 2
+
+h2
+
+> z
+
+, b1 = 2
+
+h2
+
+> z
+
+, b ℓ = 1
+
+h2
+
+> z
+
+, cℓ = 1
+
+h2
+
+> z
+
+.
+
+(14) Notice that the eigenvalues and eigenvectors of this matrix can be explicitly computed. In fact, for the kth eigenvalue 
+
+− 2
+
+h2
+
+> z
+
++ 2
+
+h2
+
+> z
+
+cos 
+
+ π(k − 1/2) 
+
+n
+
+
+
+the corresponding eigenvector has ith component equal to sin (n−i+1) π(k−1/2) 
+
+> n
+
+sin π(k−1/2) 
+
+> n
+
+, i = 1 , . . . , n − 1and nth component equal to 1. The proof follows the lines of that in [27, Proposition 2.1]. As previously mentioned, in each case the derived discretization matrix en-joys desirable properties. In fact, we have the following result. 
+
+Proposition 1. Let A denote any of the matrices Aθ , Aρ,d , Aϕ, and Az . Then, the following properties hold. 1. It has positive extra-diagonal elements. 2. Its matrix exponential etA is nonnegative for all t ≥ 0.3. It is similar to a symmetric matrix S.4. It can be diagonalized by a matrix V , that is AV = V Λ, with V (weakly) well conditioned in the 2-norm. 5. It has nonpositive eigenvalues. Proof. The statements are obvious for A = Aθ .The positivity of the extra-diagonal elements of Aρ,d (formulas (10) and (11)) and Az (formula (14)) is trivial. The positivity of bℓ and cℓ for the matrix Aϕ
+
+(see formula (13)) can be easily obtained by exploiting the symmetries of the cotangent function and the relation cot( σh ϕ) = 2 /h ϕ, see system (12). Since all the extra-diagonal elements are nonnegative, A is essentially non-negative and therefore its matrix exponential e tA is nonnegative for all t ≥ 0(see, e.g., [25, Thm. 7.2]). Given the matrix Ξ with elements ξ1 = 1 and ξℓ+1 = p(c1 · · · cℓ)/(b1 · · · bℓ), we have AΞ = Ξ S, where S is symmetric (see Reference [32, Prop. 2.1]). 7Since SQ = QΛ, where Q is the orthogonal matrix of the eigenvectors and and Λ is the diagonal matrix of the (real) eigenvalues, we have 
+
+AV = V Λ, V = Ξ Q. 
+
+In particular, cond 2(V ) ≤ cond 2(Ξ). By direct calculation, it is easy to see that for A = Aρ,d the 2-norm of Ξ is 1, while the 2-norm of its inverse is √2n − 3for d = 2 and n − 1 for d = 3. Therefore, cond 2(V ) grows as √n and n,respectively. The condition number of the transformation matrix of Aϕ grows as √n, see Appendix A. Hence, all these matrices are “weakly well conditioned”, that is cond 2(V ) grows like a small power of n (see Reference [8]). Finally, the condition number of the transformation matrix of Az is easily obtained as √2independently of n and therefore it is “well conditioned”. Since the eigenvalues of the matrix are real, thanks to Gershgorin’s disk theorem they are nonpositive, thus guaranteeing stability of the discretizations (see Reference [25]). 
+
+# 4 Split exponential Euler integrator 
+
+In this section we introduce the novel exponential integrator that we will use for the time integration of the stiff system of ODEs (4). The starting point is the classical first-order accurate exponential Euler method 
+
+wn+1 = wn + τ φ 1(τ M )( M wn + g(wn)) = wn + τ φ 1(τ M )f (wn), (15) where wn ≈ w(tn), τ is the time step size (which we assume to be constant), and φ1 is the matrix function defined for a generic X by 
+
+φ1(X) = 
+
+> ∞
+
+X
+
+> i=0
+
+Xi
+
+(i + 1)! =
+
+Z 10
+
+e(1 −θ)X dθ. (16) For the cases under consideration in this manuscript, the matrix M can be written as M1 + · · · + Md (see formulas (5)). This suggests considering the split 
+
+approximation 
+
+φ1(τ M ) ≈ φ1(τ M 1) · · · φ1(τ M d). (17) We will see in the following that the computation of the action of the single 
+
+φ1(τ M μ) functions is much simpler than that of φ1(τ M ), thanks to the μ-mode approach introduced in References [10, 12, 14] coupled with suitable diagonal-ization techniques. A similar splitting of the φ1 function has already been employed in References [9, 10]. However, we highlight that in those settings the relevant matrices did commute (in fact, they were in the form (1)), while in our case they do not. Nevertheless, by Taylor expansion we can easily see that 
+
+φ1(τ M ) = φ1(τ M 1) · · · φ1(τ M d) + O(τ 2). (18) Therefore, the chosen splitting does not affect the convergence order of the ex-ponential integrator, since it introduces a local error proportional to τ 3. Notice 8also that the order of the products in formula (18) matters, and a different or-dering would result in a different approximation. Throughout the manuscript, we call split exponential Euler the time-marching scheme arising by inserting approximation (17) in method (15). We now proceed by writing the equivalent matrix and tensor formulations of the scheme, which in fact are the final forms of the method in each of the cases of our interest. We begin with the ODEs system for the disk case (5a) and consider the action M w required by the scheme, where w denotes a generic column vector of length n2. We notice that 
+
+M w = ( I ⊗ Aρ, 2 + Aθ ⊗ Dρ)w
+
+can be equivalently computed in matrix form as 
+
+Aρ, 2W + DρW Aθ ,
+
+where W is the order-2 tensor (i.e., a matrix) whose element wij coincides with the element wi+( j−1) n of the vector w. Indeed, this equivalence follows from (L2 ⊗ L1)w = vec( L1W LT 
+
+> 2
+
+), (19) where L1 and L2 are two matrices of size n × n and vec is the operator which stacks the column of the input into a suitable column (see Reference [37, formula (2)]), and taking into account that Aθ is a symmetric matrix. We now discuss the computation of the action φ1(τ M 2)w with 
+
+M2 = Aθ ⊗ Dρ.
+
+Since Aθ can be written as Qθ Λθ QT 
+
+> θ
+
+, where Qθ is the orthogonal matrix of the eigenvectors and Λ θ the diagonal matrix of the eigenvalues λθ j , by exploiting the mixed-product property of ⊗ we get 
+
+Aθ ⊗ Dρ = ( Qθ ⊗ I)(Λ θ ⊗ Dρ)( QT 
+
+> θ
+
+⊗ I).
+
+Hence, the φ1 matrix function can be conveniently expressed as 
+
+φ1(τ (Aθ ⊗ Dρ)) = ( Qθ ⊗ I)φ1(τ (Λ θ ⊗ Dρ))( QT 
+
+> θ
+
+⊗ I).
+
+Concerning the application to a vector w, from equivalence (19) we have the matrix form W Qθ of ( QT 
+
+> θ
+
+⊗ I)w. Then, the diagonal matrix function φ1(τ (Λ θ ⊗
+
+Dρ)) is computed by exploiting the scalar formula 
+
+φ1(x) = 
+
+
+
+ex − 1
+
+x , x̸ = 0 ,
+
+1, x = 0 .
+
+The result is stored in the order-2 tensor Φρ,θ with elements φ1(τ ρ −2 
+
+> i
+
+λθ j ) in position ( i, j ). Hence, the computation φ1(τ (λθ ⊗ Dρ))( QT 
+
+> θ
+
+⊗ I)w is realized 9by Φρ,θ ◦ (W Qθ ), where ◦ denotes the Hadamard product. By using again equivalence (19), the final result is 
+
+φ1(τ M 2)w = vec    Φρ,θ ◦ (W Qθ )QT
+
+> θ
+
+ .
+
+The final requirement is the computation of the action of φ1(τ M 1)w in matrix form, where 
+
+M1 = I ⊗ Aρ, 2.
+
+This is realized by using the identity 
+
+φ1(τ (I ⊗ Aρ, 2)) = I ⊗ φ1(τ A ρ, 2).
+
+and therefore, again by formula (19), we have 
+
+φ1(τ M 1)w = vec ( φ1(τ A ρ, 2)W ) .
+
+Notice that the computation of the matrix φ1(τ A ρ, 2) can be conveniently per-formed by diagonalization, since the transformation matrix of Aρ, 2 is weakly well conditioned (see Proposition 1). In summary, the split exponential Euler scheme for the disk case (5a) is realized in matrix form as 
+
+( F n = Aρ, 2W n + DρW nAθ + Gn,
+
+W n+1 = W n + τ φ 1(τ A ρ, 2) Φρ,θ ◦ (F nQθ )QT 
+
+> θ
+
+, (20a) where W n and Gn are the order-2 tensors corresponding to the vectors wn and 
+
+g(wn), respectively. The ODEs system for the sphere case (5b) can be treated in a similar way. In fact, the action of M w is computed as 
+
+Aθ W Dϕ + W AT 
+
+> ϕ
+
+.
+
+Then, for the matrix function φ1(τ M 2), we have 
+
+φ1(τ M 2) = φ1 (τ (Aϕ ⊗ I)) = φ1 (τ A ϕ) ⊗ I
+
+and therefore we compute its action on w as 
+
+W φ1(τ A ϕ)T,
+
+where the matrix φ1(τ A ϕ) can be conveniently computed by diagonalization. Moreover, the action φ1(τ M 1)w is realized by 
+
+Qθ
+
+ Φθ,ϕ ◦ (QT 
+
+> θ
+
+W ),
+
+where Φθ,ϕ is the order-2 tensor with the elements φ1(τ λ θ j sin −2 ϕk) in position (j, k ). The split exponential Euler integrator in the sphere case (5b) is thus written in matrix form as 
+
+( F n = Aθ W nDϕ + W nAT 
+
+> ϕ
+
++ Gn,
+
+W n+1 = W n + τ Q θ
+
+ Φθ,ϕ ◦ (QT 
+
+> θ
+
+F nφ1(τ A ϕ)T). (20b) 10 We now consider the ODEs system for the three-dimensional ball case (5c). First of all, for a column vector w of n3 elements, the action M w can be equivalently computed in tensor form as 
+
+W ×1 Aρ, 3 + W ×1 Dρ ×2 Aθ ×3 Dϕ + W ×1 Dρ ×3 Aϕ,
+
+where W is the order-3 tensor whose element wijk coincides with the element 
+
+i + ( j − 1) n + ( k − 1) n2 of the vector w. The symbol ×1 denotes the 1-mode matrix-tensor product (multiplication of the matrix onto the columns of the tensor), ×2 the 2-mode product (multiplication onto the rows of the tensor), and ×3 the 3-mode product (multiplication onto the tubes of the tensor), see Reference [26, Sec 2.5]. The equivalence follows from the natural generalization of formula (19), that is (L3 ⊗ L2 ⊗ L1)w = vec( W ×1 L1 ×2 L2 ×3 L3).
+
+Here Lμ are matrices of size n × n, and the concatenation of μ-mode products is known as the Tucker operator . For more details on the μ-mode framework and its implementation for d = 3 by highly efficient level 3 BLAS, we invite the reader to consult, e.g., Reference [14]. Concerning the evaluation of the needed actions of matrix functions, we have 
+
+φ1(τ M 3) = φ1(τ (Aϕ ⊗ I ⊗ Dρ)) = ( Vϕ ⊗ I ⊗ I)φ1(τ (Λ ϕ ⊗ I ⊗ Dρ))( V −1 
+
+> ϕ
+
+⊗ I ⊗ I),
+
+where we used Aϕ = VϕΛϕV −1 
+
+> ϕ
+
+. Hence, the action φ1(τ M 3)w is realized as 
+
+ Φρ, ·,ϕ ◦ (W ×3 V −1 
+
+> ϕ
+
+) ×3 Vϕ,
+
+where Φρ, ·,ϕ in the order-3 tensor with elements φ1(τ ρ −2 
+
+> i
+
+λϕk) in position ( i, j, k ), being λϕk the eigenvalues of Aϕ. Then, for M2 we have 
+
+φ1(τ M 2) = φ1(τ (Dϕ ⊗Aθ ⊗Dρ)) = ( I ⊗Qθ ⊗I)φ1(τ (Dϕ ⊗Λθ ⊗Dρ))( I ⊗QT 
+
+> θ
+
+⊗I)and hence its action on w is realized by 
+
+ Φρ,θ,ϕ ◦ (W ×2 QT 
+
+> θ
+
+) ×2 Qθ ,
+
+where Φρ,θ,ϕ in the order-3 tensor with elements φ1(τ ρ −2 
+
+> i
+
+λθ j sin −2 ϕk) in posi-tion ( i, j, k ). Finally, from the equivalence 
+
+φ1(τ M 1) = φ1(τ (I ⊗ I ⊗ Aρ, 3)) = I ⊗ I ⊗ φ1(τ A ρ, 3),
+
+the action φ1(τ M 1)w is computed as 
+
+W ×1 φ1(τ A ρ, 3),
+
+where the matrix φ1(τ A ρ, 3) can be computed by diagonalization, since the trans-formation matrix of Aρ, 3 is weakly well conditioned. Therefore, concatenating 11 the three matrix function actions described above, the split exponential Euler method for the ball case (5c) is realized in tensor form as 
+
+
+
+F n = W n ×1 Aρ, 3 + W n ×1 Dρ ×2 Aθ ×3 Dϕ + W n ×1 Dρ ×3 Aϕ + Gn,
+
+W n+1 = W n + τ
+
+
+
+Φρ,θ,ϕ ◦
+
+ (Φρ, ·,ϕ ◦ (F n ×3 V −1 
+
+> ϕ
+
+)) ×3 Vϕ
+
+ ×2 QT
+
+> θ
+
+
+
+×2 Qθ
+
+!
+
+×1 φ1(τ A ρ, 3),
+
+(20c) where we remind that V −1 
+
+> ϕ
+
+= QT 
+
+> ϕ
+
+Ξ−1 (see the proof of Proposition 1). We conclude by considering the ODEs system for the cylinder case (5d). First of all, the action of the matrix M is computed as 
+
+W ×1 Aρ, 2 + W ×1 Dρ ×2 Aθ + W ×3 Az .
+
+The action φ1(τ M 3)w is realized by 
+
+W ×3 φ1(τ A z ),
+
+while the action φ1(τ M 2)w is computed by 
+
+ Φρ,θ, · ◦ (W ×2 QT 
+
+> θ
+
+) ×2 Qθ .
+
+Here Φρ,θ, · is the order-3 tensor with elements φ1(τ ρ −2 
+
+> i
+
+λθ j ) in position ( i, j, k ). The action of φ1(τ M 1)w is realized by 
+
+W ×1 φ1(τ A ρ, 2).
+
+Notice that both the matrices φ1(τ A z ) and φ1(τ A ρ, 2) can be conveniently computed by diagonalization, since the relevant transformation matrices are (weakly) well conditioned. Hence, the split exponential Euler method for the cylinder case (5d) is realized in tensor form by 
+
+
+
+F n = W n ×1 Aρ, 2 + W n ×1 Dρ ×2 Aθ + W n ×3 Az + Gn,
+
+W n+1 = W n + τ
+
+
+
+Φρ,θ, · ◦  (F n ×3 φ1(τ A z )) ×2 QT
+
+> θ
+
+
+
+×2 Qθ
+
+
+
+×1 φ1(τ A ρ, 2).
+
+(20d) We highlight that the employment of the proposed matrix- and tensor-oriented techniques leads to the direct schemes (20), where the relevant quanti-ties are computed by high-performance level 3 BLAS. In particular, no iterative method (e.g., Krylov subspace methods) is needed for the approximation of the matrix functions, nor we require the choice and/or tuning of input tolerances or hyperparameters. Hence, the computational cost of the proposed approach is constant per time step. Finally, we stress that the computational burden of the diagonalizations and scalar computations of the φ1 functions is negligible compared to that of the time integration. In fact, we perform these calculations on small-sized quantities once and for all before the actual start of the time marching. 12 5 Numerical experiments 
+
+In this section, we validate the proposed matrix- and tensor-oriented procedures on a variety of two- and three-dimensional examples with different geometries for the spatial domains. As already mentioned in the introduction, we consider as test problems coupled systems of diffusion–reaction equations leading to Turing patterns, that are of great interest for their effective application in many areas. Despite not being a single PDE as in formula (2), in these systems the differential operators act separately on the involved unknowns, and the coupling is realized by the nonlinear parts. Therefore, the proposed techniques can be easily adapted to handle the equations under study (see the following section for more insights and, e.g., References [10, 15]). All the numerical experiments are performed on a standard laptop equipped with an Intel ® Core ™ i7-10750H chip (six physical cores) and 16GB of RAM. We employ MathWorks MATLAB ® R2025a as a software. The source code to reproduce all the experiments, fully compatible with GNU Octave, can be found in a GitHub repository 1.To realize the required tensor-matrix operations, we use the relevant func-tions in KronPACK 2 (see Reference [14]). In addition, the needed eigenpairs are computed using the built-in MATLAB function eig . Finally, the initial con-ditions for the models are small random perturbations of steady states of the systems (as common in the context of Turing patterns). To this aim, for repro-ducibility of the results we fix in each example the MATLAB random generation seed with the command rng(2) .
+
+## 5.1 Order check and comparison with other integrators 
+
+In the first numerical example we demonstrate the expected convergence of the split exponential Euler method and highlight the performance of the proposed technique in comparison to other numerical integrators. To this aim, we consider the so-called BVAM model [2] 
+
+
+
+∂tu = γ∆Du + b(u, v ) on Ω ,∂tv = δ∆Dv + c(u, v ) on Ω ,
+
+∇u · n = 0 , ∇v · n = 0 on ∂Ω,
+
+(21a) with b(u, v ) = α1u(1 − α2v2) + v(1 − α3u),c(u, v ) = β1v
+
+
+
+1 + α1α2
+
+β1
+
+uv 
+
+
+
++ u(β2 + α3v) (21b) on a unitary disk (radius ρ∗ = 1). The symbol ∆ D denotes the Laplace operator on the disk defined in formula (3a). The parameters are set to γ = 3 .87 · 10 −3,
+
+α1 = −β2 = 8 .99 · 10 −1, α2 = α3 = 2 · 10 −1, δ = 7 .5 · 10 −3, and β1 = −9.1 · 10 −1.  
+
+> 1Available at https://github.com/cassinif/splitEE_curvilinear .
+> 2Available at https://github.com/caliarim/KronPACK .
+
+13 The initial condition is a random perturbation (of maximum amplitude 1 /2) of the spatially uniform steady state ( ue, v e) = (0 , 0), that is 
+
+u0 = U(−1/2, 1/2) , v0 = U(−1/2, 1/2) .
+
+Here and in the following U denotes the uniform random variable. This setting leads to the formation of a Turing pattern for t∗ sufficiently large, as we will see in the next section. On the other hand, for the purposes of this example, here we set the final time t∗ = 1. As mentioned before, for the convenience of the reader we explicitly write the system of ODEs arising from the semidiscretization of the coupled PDEs (21). In fact, in vector form we get 
+
+
+
+u′(t) = γ(I ⊗ Aρ, 2 + Aθ ⊗ Dρ)u(t) + b(u(t), v(t)) ,
+
+v′(t) = δ(I ⊗ Aρ, 2 + Aθ ⊗ Dρ)v(t) + c(u(t), v(t)) ,
+
+u(0) = u0,
+
+v(0) = v0,
+
+(22) where the relevant matrices have been introduced in Section 3. Then, the pre-vious system can be written in matrix form as 
+
+
+
+U ′(t) = γ(Aρ, 2U (t) + DρU (t)Aθ ) + B(U (t), V (t)) ,
+
+V ′(t) = δ(Aρ, 2V (t) + DρV (t)Aθ ) + C(U (t), V (t)) ,
+
+U (0) = U 0,
+
+V (0) = V 0,
+
+and the split exponential Euler scheme results in 
+
+
+
+En = γ(Aρ, 2U n + DρU nAθ ) + Bn,
+
+U n+1 = U n + τ φ 1(τ γA ρ, 2)( Φ ◦ (EnQθ )) QT 
+
+> θ
+
+,
+
+F n = δ(Aρ, 2V n + DρV nAθ ) + Cn,
+
+V n+1 = V n + τ φ 1(τ δA ρ, 2)( Ψ ◦ (F nQθ )) QT 
+
+> θ
+
+,
+
+(23) cf. with formula (20a). Here the order-2 tensors Bn and Cn collect the values of b(un, vn) and c(un, vn), respectively, and Φ and Ψ are the order-2 tensors with elements φ1(τ γρ −2 
+
+> i
+
+λθ j ) and φ1(τ δρ −2 
+
+> i
+
+λθ j ), respectively. We will compare the performance of the proposed scheme against the clas-sical exponential Euler method (15) applied to system (22). In fact, it can be written as 
+
+en = γ(I ⊗ Aρ, 2 + Aθ ⊗ Dρ)un + bn,
+
+un+1 = un + τ φ 1(τ γ (I ⊗ Aρ, 2 + Aθ ⊗ Dρ)) en,
+
+f n = δ(I ⊗ Aρ, 2 + Aθ ⊗ Dρ)vn + cn,
+
+vn+1 = vn + τ φ 1(τ δ (I ⊗ Aρ, 2 + Aθ ⊗ Dρ)) f n.
+
+(24) In practice, the needed actions of φ1 functions are realized using a state-of-the-art Krylov solver with incomplete orthogonalization, namely KIOPS 3 [21].  
+
+> 3Available at https://gitlab.com/stephane.gaudreault/kiops .
+
+14 Other suitable techniques for the computation of the action of the φ1 function of large and sparse matrices are described in References [1, 13, 31]. Furthermore, we compare the performance against the classical forward Euler method applied to system (22). Despite the well-known limitations of the scheme in a stiff context, it is widely employed in the literature for Turing patterns (see, e.g., References [2, 35, 38]) because of its simplicity of implementation and overall good performance when the number of degrees of freedom, and thus the stiffness, is moderate. We measure the performance of the schemes in terms of wall-clock times (reported in seconds in the plots) and error at the final time. For the latter, we consider the 2-norm of the relative Frobenius norm of the two components of the system. We report in Figure 1 the outcome of the simulations for increasing number of time steps m and degrees of freedom (DOF) ( nρ, n θ ) = (25 , 50) (top plots) and ( nρ, n θ ) = (40 , 80) (bottom plots). First of all, notice that all the methods show the expected first-order convergence. Then, as anticipated, the forward Euler method has a time step size restriction due to the lack of favor-able stability properties in the stiff context. As a matter of fact, it is not able to produce an approximation in the case with lower DOF unless a sufficiently large number of time steps is employed. Increasing the DOF (bottom plots) always results in a divergent behavior for the chosen range of m. Also, when the for-ward Euler method converges, it has a slightly higher error compared to that of the exponential integrators. These downfalls, together with the computational cost comparable to that of the proposed split exponential Euler method, allow us to conclude that the forward Euler method should not be considered as a robust approach in our context. Considering more in detail the performance of the exponential integrators, we observe that no time step size restriction is required to guarantee stability. Moreover, we see that the error of the split exponential Euler method is comparable to that of exponential Euler. This is expected, since we are inserting a second-order approximation for the φ1 func-tion in a first-order integrator, see formula (18). On the other hand, in terms of computational cost, the advantage of employing the split version of exponential Euler is clear. In fact, in average it is 17 times faster than the (classical) expo-nential Euler method. The superiority of matrix and tensor oriented techniques over vector approaches in square and cubic domains was already observed, e.g., in References [10, 15]. Remark that the split exponential Euler method has a constant cost per time step (roughly 0 .02 and 0 .1 milliseconds for the top and bottom plots, respectively) since it is a direct method. Moreover, as mentioned in a previous section, it has an initialization phase of negligible computational burden compared to that of the overall time integration. In this phase, we compute the quantities required by the split scheme (that is, eigenpairs and φ1
+
+functions of scalar arguments), and in fact it takes at most 0 .2 milliseconds for both experiments. In summary, all the above considerations allow us to con-clude that the split exponential Euler method is the preferred method in our setting. For brevity of exposition, in the following experiments we will present only the results with this scheme. 15 100 400 1500 5000 
+
+10 −4
+
+10 −3
+
+m
+
+> Relative error
+
+FE 
+
+EE 
+
+SplitEE 
+
+10 −2 10 −1 10 0 10 1
+
+10 −4
+
+10 −3
+
+Wall-clock time 
+
+> Relative error
+
+100 400 1500 5000 
+
+10 −4
+
+10 −3
+
+m
+
+> Relative error
+
+10 −2 10 −1 10 0 10 1
+
+10 −4
+
+10 −3
+
+Wall-clock time 
+
+> Relative error
+
+Figure 1: Results of the experiment in Section 5.1 for varying number of time steps m. The DOF in the top plots are ( nρ, n θ ) = (25 , 50), while in the bot-tom plots are ( nρ, n θ ) = (40 , 80). The reference dashed line has slope −1. In the legend, FE denotes the forward Euler method, EE the exponential Euler scheme (24), and SplitEE the proposed split exponential Euler integrator (23). 
+
+## 5.2 BVAM model on the disk 
+
+We now consider the same BVAM model and parameters of the previous sec-tion, namely system (21), but we take the final time t∗ = 1600 as in Refer-ence [2]. The choice of the parameters triggers Turing instability of the equilib-rium ( ue, v e) = (0 , 0), eventually leading to a static but spatially inhomogeneous state. The DOF per direction are set to ( nρ, n θ ) = (40 , 80), and the time-marching integrator is again (23) with m = 10000 time steps. The outcome of the simulation is presented in Figure 2. The results are in perfect agree-ment with what already reported in the literature (see Reference [2, Fig. 2(b)]), namely the resulting pattern in the u component is a spot pattern with symme-try. The wall-clock time of the simulation is approximately 1 second. We also 16 illustrate the evolution of the integral mean of u, that is 
+
+⟨u⟩ = 1
+
+|Ω|
+
+Z
+
+> Ω
+
+u(t, x, y )dxdy, 
+
+as an indicator of the system reaching the desired state. As expected, after the initial reactivity phase, the integral mean stabilizes and remains constant. x                  
+
+> -1 -0.5 00.5 1
+> y
+> -1 -0.5 00.5 1uat t= 1600
+> -0.5 00.5 11.5 t
+> 0200 400 600 800 1000 1200 1400 1600
+> Integral mean
+> -0.06 -0.04 -0.02 00.02 0.04 Evolution of integral mean 〈u〉
+
+Figure 2: Results of the experiment in Section 5.2 using integrator (23). The DOF per direction are ( nρ, n θ ) = (40 , 80) (total number of DOF 2 · 3200), and the number of time steps is m = 10000. Left: u component at the final time. Right: evolution of integral mean ⟨u⟩. The total simulation wall-clock time is about 1 second. 
+
+## 5.3 Schnakenberg model with anomalous diffusion on the disk 
+
+We now consider a different coupled system, namely the following anomalous 
+
+diffusion–reaction model with Schnakenberg kinetics [30] 
+
+
+
+∂tu = ∆ λu + α1b(u, v ) on Ω ,∂tv = δ∆λv + α1c(u, v ) on Ω ,u = ue, v = ve on ∂Ω,
+
+(25a) where b(u, v ) = α2 − u + u2v, c(u, v ) = β1 − u2v. (25b) The spatial domain Ω is the unitary disk (that is, the radius is ρ∗ = 1). The anomalous diffusion operator ∆ λ is defined by ∆λ =
+
+ 1 − λρ1+ λ
+
+∂∂ρ + 1
+
+ρλ
+
+∂2
+
+∂ρ 2
+
+
+
++ 1
+
+ρ2+ λ
+
+∂2
+
+∂θ 2 , (26) see References [30, 23]. Positive values of λ describe subdiffusion models, while negative ones superdiffusion. Clearly, λ = 0 gives the classical Laplace operator 17 in polar coordinates ∆ D, see formula (3a). The inhomogeneous boundary values for u and v are set to ( ue, v e) = ( α2 + β1, β 1/(α2 + β1)2), which corresponds to the spatially uniform steady state of the system. The remaining parameters are fixed to α1 = 5 · 10 2, α2 = 1 .4 · 10 −1, δ = 5 · 10 1, and β1 = 1 .34. We perform our simulation in a superdiffusion regime, and in particular we choose the parameter λ = −1.95. The initial condition is set to 
+
+u0 = ue + 10 −5 · N (0 , 1) , v0 = ve + 10 −5 · N (0 , 1) .
+
+Here and in the following N denotes the normal random variable. We discretize the operator (26) following a similar approach to that described in Section 3 for the disk. In particular, after lifting the system so that we have a model with homogeneous Dirichlet boundary conditions, we end up with a computational grid in the ρ coordinate and corresponding tridiagonal discretization matrix (8) as 
+
+ρi = (1 − λ) hρ
+
+2 + ( i − 1) hρ, hρ = ρ∗
+
+n + 1−λ
+
+> 2
+
+,aℓ = − 2( 1−λ 
+
+> 2
+
++ ℓ − 1) λh2+ λρ
+
+, bℓ = 1 − λ + ℓ − 1( 1−λ 
+
+> 2
+
++ ℓ − 1) 1+ λh2+ λρ
+
+, cℓ = ℓ
+
+( 1−λ 
+
+> 2
+
++ ℓ)1+ λh2+ λρ
+
+.
+
+(27) Notice that also in this anomalous diffusion case we obtain an essentially non-negative matrix with negative eigenvalues. For ease of reading, the estimate on the condition number of the related transformation matrix is reported in Appendix B. Clearly, the discretization matrix for the θ coordinate is still (7). Concerning the time marching, we employ the integrator in formula (23) with suitable adaptations, namely Aρ, 2 is replaced by the matrix defined above and 
+
+Dρ by the diagonal matrix with entries ρ−2−λi .The results of the simulation at the final time t∗ = 2 .5, setting the DOF per direction to ( nρ, n θ ) = (160 , 160) and the number of time steps to m = 25000, are depicted in Figure 3. Also in this case, the outcome perfectly matches with experiments already available in the literature (see Reference [30, Fig. 9 top right]) and the integral mean stabilizes as time proceeds. The total wall-clock time of this simulation is approximately 19 seconds. 
+
+## 5.4 DIB model on the sphere 
+
+We proceed our experiments by considering the DIB model on a sphere. In particular, the governing equations are [28] 
+
+
+
+∂tr = 1
+
+ρ2
+
+> ∗
+
+∆Sr + ζ1p(r, s ) on Ω ,∂ts = ερ2
+
+> ∗
+
+∆Ss + ζ1q(r, s ) on Ω ,
+
+(28a) where 
+
+p(r, s ) = ζ2(1 − s)r − ζ3r3 − ζ4(s − ζ5),q(r, s ) = η1(1 + η2r)(1 − s)(1 − η3(1 − s)) − η4s(1 + η3s)(1 + η5r), (28b) 18 x               
+
+> -1 -0.5 00.5 1
+> y
+> -1 -0.5 00.5 1uat t= 2 .5
+> 1234567t
+> 00.5 11.5 22.5
+> Integral mean
+> 1.4 1.6 1.8 22.2 2.4 2.6 Evolution of integral mean 〈u〉
+
+Figure 3: Results of the experiment in Section 5.3 using a suitable adaptation of integrator (23). The DOF per direction are ( nρ, n θ ) = (160 , 160) (total number of DOF 2 · 25600), and the number of time steps is m = 25000. Left: u
+
+component at the final time. Right: evolution of integral mean ⟨u⟩. The total simulation wall-clock time is about 19 seconds. and η4 = η1(1 − ζ5)(1 − η3 + η3ζ5)/(ζ5(1 + η3ζ5)). The symbol ∆ S denotes the Laplace–Beltrami operator (3b). The spatial domain Ω is a sphere with radius ρ∗ = 1 .1653, while the parameter values are set to ζ1 = ζ2 = 10, ζ3 = 1, 
+
+ζ4 = 48, ζ5 = 0 .5, η1 = 5, η2 = 2 .5, η3 = 0 .2, η5 = 1 .5, and ε = 20. The initial condition is a small random perturbation of the spatially homogeneous equilibrium ( ue, v e) = (0 , ζ 5), that is 
+
+u0 = ue + 10 −6 · N (0 , 1) , v0 = ve + 10 −6 · N (0 , 1) .
+
+For the simulation we consider as DOF per direction ( nθ , n ϕ) = (100 , 50) and the time-marching scheme is the adaptation of integrator (20b) to coupled systems. The final time is set to t∗ = 18 and the number of time steps is m = 9000. The outcome is depicted in Figure 4, and it resembles similar experiments available in the literature (see, e.g., Reference [28, Fig. 2 center]). In particular, the choice of the parameters triggers the Turing instability and the resulting pattern in the 
+
+u component are one-armed spirals. The wall-clock time of the simulation is approximately 3 seconds. 19 t           
+
+> 0246810 12 14 16 18
+> Integral mean
+> 00.05 0.1 0.15 0.2 0.25 0.3 0.35 Evolution of integral mean 〈u〉
+
+Figure 4: Results of the experiment in Section 5.4 using the adaptation of integrator (20b) to coupled systems. The DOF per direction are ( nθ , n ϕ) = (100 , 50) (total number of DOF 2 · 5000), and the number of time steps is 
+
+m = 9000. Left: u component at the final time. Right: evolution of integral mean ⟨u⟩. The total simulation wall-clock time is about 3 seconds. 
+
+## 5.5 Bulk-surface Schnakenberg model on the sphere 
+
+We now compute a numerical approximation to the following four-components bulk-surface Schnakenberg reaction–diffusion system on the sphere [18] 
+
+
+
+∂tu = ∆ Bu + α1b(u, v ) on Ω ,∂tv = δ∆Bv + α1c(u, v ) on Ω ,∂tr = 1
+
+ρ2
+
+> ∗
+
+∆Sr + ζ1p(u, v, r, s ) on ∂Ω,∂ts = ερ2
+
+> ∗
+
+∆Ss + ζ1q(u, v, r, s ) on ∂Ω,
+
+∇u · n = ζ1(ζ2r − ζ3u), δ∇v · n = ζ1(η1s − η2v) on ∂Ω,
+
+(29a) where 
+
+b(u, v ) = α2 − u + u2v, p(u, v, r, s ) = b(r, s ) − (ζ2r − ζ3u),c(u, v ) = β1 − u2v, q(u, v, r, s ) = c(r, s ) − (η1s − η2v). (29b) The symbols ∆ S and ∆ B represent the Laplace–Beltrami and the Laplace opera-tors (3b) and (3c), respectively. In the system, the first two equations are defined on the spatial domain Ω which is a unitary ball (that is, the radius is ρ∗ = 1). The second and third equations define the dynamics at the boundary surface (the unitary sphere). Finally, the last two equations are the needed boundary conditions for u and v. In the model, we set the parameters to α1 = ζ1 = 55, 
+
+α2 = 0 .1, β1 = 0 .9, ζ2 = ζ3 = 5 /12, η1 = η2 = 5, and δ = ε = 10. The spatially homogeneous equilibrium (ue, v e, r e, s e) = ( α2 + β1, β 1/(α2 + β1)2, α 2 + β1, β 1/(α2 + β1)2)20 is subject to Turing instability. In fact, we take as the initial condition 
+
+u0 = ue + 10 −3 · N (0 , 1) , r0 = re + 10 −3 · N (0 , 1) ,v0 = ve + 10 −3 · N (0 , 1) , s0 = se + 10 −3 · N (0 , 1) ,
+
+and integrate the system up to the final time t∗ = 20 with the adaptation of schemes (20b) and (20c) to coupled systems. Remark that, similarly to the two-component cases presented previously, the linear differential operators act separately on the different components of the system, allowing us to employ our proposed integrators after spatial semidiscretization (see the discussion in Section 5.1). We omit the details for brevity of exposition. The results of the simulation setting the DOF per direction to ( nρ, n θ , n ϕ) = (30 , 50 , 30) and the number of time steps to m = 200000 are depicted in Fig-ure 5. Also in this more challenging three-dimensional case, we are able to efficiently obtain the expected pattern using our tensor-based proposed tech-nique (cf. Reference [18, Fig. 3]). In fact, the split exponential Euler method is able to retrieve the spatially inhomogeneous steady state (tunnels connecting three out of six spots of u, all in correspondence with spots in the r component) in approximately 6.5 minutes. As expected, both the integral means of u and r
+
+stabilize to constant values as time proceeds. 
+
+## 5.6 Bulk-surface DIB model on the cylinder 
+
+We conclude our set of experiments with another three-dimensional bulk-surface model. In particular, we consider the BS-DIB model presented in [19] but, instead of choosing a cube as the spatial domain Ω, we take a cylinder. To this aim, we define the boundary surface as ∂Ω = Ω B ∪ ΩL ∪ ΩT where Ω B is the bottom disk of the cylinder, Ω L is its lateral surface, and Ω T it its top disk (see Figure 6 for a graphical representation). The governing equations are 
+
+
+
+∂tu = ∆ Cu + b(u) on Ω ,∂tv = δ∆Cv + c(v) on Ω ,∂tr = ∆ Dr + ζ1p(u, r, s ) on Ω B,∂ts = ε∆Ds + ζ1q(v, r, s ) on Ω B,u = α2, v = β2 on Ω T,
+
+∇u · n = −ζ1α3p(u, r, s ) on Ω B,
+
+∇v · n = −ζ1β3q(v, r, s ) on Ω B,
+
+∇u · n = 0 , ∇v · n = 0 on Ω L,
+
+∇r · n = 0 , ∇s · n = 0 on ∂ΩB,
+
+(30a) 21 t        
+
+> 0510 15 20
+> Integral mean
+> 0.988 0.99 0.992 0.994 0.996 0.998 11.002 1.004 Evolution of integral means 〈u〉and 〈r〉
+> 〈u〉〈r〉
+
+Figure 5: Results of the experiment in Section 5.5 using the adaptation of integrators (20b) and (20c) to coupled systems. The DOF per direction are (nρ, n θ , n ϕ) = (30 , 50 , 30) (total number of DOF 2 · 45000 + 2 · 1500), and the number of time steps is m = 200000. Top: u component (left) and isosurface at level 1 .5 (right) at the final time. Bottom: r component at final time (left) and evolution of integral means ⟨u⟩ and ⟨r⟩ (right). The total simulation wall-clock time is about 6.5 minutes. ΩL
+
+ΩT
+
+ΩB
+
+Figure 6: Graphical representation of the spatial domain Ω for the experiment in Section 5.6. where 
+
+b(u) = −α1(u − α2),c(v) = −β1(v − β2),p(u, r, s ) = ζ2u(1 − s)r − ζ3r3 − ζ4(s − ζ5),q(v, r, s ) = η1v(1 + η2r)(1 − s)(1 − η3(1 − s)) − η4(1 + η5r)s(1 + η3s).
+
+(30b) 22 The symbols ∆ C and ∆ D denote the Laplace operator on the cylinder (3d) and the disk (5a), respectively. The radius of the cylinder is set to ρ∗ = 25 and the height is set to z∗ = 25. The parameters are set to α1 = α2 = δ = β1 =
+
+β2 = ζ1 = ζ3 = 1, α3 = β3 = 0 .15, ε = 20, ζ2 = 10, ζ4 = 66, ζ5 = 0 .5, 
+
+η1 = 3, η2 = 2 .5, η3 = 0 .2, η5 = 1 .5. Finally, the parameter η4 is set to 
+
+β2η1(1 − ζ5)(1 − η3 + η3ζ5)/(ζ5(1 + η3ζ5)) so that the spatially homogeneous equilibrium ( ue, v e, r e, s e) = (1 , 1, 0, ζ 5) is subject to Turing instability. In fact, we take as initial condition 
+
+u0 = ue, v0 = ve, r0 = re + 10 −2 · U (0 , 1) , s0 = se + 10 −2 · U (0 , 1) ,
+
+and integrate the system up to the final time t∗ = 50 employing the adaptation of schemes (20a) and (20d) to coupled systems. The results of the simulation setting the DOF per direction to ( nρ, n θ , n z ) = (160 , 160 , 20) and the number of time steps to m = 8000 are displayed in Fig-ures 7 ( r component) and 8 ( u component). The obtained pattern is, as ex-pected, a mix of spots and worms both in the surface component r and in u at 
+
+z = 0. Then, analogously to the case considered in Reference [19, Experiment D2], the pattern dissipates as z increases, eventually keeping the constant value 1. The overall wall-clock time for this simulation is approximately 4 minutes. x               
+
+> -25 -12.5 012.5 25
+> y
+> -25 -12.5 012.5 25 rat t= 50
+> -1.5 -1 -0.5 00.5 1t
+> 010 20 30 40 50
+> Integral mean
+> -0.1 00.1 0.2 0.3 0.4 Evolution of integral mean 〈r〉
+
+Figure 7: Results for the r component of the experiment in Section 5.6 using the adaptation of integrators (20a) and (20d) to coupled systems. The DOF per direction are ( nρ, n θ , n z ) = (160 , 160 , 20) (total number of DOF 2 · 512000 + 2 · 25600), and the number of time steps is m = 8000. Left: r component at the final time. Right: evolution of integral mean ⟨r⟩. The total simulation wall-clock time is about 4 minutes. 
+
+# 6 Conclusions 
+
+In this manuscript, we proposed efficient matrix and tensor realizations of a novel split exponential Euler integrator for the solution of a class of evolu-tionary equations in common curvilinear coordinates (such as polar, spherical, 23 x                                    
+
+> -25 -12.5 012.5 25
+> y
+> -25 -12.5 012.5 25 uat t= 50 ( z= 0)
+> 0.9 0.95 11.05 1.1 1.15 1.2 x
+> -25 -12.5 012.5 25
+> y
+> -25 -12.5 012.5 25 uat t= 50 ( z= 1 .25)
+> 0.9 0.95 11.05 1.1 1.15 1.2 x
+> -25 -12.5 012.5 25
+> y
+> -25 -12.5 012.5 25 uat t= 50 ( z= 2 .5)
+> 0.9 0.95 11.05 1.1 1.15 1.2 x
+> -25 -12.5 012.5 25
+> y
+> -25 -12.5 012.5 25 uat t= 50 ( z= 3 .75)
+> 0.9 0.95 11.05 1.1 1.15 1.2
+
+Figure 8: Results for the u component of the experiment in Section 5.6 using the adaptation of integrators (20a) and (20d) to coupled systems, see also Figure 7. and cylindrical systems). The chosen discretization guarantees stability and al-lows the evaluation of the relevant quantities by using high-performance level 3 BLAS operations, thanks to the μ-mode framework. Numerical experiments on representative two- and three-dimensional diffusion–reaction systems for Turing pattern formation demonstrate both the robustness and the efficiency of the proposed approach, with computational times ranging from a few seconds to 6.5 minutes for three-dimensional simulations involving more than 10 6 degrees of freedom. Promising directions for future research include a rigorous stiff er-ror analysis of the scheme, as well as its extension to more general differential operators and alternative geometric settings. 
+
+# 7 Acknowledgments 
+
+The authors are members of the Gruppo Nazionale Calcolo Scientifico-Istitu-to Nazionale di Alta Matematica (GNCS-INdAM). Fabio Cassini was partially funded by INdAM. 24 A On the discretization matrix Aϕ
+
+In this appendix, we prove the existence of a unique solution to system (12), which is related to the discretization matrix Aϕ in formula (13). Moreover, we show that the transformation matrix of Aϕ is weakly well conditioned in the 2-norm for sufficiently large n.By substituting hϕ in the second equation of (12), the unknown σ can be found by computing the root of 
+
+f (x) = cot 
+
+ xπ n − 1 + 2 x
+
+
+
+− 2( n − 1 + 2 x)
+
+π .
+
+This nonlinear equation has a unique solution, since f (x) changes sign in the interval (0 , 1/2) and f ′(x) < 0. In fact, f (x) → +∞ as x → 0. Then, by noticing that the argument of the cotangent is always less than π/ 2, and by exploiting that cot( y) < 1/y for 0 < y < π/ 2, we get f (1 /2) < 0. Finally, by direct computation we get 
+
+f ′(x) = −
+
+ 4
+
+π + (n − 1) πcsc 2(πx/ (2 x + n − 1)) (2 x + n − 1) 2
+
+
+
+< 0.
+
+Hence, σ ∈ (0 , 1/2). Concerning the conditioning, we first show that the solution σ of (12) tends to 1 /2 for large n, which means that the discretization resembles a half-point discretization at both endpoints of the interval. We already proved that σ < 1/2. Then, using system (12) and exploiting the inequality cot( y) > 1/y + 1 /(y − π)for 0 < y < π/ 2, we get 2( n − 1 + 2 σ)
+
+π > (n − 1 + 2 σ)
+
+σπ + 1 
+
+> σπ
+> (n−1+2 σ)
+
+− π ⇐⇒ σ2+( n−1) σ−(n−1) /2 > 0.
+
+The relevant solution is 
+
+σ > −(n − 1) + √n2 − 12and the right hand side tends to 1 /2 for n large. Therefore, we conclude by the sandwich theorem. Thanks to this result, and using again the above inequalities for the cotangent function, we can easily obtain that the condition number of the diagonal symmetrization matrix of Aϕ grows as √n.
+
+# B On the discretization matrix of ∆λ
+
+In this appendix, we show that the transformation matrix of the discretization matrix of ∆ λ for λ < 0 (see formula (27)) is weakly well conditioned in the 2-norm. The element ξℓ of the diagonal symmetrization matrix Ξ is 
+
+s
+
+(1 − λ)1+ λ
+
+((2 ℓ − 1) − λ)1+ λ
+
+(ℓ − 1)! 
+
+Qℓ−1 
+
+> i=1
+
+(i − λ) , ℓ ≥ 2.
+
+25 The smallest value is attained at ℓ = n and therefore the largest value in Ξ −1 is 
+
+s (2 n − 1) − λ
+
+1 − λ
+
+1+ λ
+
+Pn−1(λ), Pn−1(λ) = 
+
+Qn−1 
+
+> i=1
+
+(i − λ)(n − 1)! .
+
+Taking the logarithm, we have log Pn−1(λ) = log(1 − λ) + log(1 − λ
+
+2 ) · · · + log(1 − λn − 1 )
+
+< −λ(1 + 12 + · · · + 1
+
+n − 1 ) < −λ(ln( n − 1) + 1) .
+
+Therefore, 
+
+Pn(λ) < e−λ(ln( n−1)+1) = O(n−λ).
+
+Hence, the largest element of Ξ −1 grows as √n. Since ∥Ξ∥2 = 1 we get the result. 
+
+# References 
+
+[1] A. H. Al-Mohy and N. J. Higham. Computing the Action of the Matrix Exponential, with an Application to Exponential Integrators. SIAM J. Sci. Comput. , 33(2):488–511, 2011. [2] J. L. Arag´ on, M. Torres, D. Gil, R. A. Barrio, and P. K. Maini. Turing patterns with pentagonal symmetry. Phys. Rev. E , 65:051913, 2002. [3] U. M. Ascher, S. J. Ruuth, and B. T. R. Wetton. Implicit-Explicit Methods for Time-Dependent Partial Differential Equations. SIAM J. Numer. Anal. ,32(2):797–823, 1995. [4] M. Benzi and V. Simoncini. Approximation of functions of large matrices with Kronecker structure. Numer. Math. , 135:1–26, 2017. [5] H. P. Bhatt, A. Q. M. Khaliq, and B. A. Wade. Efficient Krylov-based expo-nential time differencing method in application to 3D advection-diffusion-reaction systems. Appl. Math. Comput. , 338:260–273, 2018. [6] B. Bialecki and L. Wright. A fast direct solver for a fourth order finite dif-ference scheme for Poisson’s equation on the unit disc in polar coordinates. 
+
+Numer. Algorithms , 70:727–751, 2015. [7] N. F. Britton. Reaction-Diffusion Equations and Their Applications to Biology . Academic Press, New York, NY, 1986. [8] L. Brugnano and D. Trigiante. Tridiagonal matrices: Invertibility and conditioning. Linear Algebra Appl. , 166:131–150, 1992. 26 [9] M. Caliari and F. Cassini. Direction splitting of φ-functions in exponen-tial integrators for d-dimensional problems in Kronecker form. J. Approx. Softw. , 1(1):1, 2024. [10] M. Caliari and F. Cassini. A second order directional split exponential in-tegrator for systems of advection–diffusion–reaction equations. J. Comput. Phys. , 498:112640, 2024. [11] M. Caliari and F. Cassini. Matrix- and tensor-oriented numerical schemes for the evolutionary space-fractional complex Ginzburg–Landau equation. 
+
+arXiv preprint arXiv:2510.21394 , 2025. [12] M. Caliari, F. Cassini, L. Einkemmer, A. Ostermann, and F. Zivcovich. A 
+
+μ-mode integrator for solving evolution equations in Kronecker form. J. Comput. Phys. , 455:110989, 2022. [13] M. Caliari, F. Cassini, and F. Zivcovich. BAMPHI: Matrix-free and transpose-free action of linear combinations of φ-functions from exponential integrators. J. Comput. Appl. Math. , 423:114973, 2023. [14] M. Caliari, F. Cassini, and F. Zivcovich. A μ-mode BLAS approach for mul-tidimensional tensor-structured problems. Numer. Algorithms , 92(4):2483– 2508, 2023. [15] F. Cassini. Efficient third-order tensor-oriented directional splitting for exponential integrators. Electron. Trans. Numer. Anal. , 60:520–540, 2024. [16] M. Chen and D. Kressner. Recursive blocked algorithms for linear systems with Kronecker product structure. Numer. Algorithms , 84(3):1199–1216, 2020. [17] M. C. D’Autilia, I. Sgura, and V. Simoncini. Matrix-oriented discretiza-tion methods for reaction–diffusion PDEs: Comparisons and applications. 
+
+Comput. Math. Appl. , 79(7):2067–2085, 2020. [18] M. Frittelli, A. Madzvamuse, and I. Sgura. The bulk-surface virtual element method for reaction-diffusion PDEs: Analysis and applications. Commun. Comput. Phys. , 33(3):733–763, 2023. [19] M. Frittelli, I. Sgura, and B. Bozzini. Turing patterns in a 3D morpho-chemical bulk-surface reaction-diffusion system for battery modeling. Math. Eng. , 6(2):363–393, 2024. [20] G. Gambino, M. C. Lombardo, G. Rubino, and M. Sammartino. Pattern selection in the 2D FitzHugh–Nagumo model. Ric. Mat. , 68:535–549, 2019. [21] S. Gaudreault, G. Rainwater, and M. Tokman. KIOPS: A fast adap-tive Krylov subspace solver for exponential integrators. J. Comput. Phys. ,372:236–255, 2018. 27 [22] E. Hairer and G. Wanner. Solving Ordinary Differential Equations II: Stiff and Differential Algeraic Problems , volume 14 of Springer Series in Com-putational Mathematics . Springer Berlin, second edition, 1996. [23] D. Hern´ andez, E. C. Herrera-Hern´ andez, M. N´ u˜ nez L´ opez, and H. Hern´ andez-Coronado. Self-similar Turing patterns: An anomalous dif-fusion consequence. Phys. Rev. E , 95:022210, 2017. [24] M. Hochbruck and A. Ostermann. Exponential integrators. Acta Numer. ,19:209–286, 2010. [25] W. Hundsdorfer and J. G. Verwer. Numerical Solution of Time-Dependent Advection-Diffusion-Reaction Equations , volume 33 of Springer Series in Computational Mathematics . Springer Berlin, Heidelberg, 2003. [26] T. G. Kolda and B. W. Bader. Tensor decompositions and applications. 
+
+SIAM Rev. , 51(3):455–500, 2009. [27] D. Kulkarni, D. Schmidt, and S.-K. Tsui. Eigenvalues of tridiagonal pseudo-Toeplitz matrices. Linear Algebra Appl. , 297:63–80, 1999. [28] D. Lacitignola, B. Bozzini, M. Frittelli, and I. Sgura. Turing pattern for-mation on the sphere for a morphochemical reaction–diffusion model for electrodeposition. Commun. Nonlinear Sci. Numer. Simulat. , 28:484–508, 2017. [29] M.-C. Lai. A note on finite difference discretizations for Poisson equation on a disk. Numer. Methods Partial Differ. Equ. , 17(3):199–203, 2000. [30] A. V. L´ opez, D. Hern´ andez, C. G. Aguilar-Madera, R. C. Mart´ ınez, and E. C. Herrera-Hern´ andez. Boundary conditions influence on Turing pat-terns under anomalous diffusion: A numerical exploration. Phys. D ,470:134353, 2024. [31] V. T. Luan, J. A. Pudykiewicz, and D. R. Reynolds. Further development of efficient and accurate time integration schemes for meteorological models. 
+
+J. Comput. Phys. , 376:817–837, 2019. [32] G. Meurant. Hessenberg and Tridiagonal Matrices . Other Titles in Applied Mathematics. SIAM, Philadelphia, PA, first edition, 2025. [33] J. D. Murray. Mathematical Biology II: Spatial Models and Biomedical Applications , volume 18 of Interdisciplinary Applied Mathematics . Springer, third edition, 2003. [34] J. Schnakenberg. Simple chemical reaction systems with limit cycle be-haviour. J. Theor. Biol. , 81:389–400, 1979. [35] S. Singh, R. C. Mittal, S. R. Thottoli, and M. Tamsir. High-fidelity simulations for Turing pattern formation in multi-dimensional Gray–Scott reaction-diffusion system. Appl. Math. Comput , 452:128079, 2023. 28 [36] J. Smoller. Shock waves and reaction–diffusion equations . Grundlehren der mathematischen Wissenschaften. Springer, New York, NY, second edition, 1994. [37] C. F. Van Loan. The ubiquitous Kronecker product. J. Comput. Appl. Math. , 123:85–100, 2000. [38] C. Varea, J. L. Arag´ on, and R. A. Barrio. Turing patterns on a sphere. 
+
+Phys. Rev. E , 60(4):4588–4592, 1999. 29

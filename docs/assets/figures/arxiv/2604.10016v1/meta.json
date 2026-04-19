@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.10016v1/fig-001.webp",
+      "caption": "Figure 4. Performance comparison between ViT and HNN.",
+      "page": 7,
+      "index": 1,
+      "width": 716,
+      "height": 589
+    },
+    {
+      "url": "assets/figures/arxiv/2604.10016v1/fig-002.webp",
+      "caption": "Figure 7. Illustration of the changes of the total unsigned magnetic flux in the 10 magnetograms at time points t − 9, t − 8, . . . , t − 1, t used as the input of our HNN model in the six ARs shown in Figure 6 where t is as specified in each panel. Left panels: results for the three positive predictions (true positives), where a positive prediction indicates that the corresponding AR will produce an eruptive flare within the next 24 hours of t. Right panels: results for the three negative predictions (true negatives), where a negative prediction indicates that the corresponding AR will produce a confined flare within the next 24 hours of t. There is no clear difference in the trends between the results for the three positive predictions and those for the three negative predictions.",
+      "page": 10,
+      "index": 2,
+      "width": 716,
+      "height": 860
+    },
+    {
+      "url": "assets/figures/arxiv/2604.10016v1/fig-003.webp",
+      "caption": "Figure 1. Construction of positive and negative magnetograms used in our prediction task. The magnetograms are collected at a frequency of 1 hour. Each rectangular box corresponds to 1 hour and contains one magnetogram. The red vertical line indicates the peak time of a γ-class flare, where γ implies ≥M5.0, ≥M, or ≥C. The yellow rectangular boxes shown in the left panel contain magnetograms that are within the 24 hours prior to the peak time of a γ-class flare that is associated with a CME; these yellow magnetograms belong to the positive class. The gray rectangular boxes shown in the right panel contain magnetograms that are within the 24 hours prior to the peak time of a γ-class flare that is not associated with a CME; these gray magnetograms belong to the negative class. Notice that in theory there are 24 magnetograms that are within the 24 hours prior to the peak time of a γ-class flare. However, in practice, since some magnetograms could be missing, there could be fewer than 24 magnetograms collected in our datasets.",
+      "page": 3,
+      "index": 3,
+      "width": 1067,
+      "height": 280
+    },
+    {
+      "url": "assets/figures/arxiv/2604.10016v1/fig-004.webp",
+      "caption": "Figure 5. Attention heat maps of the HNN model for two test magnetograms. The grayscale bar corresponds to the LOS magnetic field, in Gauss. The color bar shows the attention score. A larger attention score at a region indicates that more attention is paid to the region, where large attention scores are represented by dark red and small attention scores are represented by dark blue. (a) A positive prediction (true positive) where the magnetogram on the left is predicted to be positive, related to an eruptive flare. The model pays much attention to the vicinity of a polarity inversion line (PIL) region in the magnetogram. (b) A negative prediction (true negative) where the magnetogram on the left is predicted to be negative, related to a confined flare. The model pays no attention to the clearly weaker PIL region in the magnetogram. Instead, the model pays some attention to the region where no PIL exists.",
+      "page": 8,
+      "index": 4,
+      "width": 882,
+      "height": 724
+    },
+    {
+      "url": "assets/figures/arxiv/2604.10016v1/fig-005.webp",
+      "caption": "Figure 2. Overall architecture of our HNN model. Given is a magnetogram xt at time point t in an AR that will produce a γ-class flare within the next 24 hours of t. The HNN model accepts, as input, a time series or sequence of m magnetograms xt−m+1, xt−m+2, xt−m+3 . . . , xt−2, xt−1, xt where m is set to 10. The sequence is first processed image-by-image by a vision transformer (ViT) to extract spatial features in the sequence. The resultant sequence of m embedding vectors is then sent to a long short-term memory (LSTM) network to capture temporal dependencies in the sequence. Finally, the HNN model produces, as output, “1” indicating that xt is positive (i.e., the γ-class flare is eruptive) or “0” indicating that xt is negative (i.e., the γ-class flare is confined).",
+      "page": 4,
+      "index": 5,
+      "width": 803,
+      "height": 323
+    },
+    {
+      "url": "assets/figures/arxiv/2604.10016v1/fig-006.webp",
+      "caption": "Figure 3. Architectural design of the vision transformer (ViT). Each input magnetogram image is divided into non-overlapping patches, which are embedded via linear projection and positional encoding. These patch embeddings are fed into a stack of transformer encoder layers, each of which contains a multi-head self-attention (MHA) module, layer normalization (Norm), and a multilayer perceptron (MLP) module, to generate the final image representation.",
+      "page": 4,
+      "index": 6,
+      "width": 714,
+      "height": 574
+    },
+    {
+      "url": "assets/figures/arxiv/2604.10016v1/fig-007.webp",
+      "caption": "Figure 8. Bar graphs showing the comparison between ViT and HNN based on the five-fold cross-validation scheme.",
+      "page": 12,
+      "index": 7,
+      "width": 716,
+      "height": 589
+    },
+    {
+      "url": "assets/figures/arxiv/2604.10016v1/fig-008.webp",
+      "caption": "Figure 6. Illustration of the changes of the unsigned magnetic flux in the PIL regions of the 10 magnetograms at time points t− 9, t− 8, . . . , t− 1, t used as the input of our HNN model in six ARs where t is as specified in each panel. Left panels: results for three positive predictions (true positives), where a positive prediction indicates that the corresponding AR will produce an eruptive flare within the next 24 hours of t. Right panels: results for three negative predictions (true negatives), where a negative prediction indicates that the corresponding AR will produce a confined flare within the next 24 hours of t. In the three positive predictions, the unsigned magnetic flux in the PIL regions decreases in the course of time, which may point to magnetic flux cancellation.",
+      "page": 9,
+      "index": 8,
+      "width": 716,
+      "height": 860
+    }
+  ]
+}
