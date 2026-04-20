@@ -1,0 +1,1388 @@
+Title: Randomized Neural Networks for Integro-Differential Equations with Application to Neutron Transport
+
+URL Source: https://arxiv.org/pdf/2604.13830v1
+
+Published Time: Thu, 16 Apr 2026 00:56:42 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+# Randomized Neural Networks for Integro-Differential Equations with Application to Neutron Transport 
+
+Haoning Dang 1, Fei Wang 2, Yifan Chen 3, Zhouyu Liu 4, Dong Liu 5, Hongchun Wu 6
+
+Abstract. Integro-differential equations arise in a wide range of applications, including transport, kinetic theory, radiative transfer, and multiphysics modeling, where nonlocal integral operators couple the solution across phase space. Such nonlocality often introduces dense coupling blocks in deterministic discretizations, leading to increased computational cost and memory usage, while physics-informed neu-ral networks may suffer from expensive nonconvex training and sensitivity to hyperparameter choices. In this work, we present randomized neural networks (RaNNs) as a mesh-free collocation framework for linear integro-differential equations. Because the RaNN approximation is intrinsically dense through globally supported random features, the nonlocal integral operator does not introduce an additional loss of sparsity, while the approximate solution can still be represented with relatively few trainable degrees of freedom. By randomly fixing the hidden-layer parameters and solving only for the linear output weights, the training procedure reduces to a convex least-squares problem in the output coefficients, enabling stable and efficient optimization. As a representative application, we apply the proposed framework to the steady neutron transport equation, a high-dimensional linear integro-differential model featuring scattering integrals and diverse boundary conditions. Extensive numerical experiments demonstrate that, in the reported test settings, the RaNN approach achieves competitive accuracy while incur-ring substantially lower training cost than the selected neural and deterministic baselines, highlighting RaNNs as a robust and efficient alternative for the numerical simulation of nonlocal linear operators. 
+
+Keywords. Randomized neural networks, integro-differential equation, nonlocal operator, neutron transport, least-squares problem 
+
+Mathematics Subject Classification. 35Q20, 65D15, 68T07 
+
+# 1 Introduction 
+
+Integro-differential equations play a central role in modeling nonlocal interactions in many areas of science and engineering. Representative examples include kinetic transport and radiative transfer ([7, 3]), where a scatter-ing or collision operator couples the solution across directions, energies, or other phase-space variables. From a computational standpoint, the principal difficulty is that the integral term is intrinsically nonlocal. Even when the differential operator admits sparse discretizations, the discretized integral operator typically introduces dense 
+
+> 1
+
+School of Mathematics and Statistics, Xi’an Jiaotong University, Xi’an, Shaanxi 710049, China. Email: 
+
+haoningdang.xjtu@stu.xjtu.edu.cn 
+
+> 2
+
+School of Mathematics and Statistics & State Key Laboratory of Multiphase Flow in Power Engineering, Xi’an Jiaotong University, Xi’an, Shaanxi 710049, China. The work of this author was partially supported by the National Natural Science Foundation of China (Grant No. 92470115). Email: feiwang.xjtu@xjtu.edu.cn 
+
+> 3
+
+School of Energy and Power Engineering, Xi’an Jiaotong University, Xi’an, Shaanxi 710049, China. Email: 
+
+2203221110@stu.xjtu.edu.cn 
+
+> 4
+
+School of Energy and Power Engineering, Xi’an Jiaotong University, Xi’an, Shaanxi 710049, China. The work of this author was partially supported by the National Natural Science Foundation of China (Grant No. 12375174) Email: zhouyuliu@xjtu.edu.cn 
+
+> 5
+
+Nuclear Power Institute of China, State Key Laboratory of Advanced Nuclear Energy Technology, Chengdu, Sichuan 610213, China. The work of this author was partially supported by the National Natural Science Foundation of China (Grant No. 12575189). Email: 
+
+liudong@npic.ac.cn 
+
+> 6
+
+School of Energy and Power Engineering, Xi’an Jiaotong University, Xi’an, Shaanxi 710049, China. The work of this author was partially supported by the National Natural Science Foundation of China (Grant No. 12375175), and the Innovative Scientific Program of CNNC. Email: hongchun@xjtu.edu.cn 
+
+1
+
+> arXiv:2604.13830v1 [math.NA] 15 Apr 2026
+
+coupling in auxiliary variables (e.g., angles or groups), which can substantially increase computational and mem-ory costs. Moreover, complex boundary conditions and multi-region material configurations further amplify these challenges. Neural-network-based solvers offer an alternative route via mesh-free approximation. Physics-informed neural networks (PINNs, [21]) embed governing equations and boundary conditions in a loss function and approximate solutions by training network parameters through nonlinear optimization. However, for integro-differential equa-tions with strong nonlocal couplings, standard PINN training leads to a nonconvex optimization problem whose solution process may become trapped in local minima, often requiring extensive hyperparameter tuning and large computational budgets to reach satisfactory accuracy ([28]). For applications of PINNs to integro-differential equa-tions, one can refer to works such as [33, 12]. Furthermore, many other neural-network-based approaches have been proposed for solving differential equations ([8, 24, 32, 4]), among the representative references listed here, direct applications to integro-differential equations appear to be relatively limited; see, for example, [1]. In this work, we present Randomized Neural Networks (RaNNs, [11, 23]) as a general methodology for solving linear integro-differential equations. The key idea is to randomize and fix the nonlinear parameters (hidden-layer weights and biases) and train only the linear output layer. This converts the learning problem into a linear least-squares problem, thereby (i) yielding a global minimizer of the empirical least-squares objective in the output coefficients, (ii) significantly reducing training cost relative to gradient-based training of fully trainable networks, and (iii) aligning naturally with linear operators in integro-differential models. Differential operators can be com-puted exactly by analytical differentiation of the fixed basis functions, while integral operators can be incorporated by standard numerical quadrature rules at collocation points, leading to a consistent and straightforward construc-tion of the least-squares matrix. For heterogeneous or multi-material domains, the framework extends to local randomized neural networks (LRaNNs, [25]) coupled through interface conditions ([15]). Because the RaNN dis-cretization is intrinsically dense through globally supported random features, nonlocal integral terms do not cause an additional loss of sparsity as they do in many classical discretizations; meanwhile, competitive accuracy may still be achieved with relatively few trainable degrees of freedom. To concretely illustrate the methodology, we apply RaNNs to the steady neutron transport equation (NTE), a high-dimensional linear integro-differential equation featuring a nonlocal scattering operator and practical boundary conditions. In this paper, the NTE serves as a case study to showcase how RaNNs handle nonlocal integral terms efficiently and how local networks can be coupled across interfaces in multi-material settings. In reactor physics applications, most existing neural approaches focus on diffusion models ([30, 27]) that avoid the integral scattering operator, while only a smaller number of studies directly target transport equations with integral terms ([16, 31, 17]). Classical deterministic solvers address such problems by combining suitable discretizations for the differential and integral parts, such as finite difference/element in space and discrete ordinates ([2]) or spherical harmonics in direction. While effective, these approaches often suffer from a loss of sparsity in the coupling blocks due to the integral term. Although not fully dense, these blocks become significantly denser, leading to expensive linear algebra when high angular resolution or many groups are required. Stochastic approaches such as Monte Carlo (MC) provide flexibility for complicated geometries and physics but are limited by slow convergence when high accuracy is demanded ([18]). For background on neutron transport and representative methods, see [14, 13]. The remainder of this paper is organized as follows. Section 2 develops the RaNN framework for linear integro-differential equations, including least-squares formulation, numerical quadrature for integral terms, local coupling, and sketching acceleration. Section 3 specializes the framework to the neutron transport equation and its multigroup form as a demonstration model. Section 4 reports numerical experiments and Section 5 concludes with a summary and outlook. 22 Randomized Neural Networks for Integro-Differential Equations 
+
+Randomized Neural Networks (RaNNs) refer to neural network methods that incorporate randomness in a subset of parameters. The central mechanism is to randomize and fix certain nonlinear parameters (weights and biases in hidden neurons) and only train the linear output layer weights, thereby reducing computational cost and improving training efficiency. In this work, we focus on RaNNs with a single hidden layer; extensions to multilayer architectures can be found in [6]. 
+
+Figure 1: A schematic diagram of a randomized neural network (RaNN). As shown in Figure 1, the black solid lines represent randomly selected and fixed weights, while the red dashed lines denote trainable parameters. The fixed parameters are generated from a uniform distribution U(−r, r ) (see [6] for guidance on choosing r). Because the nonlinear parameters remain fixed, the network becomes a linear com-bination of predetermined nonlinear basis functions, and training reduces to finding the optimal linear coefficients. 
+
+2.1 RaNN approximation as a linear basis expansion 
+
+A single hidden layer RaNN takes the form Ψρ(x) = 
+
+> m
+
+X
+
+> j=1
+
+αj ψj (x) = 
+
+> m
+
+X
+
+> j=1
+
+αj ρ(wj · x + bj ), (2.1) where m is the number of neurons, ρ is an activation function, x ∈ Rd is the input in d dimensions, wj ∈ Rd and 
+
+bj ∈ R are fixed random parameters, and α = ( α1, · · · , α m)⊤ are trainable linear coefficients. This viewpoint is particularly suitable for linear operators: once wj , b j are fixed, applying a linear operator to Ψ ρ reduces to applying the operator to each basis function ψj (x) and linearly combining the results. 
+
+2.2 Least-squares formulation for linear differential and integral operators 
+
+We consider a general linear integro-differential equation on a domain D,
+
+DΨ( x) + IΨ( x) = Q(x) in D, 
+
+supplemented with boundary constraints, denoted abstractly by 
+
+BΨ( x) = 0 on Γ .
+
+3Here D is a linear differential operator and I is a linear integral (nonlocal) operator. Using an L2-type residual minimization, we define 
+
+L(Ψ ρ) = ∥D Ψρ + IΨρ − Q∥20,D + ω1/2BΨρ
+
+> 20,Γ
+
+.
+
+Here, ∥f ∥20,D := R 
+
+> D
+
+|f |2 dx and 
+
+ω1/2g 20,Γ
+
+:= 
+
+Z
+
+> Γ
+
+ω(x) |g(x)|2 ds
+
+denote the squared L2 norms. Let {xIi }N I 
+
+> i=1
+
+⊂ D and {xBi }N B 
+
+> i=1
+
+⊂ Γ be interior and boundary collocation points, respectively. Approximating the L2 norms by collocation averages yields the empirical loss 
+
+eL(Ψ ρ) = |D|
+
+N IN I
+
+X
+
+> i=1
+
+ DΨρ(xIi ) + IΨρ(xIi ) − Q(xIi )2 + |Γ|
+
+N BN B
+
+X
+
+> i=1
+
+ω(xBi )  BΨρ(xBi )2 . (2.2) Substituting the RaNN ansatz (2.1) into (2.2) yields a quadratic function of α:¯L(α) = |D|
+
+N IN I
+
+X
+
+> i=1
+
+
+
+> m
+
+X
+
+> j=1
+
+αj Dψj (xIi ) + 
+
+> m
+
+X
+
+> j=1
+
+αj Iψj (xIi ) − Q(xIi )
+
+
+
+> 2
+
++ |Γ|
+
+N BN B
+
+X
+
+> i=1
+
+ω(xBi )
+
+
+
+> m
+
+X
+
+> j=1
+
+αj Bψj (xBi )
+
+
+
+> 2
+
+.
+
+Equivalently, in matrix form, ¯L(α) = η21 (Aα − F )⊤(Aα − F ) + η22 (Bω α)⊤(Bω α),
+
+where 
+
+Aij = Dψj (xIi ) + Iψj (xIi ), Fi = Q(xIi ), (Bω )ij = ω(xBi )1/2Bψj (xBi ), η1 =
+
+r |D|
+
+N I , η2 =
+
+r |Γ|
+
+N B .
+
+The minimization of ¯L(α) is equivalent to the weighted least-squares problem min 
+
+> α
+
+ η1Aη2Bω
+
+
+
+α −
+
+η1F
+
+0
+
+ 22
+
+. (2.3) 
+
+Why this is advantageous for integro-differential equations. In many deterministic discretizations, the integral operator induces strong coupling among auxiliary degrees of freedom (e.g., angular directions or energy groups). As the resolution is increased, this coupling typically enlarges the effective system size and can lead to substantial computational and memory costs. In the RaNN formulation, the approximate solution is represented in a randomized neural function space with m basis functions, and the unknowns are only the output coefficients 
+
+α ∈ Rm. Because these basis functions are globally supported, the resulting least-squares system (2.3) is intrinsically dense. Consequently, the nonlocal integral operator does not introduce an additional loss of sparsity or a qualitative change in the algebraic structure of the discretization; its main effect is on the operator-evaluation stage during matrix assembly. At the same time, competitive accuracy can often be achieved with a relatively small number of trainable degrees of freedom. The main advantage of the RaNN formulation is therefore twofold: robustness with respect to dense nonlocal couplings, and efficient solution representation with comparatively few unknown coefficients. Moreover, for fixed random features, the training objective is a convex quadratic function of α, and the coefficients can be computed efficiently by standard least-squares solvers without the local-minimum issues associated with gradient-based training of fully trainable networks. 
+
+Remark 2.1 For nonlinear problems, the governing equations can be linearized using iterative methods such as Picard iteration or Newton iteration. 
+
+42.3 Operator evaluation: exact differentiation and quadrature for integral terms 
+
+A key practical step is the evaluation of Dψj and Iψj for each basis function. The differential component Dψj
+
+can be computed exactly via analytical differentiation. The integral component Iψj is generally unavailable in closed form and is therefore approximated by numerical quadrature. Let {ξk}Kk=1 be quadrature points for the integral variable(s) and {βk}Kk=1 the corresponding weights. Then, we approximate 
+
+Iψj (x) = 
+
+Z
+
+K(x, ξ )ψj (ξ) d ξ ≈
+
+> K
+
+X
+
+> k=1
+
+βk K(x, ξ k) ψj (ξk).
+
+In the neutron-transport experiments, the scattering integral is evaluated by quadrature over the angular variables at each spatial location. In the numerical experiments reported below, the integral terms are approximated using the trapezoidal rule. 
+
+2.4 Local RaNNs and interface coupling 
+
+Many applications involve heterogeneous media or multiple subdomains. Inspired by local randomized neural network ideas for interface problems ([15]), we extend the present formulation to multi-material transport settings by coupling subdomain networks through weighted interface residuals. Consider two subdomains D1 and D2 with interface Γ I = ¯D1 ∩ ¯D2, and define Ψ 1 
+
+> ρ
+
+and Ψ 2 
+
+> ρ
+
+on D1 and D2, respectively. Accordingly, Ψρ(x) = 
+
+(
+
+Ψ1
+
+> ρ
+
+(x), x ∈ D1,
+
+Ψ2
+
+> ρ
+
+(x), x ∈ D2,
+
+where Ψ iρ(x) has mi neurons and the corresponding uniform distribution parameter is ri (i = 1 , 2). To impose continuity of the angular flux across the interface, we sample {xFi }N F 
+
+> i=1
+
+⊂ ΓI and add the weighted interface penalty term. Then, the empirical loss (2.2) can be written as 
+
+eL(Ψ ρ) = |D|
+
+N IN I
+
+X
+
+> i=1
+
+ DΨρ(xIi ) + IΨρ(xIi ) − Q(xIi )2 + |Γ|
+
+N BN B
+
+X
+
+> i=1
+
+ω(xBi )  BΨρ(xBi )2 + |ΓI |
+
+N FN F
+
+X
+
+> i=1
+
+ωI (xFi ) Ψ1
+
+> ρ
+
+(xFi ) − Ψ2
+
+> ρ
+
+(xFi )2.
+
+This interface term adds residual rows to the augmented weighted least-squares system, coupling the output coef-ficients across subdomains in a straightforward manner. 
+
+2.5 Comparison with classical deterministic discretizations 
+
+For many integro-differential equations, the integral term serves as a nonlocal source involving integrals of the solution over auxiliary variables. While the differential operator may yield a sparse discretization, the integral operator generally induces dense couplings among local degrees of freedom (e.g., angular or group variables in transport problems), leading to dense blocks in the system matrix and increased computational cost. For the RaNN approach, the primary computational task is the construction of the matrices A, B and vector F
+
+in (2.3). Since derivatives are computed exactly and integrals are computed via quadrature, the assembly consists primarily of evaluating basis functions and performing matrix multiplications. The least-squares matrix is dense due to global basis functions; thus, the nonlocal coupling does not cause an additional qualitative degradation of sparsity, and the method remains practically viable for the studied problems, although the assembly and least-squares costs still grow with the collocation size, quadrature complexity, and multigroup coupling. 52.6 Universal approximation and training stability 
+
+In many integro-differential models, the solution is a continuous function on a bounded domain (or a set of such functions in multigroup settings). RaNNs possess universal approximation properties in Sobolev norms ([6]), consistent with trainable neural networks. In terms of training, conventional training requires solving a nonlinear and nonconvex optimization problem, often with many local minima and saddle points, which may fail to deliver satisfactory accuracy without extensive tuning. In contrast, RaNN training solves a convex quadratic problem in α, thereby guaranteeing a global minimizer of the empirical loss and improving training stability. If the resulting matrix is rank deficient, we can further add Tikhonov regularization to ensure the uniqueness of the solution. 
+
+2.7 Sketching acceleration for large least-squares systems 
+
+Sketching is a randomized technique for accelerating the solution of large least-squares problems. We briefly describe its use in the present setting; theoretical analysis can be found in [29, 9, 22]. Denote the augmented least-squares problem (2.3) in the compact form min  
+
+> α
+
+∥ ˜Aα − ˜F ∥22,
+
+where ˜A ∈ R(N I +N B )×m and ˜F ∈ R(N I +N B ). Sketching introduces a random embedding matrix S ∈ RN S ×(N I +N B )
+
+to form the compressed problem min  
+
+> α
+
+∥S ˜Aα − S ˜F ∥22,
+
+where N S ≪ N I + N B . In this work, we take N S = md S and construct S as a sparse matrix with exactly nS
+
+nonzero entries per row, whose values are independently chosen as ±p1/n S .
+
+Remark 2.2 The sketching matrix S is constructed by randomly selecting nS rows of ˜A for each sketched row and forming their linear combinations with coefficients ±p1/n S . As a result, the sketched system contains md S rows and exhibits a highly sparse structure, leading to low computational and memory costs when forming S ˜A and S ˜F .Throughout all numerical experiments, we take dS = 2 and nS = 8 .
+
+# 3 Steady Neutron Transport Equation 
+
+To demonstrate the above RaNN framework on a representative high-dimensional nonlocal model, we consider the steady neutron transport equation (NTE), a linear integro-differential equation that describes neutron angular flux in reactor physics. 
+
+3.1 Steady transport equation and boundary conditions 
+
+Consider the steady-state neutron transport equation 
+
+Ω · ∇ r Ψ( r, Ω, E ) + Σ t(r, Ω, E )Ψ( r, Ω, E ) = 
+
+Z ∞
+
+> 0
+
+Z
+
+> 4π
+
+Σs(r; Ω′ → Ω, E ′ → E)Ψ( r, Ω′, E ′) d Ω′dE′ + Q(r, Ω, E ) in D, 
+
+(3.1) where Ψ denotes the unknown neutron angular flux. The phase-space domain is D = Dr × DΩ × DE , with 
+
+r the spatial variable, Ω the transport direction, and E the neutron energy. The functions Σ t and Σ s are the 6macroscopic total and scattering cross sections, respectively, and Q is a prescribed source term. In Cartesian coordinates, r = ( x, y, z ) and the direction vector Ω is parameterized as 
+
+Ω = ( p1 − μ2 cos φ, p1 − μ2 sin φ, μ ),
+
+with μ ∈ [−1, 1] and φ ∈ [0 , 2π). Accordingly, integration over the unit sphere is given by 
+
+Z
+
+> 4π
+
+dΩ =
+
+Z 1
+
+> −1
+
+Z 2π
+
+> 0
+
+dφ dμ. 
+
+Define the inflow boundary Γ − = {(r, Ω, E ) : r ∈ ∂D r , nr · Ω < 0}, where nr is the unit outward normal vector. Two typical boundary conditions are: 
+
+• Vacuum boundary condition, Ψ( r, Ω, E ) = 0 on Γ −. (3.2) 
+
+• Reflecting boundary condition, Ψ( r, Ω, E ) = Ψ( r, Ωr , E ) on Γ −, (3.3) where Ωr is the reflecting angle satisfying nr · Ωr = −nr · Ω and ( Ω × Ωr ) · nr = 0. 
+
+3.2 Multigroup approximation 
+
+In neutron transport problems, the neutron energy can vary continuously from tens of MeV down to 0 eV. The multigroup method is the most commonly used and straightforward discretization approach. In this method, the energy range of the neutron flux is divided into G intervals ( EG, E G−1), · · · , (Eg , E g−1), · · · , (E1, E 0). Each such energy interval ∆ Eg = Eg−1 − Eg is referred to as an energy group. The group index g is typically numbered in descending order from high to low energy. Integrating the neutron transport equation (3.1) over each energy interval ∆ Eg yields the following system of equations: 
+
+Ω · ∇ Ψg (r, Ω) + Σ t,g (r, Ω)Ψ g (r, Ω) = 
+
+> G
+
+X
+
+> g′=1
+
+Z
+
+> 4π
+
+Σs,g ′→g (r; Ω′ → Ω)Ψ g′ (r, Ω′) d Ω′ + Qg (r, Ω), g = 1 , · · · , G, 
+
+(3.4) where Ψg (r, Ω) = 
+
+Z Eg−1
+
+> Eg
+
+Ψ( r, Ω, E ) d E
+
+is the group angular flux, defined as the integral of the angular flux over energy group g, and 
+
+Qg (r, Ω) = 
+
+Z Eg−1
+
+> Eg
+
+Q(r, Ω, E ) d E. 
+
+Here, we are not concerned with how the group constants Σ t,g (r, Ω) and Σ s,g ′→g (r; Ω′ → Ω) are calculated, but rather treat them as known functions. Note that we will omit the subscript g in the one-group case. In practice, we are primarily interested in the neutron scalar flux: Φg (r) = 
+
+Z
+
+> 4π
+
+Ψg (r, Ω) d Ω. (3.5) Accordingly, all numerical results reported below are compared in terms of the neutron scalar flux. 73.3 Specialization of the RaNN least-squares system to the NTE 
+
+For the one-group form of (3.4), we write 
+
+DΨ( r, Ω) + IΨ( r, Ω) = Q, 
+
+with 
+
+DΨ( r, Ω) = Ω · ∇ Ψ( r, Ω) + Σ t(r, Ω)Ψ( r, Ω), IΨ( r, Ω) = −
+
+Z
+
+> 4π
+
+Σs(r; Ω′ → Ω)Ψ( r, Ω′) d Ω′,
+
+and denote the boundary condition (3.2) or (3.3) by BΨ( r, Ω) = 0. Writing ( r, Ω) as x, the empirical loss (2.2) and least-squares system (2.3) apply directly. For the integral operator, let {Ωk}Kk=1 and {βk}Kk=1 be quadrature points and weights. Then 
+
+Iψj (r, Ω) = −
+
+Z
+
+> 4π
+
+Σs(r; Ω′ → Ω)ψj (r, Ω′) d Ω′ ≈ − 
+
+> K
+
+X
+
+> k=1
+
+βkΣs(r; Ωk → Ω)ψj (r, Ωk).
+
+In this work, the quadrature points are taken to be the collocation points, and the trapezoidal rule is used through-out. 
+
+3.4 Weighted loss for neutron transport problems 
+
+For neutron transport equations, the boundary and interface residuals should be weighted by the transport trace factor determined by the normal component of the angular direction. More precisely, for a vacuum boundary point ( r, Ω) ∈ ∂D r × DΩ with outward unit normal nr , we take 
+
+ω(r, Ω) = |nr · Ω|.
+
+For an interior interface point ( r, Ω) ∈ ΓI with unit normal nI , we analogously define 
+
+ωI (r, Ω) = |nI · Ω|.
+
+These weights are consistent with the natural trace norms for first-order transport operators and measure the strength of the flux crossing the boundary or interface. Accordingly, for the vacuum boundary condition, we take 
+
+BΨ( r, Ω) = Ψ( r, Ω).
+
+For the reflecting boundary condition, we take 
+
+BΨρ(r, Ω) = Ψ ρ(r, Ω) − Ψρ(r, Ωr ).
+
+The weighted least-squares loss for the one-group neutron transport equation is then written as 
+
+L(Ψ ρ) = ∥D Ψρ + IΨρ − Q∥20,D + ∥ω1/2BΨρ∥20,Γ− ,
+
+where 
+
+ω1/2BΨρ 
+
+> 20,Γ−
+
+:= 
+
+Z
+
+> Γ−
+
+|nr · Ω||B Ψρ(r, Ω)|2 dσ(r) d Ω.
+
+If local RaNNs are used on two subdomains D1 and D2, then the interface continuity can be imposed through the weighted penalty 
+
+ω1/2 
+
+> I
+
+(Ψ 1 
+
+> ρ
+
+− Ψ2
+
+> ρ
+
+) 20,ΓI
+
+:= 
+
+Z
+
+> ΓI
+
+|nI · Ω|| Ψ1
+
+> ρ
+
+(r, Ω) − Ψ2
+
+> ρ
+
+(r, Ω)|2 dσ(r) d Ω.
+
+8Hence, the corresponding weighted loss becomes 
+
+L(Ψ ρ) = ∥D Ψρ + IΨρ − Q∥20,D + ∥ω1/2BΨρ∥20,Γ− + ω1/2 
+
+> I
+
+(Ψ 1 
+
+> ρ
+
+− Ψ2
+
+> ρ
+
+) 20,ΓI
+
+.
+
+For the angular parametrization 
+
+Ω =  p 1 − μ2 cos φ, p1 − μ2 sin φ, μ ,
+
+the weight can be written explicitly once the normal direction is fixed. For example, in the one-dimensional slab geometry, ω = |μ|, for a vertical interface or boundary with normal n = ( ±1, 0, 0), one has 
+
+|n · Ω| = p1 − μ2 | cos φ|.
+
+For a horizontal boundary with normal n = (0 , ±1, 0), one has 
+
+|n · Ω| = p1 − μ2 | sin φ|.
+
+Therefore, in each neutron transport example below, the weight is determined by the corresponding transport trace factor |n · Ω| on the physical boundary or interface. 
+
+3.5 Relation to the transport graph norm and inflow-boundary norm 
+
+To clarify the analytical meaning of the least-squares residual for transport problems, we briefly relate it to the natural graph norm of the streaming–absorption operator and the associated weighted inflow-boundary norm. For first-order transport equations on bounded domains, weighted trace spaces on the inflow and outflow boundaries, together with the corresponding Green identity, are standard ([5, 26]). Related boundary functionals have also been used in least-squares formulations of neutron transport to establish stability and error estimates ([19]). For the one-group transport problem, let 
+
+D := Dr × DΩ, Γ± := {(r, Ω) ∈ ∂D r × DΩ : ± nr · Ω > 0}.
+
+We define the weighted outflow/inflow boundary norms by 
+
+∥ω1/2g∥20,Γ± := 
+
+Z
+
+> Γ±
+
+|nr · Ω|| g(r, Ω)|2 dσ(r) d Ω,
+
+and the transport graph norm by 
+
+∥Ψ∥2gr := ∥Ψ∥20,D + ∥Ω · ∇ r Ψ∥20,D .
+
+We also introduce the transport graph space 
+
+W := Ψ ∈ L2(D) : Ω · ∇ r Ψ ∈ L2(D) .
+
+Under the geometric assumptions stated below, standard transport trace theory implies that both traces 
+
+γ± : W → L2(Γ ±, |nr · Ω| dσ dΩ)are well defined and continuous ([5, 26]). We now consider the streaming–absorption operator 
+
+DΨ := Ω · ∇ r Ψ + Σ t(r, Ω) Ψ .
+
+Assume throughout this subsection that 0 < σ ∗ ≤ Σt(r, Ω) ≤ σ∗ < ∞ for a.e. ( r, Ω) ∈ D. (3.6) 9Theorem 3.1 (Graph-norm control by the transport residual) Assume that Dr ⊂ Rd is a bounded convex domain with Lipschitz boundary, and that (3.6) holds. Define 
+
+W − 
+
+> 0
+
+:= {Ψ ∈ W : γ−Ψ = 0 }.
+
+Then, for every Ψ ∈ W − 
+
+> 0
+
+, the following estimate holds: 
+
+∥Ψ∥gr ≤ Cgr ∥D Ψ∥0,D , Cgr := 
+
+"
+
+σ−2 
+
+> ∗
+
++
+
+
+
+1 + σ∗
+
+σ∗
+
+2#1/2
+
+. (3.7) 
+
+Conversely, 
+
+∥D Ψ∥0,D ≤ (1 + σ∗) ∥Ψ∥gr . (3.8) 
+
+Hence, on W − 
+
+> 0
+
+, the residual norm ∥D Ψ∥0,D and the transport graph norm ∥Ψ∥gr are equivalent. 
+
+Proof. We first prove the estimate for smooth functions in W − 
+
+> 0
+
+. By the transport Green identity ([5, 26]), 
+
+Z
+
+> D
+
+(Ω · ∇ r Ψ) Ψ d r dΩ = 12
+
+Z 
+
+> ∂D r×DΩ
+
+(nr · Ω) |Ψ|2 dσ(r) d Ω.
+
+Splitting the boundary integral into inflow and outflow parts yields (Ω · ∇ r Ψ, Ψ) L2(D) = 12 ∥ω1/2γ+Ψ∥20,Γ+ − 12 ∥ω1/2γ−Ψ∥20,Γ− .
+
+Since γ−Ψ = 0, we obtain (DΨ, Ψ) L2(D) = ( Ω · ∇ r Ψ, Ψ) L2(D) + (Σ tΨ, Ψ) L2(D) = 12 ∥ω1/2γ+Ψ∥20,Γ+ + (Σ tΨ, Ψ) L2(D) ≥ σ∗ ∥Ψ∥20,D . (3.9) By Cauchy–Schwarz, (DΨ, Ψ) L2(D) ≤ ∥D Ψ∥0,D ∥Ψ∥0,D ,
+
+which together with (3.9) implies 
+
+∥Ψ∥0,D ≤ σ−1 
+
+> ∗
+
+∥D Ψ∥0,D . (3.10) Next, using 
+
+Ω · ∇ r Ψ = DΨ − ΣtΨ,
+
+we obtain 
+
+∥Ω · ∇ r Ψ∥0,D ≤ ∥D Ψ∥0,D + ∥ΣtΨ∥0,D ≤ ∥D Ψ∥0,D + σ∗ ∥Ψ∥0,D ≤
+
+
+
+1 + σ∗
+
+σ∗
+
+
+
+∥D Ψ∥0,D . (3.11) Combining (3.10) and (3.11) yields (3.7). For the converse estimate, we write 
+
+∥D Ψ∥0,D ≤ ∥ Ω · ∇ r Ψ∥0,D + ∥ΣtΨ∥0,D ≤ ∥ Ω · ∇ r Ψ∥0,D + σ∗ ∥Ψ∥0,D ≤ (1 + σ∗) ∥Ψ∥gr ,
+
+which is (3.8). The extension from smooth functions to all Ψ ∈ W − 
+
+> 0
+
+follows from the standard density argument together with the continuity of the weighted trace operators. The preceding theorem shows that, on the homogeneous inflow space, controlling the L2 residual of the streaming–absorption operator is equivalent to controlling the natural transport graph norm. In particular, under the vacuum boundary condition, the inflow datum satisfies the homogeneous inflow. 10 Remark 3.2 (Residual control with inflow mismatch) Nonhomogeneous inflow data can likewise be treated by means of a lifting argument. Assume the hypotheses of Theorem 3.1, and let Ψ∗ ∈ W be the solution of 
+
+DΨ∗ = f in D, γ−Ψ∗ = g on Γ−,
+
+where f ∈ L2(D) and g ∈ L2(Γ −, |nr ·Ω| dσ dΩ). If the inflow trace admits a bounded lifting into W , then for any 
+
+Ψ ∈ W ,
+
+∥Ψ∗ − Ψ∥gr ≤ Cres 
+
+
+
+∥D Ψ − f ∥0,D + ∥ω1/2(γ−Ψ − g)∥0,Γ−
+
+
+
+,
+
+where Cres depends only on σ∗, σ∗, and the lifting bound. 
+
+Remark 3.3 (Scope for reflecting boundaries) Theorem 3.1 is stated for vacuum boundary. For reflecting boundary, the same weighted trace norm can be applied to the boundary residual BΨρ, but the corresponding well-posedness argument requires the reflecting boundary operator to be incorporated explicitly into the trace formulation. We do not pursue that extension here. 
+
+Remark 3.4 (Role of the scattering operator) The graph norm above is determined by the streaming–absorption operator D. For the full transport operator D + I, the scattering term I acts as a bounded perturbation under standard boundedness assumptions on the scattering kernel. Consequently, the full residual may still serve as a practically meaningful objective. However, the rigorous graph-norm equivalence established in this paper applies only to the streaming–absorption part D. If, in addition, I is sufficiently small relative to the absorption in the sense that 
+
+∥I Ψ∥0,D ≤ CI ∥Ψ∥0,D with CI < σ ∗,
+
+then the above argument extends verbatim and yields a genuine graph-norm estimate with D replaced by D + I.This smallness assumption is not imposed in the numerical experiments below, it is stated only to illustrate a regime in which the full operator inherits the same coercivity mechanism. For general scattering-dominated regimes, it is therefore most accurate to interpret the residual of D + I as a bounded perturbation of the graph-norm-controlling quantity associated with D.If the cross sections are constant, then the boundedness of the scattering operator I on L2(D) can often be verified explicitly. However, constancy of the coefficients alone does not imply the smallness condition CI < σ ∗. In the one-group isotropic case, one has CI = Σ s, so that CI < σ ∗ is equivalent to Σs < Σt, i.e., to the presence of strictly positive absorption. 
+
+# 4 Numerical Experiments 
+
+In this section, we evaluate the RaNN framework on the neutron transport problems described above. All experiments are conducted in MATLAB. To ensure reproducibility, the random number generator is fixed using “rng(1)”. The least-squares problems are solved via the QR method using the “linsolve” function with option “opts.RECT = true”. The sketching technique is used in Example 3–5; all other examples solve the original least-squares problem. All numerical results are reported for the neutron scalar flux (3.5). Examples 1–2 were run on a desktop (Intel Core i7-13700KF, 32 GB DDR5), while other examples were run on a server (dual Intel Xeon Gold 6240, 192 GB DDR4). The activation function is chosen as the Gaussian 
+
+ρ(x) = exp( −x2/2) .
+
+11 Accuracy is measured by the relative ℓ2 error of the scalar flux on a spatial test grid, 
+
+eℓ2 (Φ ρ) = 
+
+vuutPNi=1 (Φ ρ(xi) − Φ( xi)) 2
+
+PNi=1 (Φ( xi)) 2 ,
+
+where Φ denotes the reference neutron scalar flux, and xi denotes a test point at which a reference value is available. Since analytical solutions are generally unavailable, we use NECP-MCX (hereafter abbreviated as MCX) to generate reference solutions for all examples except Example 1. MCX ([10]) is based on a hybrid Monte Carlo– deterministic methodology, in which deterministic calculations are used to construct mesh-based weight-window and source-biasing parameters that guide the Monte Carlo simulation and reduce variance. For the pin-cell problems in Examples 3–5, the MCX input parameters and the corresponding simulation statistics are reported in Table 1. A uniform 50 × 50 mesh is used throughout, and we report the minimum, maximum, and average relative standard deviations (RSD) over all grid cells. batch particles RSD min RSD max RSD average 
+
+Example 3 Case 1 1000 100000 7.2572e-04 1.6919e-03 9.9630e-04 Case 2 10000 500000 5.3084e-04 1.0547e-03 6.6250e-04 Case 3 1000 200000 6.1908e-04 1.2144e-03 7.5330e-04 Example 4 Case 1 1000 20000 6.0193e-04 9.7435e-04 6.7397e-04 Case 2 1000 20000 2.7252e-03 4.1608e-03 3.0236e-03 Case 3 1000 20000 6.1269e-04 9.5861e-04 6.8497e-04 Group 1 2000 2000000 6.7725e-05 1.0417e-04 7.3931e-05 Group 2 1.4741e-04 2.1600e-04 1.5878e-04 Group 3 5.0001e-04 7.0614e-04 5.6167e-04 Example 5 Group 4 1.3050e-03 1.8322e-03 1.4997e-03 Group 5 2.2948e-03 3.1820e-03 2.5513e-03 Group 6 3.8751e-03 5.4953e-03 4.4291e-03 Group 7 7.5156e-03 1.1594e-02 9.4983e-03 Table 1: The input parameters and the output statistics for MCX in Example 3 - Example 5. 
+
+Example 1 (1D Slab Problem) In this example, we consider the benchmark problem of a one-dimensional crit-ical slab with one-dimensional spatial and one-dimensional angular variables. The transport equation is 
+
+μ ∂Ψ( x, μ )
+
+∂x + Σ t(x)Ψ( x, μ ) = 12
+
+
+
+Σs(x) + νΣf (x)
+
+keff 
+
+ Z 1
+
+> −1
+
+Ψ( x, μ ′)d μ′, ∀(x, μ ) ∈ (−b, b ) × (−1, 1) ,
+
+with vacuum boundary conditions 
+
+Ψ( b, μ ) = 0 , ∀μ ∈ [−1, 0] ,
+
+Ψ( −b, μ ) = 0 , ∀μ ∈ [0 , 1] .
+
+Material parameters are Σt(x) = 5 m−1, Σs(x) = 3 m−1, νΣf (x) = 2 .25 m−1, and slab thickness b = 0 .6600527544 m.At criticality, keff = 1 . This example is treated as a fixed-eigenvalue benchmark at criticality, and the eigenfunction is normalized by prescribing two anchor values: 
+
+Ψ(0 , −1) = 0 .2, Ψ(0 , 1) = 0 .2.
+
+This benchmark ([20]) admits reference values at selected locations, which we use to validate the numerical results. We compare a finite difference method (FDM) with discrete ordinates and the RaNN method. We use the 12 trapezoidal rule with 200 quadrature points in the discrete ordinates method ( S200 ), and M denotes the number of spatial mesh points. The values at the benchmark locations are obtained using linear interpolation. For the RaNN method, we set N I = 50 × 50, N B = 500 + 500, and r = 10. Numerical results are shown in Table 2. The value at 
+
+x = 0 is used as the normalization point, so the relative error there is identically zero for all methods. 
+
+x/b 0 0.25 0.5 0.75 1 time(s) reference values ([20]) 1 0.947144 0.793726 0.553290 0.214192 
+
+S200 
+
+M = 100 0 2.5234e-03 7.1902e-03 3.3957e-03 5.5280e-03 0.685501 
+
+M = 200 0 1.3404e-03 2.1758e-04 1.3529e-03 1.6924e-03 1.353178 
+
+M = 300 0 3.3128e-04 3.7247e-03 4.1807e-04 8.0292e-04 1.967209 RaNN 
+
+m = 200 0 2.5791e-04 1.2351e-03 9.9065e-04 9.4649e-02 0.017503 
+
+m = 500 0 2.3516e-05 5.2369e-05 6.4748e-05 4.5558e-02 0.041313 
+
+m = 1000 0 9.8406e-05 8.6062e-06 1.2036e-04 2.8078e-02 0.123724 Table 2: Pointwise relative errors and runtimes for the FDM and the RaNN method in Example 1. RaNN exhibits a clear accuracy–cost tradeoff as the number of random features increases. As m increases from 200 to 1000, the pointwise relative errors decrease substantially, while the runtime increases only moderately and remains below that of the discrete-ordinates finite-difference baseline. These results indicate that, for this smooth one-dimensional transport benchmark, RaNN can achieve competitive accuracy with a relatively small number of degrees of freedom. 
+
+Example 2 (2D Cylinder Problem) This example considers an infinite-height cylinder, involving one-dimensional spatial and two-dimensional angular variables. The transport equation is 
+
+p1 − μ2
+
+
+
+cos φ ∂∂x − sin φx∂∂φ 
+
+
+
+Ψ( x, φ, μ ) + Σ t(x)Ψ( x, φ, μ ) = Qs + Qf , ∀(x, φ, μ ) ∈ (0 , R ) × (0 , 2π) × (−1, 1) ,
+
+where 
+
+Qs = 14π Σs(x)
+
+Z 1
+
+> −1
+
+Z 2π
+
+> 0
+
+Ψ( x, φ ′, μ ′)d φ′dμ′, Qf = 0 .2 cos 
+
+ πx 
+
+2R
+
+
+
+, R = 1 .08225766 m, 
+
+and the boundary condition is vacuum: 
+
+Ψ( R, φ, μ ) = 0 , ∀(φ, μ ) ∈
+
+ π
+
+2 , 3π
+
+2
+
+
+
+× [−1, 1] .
+
+To avoid numerical issues near x = 0 due to the 1/x term, we regularize the coefficient by replacing x with 
+
+max( x, 10 −4) in the implementation. 
+
+Case 1. The material parameters are Σt(x) = 5 m−1, Σs(x) = 3 m−1.
+
+Case 2. The material parameters are 
+
+Σt(x) = 
+
+(
+
+5 m−1, 0 < x < R/ 20.5 m−1, R/ 2 < x < R and Σs(x) = 
+
+(
+
+3 m−1, 0 < x < R/ 20.3 m−1, R/ 2 < x < R. 
+
+We compare the PINN method in [17] with the RaNN method. The reference scalar flux is generated by MCX. The PINN results and computational times are taken directly from the reference, as the experiments were carried out under different hardware (Apple M1 Pro GPU) and software environments. Importantly, our comparison does not aim at a strict wall-clock-time benchmark under identical conditions. Instead, we emphasize a method-level comparison of computational efficiency, taking into account the fundamentally different training paradigms: 13 iterative gradient-based optimization for PINNs versus linear least-squares solvers for RaNNs. This comparison is therefore intended only to provide a qualitative indication of the different computational characteristics of the two training paradigms. 
+
+Case 1. We set N I = 30 × 30 × 30, N B = 50 × 50, and r = 2 for the RaNN method and vary the number of neurons m. The relative errors are presented in Table 3. The PINN results correspond to the best-performing cases reported in [17] (“PINN IDNT 4000” and “PINN EDNT 8000” in Table 4 of [17]). Numerical solutions and absolute differences are shown in Figure 2 for m = 800. 
+
+m 100 200 400 800 PINN-IDNT PINN-EDNT 
+
+eℓ2 5.1349e-02 5.2151e-03 1.8812e-03 1.4699e-03 3.5101e-03 4.8811e-03 time(s) 0.0478 0.1049 0.2501 0.4822 28991.51 6525.75 Table 3: Relative ℓ2 errors of the scalar flux for RaNN and PINN in Example 2 (Case 1). PINN results are quoted from [17] and were obtained under different experimental conditions. 0 0.2 0.4 0.6 0.8 1 1.2        
+
+> 00.2 0.4 0.6 0.8 11.2
+> MCX PINN-IDNT PINN-EDNT RaNN 00.2 0.4 0.6 0.8 11.2
+> -8 -6 -4 -2 02468×10 -3
+> PINN-IDNT PINN-EDNT RaNN
+
+Figure 2: Scalar-flux profiles (left) and pointwise absolute differences from the MCX reference (right) for Example 2 (Case 1). Results are shown for RaNN ( m = 800) and the PINN reported in [17]. 
+
+Case 2. This case involves two materials. We split the spatial domain into 
+
+D1 = (0 , R/ 2) × (0 , 2π) × (−1, 1) , D2 = ( R/ 2, R ) × (0 , 2π) × (−1, 1) ,
+
+and use two RaNNs Ψ 1 
+
+> ρ
+
+and Ψ 2
+
+> ρ
+
+. To couple the two subdomain networks, we enforce continuity of the angular flux on the interface ΓI = {R/ 2} × [0 , 2π] × [−1, 1] through the weighted interface penalty 
+
+|ΓI |
+
+N FN F
+
+X
+
+> i=1
+
+q
+
+1 − μ2 
+
+> i
+
+| cos φi|  Ψ1
+
+> ρ
+
+(xFi ) − Ψ2
+
+> ρ
+
+(xFi )2,
+
+where xFi = ( R/ 2, φ i, μ i) ∈ ΓI . Here the weight 
+
+ωI = |nI · Ω| = p1 − μ2 | cos φ|
+
+is exactly the transport trace weight on the interface, with nI the unit normal to Γ I . We set N I = 30 × 30 × 30, 
+
+N B = 30 × 30, N F = 30 × 30, r1 = 2, r2 = 3, and m1 = m2 = 2000. Relative errors and runtime are reported in Table 4, solutions and absolute differences are shown in Figure 3. 14 LRaNN PINN-IDNT PINN-EDNT 
+
+eℓ2 1.5945e-02 3.8502e-02 3.7632e-02 time(s) 6.85 34706.51 4542.73 Table 4: Relative ℓ2 errors of LRaNN method and PINN method in Case 2 of Example 2. 0 0.2 0.4 0.6 0.8 1 1.2       
+
+> 0.4 0.5 0.6 0.7 0.8 0.9 11.1 1.2
+> MCX PINN-IDNT PINN-EDNT RaNN 00.2 0.4 0.6 0.8 11.2
+> -0.1 -0.08 -0.06 -0.04 -0.02 00.02 0.04 0.06 0.08 0.1
+> PINN-IDNT PINN-EDNT RaNN
+
+Figure 3: Scalar-flux profiles (left) and pointwise absolute differences from the MCX reference (right) for Example 2 (Case 2). Results are shown for LRaNN and the PINN reported in [17]. RaNN achieves competitive accuracy with substantially reduced training complexity relative to gradient-based PINN methods. In the single-material case, increasing the number of neurons improves the scalar-flux accuracy rapidly, and moderate feature counts already produce relative ℓ2 errors comparable to the best reported PINN results, while requiring only a single linear least-squares solve. In the two-material case, the local RaNN formulation with an interface continuity penalty shows better performance for the reported heterogeneous setting and yields smaller errors than the reported PINN baselines. These observations suggest that fixing the nonlinear parameters and solving only for the linear output weights can reduce optimization sensitivity and provide an efficient alternative for transport models with nonlocal scattering. xy
+
+> R = 0.54
+> b = 0.63
+
+D1
+
+D2xy  
+
+> R2= 0.54
+> R1= 0.27
+> b = 0.63
+
+D1
+
+> D2
+
+D2
+
+Figure 4: Schematic illustrations of the pin cells in Example 3 and Example 4: Cases 1 and 2 are shown on the left, and Case 3 is shown on the right. 15 Example 3 (Pin-cell Problem with Vacuum Boundary) We consider a two-dimensional pin-cell problem with two spatial variables (x, y ) and two angular variables (φ, μ ). Figure 4 provides schematic illustrations of the pin-cell configurations. The steady-state transport equation is given by 
+
+p1 − μ2
+
+
+
+cos φ ∂∂x + sin φ ∂∂y 
+
+
+
+Ψ( x, y, φ, μ ) + Σ t(x, y )Ψ( x, y, φ, μ )= 14π Σs(x, y )
+
+Z 1
+
+> −1
+
+Z 2π
+
+> 0
+
+Ψ( x, y, φ ′, μ ′)d φ′dμ′ + 14π Q(x, y ),
+
+for all (x, y, φ, μ ) ∈ (−b, b )2 × (0 , 2π) × (−1, 1) . The boundary condition is a vacuum boundary condition, i.e., 
+
+Ψ( −b, y, φ, μ ) = 0 , (y, φ, μ ) ∈ [−b, b ] × ([0 , π/ 2] ∪ [3 π/ 2, 2π]) × [−1, 1] ,
+
+Ψ( b, y, φ, μ ) = 0 , (y, φ, μ ) ∈ [−b, b ] × [π/ 2, 3π/ 2] × [−1, 1] ,
+
+Ψ( x, −b, φ, μ ) = 0 , (x, φ, μ ) ∈ [−b, b ] × [0 , π ] × [−1, 1] ,
+
+Ψ( x, b, φ, μ ) = 0 , (x, φ, μ ) ∈ [−b, b ] × [π, 2π] × [−1, 1] .
+
+Case 1. The pin-cell consists of two spatial subdomains, 
+
+D1 
+
+> r
+
+= {(x, y ) : x2 + y2 < R 2, R = 0 .54 cm },D2 
+
+> r
+
+= {(x, y ) : ( −b, b )2 \ ¯D1 
+
+> r
+
+, b = 0 .63 cm }.
+
+The material parameters and the source term are 
+
+Σt(x, y ) = 1 .25445 cm −1, Σs(x, y ) = 1 .12 cm −1, Q(x, y ) = 
+
+(
+
+1, (x, y ) ∈ D1 
+
+> r
+
+,
+
+0, (x, y ) ∈ D2 
+
+> r
+
+.
+
+Case 2. The pin-cell contains two parts: 
+
+D1 
+
+> r
+
+= {(x, y ) : x2 + y2 < R 2, R = 0 .54 cm },D2 
+
+> r
+
+= {(x, y ) : ( −b, b )2 \ ¯D1 
+
+> r
+
+, b = 0 .63 cm }.
+
+The material parameters and the source term are 
+
+Σt(x, y ) = 
+
+(
+
+0.395168 cm −1, (x, y ) ∈ D1 
+
+> r
+
+,
+
+1.25445 cm −1, (x, y ) ∈ D2 
+
+> r
+
+, Σs(x, y ) = 
+
+(
+
+0.265802 cm −1, (x, y ) ∈ D1 
+
+> r
+
+,
+
+1.12 cm −1, (x, y ) ∈ D2 
+
+> r
+
+,Q(x, y ) = 
+
+(
+
+1, (x, y ) ∈ D1 
+
+> r
+
+,
+
+0, (x, y ) ∈ D2 
+
+> r
+
+.
+
+Case 3. The pin-cell contains two parts: 
+
+D1 
+
+> r
+
+= {(x, y ) : R21 < x 2 + y2 < R 22, R 1 = 0 .27 cm, R 2 = 0 .54 cm },D2 
+
+> r
+
+= {(x, y ) : ( −b, b )2 \ ¯D1 
+
+> r
+
+, b = 0 .63 cm }.
+
+The material parameters and the source term are 
+
+Σt(x, y ) = 
+
+(
+
+0.395168 cm −1, (x, y ) ∈ D1 
+
+> r
+
+,
+
+1.25445 cm −1, (x, y ) ∈ D2 
+
+> r
+
+, Σs(x, y ) = 
+
+(
+
+0.265802 cm −1, (x, y ) ∈ D1 
+
+> r
+
+,
+
+1.12 cm −1, (x, y ) ∈ D2 
+
+> r
+
+,Q(x, y ) = 
+
+(
+
+1, (x, y ) ∈ D1 
+
+> r
+
+,
+
+0, (x, y ) ∈ D2 
+
+> r
+
+.
+
+16 Case 1 Case 2 Case 3 
+
+r 2 2 2RaNN eℓ2 2.1970e-02 2.2756e-02 6.5209e-02 time(s) 682.04 686.78 655.53 RaNN-S eℓ2 2.5098e-02 2.4902e-02 6.7096e-02 time(s) 392.22 369.59 342.40 Table 5: Parameter settings and relative ℓ2 errors of the scalar flux for RaNN in Example 3 (RaNN-S: sketching acceleration with the same settings as RaNN). 
+
+Figure 5: Scalar flux for Example 3 (Case 1): RaNN prediction (left), MCX reference (middle), and absolute error (right). 
+
+Figure 6: Scalar flux for Example 3 (Case 2): RaNN prediction (left), MCX reference (middle), and absolute error (right). 
+
+Figure 7: Scalar flux for Example 3 (Case 3): RaNN prediction (left), MCX reference (middle), and absolute error (right). 17 In this example, we have the same setting: N I = 31 × 31 × 31 × 31, N B = 4 × 30 × 30 × 30 and m = 8000. In the RaNN method, the parameters and relative ℓ2 errors are shown in Table 5. For the different cases considered, the numerical solutions, reference solutions, and absolute errors (without sketching acceleration) are presented in Figures 5, 6, and 7. The RaNN method remains stable at large collocation sizes but becomes dominated by the cost of solving the resulting large least-squares system, reflecting the high-dimensional phase-space discretization. Across the three material configurations, the method attains moderate accuracy, with the annular-fuel configuration (Case 3) being the most challenging and producing the largest error, consistent with its stronger spatial heterogeneity and sharper solution features. Sketching substantially reduces the computational time while preserving essentially the same accuracy, demonstrating that randomized compression is effective for accelerating the linear algebra stage when the augmented system has many more rows than columns. This example indicates that scalable implementations of RaNN for high-dimensional transport benefit strongly from randomized numerical linear algebra techniques. 
+
+Example 4 (Pin-cell Problem with Reflecting Boundary) In this example, we consider the same three ma-terial configurations as in Example 3, but impose reflecting boundary conditions. In the present setting, the reflection map on each side of the square domain is given by 
+
+Ψ( −b, y, φ, μ ) = Ψ( −b, y, π − φ, μ ), (y, φ, μ ) ∈ [−b, b ] × [0 , π/ 2] × [−1, 1] ,
+
+Ψ( −b, y, φ, μ ) = Ψ( −b, y, 3π − φ, μ ), (y, φ, μ ) ∈ [−b, b ] × [3 π/ 2, 2π] × [−1, 1] ,
+
+Ψ( b, y, φ, μ ) = Ψ( b, y, π − φ, μ ), (y, φ, μ ) ∈ [−b, b ] × [π/ 2, π ] × [−1, 1] ,
+
+Ψ( b, y, φ, μ ) = Ψ( b, y, 3π − φ, μ ), (y, φ, μ ) ∈ [−b, b ] × [π, 3π/ 2] × [−1, 1] ,
+
+Ψ( x, −b, φ, μ ) = Ψ( x, −b, 2π − φ, μ ), (x, φ, μ ) ∈ [−b, b ] × [0 , π ] × [−1, 1] ,
+
+Ψ( x, b, φ, μ ) = Ψ( x, b, 2π − φ, μ ), (x, φ, μ ) ∈ [−b, b ] × [π, 2π] × [−1, 1] .
+
+We use the same collocation setting as in Example 3, but with different random distribution parameters r. The corresponding parameter choices and relative ℓ2 errors of the scalar flux are reported in Table 6. For each case, the RaNN prediction, the MCX reference solution, and the absolute error (without sketching acceleration) are shown in Figures 8–10. Case 1 Case 2 Case 3 RaNN 
+
+r 4 2 3
+
+eℓ2 4.0388e-03 4.5391e-03 8.0339e-03 time(s) 685.16 686.21 664.10 RaNN-S eℓ2 4.1324e-03 8.0447e-03 7.8753e-03 time(s) 347.07 355.65 341.70 FV (Nφ, N μ) (16,16) 
+
+eℓ2 5.8339e-03 7.8757e-03 1.5400e-02 time(s) 534.18 656.96 542.87 Table 6: Parameter settings and relative ℓ2 errors of the scalar flux for RaNN and FV in Example 4. For comparison, we also solve the same transport problems using an SN discrete-ordinates formulation coupled with a finite-volume (FV) discretization in space. For the angular discretization, the φ-integral is approximated by a composite trapezoidal rule with Nφ nodes, while the μ-integral is evaluated using an Nμ point Gauss-Legendre quadrature. In space, we use a 50 × 50 uniform grid. As in the previous tests, the MCX solution is taken as the reference. When ( Nφ, N μ) = (16 , 16), the relative ℓ2 errors are summarized in Table 6, and the corresponding absolute error fields are shown in Figure 11. In particular, when ( Nφ, N μ) is increased to (32 , 32), the resulting linear system exceeds the available memory on our platform. These results suggest that the RaNN formulation can remain competitive in regimes where high-resolution SN discretizations become memory intensive on the tested platform. 18 Figure 8: Scalar flux for Example 4 (Case 1): RaNN prediction (left), MCX reference (middle), and absolute error (right). 
+
+Figure 9: Scalar flux for Example 4 (Case 2): RaNN prediction (left), MCX reference (middle), and absolute error (right). 
+
+Figure 10: Scalar flux for Example 4 (Case 3): RaNN prediction (left), MCX reference (middle), and absolute error (right). 19 Figure 11: Absolute errors for FV as ( Nφ, N μ) = (16 , 16) in Example 4, left to right: Case 1 - Case 3. In the reported test cases, the reflecting boundary problems lead to smaller relative errors than the corresponding vacuum cases. The sketching variant again provides a significant runtime reduction with only a modest degradation in accuracy, illustrating a practical trade-off between computational cost and accuracy for large least-squares systems. In comparison, the finite-volume discrete-ordinates (FV– SN ) solver attains similar error levels at moderate angular resolution, but memory requirements grow quickly with ( Nφ, N μ), limiting feasible angular refinement on the tested platform. Collectively, these observations emphasize that RaNN can deliver competitive accuracy without explicitly forming the large coupled systems typical of high-resolution SN discretizations, particularly in settings where angular refinement becomes memory intensive. 
+
+Example 5 (7-Groups Pin-cell Problem) We consider a two-dimensional, seven-group pin-cell problem. The governing transport equations take the form 
+
+p1 − μ2
+
+
+
+cos φ ∂∂x + sin φ ∂∂y 
+
+
+
+Ψg (x, y, φ, μ ) + Σ t,g (x, y )Ψ g (x, y, φ, μ )= 14π
+
+> 7
+
+X
+
+> g′=1
+
+Σs,g ′→g (x, y )
+
+Z 1
+
+> −1
+
+Z 2π
+
+> 0
+
+Ψg′ (x, y, φ ′, μ ′)d φ′dμ′ + 14π Qg (x, y ),
+
+for g = 1 , · · · , 7 and (x, y, φ, μ ) ∈ (−b, b )2 × (0 , 2π) × (−1, 1) , where b = 0 .63 cm . The scattering term couples different energy groups through the macroscopic cross sections Σs,g ′→g , so that the scattering source term for group 
+
+g depends on the angular fluxes in groups g′. Reflecting boundary conditions are imposed. The pin-cell consists of two spatial subdomains, 
+
+D1 
+
+> r
+
+= {(x, y ) : x2 + y2 < R 2, R = 0 .54 cm },D2 
+
+> r
+
+= {(x, y ) : ( −b, b )2 \ ¯D1 
+
+> r
+
+}.
+
+The macroscopic group constants are listed in Table 7–Table 9. 
+
+g Group 1 Group 2 Group 3 Group 4 Group 5 Group 6 Group 7 
+
+D1 
+
+> r
+
+3.558980e-1 6.596100e-1 9.607760e-1 1.108734e-0 6.236020e-1 7.903360e-1 1.128812e-0 
+
+D2 
+
+> r
+
+3.184120e-1 8.259400e-1 1.180620e-0 1.168700e-0 1.436000e-0 2.508900e-0 5.300760e-0 Table 7: Macroscopic total cross sections Σ t,g (cm −1) for the two regions in Example 5. In this example, the sketching technique described in Section 2.7 is employed, and the same sketching matrix 
+
+S is used for all least-squares solves. Based on the sparsity patterns of the group-to-group scattering matrices in 20 g′
+
+Σs,g ′→g g to Group 1 to Group 2 to Group 3 to Group 4 to Group 5 to Group 6 to Group 7 Group 1 1.27537e-1 4.37800e-2 9.43740e-6 5.51630e-9 0 0 0Group 2 0 3.24456e-1 1.63140e-3 3.14270e-9 0 0 0Group 3 0 0 4.50940e-1 2.67920e-3 0 0 0Group 4 0 0 0 4.52565e-1 5.56640e-3 0 0Group 5 0 0 0 1.25250e-4 2.71401e-1 1.02550e-2 1.00210e-8 Group 6 0 0 0 0 1.29680e-3 2.65802e-1 1.68090e-2 Group 7 0 0 0 0 0 8.54580e-3 2.73080e-1 Table 8: Macroscopic scattering cross sections Σ s,g ′→g (cm −1) in region D1 
+
+> r
+
+for Example 5. 
+
+g′
+
+Σs,g ′→g g to Group 1 to Group 2 to Group 3 to Group 4 to Group 5 to Group 6 to Group 7 Group 1 4.44777e-2 1.13400e-1 7.23470e-4 3.74990e-6 5.31840e-8 0 0Group 2 0 2.82334e-1 1.29940e-1 6.23400e-4 4.80020e-5 7.44860e-6 1.04550e-6 Group 3 0 0 3.45256e-1 2.24570e-1 1.69990e-2 2.64430e-3 5.03440e-4 Group 4 0 0 0 9.10284e-2 4.15510e-1 6.37320e-2 1.21390e-2 Group 5 0 0 0 7.14370e-5 1.39138e-1 5.11820e-1 6.12290e-2 Group 6 0 0 0 0 2.21570e-3 6.99913e-1 5.37320e-1 Group 7 0 0 0 0 0 1.32440e-1 2.48070e-0 Table 9: Macroscopic scattering cross sections Σ s,g ′→g (cm −1) in region D2 
+
+> r
+
+for Example 5. Tables 8–9, the multigroup system exhibits a block structure: Groups 1–3 form a lower-triangular subsystem that can be solved sequentially, whereas Groups 4–7 remain mutually coupled and are therefore solved simultaneously through a block least-squares problem. We set N I = 31 × 31 × 31 × 31, N B = 4 × 30 × 30 × 30, m = 6000 and r = 2. The relative ℓ2 errors for different groups and runtime are shown in Table 10. The numerical solutions, reference solutions, and absolute errors are presented in Figure 12. Note that we set m = 6000 due to computational constraints (using more neurons would lead to an out-of-memory error), though a larger number of neurons would yield better results. The reported errors increase with group index, indicating that accurately resolving the down-scattered, strongly coupled low-energy behavior requires greater representational capacity. This example suggests that further improvements will likely require larger feature budgets (or adaptive/localized bases), more efficient memory management, and enhanced multigroup coupling strategies to scale RaNN reliably to high-fidelity multigroup transport. 
+
+g Group 1 Group 2 Group 3 Group 4 Group 5 Group 6 Group 7 time(s) 
+
+eℓ2 5.6894e-02 3.1044e-02 4.5269e-02 9.8361e-02 1.4397e-01 1.9357e-01 2.4744e-01 3942.39 Table 10: Relative ℓ2 errors and runtime of RaNN-S method in Example 5. 
+
+# 5 Summary 
+
+This work presents randomized neural networks as a general solver for linear integro-differential equations and demonstrates the framework on the steady neutron transport equation as a representative high-dimensional nonlocal model. The central idea is to randomly fix the hidden-layer parameters and train only the linear output weights, 21 -0.5 0 0.5                                         
+
+> -0.5 00.5
+> RaNN prediction
+> 22.1 2.2 2.3
+> -0.5 00.5
+> -0.5 00.5
+> RaNN prediction
+> 0.375 0.38 0.385 0.39
+> -0.5 00.5
+> -0.5 00.5
+> RaNN prediction
+> 0.03 0.035 0.04 0.045
+> -0.5 00.5
+> -0.5 00.5
+> RaNN prediction
+> 44.5 55.5 66.5
+> ×10 -3
+> -0.5 00.5
+> -0.5 00.5
+> RaNN prediction
+> 1.6 1.7 1.8 1.9 22.1
+> ×10 -3
+> -0.5 00.5
+> -0.5 00.5
+> RaNN prediction
+> 55.5 66.5 77.5
+> ×10 -4
+> -0.5 00.5
+> -0.5 00.5
+> RaNN prediction
+> 1.2 1.4 1.6 1.8 2
+> ×10 -4
+> -0.5 00.5
+> -0.5 00.5
+> MCX reference
+> 2.2 2.3 2.4 2.5
+> -0.5 00.5
+> -0.5 00.5
+> MCX reference
+> 0.385 0.39 0.395 0.4
+> -0.5 00.5
+> -0.5 00.5
+> MCX reference
+> 0.03 0.035 0.04
+> -0.5 00.5
+> -0.5 00.5
+> MCX reference
+> 3.5 44.5 55.5 6
+> ×10 -3
+> -0.5 00.5
+> -0.5 00.5
+> MCX reference
+> 1.4 1.5 1.6 1.7 1.8 1.9
+> ×10 -3
+> -0.5 00.5
+> -0.5 00.5
+> MCX reference
+> 4.5 55.5 66.5
+> ×10 -4
+> -0.5 00.5
+> -0.5 00.5
+> MCX reference
+> 0.8 11.2 1.4 1.6
+> ×10 -4
+> -0.5 00.5
+> -0.5 00.5
+> absolute error
+> 0.08 0.1 0.12 0.14 0.16
+> -0.5 00.5
+> -0.5 00.5
+> absolute error
+> 0.011 0.012 0.013 0.014
+> -0.5 00.5
+> -0.5 00.5
+> absolute error
+> 0.5 11.5 22.5
+> ×10 -3
+> -0.5 00.5
+> -0.5 00.5
+> absolute error
+> 3456
+> ×10 -4
+> -0.5 00.5
+> -0.5 00.5
+> absolute error
+> 22.2 2.4 2.6 2.8
+> ×10 -4
+> -0.5 00.5
+> -0.5 00.5
+> absolute error
+> 0.9 11.1 1.2
+> ×10 -4
+> -0.5 00.5
+> -0.5 00.5
+> absolute error
+> 22.5 33.5 4
+> ×10 -5
+
+Figure 12: For each energy group (left to right: Groups 1-7), we show the RaNN scalar flux (top), the MCX reference (middle), and the absolute error (bottom). thereby reducing neural training to a linear least-squares problem in the output coefficients. This formulation yields a global minimizer of the empirical least-squares objective in the output coefficients and significantly reduces training cost. As a result, the proposed approach provides a practical way to address two common challenges in nonlocal models: (i) dense coupling induced by integral operators in deterministic discretizations, and (ii) the nonconvex optimization and high computational expense often encountered in PINN-type methods. We have detailed the RaNN formulation for the neutron transport case study, including exact evaluation of differential operators via analytical differentiation, incorporation of scattering integrals through numerical quadra-ture, and extension to multi-material configurations using local RaNNs coupled by interface conditions. Numerical benchmarks covering a one-dimensional slab, a two-dimensional infinite cylinder, two-dimensional slabs with vac-uum and reflecting boundaries, and a challenging two-dimensional seven-group problem with sketching acceleration show that RaNNs achieve competitive accuracy while offering reduced computational cost relative to the selected classical and neural baselines in the reported settings. These results indicate that RaNNs provide a robust, mesh-free, and efficient alternative for high-fidelity simulation of linear transport models with nonlocal integral operators. Future work will focus on extending the RaNN framework to more complex geometries and larger-scale prob-lems, including fully three-dimensional domains, irregular geometries, and substantially increased numbers of energy groups. Addressing these challenges will require efficient preprocessing for domain decomposition, improved strate-gies for strongly coupled multigroup systems, and the integration of high-performance computing techniques, such as GPU acceleration, to accommodate growing computational demands. 
+
+# References 
+
+[1] A. Al-Aradi, A. Correia, G. Jardim, D. D. F. Naiff, Y. R. Saporito, Extensions of the deep Galerkin method, 
+
+Appl. Math. Comput. 430 (2022), 127287. [2] B. G. Carlson and K. D. Lathrop, Transport Theory: The Method of Discrete Ordinates , Los Alamos Scientific Laboratory Report LA-3251-MS, 1965. [3] C. Cercignani, The Boltzmann Equation and Its Applications , Springer Verlag, New York, 1988. [4] F. Chen, J. Huang, C. Wang and H. Yang, Friedrichs learning: weak solutions of partial differential equations via deep learning, SIAM J. Sci. Comput. 45 (3) (2023), A1271–A1299. 22 [5] W. Dahmen, C. Huang, C. Schwab, and G. Welper, Adaptive Petrov–Galerkin methods for first order transport equations, SIAM J. Numer. Anal. 50 (5) (2012), 2420–2445. [6] H. Dang, F. Wang and S. Jiang, Adaptive-growth randomized neural networks for PDEs: algorithms and numerical analysis, arXiv:2408.17225v3. [7] J. J. Duderstadt and L. J. Hamilton, Nuclear Reactor Analysis , Wiley, New York, 1976. [8] W. E and B. Yu, The deep Ritz method: a deep learning-based numerical algorithm for solving variational problems, Commun. Math. Stat. 6 (2018), 1–12. [9] E. N. Epperly, M. Meier, and Y. Nakatsukasa, Fast randomized least-squares solvers can be just as accurate and stable as classical direct solvers, arXiv:2406.03468. [10] Q. He, Q. Zheng, J. Li, H. Wu, W. Shen, L. Cao, Z. Liu, and J. Xu, NECP-MCX: A hybrid Monte-Carlo-Deterministic particle-transport code for the simulation of deep-penetration problems, Ann. Nucl. Energy 151 
+
+(2021), 107978. [11] G.-B. Huang, Q.-Y. Zhu, and C.-K. Siew, Extreme learning machine: theory and applications, Neurocomputing 
+
+70 (2006), 489–501. [12] V. Huhn, M. Tano, and J. Ragusa, Physics-informed neural network with Fourier features for radiation trans-port equation, Nucl. Sci. Eng. 197 (2023), 601–619. [13] R. M. Kuridan, Neutron Transport: Theory, Modeling, and Computations , Springer, Cham, 2023. [14] E. E. Lewis and W. F. Jr. Miller , Computational Methods of Neutron Transport , Wiley, New York, 1984. [15] Y. Li and F. Wang, Local randomized neural networks with finite difference methods for interface problems, 
+
+J. Comput. Phys. 529 (2025), 113847. [16] D. Liu, X. Wang, B. Zhang, C. Yu, Z. Gong and Q. Chen, Differential transform order theory for solving neutron transport equation by deep learning method, Atomic Energy Science and Technology 57 (5) (2023), 946–959. [17] D. Liu, Y. Liu, H. Dang, K. Wang, B. Zhang, F. Wang, Z. Liu and Y. Jiang, The neutron transport equation in exact differential form, Sci. China Phys. Mech. Astron. 68 (2025), 270511. [18] I. Lux and L. Koblinger, Monte Carlo Particle Transport Methods: Neutron and Photon Calculations , CRC Press, Boca Raton, FL, 1991. [19] T. A. Manteuffel, K. J. Ressel, and G. Starke, A boundary functional for the least-squares finite-element solution of neutron transport problems, SIAM J. Numer. Anal. 37 (2) (2000), 556–586. [20] S. Naz and S. K. Loyalka, One-speed criticality problems for a bare slab and sphere: Some benchmark results, 
+
+Ann. Nucl. Energy 34 (9) (2007), 693–702. [21] M. Raissi, P. Perdikaris, and G. E. Karniadakis, Physics-informed neural networks: a deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations, J. Comput. Phys. 
+
+378 (2019), 686–707. [22] J. Shan and Y. Wei, Optimal backward error of a total least squares and its randomized algorithms, SIAM J. Matrix Anal. Appl. 46 (3) (2025) 2116–2139. [23] Y. Shang, F. Wang, and J. Sun, Randomized neural network with Petrov-Galerkin methods for solving linear and nonlinear partial differential equations, Commun. Nonlinear Sci. Numer. Simul. 127 (2023), 107518. 23 [24] J. Sirignano and K. Spiliopoulos, DGM: a deep learning algorithm for solving partial differential equations, J. Comput. Phys. 375 (2018), 1339–1364. [25] J. Sun, S. Dong, and F. Wang, Local randomized neural networks with discontinuous Galerkin methods for partial differential equations, J. Comput. Appl. Math. 445 (2024), 115830. [26] J. Tervo, On regularity of solutions for certain linear Boltzmann transport equations, arXiv:2102.08008v5, 2024. [27] J. Wang, X. Peng, Z. Chen, B. Zhou, Y. Zhou, and N. Zhou, Surrogate modeling for neutron diffusion problems based on conservative physics-informed neural networks with boundary conditions enforcement, Ann. Nucl. Energy 176 (2022), 109234. [28] S. Wang, Y. Teng, and P. Perdikaris, Understanding and mitigating gradient flow pathologies in physics-informed neural networks, SIAM J. Sci. Comput. 43 (5) (2021), A3055–A3081. [29] F. Woolfe, E. Liberty, V. Rokhlin, and M. Tygert, A fast randomized algorithm for the approximation of matrices, Appl. Comput. Harmon. Anal. 25 (2008), 335–366. [30] Y. Xie, Y. Wang, Y. Ma, and Z. Wu, Neural network based deep learning method for multi-dimensional neutron diffusion problems with novel treatment to boundary, J. Nucl. Eng. 2(4) (2021), 533–552. [31] Y. Xie, Y. Wang and Y. Ma, Boundary dependent physics-informed neural network for solving neutron trans-port equation, Ann. Nucl. Energy 195 (2024), 110181. [32] J. Xu, Finite neuron method and convergence analysis, Commun. Comput. Phys. 28 (2020), 1707–1745. [33] L. Yuan, Y.-Q. Ni, X.-Y. Deng, and S. Hao, A-PINN: Auxiliary physics informed neural networks for forward and inverse problems of nonlinear integro-differential equations, J. Comput. Phys. 462 (2022), 111260. 24
