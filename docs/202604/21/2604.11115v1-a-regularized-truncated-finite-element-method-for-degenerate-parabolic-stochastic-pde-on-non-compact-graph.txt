@@ -1,0 +1,6269 @@
+Title: A regularized truncated finite element method for degenerate parabolic stochastic PDE on non-compact graph
+
+URL Source: https://arxiv.org/pdf/2604.11115v1
+
+Published Time: Tue, 14 Apr 2026 02:18:30 GMT
+
+Number of Pages: 38
+
+Markdown Content:
+# A regularized truncated finite element method for degenerate parabolic stochastic PDE on non-compact graph 
+
+Jianbo Cui, Mih´ aly Kov´ acs, and Derui Sheng 
+
+ABSTRACT . We study the numerical approximation of a class of degenerate parabolic stochastic partial differential equations on non-compact metric graphs, which naturally arise in the asymptotic analysis of Hamiltonian flows under small noise perturbations. The numerical discretization of these equations faces several challenges, including the non-compactness of the graph, the degeneracy of the differential operator near vertices, and the non-symmetry of the associated bilinear form. To address these issues, we propose a multi-step numerical strategy combining graph truncation, localized coefficient regularization, and finite element spatial discretization. By incorporating localization techniques, tightness arguments and resolvent estimates, we establish the strong convergence of the proposed scheme in a weighted 
+
+L2-space. Our results provide a systematic methodology that is potentially extensible to more general non-compact graphs and degenerate operators. 
+
+1. Introduction 
+
+A graph Γ consists of a finite set of vertices {Oi} and a finite set of edges {Ik}. Each edge Ik con-nects a pair of vertices and can be isometrically identified with an interval [ak, b k] with −∞ < a k ≤
+
+bk ≤ ∞ . A location (z, k ) ∈ Γ on the graph represents a position z ∈ [ak, b k] on the edge Ik. We assume that the graph Γ is connected, so that there is a path between any two vertices on the graph. Equipped with the shortest path distance, defined as the length of the shortest path connecting any two locations, Γ becomes a metric graph. Stochastic partial differential equations (PDEs) on metric graphs have recently emerged as fundamental modeling tools in neuroscience, physics, and network dynamics. They provide a continuum formulation of stochastic PDEs on discrete graphs (see, e.g., [13, 14 ]) and can describe, for example, the propagation of electrical signals along dendritic trees, where stochastic impulsive inputs account for excitatory and inhibitory influences from neighboring neurons [ 7, 8 ]. Beyond neuroscience, stochastic PDEs on graphs appear in a wide range of applica-tions, including free-electron models for organic molecules [ 32 ], superconductivity in granular and engineered materials [ 1], wave propagation in acoustic and electromagnetic networks [ 18 ], Anderson transitions in disordered wires [ 2, 34 ], quantum chaos [ 4], and statistical modeling [ 6]. A particularly important class of stochastic PDEs on graphs arises from the averaging principle for stochastic perturbations of Hamiltonian flows. This principle, initially introduced in [ 22 ] for small noise perturbations, has been extensively developed in subsequent works (see, e.g., [ 19, 20, 21, 23 ]). 
+
+2010 Mathematics Subject Classification. 35Q83, 60H15, 60H35, 65C30, 65J08. 
+
+Key words and phrases. Analytic semigroup, truncation, regularization, finite element method. The research is partially supported by NSFC grant 12522119, NSFC grant 12301526, MOST National Key & Program No. 2024YFA1015900, the Hong Kong Research Grant Council GRF grant 15302823, NSFC/RGC Joint Research Scheme N PolyU5141/24, the internal grants (P0045336, P0046811) from the Hong Kong Polytechnic University, and the CAS AMSS-PolyU Joint Laboratory of Applied Mathematics.  
+
+> 1
+> arXiv:2604.11115v1 [math.NA] 13 Apr 2026 2JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG
+
+As the perturbation scale tends to zero, the effective dynamics is no longer confined to the original Euclidean space but instead evolves on a graph Γ, obtained by collapsing each connected component of a level set of the Hamiltonian H into a single point. More precisely, the limiting dynamics along the edges {Ik}mk=1 of Γ is governed by a second-order differential operator 
+
+Lf (z, k ) = 12βk(z)ddz
+
+
+
+αk(z) df
+
+dz (z, k )
+
+
+
+, for z ∈ (ak, b k), k = 1 , 2, . . . , m (1.1) with Kirchhoff-type gluing conditions at interior vertices (see (2.4)). Here, αk and βk are functions determined by the Hamiltonian H (see (2.3)). In this paper, we study the following stochastic PDE on the graph Γ:
+
+∂tu(t, z, k ) = Lu(t, z, k ) + b(u(t, z, k )) + g(u(t, z, k )) ∂tW (t, z, k ), (1.2) for t ∈ (0 , T ] and (z, k ) ∈ Γ with the initial condition u(0 , z, k ) = u0(z, k ). Here, the functions b, g :
+
+R → R are Lipschitz continuous, and W denotes a Q-Wiener process on an appropriate Hilbert space on the graph Γ (see Section 2 for further details). The model (1.2), first proposed in [ 10 ], describes the asymptotic behavior of particles moving along an incompressible flow in R2, incorporating the effects of small viscosity, the flow pattern, and a slow chemical reaction involving the particles; see also [ 12 ]. We also refer to [ 11, 16 ] for the sample path large and moderate deviation principles of stochastic PDEs on graphs with small noise. The absence of analytic solutions for stochastic PDEs on graphs, particularly in the nonlinear regime, necessitates the development of robust computational methods. However, the nontrivial topol-ogy of the underlying graph and the diversity of vertex gluing conditions render the discretization of stochastic PDEs on graphs substantially more intricate than those in the Euclidean setting. To the best of our knowledge, the only existing works in this direction are [ 5, 15 ]. For a class of stochastic frac-tional elliptic PDEs on compact metric graphs, the authors in [ 5] proposed and analyzed a numerical method which combines finite element approximation with a rational approximation of the fractional power. In the special case where the Hamiltonian H admits a unique critical point, [ 15 ] analyzed the convergence and asymptotic-preserving properties of a temporal semi-discretization for (1.2) based on the exponential Euler scheme. In the present work, we address the spatial discretization of (1.2), which raises several challenges. First, in many physically relevant settings, the Hamiltonian acts as a confining potential, leading to a graph Γ that contains an unbounded edge. Second, the operator L exhibits qualitatively distinct behavior at different types of vertices, depending on whether the corresponding critical point of the Hamiltonian is a saddle point or a local extremum. In particular, the coefficient αk(z) degenerates linearly near exterior vertices, while βk(z) diverges logarithmically near interior vertices (see Remark 2.1), and thus L degenerates in the neighborhood of each vertex on the graph Γ. Last but not least, the equation (1.2) is well-posed in a weighted L2-space, where the bilinear form associated with L is not symmetric, which further complicates the numerical analysis. Using the asymptotic behavior of Hamiltonian flows under small perturbations, [ 10 ] showed that 
+
+L generates a strongly continuous semigroup on a weighted L2-space L2 
+
+> βγ
+
+(Γ) for a class of edge-independent weight functions γ : Γ → R+. In Section 3, we extend this result by operator semi-group theory to accommodate more general edge-dependent weight functions γ. We show that L
+
+not only generates a strongly continuous semigroup but also an analytic semigroup on L2 
+
+> βγ
+
+(Γ) (see Theorem 3.3), a property essential for the numerical analysis of (1.2). Moreover, we establish the well-posedness and regularity estimates of the mild solution to (1.2) in the weighted L2-space for edge-dependent weights, thereby generalizing existing well-posedness results stated in [ 10 , Section 5] and [ 15 , Section 2.4]. FEM FOR SPDE ON GRAPH 3
+
+The non-compactness of the graph Γ and the degeneracy of the operator L present significant challenges for the direct numerical treatment of (1.2). To overcome these difficulties, we propose a three-step numerical strategy in Section 4 (see Fig. 1). First, using a cut-off function ηR : Γ →                
+
+> Degenerate stochastic PDE (1.2) on non-compact graph Γ
+> Degenerate stochastic PDE (4.9) on compact graph ΓR
+> Non-degenerate stochastic PDE (4.16) on compact graph ΓR
+> Regularized truncated finite element approximation uR,δ hfor (1.2)
+> Step 1 . Graph truncation with parameter R > 1R→ ∞
+> Step 2 . Local regularization with parameter δ > 0δ→0
+> Step 3 . Finite element discretiza-tion with step size h > 0h→0
+
+FIGURE 1. The three-step numerical strategy for approximating the solution to (1.2). 
+
+R+, we introduce a truncated problem (see (4.1)) in which the dynamics is frozen on the unbounded subgraph Γ/ΓR, where ΓR = supp (ηR) is a compact subgraph. Restricted to the compact graph ΓR,the truncated problem is governed by a truncated operator ˇL preserving the Kirchhoff-type gluing conditions at interior vertices (see (4.4)). Second, to address the degeneracy of the coefficients αRk =
+
+αk · ηR and β−1 
+
+> k
+
+near the vertices of ΓR, we introduce a localized regularization for the truncated operator ˇL, yielding a uniformly elliptic operator ˇLδ on ΓR for each fixed regularization parameter 
+
+δ > 0. Third, for fixed R and δ, the regularized truncated problem (see (4.16)) constitutes a non-degenerate stochastic parabolic PDE on the compact graph ΓR, which is discretized in space using the finite element method with a mesh size h > 0 (see (4.19)). This procedure yields a regularized truncated finite element approximation uR,δ h of the mild solution u to (1.2), and our main goal is to establish the following convergence result 
+
+lim  
+
+> R→∞
+
+lim  
+
+> δ→0
+
+lim  
+
+> h→0
+
+E
+
+h
+
+∥u(t) − uR,δ h (t)∥2 
+
+> L2
+> βγ (Γ)
+
+i
+
+= 0 , ∀ t ∈ (0 , T ]. (1.3) The proof of (1.3) relies on Theorems 4.1, 4.4 and 4.6, each of which uses the properties of the generator L established in Theorem 3.3. In Theorem 4.1, we derive an upper bound for the truncation error in terms of the diffusion coefficients of L and the graph weight function γ, whose proof is presented in Section 5. In particular, the truncation error tends to 0 as the truncation parameter R goes to infinity, provided that γ decays at least quadratically at infinity. The most delicate part in proving (1.3) is the convergence analysis of the regularization procedure (Theorem 4.4), which is carried out in Section 6 by a tightness argument. First, based on the specific constructions of the regularized coefficients αR,δ = {αR,δ k }mk=1 and βδ = {βδk}mk=1 , we establish uniform energy estimates for the solution ˇuδ of the regularized truncated equation (4.16) in a weighted Sobolev space W 1,2   
+
+> αR,δ γ,β δγ
+
+(Γ R) independent of δ (see (6.29)). A major difficulty arises from the non-symmetry of the regularized operator ˇLδ on L2  
+
+> βδγ
+
+(Γ R), which complicates control of the stochastic 4 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+convolution. To overcome this issue, we exploit the positivity and continuity of γ on the compact graph ΓR and reduce the analysis to the case γ ≡ 1 where the fractional norm ∥(−L δ)1/2 · ∥ L2 
+
+> βδ γ(Γ R)
+
+provide an equivalent norm of the energy space W 1,2   
+
+> αR,δ γ,β δγ
+
+(Γ R) (see (6.26) for more details). This enables us to control the stochastic convolution uniformly in δ (see Lemma 6.6), by making full use of the smoothing properties of the associated semigroup (see Lemma 6.4). Using the integrability of the possible logarithmic singularity of βk, we further refine the estimate to show that ˇuδ is uniformly bounded in W 1,2 
+
+> αRγ,βγ
+
+(Γ R) with respect to δ. The tightness argument then reduces to proving the compactness of the Sobolev embedding W 1,2 
+
+> αRγ,βγ
+
+(Γ R) ,→ L2 
+
+> βγ
+
+(Γ R), which is nontrivial due to the potential degeneracy of αRk and the possible blow-up of βk. To control the decay rate of αRk = αk · ηR
+
+near the boundary of supp( ηR), we choose a linearly decaying cut-off function ηR rather than using a standard C∞ 
+
+> c
+
+cut-off function. This allows us to apply [ 16 , Claim 1 in Lemma 5.6] and prove the tightness of the law of ˇuδ in C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) (see Lemma 6.7). Hence, we can prove the convergence of the regularized truncated equation (4.16), by combining tightness with the Gy¨ ongy– Krylov characterization of convergence in probability (see [ 26 , Lemma 1.1] for more details). Section 7 is devoted to the proof of Theorem 4.6 on the error of the finite element approximation of the regularized truncated equation (4.16). To handle the non-symmetry of the bilinear form associated with ˇLδ, we analyze the convergence of the discretization error in L2  
+
+> βδγ
+
+(Γ R) using a resolvent-based approach, inspired by [ 28 ]. Another key contribution of this part consists in interpolation error esti-mates in the energy norm (see Lemma 7.3) and in introducing a suitable shifting argument to treat the case where the operator ˇLδ is merely bounded from above, rather than being negative semidefinite. Combining an interpolation result (see (6.17)) with a priori estimates for the solutions, we establish the convergence rate of the finite element method in L2 
+
+> βγ
+
+(Γ R).Finally, we summarize the main contributions of this work as follows. To numerically solve the degenerate parabolic stochastic PDE (1.2) on non-compact graph Γ, we propose a numerical strategy combining truncation, regularization and the finite element discretization, and establish the conver-gence of the resulting numerical solution. Although our analysis focuses on the model (1.2), we be-lieve that the numerical strategies and analytical techniques presented here can be potentially extended to handle more general non-compact graphs and degenerate operators. Since the main focus of this work is the construction and convergence analysis of the spatial discretization of (1.2), the develop-ment of fully discrete schemes and the corresponding numerical experiments are left for future work. For readers interested in the implementation of finite element discretizations for (stochastic) PDEs on graphs, we refer to [ 3, 5 ] for further details. In particular, the authors in [ 3] proposed a representa-tion of the stiffness matrix associated with the graph Laplacian based on the incidence matrix of the so-called extended graph, where spatial grid points are interpreted as additional vertices. This yields a structured algebraic formulation that facilitates the implementation of finite element discretization on graphs. 
+
+2. Preliminaries 
+
+In this section, we provide a brief overview of the background and mathematical setting of the stochastic PDE on the graph Γ.
+
+2.1. Notation. Let Γ be a connected metric graph consisting of a finite set of vertices {Oi} and a finite set of edges {Ik}, equipped with the shortest path distance. Each edge Ik is identified with an interval [ak, b k] with −∞ ≤ ak < b k ≤ ∞ , denoted by Ik ∼= [ ak, b k]. A location (z, k ) ∈ Γ on the graph represents a position z ∈ [ak, b k] on the edge Ik. Since Ik ∼= [ ak, b k], we sometimes write 
+
+(z, k ) ∈ Ik (resp. (z, k ) ∈ ˚Ik) to indicate a location on Ik with z ∈ [ak, b k] (resp. z ∈ (ak, b k)). A FEM FOR SPDE ON GRAPH 5
+
+function f defined on the graph Γ is said to be continuous at a vertex Oi if for all edges {Ik} incident to Oi, the corresponding coordinate functions {f (·, k )} attain the same value at Oi.Let μ = {μk}mk=1 and ν = {νk}mk=1 be two weight functions on Γ, that is, μk, ν k : Ik → [0 , ∞)
+
+are measurable functions for each k = 1 , 2, . . . , m . For any subinterval J ⊂ Ik, we define L2 
+
+> νk
+
+(J) as the space of complex-valued functions on J equipped with the inner product 
+
+⟨w, v ⟩L2  
+
+> νk(J)
+
+:= 
+
+Z
+
+> J
+
+w(z)v(z)νk(z)d z, w, v ∈ L2 
+
+> νk
+
+(J),
+
+where v(z) denotes the complex conjugate of v(z). The weighted Sobolev space W 1,2  
+
+> μk,ν k
+
+(J) consists of all functions w ∈ L2 
+
+> νk
+
+(J) whose weak derivative w′ := ddz w ∈ L2 
+
+> μk
+
+(J), endowed with the inner product 
+
+⟨w, v ⟩W 1,2  
+
+> μk ,ν k(J)
+
+:= ⟨w, v ⟩L2  
+
+> νk(J)
+
++ ⟨w′, v ′⟩L2 
+
+> μk(J)
+
+, w, v ∈ W 1,2  
+
+> μk,ν k
+
+(J).
+
+We then define the graph-weighted spaces by the direct sums 
+
+L2 
+
+> ν
+
+(Γ) := 
+
+> m
+
+M
+
+> k=1
+
+L2 
+
+> νk
+
+(Ik), W 1,2 
+
+> μ,ν
+
+(Γ) := 
+
+> m
+
+M
+
+> k=1
+
+W 1,2  
+
+> μk,ν k
+
+(Ik).
+
+In the special case μ = ν ≡ 1, we omit the weights and write L2(J) and W 1,2(J) for the spaces on each edge, and L2(Γ) and W 1,2(Γ) for the corresponding function spaces on the graph Γ. Besides, we denote by W 1,2,c μ,ν (Γ) the subspace of W 1,2 
+
+> μ,ν
+
+(Γ) consisting of functions that are continuous at each interior vertex on the graph Γ.Two functions φ and ψ are said to be asymptotically equivalent as x → x0 if lim x→x0 φ(x)/ψ (x) = 1, in which case we write φ(x) ∼ ψ(x) as x → x0. Given two Hilbert spaces V1 and V2, we denote by L (V1) the space of bounded linear operators from V1 to itself, equipped with the operator norm 
+
+∥A1∥L (V1) := sup  
+
+> ∥x∥V1≤1
+
+∥A1x∥V1 , A1 ∈ L (V1),
+
+and by L2(V1, V 2) the space of Hilbert–Schmidt operators from V1 to V2 endowed with the Hilbert– Schmidt norm 
+
+∥A2∥L2(V1,V 2) := 
+
+ ∞X
+
+> i=0
+
+∥A2fi∥2
+
+> V2
+
+ 12
+
+, A2 ∈ L2(V1, V 2),
+
+where {fi}i∈N is any complete orthonormal basis of V1 (see [ 17 ] for more details). 
+
+2.2. Mathematical setting. Let −H : R2 → R be a stream function that describes the flow pattern of a fluid or gas in two-dimensional space, and let W a spatially homogeneous Wiener process on R2 with finite spectral measure μ. For ϵ > 0, consider a stochastic PDE 
+
+∂tuϵ(t, x ) = Lϵuϵ(t, x ) + b(uϵ(t, x )) + g(uϵ(t, x )) ∂tW (t, x ), t ∈ [0 , T ], (2.1) subject to a suitable initial condition. Let T > 0, b, g : R2 → R be Lipschitz continuous, assume that 
+
+H : R2 → R satisfies the following conditions (see [ 10 , Hypothesis 1]). (i) H ∈ C 4(R2) with a bounded second derivative and min x∈R2 H(x) = 0; 
+
+(ii) H has only a finite number of critical points x1, . . . , xn. The Hessian matrix ∇2H(xi) is non-degenerate for every i = 1 , 2, . . . , n , and H(xi)̸ = H(xj ) if i̸ = j;(iii) There exist a1, a2, a3 > 0 such that for all x ∈ R2 with |x| large enough, 
+
+H(x) ≥ a1|x|2, |∇ H(x)| ≥ a2|x|, ∆H(x) ≥ a3.6 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+The linear operator Lϵ = 1 
+
+> ϵ
+
+∆ + ∇⊥H · ∇ is the infinitesimal generator of the diffusion process 
+
+dXϵ(t) = 1
+
+ϵ ∇⊥H(Xϵ(t))d t + dB( t), t ∈ [0 , T ],
+
+where B is a two dimensional Brownian motion, and ∇⊥ := ( −∂x2 , ∂ x1 ). The multiscale reaction-diffusion-advection equation (2.1) models the motion of particles over the time interval [0 , T /ϵ ], trans-ported by an incompressible flow in R2 with the stream function −H, incorporating the effects of small viscosity, the flow pattern, and a slow chemical reaction affecting the particles. For every connected component C k(z) of a given level set C (z) := {x ∈ R2 : H(x) = z} of the function H, there is an invariant measure dμz,k (x) ∝ |∇ H(x)|−1dx for the Hamiltonian system 
+
+˙X(t) = ∇⊥H(X(t)) . By identifying all points in R2 in the same connected component C k(z), we obtain a graph Γ consisting of a finite set of vertices {Oi}ni=1 and a finite set of edges {Ik}mk=1 . Each vertex Oi corresponds to a critical point xi of the function H, where interior vertices correspond to saddle points of H, and exterior vertices correspond to local extremum points of H. Each interior and exterior vertex is incident to three edges and a single edge, respectively. We also include O∞ among exterior vertices, the endpoint of the only unbounded interval Im on the graph, corresponding to the point at infinity (see Fig. 2 for an illustration). 
+
+FIGURE 2. An example for the Hamiltonian H with three local minimizers ( O1, O2,and O3) and two saddle points ( O4 and O5), and the graph Γ.In what follows, we shall denote by Π : R2 → Γ the identification map associating every x ∈
+
+R2 to the corresponding point Π( x) on the graph Γ. Then Π( x) = ( H(x), k (x)) , where k(x) ∈{1, 2, . . . , m } denotes the index of the edge Ik(x) to which Π( x) belongs. Moreover, we have Im ∼=[H0, ∞], where H0 := max 1≤i≤n H(xi); for 1 ≤ k ≤ m−1, Ik ∼= [ H(xi), H (xj )] , where Oi and Oj
+
+are the two vertices incident to Ik ordered so that H(xi) < H (xj ). Endowed with the shortest-path distance, Γ is a metric space. By an averaging procedure with respect to the invariant measure μz,k , it has been shown in [ 23 , Chapter 8] that, for any non-random initial value Xϵ(0) ∈ R2, the projected process {Π( Xϵ(t)) }t∈[0 ,T ] converges in distribution to a Markov process { ¯Y (t)}t∈[0 ,T ] on the graph 
+
+Γ.For a function ϕ : R2 → R, we define its projection ϕ∧ : Γ → R by (z, k ) 7 → ϕ∧(z, k ) = H  
+
+> Ck(z)
+
+ϕ(x)d μz,k . It has been shown in [ 10 ] that as ϵ → 0, the asymptotic behavior of the projection 
+
+(uϵ)∧ of the solution to (2.1) is captured by the stochastic PDE (1.2). The initial value u(0) = u0FEM FOR SPDE ON GRAPH 7
+
+(resp. the driving process W ) of (1.2) is the projection of the initial value (resp. the driving process 
+
+W ) of (2.1). The linear operator L in (1.2) is the infinitesimal generator of the limiting process ¯Y
+
+given by 
+
+Lf (z, k ) = 12βk(z)ddz
+
+
+
+αk(z) df
+
+dz (z, k )
+
+
+
+, if (z, k ) ∈ ˚Ik, k = 1 , . . . , m. (2.2) The coefficients in (2.2) are given by 
+
+αk(z) = 
+
+I 
+
+> Ck(z)
+
+|∇ H(x)|dlz,k , βk(z) = 
+
+I 
+
+> Ck(z)
+
+1
+
+|∇ H(x)| dlz,k , (2.3) where dlz,k is the length element on C k(z), and βk(z) is the period of the motion on C k(z). The operator L is subject to gluing conditions, which require that f is continuous at each interior vertex 
+
+Oi and satisfies the following Kirchhoff condition: 
+
+X 
+
+> k:Ik∼Oi
+
+αk(H(xi))d kf (H(xi), k ) = 0 for each interior vertex Oi, (2.4) where dkf (H(xi), k ) := Φ k,i ddz f (H(xi), k ) with 
+
+Φk,i =
+
+(+1 , if Ik is incident to Oi and the z-coordinate decreases along Ik towards Oi,
+
+−1, if Ik is incident to Oi and the z-coordinate increases along Ik towards Oi.
+
+The metric graph Γ equipped with the operator L defined by (2.2) is also called a quantum graph [3, 4 ]. REMARK 2.1. By [23 , Lemma 1.1] , the functions βk and αk are continuously differentiable in the interior ˚Ik of Ik. In contrast, αk and βk possibly exhibit singularities or degeneracy near the vertices. Indeed, if (z, k ) approaches an endpoint of an edge Ik, corresponding to a vertex Oi = ( H(xi), k ),then by [23 , pp. 266-267] and [10 , pp. 501] , as (z, k ) → Oi,
+
+αk(z) ∼
+
+
+
+const · | z − H(xi)|, if xi is a local extremum point ,
+
+const , if xi is a saddle point ,
+
+const · z, if Oi = O∞;
+
+(2.5) 
+
+βk(z) ∼
+
+
+
+const , if xi is a local extremum point ,
+
+const · | log |z − H(xi)|| , if xi is a saddle point ,
+
+const , if Oi = O∞.
+
+(2.6) 
+
+Here const denotes some positive constant depending on k and Oi, and may differ from line to line. 
+
+Recall that W a spatially homogeneous Wiener process on R2 with finite spectral measure μ, i.e., 
+
+E [W (t, x )W (t, y )] = ( t ∧ s)Λ( x − y), t, s ∈ [0 , T ], x, y ∈ R2,
+
+where Λ is the Fourier transform of μ given by Λ( x) = R 
+
+> R2
+
+eix·ξμ(d ξ) for x ∈ R2 with i being the imaginary unit. Let S(R2) be the set of smooth functions on R2 with rapid decrease. The operator 
+
+Q : S(R2) × S (R2) → R defined by 
+
+Q(φ1, φ 2) := 
+
+Z
+
+> R2
+
+Λ( x)
+
+Z
+
+> R2
+
+φ1(y)φ2(y − x)d ydx, φ1, φ 2 ∈ S (R2),
+
+is called the covariance form of W . By [ 33 , Section 1.2], the reproducing kernel Hilbert space (U, ∥ · ∥U ) of W can be identified with the dual of Sq, where Sq is the completion of the set S(R2)/ ker Q
+
+with respect to the norm q([ φ]) := pQ(φ, φ ). Denote by L2(s)(R2, dμ) the subspace of the Hilbert 8 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+space L2(R2, dμ; C) consisting of all functions φ satisfying φ(−x) = φ(x) for x ∈ R2. Due to [33 , Proposition 1.2], an orthonormal basis for U is given by {duj μ}j∈N, where {uj }j∈N is a complete orthonormal basis of the Hilbert space L2(s)(R2, dμ) and duj μ(x) = R 
+
+> R2
+
+eix·ξuj (ξ)μ(d ξ) for x ∈ R2.This implies that W has the following Karhunen–Lo` eve expansion W (t, x ) = P 
+
+> j∈N
+
+duj μ(x)βj (t) for 
+
+t ∈ [0 , T ] and x ∈ R2, where {βj }j∈N is a sequence of independent Brownian motions defined on the stochastic basis (Ω , F , {Ft}t∈[0 ,T ], P). By projection, the driving process W in (1.2) is a Wiener process with the Karhunen–Lo` eve expansion 
+
+W (t, z, k ) = X
+
+> j∈N
+
+(duj μ)∧(z, k )βj (t), (z, k ) ∈ Γ.
+
+The sequence {(duj μ)∧}j∈N forms a complete orthonormal basis of the Hilbert space U0 := {φ∧|φ ∈U} endowed with the norm ∥φ∧∥U0 := ∥φ∥U . By the Parseval identity and the fact that {uj }j∈N
+
+forms a complete orthonormal basis of the Hilbert space L2(s)(R2, dμ), and since μ is a finite measure, for any x ∈ R2 we have 
+
+X
+
+> j∈N
+
+|duj μ(x)|2 = X
+
+> j∈N
+
+Z
+
+> R2
+
+eix·ξuj (ξ)μ(d ξ)
+
+> 2
+
+=
+
+Z
+
+> R2
+
+|eix·ξ|2μ(d ξ) = μ(R2) < ∞. (2.7) Furthermore, by the Cauchy–Schwarz inequality, for any (z, k ) ∈ Γ,
+
+X
+
+> j∈N
+
+|(duj μ)∧(z, k )|2 = X
+
+> j∈N
+
+I 
+
+> Ck(z)
+
+duj μ(x)d μz,k 
+
+> 2
+
+≤ X
+
+> j∈N
+
+I 
+
+> Ck(z)
+
+|duj μ(x)|2dμz,k ≤ μ(R2). (2.8) 
+
+3. Well-posedness and regularity of stochastic PDE on graph 
+
+Throughout the paper, we denote by C a generic constant which may depend on several parameters but never on the stepsize h and may change from occurrence to occurrence. When needed, we will explicitly write C(a, b, . . . ) to emphasize the dependence of the constant C upon parameters a, b, . . . 
+
+In particular, when C depends on the truncation parameter R or the regularization parameter δ, we always explicitly write C(R) or C(δ) to emphasize this dependence. In this section, we establish the well-posedness of the stochastic PDE (1.2) on graph, under a weighted L2-space L2 
+
+> βγ
+
+(Γ) , where γ : Γ → (0 , ∞), (z, k ) 7 → γk(z), is continuous on Γ and continu-ously differentiable on the interior of each edge. This will rely on the properties of the operator L and its associated semigroup. 
+
+3.1. Operator and semigroup. In this subsection, we show that the operator L generates an analytic semigroup in the weighted L2-space L2 
+
+> βγ
+
+(Γ) , under the following assumption. ASSUMPTION 3.1. There exists a constant κ > 0 such that 
+
+αk(z)|γ′
+
+> k
+
+(z)|2 ≤ κβ k(z)γ2 
+
+> k
+
+(z) for (z, k ) ∈ ˚Ik, k = 1 , . . . , m. (3.1) The continuity and positivity of γ implies the existence of a positive constant C > 0 such that 
+
+C−1 ≤ γk ≤ C for all k = 1 , 2, . . . , m − 1. In view of (2.5) and (2.6), Assumption 3.1 will be satisfied provided that γ satisfies the following condition 
+
+|γ′
+
+> k
+
+(z)| ≤ C, if (z, k ) ∈ ˚Ik, 1 ≤ k ≤ m − 1; and √z|γ′
+
+> m
+
+(z)| ≤ Cγ m(z), if (z, m ) ∈ ˚Im, (3.2) where C > 0 is a constant independent of (z, k ). Next we present some concrete examples of the graph weight function γ.FEM FOR SPDE ON GRAPH 9
+
+EXAMPLE 3.2. For (z, k ) ∈ Γ with k = 1 , . . . , m − 1, set γk(z) = 1 . On the unbounded edge 
+
+Im ∼= [ H0, ∞), where H0 = max 1≤i≤n H(xi), we consider the following two choices: (i) γm(z) = e−ρ1(z−H0)ρ2 , (ii) γm(z) = ( z − H0 + 1) −ρ3 ,
+
+where ρ1 > 0, 0 < ρ 2 < 12 and ρ3 > 1. One can readily verify that the inequality (3.2) (and thus Assumption 3.1) as well as 1Γ ∈ L2 
+
+> βγ
+
+(Γ) hold in both cases. 
+
+In the special case where γk(z) = ϑ(z) is independent of k, and ϑ : [0 , ∞) → (0 , ∞) is a bounded, twice continuously differentiable function satisfying 
+
+z|ϑ′′ (z)| + |ϑ′(z)| ≤ Cϑ (z) ∀ z ≥ 0,
+
+it has been shown in [ 10, 15 ] that the operator L generates a strongly continuous semigroup on L2 
+
+> βγ
+
+(Γ) .Next, we extend this result to the more general setting of edge-dependent weight functions γ, and show that the corresponding operator generates not only a strongly continuous semigroup but also an analytic semigroup on L2 
+
+> βγ
+
+(Γ) . This property will be crucial for the numerical analysis of finite element methods. THEOREM 3.3. Under Assumption 3.1, for any λ ≥ 18 κ, the operator −λI + L generates an analytic contraction semigroup on L2 
+
+> βγ
+
+(Γ) , where the domain D(L) of L is given by 
+
+D(L) = f ∈ W 1,2,c αγ,βγ (Γ) : f satisfies (2.4) , α k df 
+
+> dz
+
+is differentiable on each Ik, and Lf ∈ L2 
+
+> βγ
+
+(Γ) .
+
+(3.3) PROOF . Recall that W 1,2,c αγ,βγ (Γ) denotes the subspace of W 1,2 
+
+> αγ,βγ
+
+(Γ) consisting of functions that are continuous at each interior vertex on the graph Γ. First, we claim that W 1,2cont (Γ) := W 1,2,c αγ,βγ (Γ) is a closed subset of W 1,2 
+
+> αγ,βγ
+
+(Γ) . To illustrate this, suppose a sequence {fn}∞ 
+
+> n=1
+
+⊂ W 1,2cont (Γ) converging to some f in W 1,2 
+
+> αγ,βγ
+
+(Γ) , and we will show that f is continuous at each interior vertex. Let Oi =(H(xi), k 1) = ( H(xi), k 2) = ( H(xi), k 3) be an interior vertex. Divide each incident edge Ikj ,
+
+j = 1 , 2, 3, into two equal subintervals, and denote by ˜Ikj the subinterval of Ikj incident to Oi. Since 
+
+fn → f in W 1,2 
+
+> αγ,βγ
+
+(Γ) , we have fn |˜Ikj
+
+→ f |˜Ikj
+
+in W 1,2   
+
+> αkjγkj,β kjγkj
+
+( ˜Ikj ) for each j = 1 , 2, 3. By (2.5) and (2.6), it can be verified that W 1,2   
+
+> αkjγkj,β kjγkj
+
+( ˜Ikj ) ⊂ W 1,2( ˜Ikj ). In combination with the Sobolev embedding W 1,2( ˜Ikj ) ,→ C ( ˜Ikj ), this implies that fn |˜Ikj
+
+→ f |˜Ikj
+
+in C( ˜Ikj ) for each j = 1 , 2, 3.Recalling that fn’s are continuous at the interior vertex Oi, it follows that for j = 2 , 3,
+
+f (H(xi), k j ) = lim  
+
+> n→∞
+
+fn(H(xi), k j ) = lim  
+
+> n→∞
+
+fn(H(xi), k 1) = f (H(xi), k 1).
+
+This proves the continuity of f at the interior vertex Oi, and thus W 1,2cont (Γ) is a Hilbert space endowed with the inner product inherited from W 1,2 
+
+> αγ,βγ
+
+(Γ) .For λ ∈ R, consider the bilinear form aλ : W 1,2cont (Γ) × W 1,2cont (Γ) → C defined by 
+
+aλ(ϕ, ψ ) = λ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+ϕ(z, k )ψ(z, k )βk(z)γk(z)d z+ 12
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk(z) ddz ϕ(z, k ) ddz
+
+
+
+ψ(z, k )γk(z)
+
+
+
+dz. 
+
+(3.4) 
+
+Claim 1. For λ ≥ 18 κ, aλ is densely defined, continuous, closed and accretive. Proof of Claim 1. (i) aλ is densely defined since ⊕mk=1 C∞ 
+
+> c
+
+(Ik) ⊂ W 1,2cont (Γ) is dense in L2 
+
+> βγ
+
+(Γ) . Here, 
+
+C∞ 
+
+> c
+
+(Ik) denotes the space of all infinitely differentiable functions with compact support in Ik.10 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+(ii) By Assumption 3.1 and Young’s inequality, for any ϵ > 0 and ϕ, ψ ∈ W 1,2cont (Γ) , we have 
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk
+
+ddz ϕψγ ′
+
+> k
+
+dz ≤ 12 ϵ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk| ddz ϕ|2γkdz + 12ϵ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk|ψγ ′
+
+> k
+
+|2γ−1 
+
+> k
+
+dz
+
+≤ 12 ϵ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk| ddz ϕ|2γkdz + κ
+
+2ϵ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+|ψ|2βkγkdz. (3.5) In view of (3.5) with ψ = ϕ, one has that for any ϕ ∈ W 1,2cont (Γ) ,
+
+ℜaλ(ϕ, ϕ ) ≥ ( 12 − 14 ϵ)
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk| ddz ϕ|2γkdz + ( λ − κ
+
+4ϵ )
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+|ϕ|2βkγkdz. (3.6) For λ ≥ 18 κ, we take ϵ ∈ [ κ 
+
+> 4λ
+
+, 2] such that ℜaλ(ϕ, ϕ ) ≥ 0 for all ϕ ∈ W 1,2cont (Γ) , i.e., aλ is accretive. (iii) By the H¨ older inequality and (3.5), one can show that 
+
+|aλ(ϕ, ψ )| ≤ C(λ, κ )∥ϕ∥W 1,2 
+
+> αγ,βγ (Γ)
+
+∥ψ∥W 1,2 
+
+> αγ,βγ (Γ)
+
+, ϕ, ψ ∈ W 1,2cont (Γ) . (3.7) Taking ϵ = κ 
+
+> 4λ+2
+
+in (3.6) yields ∥ϕ∥2 
+
+> aλ
+
+:= ℜaλ(ϕ, ϕ ) + ∥ϕ∥2  
+
+> L2
+> βγ (Γ)
+
+≥ 14λ+2 ∥ϕ∥2   
+
+> W1,2
+> αγ,βγ (Γ)
+
+for all 
+
+ϕ ∈ W 1,2cont (Γ) . This proves the continuity of aλ, i.e., 
+
+|aλ(ϕ, ψ )| ≤ M∥ ϕ∥aλ ∥ψ∥aλ , ϕ, ψ ∈ W 1,2cont (Γ) . (3.8) where M is a positive constant depending on κ and λ.(iv) aλ is closed since for any λ ≥ 18 κ, ∥ · ∥ aλ is an equivalent norm of the Hilbert space W 1,2cont (Γ) .The operator associated with the form aλ is defined by (see [ 31 , Definition 1.21]) 
+
+D(A) := {ϕ ∈ W 1,2cont (Γ) : ∃f ∈ L2 
+
+> βγ
+
+(Γ) s.t. a λ(ϕ, ψ ) = ⟨f, ψ ⟩L2  
+
+> βγ (Γ)
+
+∀ ψ ∈ W 1,2cont (Γ) }, (3.9) 
+
+Aϕ := −f. (3.10) 
+
+Claim 2. The operator A associated with the form aλ is −λI + L, where D(L) is defined in (3.3) .Proof of Claim 2 . (I) Denote by W 1,2
+
+> c, cont
+
+(Γ) the space of functions in W 1,2cont (Γ) with compact support, namely, for any ψ ∈ W 1,2
+
+> c, cont
+
+(Γ) , there exists a constant zψ ≥ H0 such that ψ(z, m ) = 0 for all 
+
+z ≥ zψ. If ϕ ∈ D(L), then integrating by parts yields that for any ψ ∈ W 1,2
+
+> c, cont
+
+(Γ) ,
+
+aλ(ϕ, ψ ) = λ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+ϕ(z, k )ψ(z, k )βk(z)γk(z)d z −
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+Lϕ(z, k )ψ(z, k )βk(z)γk(z)d z
+
++ 12
+
+> m−1
+
+X
+
+> k=1
+
+X
+
+> Oi∼Ik
+
+αk(z) ddz ϕ(z, k )ψ(z, k )γk(z)Φ k,i + 12 αm(z) ddz ϕ(z, m )ψ(z, m )γm(z) z=zψ
+
+> z=H0
+
+= ⟨(λI − L )ϕ, ψ ⟩L2 
+
+> βγ (Γ)
+
++ 12
+
+X
+
+> Oi∈O int
+
+X 
+
+> k:Ik∼Oi
+
+αk(H(xi))d kϕ(H(xi), k )ψ(H(xi), k )γk(H(xi)) ,
+
+where we have used the fact that αk vanishes at exterior vertices and ψ(zψ, m ) = 0 . Throughout, Oint 
+
+denotes the set of interior vertices of Γ. Furthermore, the continuity of ψ · γ at interior vertices and the Kirchhoff condition (2.4) lead to 
+
+aλ(ϕ, ψ ) = ⟨(λI − L )ϕ, ψ ⟩L2  
+
+> βγ (Γ)
+
+∀ ψ ∈ W 1,2
+
+> c, cont
+
+(Γ) . (3.11) FEM FOR SPDE ON GRAPH 11 
+
+We next show that W 1,2
+
+> c, cont
+
+(Γ) is dense in W 1,2cont (Γ) . For each R > 0, set ϱ(·) = ϱ( · 
+
+> R
+
+), where 
+
+ϱ : [0 , ∞) → [0 , 1] is a smooth function satisfying 
+
+ϱ(z) = 1 , if 0 ≤ z ≤ 1; ϱ(z) = 0 , if z ≥ 2. (3.12) Given ψ ∈ W 1,2cont (Γ) , we have ψ · ϱR ∈ W 1,2
+
+> c, cont
+
+(Γ) and that for any R > H 0,
+
+∥ψ − ψ · ϱR∥2   
+
+> W1,2
+> αγ,βγ (Γ)
+
+=
+
+Z
+
+> Im
+
+| ddz (ψ − ψϱ R)|2αmγmdz +
+
+Z
+
+> Im
+
+|ψ − ψϱ R|2βmγmdz
+
+≤
+
+Z ∞
+
+> R
+
+| ddz ψ|2αmγmdz + CR2
+
+Z 2RR
+
+|ψ|2αmγmdz +
+
+Z ∞
+
+> R
+
+|ψ|2βmγmdz. 
+
+Since supp (ϱ′
+
+> R
+
+) ⊂ [R, 2R], αm(z) ∼ z and βm(z) ∼ C > 0 as z → ∞ , for sufficiently large R, we have 
+
+CR2
+
+Z 2RR
+
+|ψ|2αmγmdz ≤ C 1
+
+R
+
+Z 2RR
+
+|ψ|2βmγmdz ≤ C 1
+
+R
+
+Z ∞
+
+> R
+
+|ψ|2βmγmdz. 
+
+Hence ψ · ϱR converges to ψ in W 1,2cont (Γ) , which means that W 1,2
+
+> c, cont
+
+(Γ) is dense in W 1,2cont (Γ) .For any ψ ∈ W 1,2cont (Γ) , there is a sequence {ψn}∞ 
+
+> n=1
+
+⊂ W 1,2
+
+> c, cont
+
+(Γ) converging in W 1,2cont (Γ) to ψ,which, along with the continuity of aλ and (3.11), indicates 
+
+aλ(ϕ, ψ ) = lim  
+
+> n→∞
+
+aλ(ϕ, ψ n) = lim 
+
+> n→∞
+
+⟨(λI − L )ϕ, ψ n⟩L2  
+
+> βγ (Γ)
+
+= ⟨(λI − L )ϕ, ψ ⟩L2 
+
+> βγ (Γ)
+
+.
+
+Thus we have proved that ϕ ∈ D(A) and Aϕ = ( −λI + L)ϕ.(II) On the other hand, if ϕ ∈ D(A), then by (3.9) and the definition of weak derivative, we obtain that for each k = 1 , . . . , m ,
+
+12ddz
+
+
+
+αk(z) ddz ϕ(z, k )
+
+
+
+= ( λϕ (z, k ) − f (z, k )) βk(z) in weak sense ,
+
+i.e., (λI − L )ϕ = f ∈ L2 
+
+> βγ
+
+(Γ) . Then integrating by parts implies that for any ψ ∈ W 1,2
+
+> c, cont
+
+(Γ) ,
+
+aλ(ϕ, ψ ) = ⟨f, ψ ⟩L2  
+
+> βγ (Γ)
+
++ 12
+
+X
+
+> Oi∈O int
+
+ X 
+
+> k:Ik∼Oi
+
+αk(H(xi))d kϕ(H(xi), k )) 
+
+
+
+ψ(H(xi), k )γk(H(xi)) ,
+
+due to (λI − L )ϕ = f , the fact that αk vanishes at exterior vertices, ψ(zψ, m ) = 0 and the continuity of γ at interior vertices. The arbitrariness of ψ in W 1,2
+
+> c, cont
+
+(Γ) implies that ϕ satisfies the Kirchhoff condition (2.4), and hence ϕ ∈ D(L).Combining Claim 1 and Claim 2, according to [ 31 , Theorem 1.51 & Theorem 1.52], for any 
+
+λ ≥ 18 κ, the linear operator L − λI generates a strongly continuous contraction semigroup on L2 
+
+> βγ
+
+(Γ) 
+
+which is analytic on the sectorial {y ∈ C, y ̸ = 0 , | arg y| < π 
+
+> 2
+
+− arctan M} , where M is the constant in the continuity property (3.8) of aλ. □
+
+3.2. Well-posedness and regularity of the solution. Let B and G be the Nemytskii operators associated with b and g, respectively, i.e., for f ∈ L2 
+
+> βγ
+
+(Γ) and ψ ∈ U 0,
+
+B(f )( z, k ) := b(f (z, k )) , G(f )( ψ)( z, k ) := g(f (z, k )) ψ(z, k ), (z, k ) ∈ Γ. (3.13) By (2.8) and the Lipschitz continuity of b and g, the mappings B : L2 
+
+> βγ
+
+(Γ) → L2 
+
+> βγ
+
+(Γ) and G :
+
+L2 
+
+> βγ
+
+(Γ) → L2(U0, L 2 
+
+> βγ
+
+(Γ)) are Lipschitz continuous, i.e., for any f1, f 2 ∈ L2 
+
+> βγ
+
+(Γ) ,
+
+∥B(f1) − B(f2)∥L2  
+
+> βγ (Γ)
+
++ ∥G(f1) − G(f2)∥L2(U0,L 2  
+
+> βγ (Γ))
+
+≤ C∥f1 − f2∥L2 
+
+> βγ (Γ)
+
+. (3.14) Notice that L2 
+
+> βγ
+
+(Γ) = L2(Γ; νγ ), where νγ is a measure on the measurable space (Γ , B(Γ)) defined by νγ (E) := Pmk=1 
+
+R  
+
+> Ik∩E
+
+γk(z)βk(z)d z for E ∈ B(Γ) . Denote by 1Γ : Γ → R the constant 12 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+mapping (z, k ) 7 → 1Γ(z, k ) = 1 . When 1Γ ∈ L2 
+
+> βγ
+
+(Γ) , νγ is a finite measure on (Γ , B(Γ)) . By (3.14), if 1Γ ∈ L2 
+
+> βγ
+
+(Γ) , the mappings B and G are of linear growth, i.e., for any f1 ∈ L2 
+
+> βγ
+
+(Γ) ,
+
+∥B(f1)∥L2  
+
+> βγ (Γ)
+
++ ∥G(f1)∥L2(U0,L 2  
+
+> βγ (Γ))
+
+≤ C(1 + ∥f1∥L2 
+
+> βγ (Γ)
+
+).
+
+Due to Theorem 3.3, L generates a strongly continuous analytic semigroup {etL, t > 0} on 
+
+L2 
+
+> βγ
+
+(Γ) , and ∥etL∥L (L2  
+
+> βγ (Γ))
+
+≤ e 18 κt for all t > 0. Invoking the Lipschitz continuity and linear growth of both B and G, we can deduce the following well-posedness result by applying [ 17 , Theorem 7.5]. LEMMA 3.4. Let Assumption 3.1 hold and {1Γ, u 0} ⊂ L2 
+
+> βγ
+
+(Γ) . Then there exists a unique mild solution u = {u(t)}t∈[0 ,T ] to (1.2) , i.e., for any t ∈ [0 , T ],
+
+u(t) = etLu0 +
+
+Z t
+
+> 0
+
+e(t−s)LB(u(s))d s +
+
+Z t
+
+> 0
+
+e(t−s)LG(u(s))d W (s).
+
+Moreover, for any p ≥ 1, there exists C := C(p, κ, T ) > 0 such that 
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥u(t)∥pL2 
+
+> βγ (Γ)
+
+
+
+≤ C
+
+
+
+1 + ∥u0∥pL2 
+
+> βγ (Γ)
+
+
+
+. (3.15) LEMMA 3.5. Under the assumptions of Lemma 3.4, there exists C := C(T, κ, p ) > 0 such that 
+
+E
+
+Z T
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+| ∂∂z u(t, z, k )|2αk(z)γk(z)d zdt ≤ C
+
+
+
+1 + ∥u0∥2 
+
+> L2
+> βγ (Γ)
+
+
+
+. (3.16) PROOF . For any ϕ ∈ W 1,2 
+
+> αγ,βγ
+
+(Γ) , we define the operator L by (Lϕ)( ψ) := −a0(ϕ, ψ ) for all 
+
+ψ ∈ W 1,2 
+
+> αγ,βγ
+
+(Γ) , where a0 is the bilinear form defined in (3.4) with λ = 0 . Then Lϕ defines a continuous linear functional on W 1,2 
+
+> αγ,βγ
+
+(Γ) , that is, Lϕ ∈  W 1,2 
+
+> αγ,βγ
+
+(Γ) ∗. Applying the Itˆ o formula (see [ 30 , Theorem 4.2.5]) to ∥u(t)∥2
+
+> L2
+> βγ
+
+, we obtain that for any t ∈ (0 , T ],
+
+d∥u(t)∥2  
+
+> L2
+> βγ (Γ)
+
+= −2a0(u(t), u (t))d t + 2 ⟨u(t), B (u(t)) ⟩L2 
+
+> βγ (Γ)
+
+dt
+
++ 2 ⟨u(t), G (u(t))d W (t)⟩L2  
+
+> βγ (Γ)
+
++ ∥G(u(t)) ∥2 
+
+> L2(U0,L 2
+> βγ (Γ))
+
+dt. (3.17) The inequality (3.6) with ϵ = 1 reads 
+
+−a0(u(t), u (t)) ≤ − 14
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk| ∂∂z u(t)|2γkdz + κ
+
+4
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+|u(t)|2βkγkdz. (3.18) The linear growth of B : L2 
+
+> βγ
+
+(Γ) → L2 
+
+> βγ
+
+(Γ) and G : L2 
+
+> βγ
+
+(Γ) → L2(U0, L 2 
+
+> βγ
+
+(Γ)) leads to 
+
+⟨u(t), B (u(t)) ⟩L2  
+
+> βγ (Γ)
+
++ ∥G(u(t)) ∥2  
+
+> L2(U0,L 2
+> βγ (Γ))
+
+≤ C(1 + ∥u(t)∥2 
+
+> L2
+> βγ (Γ)
+
+). (3.19) Substituting the inequalities (3.18) and (3.19) into (3.17), and then integrating over [0 , T ] × Ω, we obtain (3.16) from (3.15). □
+
+REMARK 3.6. The coefficients b and g in (1.2) originate from the reaction terms in the multiscale model (2.1) . Regarding the well-posedness of stochastic PDEs on graphs, it is natural to include more general nonlinearities that may depend on the edges; see, e.g., [29 ]. Specifically, we can consider the following generalized form of (1.2) :
+
+∂tu(t, z, k ) = Lu(t, z, k ) + bk(u(t, z, k )) + gk(u(t, z, k )) ∂tW (t, z, k ), (3.20) FEM FOR SPDE ON GRAPH 13 
+
+for (t, z, k ) ∈ (0 , T ] × Γ, where bk, g k : R → R are Lipschitz continuous for k = 1 , 2, . . . , m .Accordingly, the associated Nemytskii operators B and G are defined by 
+
+B(f )( z, k ) := bk(f (z, k )) , G(f )( ψ)( z, k ) := gk(f (z, k )) ψ(z, k ), (z, k ) ∈ Γ,
+
+where f ∈ L2 
+
+> βγ
+
+(Γ) and ψ ∈ U 0. Since the mappings B and G defined above remain Lipschitz continuous, Lemma 3.4 continues to hold for (3.20) .
+
+4. Approximation strategy and convergence result 
+
+In this section, we describe our approach for the numerical approximation of the degenerate sto-chastic PDE (1.2) on the unbounded graph Γ. The non-compactness of the graph Γ and the degeneracy of the operator L pose significant challenges for direct numerical treatment. To address these chal-lenges, we adopt a three-step strategy: first, we truncate the unbounded graph Γ to obtain a compact subgraph; next, we apply a regularization technique to manage the degeneracy; and finally, we per-form a numerical discretization of the resulting regularized and truncated problem (see Fig. 1). We further present the convergence of the resulting regularized truncated finite element approximation of (1.2), which constitutes the main numerical result of this work. 
+
+4.1. Truncated approximation. To solve (1.2) numerically, we first consider its truncated ap-proximation. For each R > 0, let ηR : Γ → [0 , 1] be a continuous cut-off function such that 
+
+ηR(z, k ) = 
+
+(
+
+1, if 0 ≤ z ≤ R, 
+
+0, if z ≥ R + 1 .
+
+Since ηR does not depend on the edge index k, we write ηR(z) in place of ηR(z, k ) for simplicity. In what follows, suppose that R > H 0 so that 1 − ηR vanishes identically on ∪m−1 
+
+> k=1
+
+Ik. We propose the following truncated problem 
+
+∂tuR(t, z, k ) = LRuR(t, z, k ) + b(uR(t, z, k )) ηR(z) + g(uR(t, z, k )) ηR(z)∂tW (t, z, k ) (4.1) subject to the initial value uR(0) = u0, where 
+
+LRf (z, k ) = 12βk(z)ddz
+
+
+
+αRk (z) df
+
+dz (z, k )
+
+
+
+, if (z, k ) ∈ ˚Ik, k = 1 , . . . , m (4.2) with αRk := αk · ηR. The operator LR is subject to the same gluing conditions as L (see (2.4)). The well-posedness of the truncated equation (4.1) will be shown in Lemma 5.1. We now state a theorem estimating the truncation error of (4.1) for approximating (1.2), which provides an upper bound for the truncation error in terms of αk and γ.THEOREM 4.1. Let Assumption 3.1 hold, and {1Γ, u 0} ⊂ L2 
+
+> βγ
+
+(Γ) ∩ L2 
+
+> β√γ
+
+(Γ) . Then there exists a constant C := C(T, u 0) > 0 such that for any t ∈ [0 , T ] and R ≥ H0 + 1 ,
+
+E
+
+h
+
+∥u(t) − uR(t)∥2 
+
+> L2
+> βγ (Γ)
+
+i
+
+≤ C sup 
+
+> z≥R−1
+
+n
+
+αm(z)pγm(z)
+
+o
+
+.
+
+We postpone the proof of Theorem 4.1 to Section 5. Theorem 4.1 implies the convergence of the truncated problem (4.1) to (1.2), provided that 
+
+1Γ ⊂ L2 
+
+> βγ
+
+(Γ) ∩ L2 
+
+> β√γ
+
+(Γ) , and lim  
+
+> R→∞
+
+sup 
+
+> z≥R
+
+zpγm(z) = 0 . (4.3) The above condition (4.3) holds for the graph weight function γ in both cases (i) and (ii) of Example 3.2, provided that ρ3 > 2. It would be interesting to further study the convergence of the truncation procedure for polynomially decaying weight functions where the decay is at most quadratic (i.e., case 14 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+(ii) of Example 3.2 with ρ3 ∈ (1 , 2] ). We also note that the convergence rate obtained in Theorem 4.1 may not be optimal. Since supp (ηR) ⊂ [0 , R + 1] , according to (4.1), we have ∂tuR(t, z, m ) = 0 for any z ≥ R + 1 ,which means that uR(t, z, m ) = uR(0 , z, m ) = u0(z, m ) for all t ∈ [0 , T ] and z ≥ R + 1 . It thus suffices to solve (4.1) on the compact graph 
+
+ΓR := {(z, k ) ∈ Γ : z ≤ R + 1 }.
+
+The truncated graph ΓR consists of m edges {Jk}mk=1 and n + 1 vertices {Oi}n+1  
+
+> i=1
+
+with the additional vertex On+1 := ( R + 1 , m ). For k = 1 , . . . , m − 1, the edges are given by Jk = Ik, while the last edge is Jm := {(z, m ) ∈ Im : z ≤ R + 1 } ∼= [ H0, R + 1] . Define a differential operator ˇL on ΓR as 
+
+ˇLf (z, k ) = 12βk(z)ddz
+
+
+
+αRk (z) ddz f (z, k )
+
+
+
+, if (z, k ) ∈ ˚Jk, k = 1 , . . . , m (4.4) endowed with the same gluing conditions as LR. According to [ 23 , Lemma 1.1], for any (z, k ) ∈ Γ,
+
+ddz αk(z) = ddz
+
+I 
+
+> Ck(z)
+
+|∇ H(x)|dlz,k =
+
+I 
+
+> Ck(z)
+
+∆H(x)
+
+|∇ H(x)| dlz,k ∼ ∆H(xi)βk(z), as z → H(xi).
+
+By the asymptotic behavior (2.6) of β near the vertices, it follows that as (z, k ) → Oi,
+
+ddz αk(z) ∼
+
+(C, if Oi is an exterior vertex ,C∆H(xi) log |z − H(xi)| , if Oi = ( H(xi), k ) is an interior vertex . (4.5) To control the decay rate of αR near the vertex On+1 = ( R + 1 , m ), we choose the cut-off function 
+
+ηR such that 
+
+d−
+
+dz ηR(R + 1) = lim 
+
+> z→(R+1) −
+
+ηR(z) − ηR(R + 1) 
+
+z − (R + 1) = K0 (4.6) for some K0̸ = 0 so that 
+
+d−
+
+dz αRm(z) = α′
+
+> m
+
+(R + 1) ηR(R + 1) + αm(R + 1) d−
+
+dz ηR(R + 1) = αm(R + 1) K0̸ = 0 . (4.7) In view of (4.7), as (z, k ) → Oi,
+
+ddz αRk (z) ∼
+
+
+
+C, if Oi is an exterior vertex with i̸ = n + 1 ,
+
+C(R), if Oi is the exterior vertex On+1 ,
+
+C∆H(xi) log |z − H(xi)| , if Oi = ( H(xi), k ) is an interior vertex. (4.8) Consequently, αRk (z) ∼ const · | z − (R + 1) | as (z, k ) → On+1 . In other words, at the exterior vertex 
+
+On+1 of ΓR, the function αRk also decays linearly, as at the other exterior vertices. Restricted to the compact graph ΓR, the stochastic process ˇu(t) := uR(t) |ΓR satisfies 
+
+dˇ u(t) = ( ˇLˇu(t) + ˇB(ˇ u(t)))d t + ˇG(ˇ u(t))d W (t), ˇu(0) = u0 |ΓR . (4.9) The nonlinearity ˇB : L2 
+
+> βγ
+
+(Γ R) → L2 
+
+> βγ
+
+(Γ R) and ˇG : L2 
+
+> βγ
+
+(Γ R) → L2(U0, L 2 
+
+> βγ
+
+(Γ R)) are, respectively, defined by, 
+
+ˇB(f1)( z, k ) := b(f1(z, k )) ηR(z), ˇG(f1)( ψ)( z, k ) = g(f1(z, k )) ηR(z)ψ(z, k ), (z, k ) ∈ ΓR,
+
+where f1 ∈ L2 
+
+> βγ
+
+(Γ R) and ψ ∈ U 0. In view of (2.5) and (2.6), the operator ˇL fails to be uniformly elliptic on the graph ΓR, since the coefficient αRk /β k vanishes at vertices. To handle this degeneracy, we introduce a regularization of the truncated problem (4.9) in the next subsection. FEM FOR SPDE ON GRAPH 15 
+
+4.2. Regularized truncated approximation. For each edge Jk with k = 1 , 2, . . . , m − 1 on ΓR,we divide it into two subintervals J(1)  
+
+> k
+
+and J(2)  
+
+> k
+
+of equal length. For k = m, we split Jm ∼= [ H0, R +1] 
+
+into two subintervals 
+
+J(1)  
+
+> m
+
+∼= [ H0, H 0 + 1] and J(2)  
+
+> m
+
+∼= [ H0 + 1 , R + 1] .
+
+With this decomposition, each subinterval {J(l) 
+
+> k
+
+}l=1 ,2 is incident to exactly one vertex of the compact graph ΓR. We can define the regularization locally depending on whether the adjacent vertex is an exterior or an interior vertex. In view of (2.5) and (2.6), it suffices to regularize αRk near exterior vertices and βk near interior vertices. To make this precise, set δmin := 14 min 1≤k≤m |Jk|, where |Jk|
+
+is the length of the edge Jk. For δ ∈ (0 , δ min ), we define 
+
+βδk(z) := βk(z), (z, k ) ∈ J(l) 
+
+> k
+
+, if J(l) 
+
+> k
+
+is incident to an exterior vertex Oi = ( H(xi), k ), (4.10) 
+
+αR,δ k (z) := αRk (z), (z, k ) ∈ J(l) 
+
+> k
+
+, if J(l) 
+
+> k
+
+is incident to an interior vertex Oi = ( H(xi), k ). (4.11) For the remaining cases, the regularization functions can, for instance, be defined as in Example 6.1 provided later. More generally, we impose the following assumption on the regularization functions, which is satisfied in particular by Example 6.1. ASSUMPTION 4.2 (Regularization functions). For some δ0 > 0 and for all δ ∈ (0 , δ 0) , there exist positive constants c1(δ) and c4(δ) depending on δ such that for any (z, k ) ∈ ˚Jk and k = 1 , . . . , m ,
+
+max {c0αRk (z), c1(δ)} ≤ αR,δ k (z) ≤ c2(αk + 1) , lim  
+
+> δ→0
+
+αR,δ k (z) = αRk (z), (4.12) 
+
+0 < c3 ≤ βδk(z) ≤ min {c4(δ), c5βk(z)}, lim  
+
+> δ→0
+
+βδk(z) = βk(z), (4.13) 
+
+where c0, c2, c3, and c5 are some constants independent of R and δ.
+
+Accordingly, for δ ∈ (0 , δ 0), we define the regularization of ˇL as follows 
+
+ˇLδf (z, k ) = 12βδk(z)ddz
+
+
+
+αR,δ k (z) ddz f (z, k )
+
+
+
+, if (z, k ) ∈ ˚Jk, k = 1 , . . . , m, (4.14) endowed with the following gluing conditions: the function f is continuous at each interior vertex Oi
+
+on ΓR and satisfies the following Kirchhoff condition 
+
+X  
+
+> k:Ikis incident to Oi
+
+αR,δ k (H(xi))d kf (H(xi), k ) = 0 , for each vertex Oi of ΓR. (4.15) Now we can introduce the regularized truncated approximation of (1.2): 
+
+dˇ uδ(t) = ( ˇLδ ˇuδ(t) + ˇB(ˇ uδ(t)))d t + ˇG(ˇ uδ(t))d W (t), ˇuδ(0) = ˇ u(0) . (4.16) We impose the following assumption to ensure the well-posedness of the truncated equation (4.16) (see Lemma 6.3 for more details). ASSUMPTION 4.3 (Weight function). There exists a constant κ1 > 0 such that for any δ ∈ (0 , δ 0),
+
+αR,δ k (z)|γ′
+
+> k
+
+(z)|2 ≤ κ1βδk(z)|γk(z)|2 for (z, k ) ∈ ΓR.
+
+In view of Assumption 4.2, Assumption 4.3 holds under the condition (3.2). The following the-orem identifies the limiting equation of the regularized truncated equation (4.16) with the truncated problem (4.1), as the regularization parameter δ → 0.16 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+THEOREM 4.4. Let (4.6) and Assumptions 4.2–4.3 hold. Assume that 1Γ ∈ L2 
+
+> βγ
+
+(Γ) , and u0 ∈
+
+W 1,2(α+1) γ,βγ (Γ) . Then for any R > H 0, p ≥ 1 and t ∈ [0 , T ],
+
+lim  
+
+> δ→0
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥ˇuδ(t) − ˇu(t)∥pL2 
+
+> βγ (Γ R)
+
+
+
+= 0 .
+
+The proof of Theorem 4.4 can be found in Section 6. For a fixed truncation parameter R > H 0
+
+and a fixed regularization parameter δ ∈ (0 , δ 0), the regularized truncated problem (4.16) becomes a non-degenerate stochastic parabolic PDE posed on the compact graph ΓR. Our goal is to construct and analyze a numerical method for approximating the solution ˇuδ to (4.16) for each R > H 0 and 
+
+δ > 0, and for approximating the original equation (1.2) via (4.16) in the limits δ → 0 and R → ∞ .
+
+4.3. Regularized truncated finite element approximation. Inspired by [ 3, 5 ], we construct a fi-nite element discretization for (4.16) based on an equally spaced partition of the edges of the truncated graph ΓR. More precisely, for each edge Jk we introduce a uniform subdivision into nk subintervals of length hk. Let h := min mk=1 hk, and {(zj , k )}nk −1 
+
+> j=1
+
+denote the interior nodes of this subdivision. On each edge Jk, we define the standard hat basis functions by 
+
+ξkj (z, k ) = 
+
+
+
+1 − |z − zj |
+
+hk
+
+, z ∈ [zj−1, z j+1 ],
+
+0, otherwise ,j = 1 , 2, . . . , n k − 1,
+
+where (z0, k ) and (znk , k ) are the vertices of ΓR attached to the edge Jk, with z0 < z nk . To connect the edges in the finite element approximation, we also introduce basis functions associated with the vertices of the graph ΓR. Specifically, for each vertex {Oi}n+1  
+
+> i=1
+
+of the graph ΓR, the hat function centered at Oi is defined by 
+
+ζi(z, k ) = 
+
+
+
+1 − |z − H(xi)|
+
+hk
+
+, (z, k ) ∈ WOi ,
+
+0, otherwise ,
+
+where H(xi) denotes the z-coordinate of Oi, and WOi is a neighborhood set of Oi given by 
+
+WOi = [  
+
+> k:Ikis incident to Oi
+
+{(z, k ) ∈ Jk : |z − H(xi)| ≤ hk} .
+
+The finite dimensional space Vh(Γ R) is spanned by the functions {ξkj , k = 1 , . . . , m ; j = 1 , . . . , n k −
+
+1} and {ζi}n+1  
+
+> i=1
+
+, and its dimension is dim (Vh(Γ R)) = Pmk=1 (nk − 1) + ( n + 1) .
+
+Denote by W 1,2cont (Γ R) := W 1,2,c αR,δ γ,β δ γ (Γ R) the subspace of W 1,2   
+
+> αR,δ γ,β δγ
+
+(Γ R) consisting of func-tions that are continuous at each interior vertex of ΓR. For λ ∈ R, consider the bilinear form 
+
+aR,δ λ : W 1,2cont (Γ R) × W 1,2cont (Γ R) → C defined by 
+
+aR,δ λ (ϕ, ψ ) = λ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+ϕψβ δkγkdz+ 12
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+αR,δ k
+
+ddz ϕ ddz
+
+ ψγ k
+
+ dz, ϕ, ψ ∈ W 1,2cont (Γ R). (4.17) Following the reasoning in the proof of Theorem 3.3, one can show that under Assumption 4.3, for any λ ≥ 18 κ1, the form aR,δ λ is densely defined, continuous, closed, and accretive. Since Vh(Γ R) ⊂
+
+W 1,2cont (Γ R), we can define the discrete operator ˇLδh : Vh(Γ R) → Vh(Γ R) by 
+
+−⟨ ˇLδhφ, ψ ⟩L2  
+
+> βδ γ(Γ R)
+
+= aR,δ  
+
+> 0
+
+(φ, ψ ), φ, ψ ∈ Vh(Γ R). (4.18) FEM FOR SPDE ON GRAPH 17 
+
+We further introduce the Ritz projection Rh : W 1,2cont (Γ R) → Vh(Γ R) and the L2  
+
+> βδγ
+
+(Γ R)-projection 
+
+Ph defined, respectively, via 
+
+aR,δ  
+
+> 0
+
+(Rhφ, ψ ) = aR,δ  
+
+> 0
+
+(φ, ψ ), φ ∈ W 1,2cont (Γ R), ψ ∈ Vh(Γ R),
+
+⟨P hφ, ψ ⟩L2  
+
+> βδ γ(Γ R)
+
+= ⟨φ, ψ ⟩L2 
+
+> βδ γ(Γ R)
+
+, φ ∈ L2  
+
+> βδγ
+
+(Γ R), ψ ∈ Vh(Γ R).
+
+We propose the following spatial semi-discrete approximation of (4.16): 
+
+dˇ uδh(t) = ( ˇLδh ˇuδh(t) + Ph ˇB(ˇ uδh(t)))d t + Ph ˇG(ˇ uδh(t))d W (t), ˇuδh(0) = Ph ˇu(0) . (4.19) The following assumption will be used in the interpolation error estimates on the weighted Sobolev spaces on the graph ΓR (see Lemma 7.3). ASSUMPTION 4.5. For any fixed R > H 0, δ ∈ (0 , δ 0), and k = 1 , . . . , m , the function αR,δ k is continuously differentiable on the edge Jk, and its derivative (αR,δ k )′ ∈ L4(Jk).
+
+We remark that Assumption 4.5 is also satisfied by Example 6.1 provided later. The following theorem provides an error estimate for the finite element approximation (4.19) of the regularized equation (4.16) for nonsmooth initial data, whose proof is deferred to Section 7. THEOREM 4.6. Let Assumptions 4.2, 4.3, and 4.5 hold, and {u0, 1Γ} ⊂ L2 
+
+> βγ
+
+(Γ) . Then for any 
+
+R ≥ H0, δ ∈ (0 , δ 0), and ϑ ∈ (0 , 12 ), there exists C := C(R, δ, ϑ, u 0) > 0 such that 
+
+E
+
+h
+
+∥ˇuδ(t) − ˇuδh(t)∥2 
+
+> L2
+> βγ (Γ R)
+
+i
+
+≤ Ch 2ϑ(1 + t−ϑ).
+
+For sufficiently large R > H 0 and small δ, h > 0, we define the following regularized truncated finite element approximation 
+
+uR,δ h (t, z, k ) := 
+
+(
+
+ˇuδh(t, z, k ), if (z, k ) ∈ ΓR,u0(z, k ), if (z, k ) ∈ Γ − ΓR
+
+for approximating the mild solution u(t, z, k ) to the stochastic PDE (1.2) on the graph Γ. Gathering Theorems 4.1, 4.4, and 4.6 together, we obtain the following convergence result. COROLLARY 4.7. Let Assumptions 3.1, 4.2, 4.3, and 4.5 hold. Assume that u0 ∈ W 1,2(α+1) γ,βγ (Γ) ∩
+
+L2 
+
+> β√γ
+
+(Γ) , (4.6) , and (4.3) hold. Then for any t ∈ (0 , T ],
+
+lim  
+
+> R→∞
+
+lim  
+
+> δ→0
+
+lim  
+
+> h→0
+
+E
+
+h
+
+∥u(t) − uR,δ h (t)∥2 
+
+> L2
+> βγ (Γ)
+
+i
+
+= 0 .
+
+PROOF . Since uR(t) = u0 on Γ − ΓR and ˇu(t) = uR(t)1 ΓR , we have 
+
+u(t) − uR,δ h (t) = ( u(t) − uR(t))1 Γ−ΓR + ( u(t) − ˇuδh(t))1 ΓR
+
+= u(t) − uR(t) + (ˇ u(t) − ˇuδh(t))1 ΓR .
+
+Therefore, by the H¨ older inequality, 
+
+E
+
+h
+
+∥u(t) − uR,δ h (t)∥2 
+
+> L2
+> βγ (Γ)
+
+i
+
+≤ 2E
+
+h
+
+∥u(t) − uR(t)∥2 
+
+> L2
+> βγ (Γ)
+
+i
+
++ 2 E
+
+h
+
+∥ˇu(t) − ˇuδh(t)∥2 
+
+> L2
+> βγ (Γ R)
+
+i
+
+≤ 2E
+
+h
+
+∥u(t) − uR(t)∥2 
+
+> L2
+> βγ (Γ)
+
+i
+
++ 4 E
+
+h
+
+∥ˇu(t) − ˇuδ(t)∥2 
+
+> L2
+> βγ (Γ R)
+
+i
+
++ 4 E
+
+h
+
+∥ˇuδ(t) − ˇuδh(t)∥2 
+
+> L2
+> βγ (Γ R)
+
+i
+
+.
+
+Finally, by applying Theorems 4.1, 4.4, and 4.6, we can complete the proof. □18 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+5. Error analysis of truncated approximation 
+
+In this section, we carry out the error analysis of the truncated approximation and present the proof of Theorem 4.1. To this end, we first show that the truncated problem (4.1) admits a unique mild solution that is uniformly bounded in Lp(Ω; C([0 , T ]; L2 
+
+> βγ
+
+(Γ))) for p ≥ 1, with bounds independent of the truncation parameter R. Denote by BR and GR the truncations of B and G (see (3.13)), defined respectively, by 
+
+BR(f1)( z, k ) := b(f1(z, k )) ηR(z), GR(f1)ψ(z, k ) := g(f1(z, k )) ηR(z)ψ(z, k ), (z, k ) ∈ Γ,
+
+where f1 ∈ L2 
+
+> βγ
+
+(Γ) and ψ ∈ U 0. Then by |ηR| ≤ 1, for any R > H 0 and any f1, f 2 ∈ L2 
+
+> βγ
+
+(Γ) ,
+
+∥BR(f1) − BR(f2)∥L2  
+
+> βγ (Γ)
+
+≤ ∥ B(f1) − B(f2)∥L2 
+
+> βγ (Γ)
+
+, (5.1) 
+
+∥GR(f1) − GR(f2)∥L2(U0,L 2  
+
+> βγ (Γ))
+
+≤ ∥ G(f1) − G(f2)∥L2(U0,L 2 
+
+> βγ (Γ))
+
+. (5.2) LEMMA 5.1. Let Assumption 3.1 hold and {1Γ, u 0} ⊂ L2 
+
+> βγ
+
+(Γ) . Then for any fixed R > H 0, the truncated equation (4.1) admits a unique mild solution uR = {uR(t)}t∈[0 ,T ] satisfying 
+
+uR(t) = etLR
+
+u0 +
+
+Z t
+
+> 0
+
+e(t−s)LR
+
+BR(uR(s))d s +
+
+Z t
+
+> 0
+
+e(t−s)LR
+
+GR(uR(s))d W (s).
+
+Moreover, for any p ≥ 1, there exists C := C(T, p, κ ) > 0 such that 
+
+sup 
+
+> R>H 0
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥uR(t)∥pL2 
+
+> βγ (Γ)
+
+
+
+≤ C
+
+
+
+1 + ∥u0∥pL2 
+
+> βγ (Γ)
+
+
+
+. (5.3) PROOF . Under Assumption 3.1, the condition (3.1) holds with αk replaced by αRk = αk · ηR.Hence, by Theorem 3.3, for any λ ≥ 18 κ and R > H 0, the operator −λI + LR generates an analytic contraction semigroup on L2 
+
+> βγ
+
+(Γ) . In particular, the semigroup {etLR
+
+}t≥0 generated by LR satisfies 
+
+∥etLR
+
+∥L (L2  
+
+> βγ (Γ))
+
+≤ e 18 κt ∀ t ≥ 0, R > H 0.
+
+A combination of (5.1), (5.2), and (3.14) implies that BR : L2 
+
+> βγ
+
+(Γ) → L2 
+
+> βγ
+
+(Γ) and GR :
+
+L2 
+
+> βγ
+
+(Γ) → L2(U0, L 2 
+
+> βγ
+
+(Γ)) are Lipschitz continuous with the Lipschitz constants independent on 
+
+R. Moreover, by the assumption 1Γ ∈ L2 
+
+> βγ
+
+(Γ) , for any f1 ∈ L2 
+
+> βγ
+
+(Γ) we have 
+
+∥BR(f1)∥L2  
+
+> βγ (Γ)
+
++ ∥GR(f1)∥L2(U0,L 2  
+
+> βγ (Γ))
+
+≤ C(1 + ∥f1∥L2 
+
+> βγ (Γ)
+
+).
+
+The remainder of the proof is similar to that of Lemma 3.4, and we omit the details. □
+
+Proof of Theorem 4.1. Subtracting (4.1) from (1.2), the truncation error ER := u − uR satisfies 
+
+dER(t) = [ Lu(t) − L RuR(t) + B(u(t)) − BR(uR(t))]d t + [ G(u(t)) − GR(uR(t))]d W (t)
+
+subject to the initial value ER(0) = 0 . We partition the graph into two regions D1 := {(z, m ) ∈
+
+Im, z > R − 1} and D2 := ∪m−1 
+
+> k=1
+
+Ik ∪ { (z, m ) ∈ Im, z ≤ R − 1}, and treat the truncation error separately. We observe that, under Assumption 3.1, the inequality (3.1) remains valid with γ replaced by √γ.By the assumption {1Γ, u 0} ⊂ L2 
+
+> β√γ
+
+(Γ) , it follows that (3.15) and (5.3) hold with γ replaced by √γ;that is, for any p ≥ 1,
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥u(t)∥pL2 
+
+> β√γ(Γ)
+
+
+
++ sup 
+
+> R>H 0
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥uR(t)∥pL2 
+
+> β√γ(Γ)
+
+
+
+≤ C
+
+
+
+1 + ∥u0∥pL2 
+
+> β√γ(Γ)
+
+
+
+. (5.4) FEM FOR SPDE ON GRAPH 19 
+
+As a consequence of (5.4), for any R ≥ H0 + 1 ,
+
+E
+
+Z
+
+> D1
+
+|E R(t)|2γkβkdz = E
+
+Z ∞
+
+> R−1
+
+|E R(t, z, m )|2γm(z)βm(z)d z (5.5) 
+
+≤ 2 sup 
+
+> y≥R−1
+
+pγm(y)
+
+
+
+E∥uR(t)∥2 
+
+> L2
+> β√γ(Γ)
+
+ + E∥u(t)∥2 
+
+> L2
+> β√γ(Γ)
+
+
+
+≤ C sup 
+
+> y≥R−1
+
+pγm(y).
+
+To handle the region D2, we introduce a smooth function ζ : R → [0 , 1] such that ζ(z) = 1 
+
+for z ≤ 0, ζ(z) = 0 for z ≥ 1, and ζ′(0) = ζ′(1) = 0 . For instance, one can define ζ(z) = 1 − 1
+
+> C
+
+R z 
+
+> 0
+
+e− 1 
+
+> t(1 −t)
+
+dt for z ∈ (0 , 1) , with the normalizing constant C = R 10 e− 1 
+
+> t(1 −t)
+
+dt > 0. For 
+
+R ≥ H0 + 1 , we define ζR(z) = ζ(z − R + 1) such that ζR(z) = 1 for z ∈ [0 , R − 1] , ζR(z) = 0 for 
+
+z ≥ R, and ζ′
+
+> R
+
+(R − 1) = ζ′
+
+> R
+
+(R) = 0 . Introduce another graph weight function ˜γ : Γ → [0 , ∞) by setting ˜γk(z) = γk(z)·ζR(z) for (z, k ) ∈ Γ. Together with (5.5), this implies that for any R ≥ H0 +1 ,
+
+E
+
+h
+
+∥E R(t)∥2 
+
+> L2
+> βγ (Γ)
+
+i
+
+= E
+
+Z
+
+> D1
+
+|E R(t)|2γkβkdz + E
+
+Z
+
+> D2
+
+|E R(t)|2γkβkdz (5.6) 
+
+≤ C sup 
+
+> y≥R−1
+
+pγm(y) + E
+
+h
+
+∥E R(t)∥2  
+
+> L2
+> β˜γ(Γ)
+
+i
+
+,
+
+where we have also used the facts ζR ≥ 0 on Γ and ζR = 1 on D2 in the last step. Applying the Itˆ o formula, for any t ∈ (0 , T ] we have 
+
+d∥E R(t)∥2   
+
+> L2
+> β˜γ(Γ)
+
+= −
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk∂z u(t)∂z (ER(t)˜ γk)d z +
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk ∂z uR(t)∂z (ER(t)˜ γk)d z
+
++ 2 ⟨B(u(t)) − BR(uR(t)) , ER(t)⟩L2  
+
+> β˜γ(Γ)
+
+dt
+
++ 2 ⟨[G(u(t)) − GR(uR(t))]d W (t), ER(t)⟩L2  
+
+> β˜γ(Γ)
+
++ ∥G(u(t)) − GR(uR(t)) ∥2  
+
+> L2(U0,L 2
+> β˜γ(Γ))
+
+dt. (5.7) Invoking the linear growth of g and (2.8), one has 
+
+∥G(u(t)) − GR(u(t)) ∥2   
+
+> L2(U0,L 2
+> β˜γ(Γ))
+
+≤ C
+
+Z
+
+> Im
+
+|ηR − 1|2(1 + |u(t)|2)βm ˜γmdz =: KR 
+
+> 0
+
+(t).
+
+This, along with (5.2), implies that for any R ≥ H0 + 1 and t ∈ [0 , T ],
+
+∥G(u(t)) − GR(uR(t)) ∥2   
+
+> L2(U0,L 2
+> β˜γ(Γ))
+
+≤ C∥E R(t)∥2   
+
+> L2
+> β˜γ(Γ)
+
++ CKR 
+
+> 0
+
+(t). (5.8) Similarly, by the Lipschitz continuity of b, it also holds that 
+
+2⟨B(u(t)) − BR(uR(t)) , ER(t)⟩L2   
+
+> β˜γ(Γ)
+
+≤ C∥E R(t)∥2   
+
+> L2
+> β˜γ(Γ)
+
++ CKR 
+
+> 0
+
+(t), t ∈ [0 , T ]. (5.9) Since supp (ηR −1) ⊂ [R, ∞) and supp (ζR) ⊂ [0 , R ], we obtain (ηR(z)−1)˜ γk(z) = 0 for all (z, k ) ∈
+
+Γ, which implies that the function KR 
+
+> 0
+
+(t) vanishes identically on Γ. In addition, by ER = u − uR and 
+
+˜γ = γζ R, we can recast 
+
+−
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk∂z u(t)∂z (ER(t)˜ γk)d z +
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk ∂z uR(t)∂z (ER(t)˜ γk)d z
+
+=
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk(ηR − 1) ∂z u(t)∂z (ER(t)˜ γk)d z −
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk ∂z ER(t)∂z (ER(t)˜ γk)d z20 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+= −
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk ∂z ER(t)∂z (ER(t)˜ γk)d z =
+
+> 2
+
+X
+
+> i=1
+
+KRi (t), (5.10) where the remainder terms are 
+
+KR 
+
+> 1
+
+(t) = −
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk |∂z ER(t)|2 ˜γkdz −
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk ∂z ER(t)ER(t)γ′
+
+> k
+
+ζRdz, 
+
+KR 
+
+> 2
+
+(t) = −
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk ∂z ER(t)ER(t)γkζ′
+
+> R
+
+dz. 
+
+Inserting the estimates (5.8), (5.9), and (5.10) into (5.7), we conclude that for any t ∈ [0 , T ],
+
+E
+
+h
+
+∥E R(t)∥2  
+
+> L2
+> β˜γ(Γ)
+
+i
+
+≤ ∥E R(0) ∥2   
+
+> L2
+> β˜γ(Γ)
+
++
+
+> 2
+
+X
+
+> i=1
+
+E
+
+Z t
+
+> 0
+
+KRi (s)d s + CE
+
+Z t
+
+> 0
+
+∥E R(s)∥2  
+
+> L2
+> β˜γ(Γ)
+
+ds. (5.11) Here we have also used the fact that KR 
+
+> 0
+
+(t) vanishes identically on Γ. Since ηR ≡ 1 on the support of 
+
+ζR, it follows from Young’s inequality and Assumption 3.1 that 
+
+KR 
+
+> 1
+
+(t) ≤ − 12
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk |∂z ER(t)|2γkζRdz + 12
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk |E R(t)|2|γ′
+
+> k
+
+|2ζRγ−1 
+
+> k
+
+dz (5.12) 
+
+≤ − 12
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk |∂z ER(t)|2γkζRdz + 12 κ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+ηR|E R(t)|2ζRβkγkdz
+
+= − 12
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk|∂z ER(t)|2γkζRdz + 12 κ
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+|E R(t)|2βk ˜γkdz. 
+
+To estimate KR 
+
+> 2
+
+(t), we note that the function ηRζ′ 
+
+> R
+
+= ζ′ 
+
+> R
+
+is supported on [R − 1, R ]. Combined with the facts that ζ′
+
+> R
+
+(R − 1) = ζ′
+
+> R
+
+(R) = 0 and by applying the integration by parts formula, we obtain 
+
+KR 
+
+> 2
+
+(t) = − 12
+
+Z RR−1
+
+αm(z)∂z
+
+ ER(t, z, m )2 γm(z)ζ′
+
+> R
+
+(z)d z (5.13) 
+
+= 12
+
+Z RR−1
+
+ER(t, z, m )2 ddz
+
+ αm(z)γm(z)ζ′
+
+> R
+
+(z) dz. 
+
+From the chain rule, Assumption 3.1, and the uniformly boundedness of ζ′ 
+
+> R
+
+and ζ′′ 
+
+> R
+
+, we infer that 
+
+ddz
+
+ αm(z)γm(z)ζ′
+
+> R
+
+(z) = α′
+
+> m
+
+(z)γm(z)ζ′
+
+> R
+
+(z) + αm(z)γ′
+
+> m
+
+(z)ζ′
+
+> R
+
+(z) + αm(z)γm(z)ζ′′ 
+
+> R
+
+(z)
+
+≤ C|α′
+
+> m
+
+(z)|γm(z) + Cpαm(z)pβm(z)γm(z) + Cα m(z)γm(z).
+
+Referring to (2.6), the function βm is uniformly bounded from below by a positive constant on the edge Im connecting O∞. Hence for any z ∈ [R − 1, R ] with R ≥ H0 + 1 ,
+
+ddz (αm(z)γm(z)ζ′
+
+> R
+
+(z)) ≤ C(|α′
+
+> m
+
+(z)| + pαm(z) + αm(z)) γm(z)βm(z).
+
+Moreover, it follows from (4.5) that |α′
+
+> m
+
+(z)| is uniformly bounded for z ∈ [H0 + 1 , ∞). Together with αm(z) ∼ Cz as z → ∞ , this implies that for any z ∈ [R − 1, R ] with R ≥ H0 + 1 ,
+
+ddz (αm(z)γm(z)ζ′
+
+> R
+
+(z)) ≤ C(1 + αm(z)) γm(z)βm(z) (5.14) 
+
+≤ C sup 
+
+> y≥R−1
+
+{αm(y)pγm(y)}pγm(z)βm(z).FEM FOR SPDE ON GRAPH 21 
+
+Taking account of (5.13), (5.14), and (5.4) yields 
+
+E KR 
+
+> 2
+
+(t) ≤ C
+
+
+
+E
+
+h
+
+∥uR(t)∥2 
+
+> L2
+> β√γ(Γ)
+
+i
+
++ E
+
+h
+
+∥u(t)∥2 
+
+> L2
+> β√γ(Γ)
+
+i 
+
+sup 
+
+> y≥R−1
+
+{αm(y)pγm(y)} (5.15) 
+
+≤ C sup 
+
+> y≥R−1
+
+{αm(y)pγm(y)}.
+
+Plugging (5.12) and (5.15) into (5.11), for any t ∈ [0 , T ] we have 
+
+E
+
+h
+
+∥E R(t)∥2  
+
+> L2
+> β˜γ(Γ)
+
+i
+
++ 12 E
+
+Z t
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αk|∂z ER(s)|2γkζRdzds
+
+≤ ∥E R(0) ∥2   
+
+> L2
+> β˜γ(Γ)
+
++ CE
+
+Z t
+
+> 0
+
+∥E R(s)∥2  
+
+> L2
+> β˜γ(Γ)
+
+ds + C sup 
+
+> y≥R−1
+
+{αm(y)pγm(y)}.
+
+Since ER(0) = 0 , applying Gronwall’s inequality implies that for any R ≥ H0 + 1 ,
+
+E
+
+h
+
+∥E R(t)∥2  
+
+> L2
+> β˜γ(Γ)
+
+i
+
+≤ C sup 
+
+> y≥R−1
+
+{αm(y)pγm(y)}.
+
+This, along with (5.6) and the fact that αm is bounded from below by a positive constant, gives 
+
+E
+
+h
+
+∥E R(t)∥2 
+
+> L2
+> βγ (Γ)
+
+i
+
+≤ C sup 
+
+> y≥R−1
+
+{(αm(y) + 1) pγm(y)} ≤ C sup 
+
+> y≥R−1
+
+{αm(y)pγm(y)},
+
+as required. The proof of Theorem 4.1 is completed. □
+
+REMARK 5.2. If we were to directly apply the Itˆ o formula to ∥E R(t)∥2 
+
+> L2
+> βγ (Γ)
+
+, it would become necessary to estimate the following term: Pmk=1 
+
+R 
+
+> Ik
+
+αk(ηR − 1) ∂z u(t)∂z (ER(t)γk)dz ; see (5.10) with 
+
+˜γ replaced by γ. The challenge of this approach lies in controlling the term where the derivative acts on the error ER(t). Specifically, one would need a suitable estimate for: 
+
+−
+
+Z R+1 
+
+> R
+
+αm∂z u(t)∂z ER(t)γmdz = −
+
+Z R+1 
+
+> R
+
+αm|∂z u(t)|2γmdz +
+
+Z R+1 
+
+> R
+
+αm∂z u(t)∂z uR(t)γmdz. 
+
+(5.16) 
+
+However, for the derivative of the truncated solution uR, we only have the following bound: 
+
+E
+
+Z T
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αRk (z)| ∂∂z uR(t, z, k )|2γk(z)d zdt ≤ C. 
+
+This bound is insufficient to control the second term on the right-hand side of (5.16) because the coefficient αRm(z) degenerates near the vertex On+1 = ( R + 1 , m ). To overcome this difficulty, in the proof of Theorem 4.1, we split Γ = D1 ∩ D 2. In D1, the rapid decay of the weight γ facilitates a straightforward estimate of the tail. In contrast, for D2, by introducing an additional cut-off function 
+
+ζR, we can localize the error analysis and effectively manage boundary contributions. 
+
+6. Convergence of regularized truncated approximation 
+
+In this section, we prove Theorem 4.4 on the convergence of the regularized truncated approxima-tion (4.16) for the truncated problem (4.9). We emphasize that the generic constant C in this section may depend on R, but is always independent of δ and h. We begin by presenting an example of the regularization function. 22 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+EXAMPLE 6.1. Let δ ∈ (0 , δ min ) and ϱ : [0 , ∞) → [0 , 1] be a smooth function satisfying (3.12) .Owing to (4.10) and (4.11) , it remains to specify αR,δ k near exterior vertices and βδk near interior vertices. If a subinterval J(l) 
+
+> k
+
+⊂ Jk is incident to an exterior vertex Oi = ( H(xi), k ), we set 
+
+αR,δ k (z) := αRk (z) + δϱ  δ−1|z − H(xi)| , (z, k ) ∈ J(l) 
+
+> k
+
+.
+
+If a subinterval J(l) 
+
+> k
+
+⊂ Jk is incident to an interior vertex Oi = ( H(xi), k ), we define 
+
+βδk(z) := ϱ(δ−1|z − H(xi)|)βk(H(xi) ± δ) +  1 − ϱ(δ−1|z − H(xi)|)βk(z), (z, k ) ∈ J(l) 
+
+> k
+
+,
+
+where the sign + is taken if H(xi) + δ ∈ Jk, and the sign − is taken if H(xi) − δ ∈ Jk. In Fig. 3, we plot the regularization of the functions αRk (z) = z and βk(z) = | log |z|| near z = 0 , where 
+
+ϱ(z) = 12 [cos(( z − 1) π) + 1] for 1 < z < 2.0 0.1 0.2 0.3 0.4 0.5             
+
+> 00.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.45 0.5
+> 00.01 0.02 0.03 0.04
+> 00.02 0.04 0.06 0.08 00.1 0.2 0.3 0.4 0.5
+> 01234567
+> 0.005 0.01 0.015 0.02
+> 4.5 55.5 6
+
+FIGURE 3. Regularization function used in Example 6.1. LEMMA 6.2. Assumption 4.2 is satisfied for the regularization function in Example 6.1. 
+
+PROOF . For (4.12), we can take c0 = c2 = 1 , and c1(δ) = min {δ, C 1(δ)) , where 
+
+C(δ) = inf {αk(z); ( z, k ) ∈ Γ, |z − H(xi)| ≥ δ for all exterior vertices Oi = ( H(xi), k )}.
+
+Next, by (2.6), for each interior vertex Oi = ( H(xi), k ), there exists a δi ∈ (0 , δ min ∧ 1) and two positive constants K1(i) and K2(i) such that 
+
+−K1(i) log |z − H(xi)| ≤ βk(z) ≤ − K2(i) log |z − H(xi)| ∀ | z − H(xi)| ≤ δi.
+
+Set δ0 := 14 min Oi∈O int δi, K 1 := min Oi∈O int K1(i), and K2 := max Oi∈O int K2(i), and let δ ∈
+
+(0 , δ 0) ⊂ (0 , 14 ). For any (z, k ) ∈ Ik satisfying δ < |z − H(xi)| < 2δ for some interior vertex 
+
+Oi = ( H(xi), k ), we have 
+
+−K1 log(2 δ) ≤ βδk(z) ≤ − K2 log δ ≤ − log 4 log 2 K2 log(2 δ) ≤ log 4 log 2 · K2
+
+K1
+
+βk(z).
+
+Similarly, if |z − H(xi)| ≤ δ, then 
+
+−K1 log δ < β δk(z) ≤ − K2 log δ ≤ − K2 log |z − H(xi)| ≤ K2
+
+K1
+
+βk(z).
+
+Consequently, condition (4.13) holds with c3 = min {K1 log 2 , inf (z,k )∈Γ βk(z)}, c5 = log 4 log 2 · K2 
+
+> K1
+
+, and 
+
+c4(δ) = max {− K2 log δ, C 2(δ)}, where 
+
+C2(δ) = sup {βk(z); ( z, k ) ∈ Γ, |z − H(xi)| ≥ 2δ for all interior vertices Oi = ( H(xi), k )}.FEM FOR SPDE ON GRAPH 23 
+
+The proof is completed. □
+
+Due to (4.8), the regularization function αR,δ in Example 6.1 also satisfies Assumption 4.5. 
+
+6.1. Tightness. We first establish an energy estimate for (4.16), which allows us to derive uni-form bounds for the regularized solutions ˇuδ. These bounds, in turn, enable us to prove the conver-gence of ˇuδ by means of a compactness argument. LEMMA 6.3. Let Assumptions 4.2–4.3 hold, R > H 0, and δ ∈ (0 , δ 0). Then we have the follow-ing. (1) For any λ ≥ 18 κ1, −λI + ˇLδ generates an analytic contraction semigroup on L2  
+
+> βδγ
+
+(Γ R),where the domain D( ˇLδ) of ˇLδ is given by 
+
+D( ˇLδ) := {f ∈ W 1,2cont (Γ R) : f satisfies (4.15) , α R,δ k 
+
+> df
+> dz
+
+is differentiable on each Jk,
+
+and ˇLδf ∈ L2  
+
+> βδγ
+
+(Γ R)}. (6.1) 
+
+(2) If {1Γ, u 0} ⊂ L2 
+
+> βγ
+
+(Γ) , then the regularized truncated equation (4.16) admits a unique mild solution ˇuδ = {ˇuδ(t)}t∈[0 ,T ]. Moreover, there exists C := C(κ1, T ) > 0 such that for any 
+
+R > H 0 and δ ∈ (0 , δ 0),
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥ˇuδ(t)∥2 
+
+> L2
+> βδ γ(Γ R)
+
+
+
++ E
+
+Z T
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+αR,δ k | ∂∂z ˇuδ(t)|2γkdzdt ≤ C
+
+
+
+1 + ∥u0∥2 
+
+> L2
+> βγ (Γ)
+
+
+
+. (6.2) PROOF . (1) Fix δ ∈ (0 , δ 0) and λ ≥ 18 κ1. Recall that the bilinear form aR,δ λ : W 1,2cont (Γ R) ×
+
+W 1,2cont (Γ R) → C defined in (4.17) is densely defined, continuous, closed, and accretive. Specifically, for any λ > 18 κ1 (see (3.6) and (3.7) for a similar argument), 
+
+ℜaR,δ λ (ϕ, ϕ ) ≥ c(λ)∥ϕ∥2  
+
+> W1,2
+> αR,δ γ,β δ γ(Γ R)
+
+, (6.3) 
+
+|aR,δ λ (ϕ, ψ )| ≤ C(λ)∥ϕ∥W 1,2 
+
+> αR,δ γ,β δ γ(Γ R)
+
+∥ψ∥W 1,2 
+
+> αR,δ γ,β δ γ(Γ R)
+
+. (6.4) Moreover, the operator associated with the form aR,δ λ is −λI + ˇLδ, where D( ˇLδ) is given by (6.1). As a consequence of [ 31 , Theorem 1.51], we obtain the first claim. (2) From the upper bound βδk ≤ c5βk in (4.13), we infer that 
+
+∥ˇuδ(0) ∥2  
+
+> L2
+> βδ γ(Γ R)
+
+=
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+|ˇu(0) |2βδkγkdz ≤ C
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Ik
+
+|u0|2βkγkdz ≤ C
+
+
+
+1 + ∥u0∥2 
+
+> L2
+> βγ (Γ)
+
+
+
+.
+
+Finally, by the Lipschitz continuity of b and g, (7.1) can be proved in the same way as in Lemmas 3.4 and 3.5, and we omit the details. □
+
+We are now state the smoothing properties of the regularized operator ˇLδ.LEMMA 6.4. Let Assumptions 4.2–4.3 hold and λ > 18 κ1. Then for any R > H 0 and δ ∈ (0 , δ 0),the operator Aδλ := λI − ˇLδ satisfies 
+
+∥(Aδλ)ϑe−tAδλ ∥L (L2  
+
+> βδ γ(Γ R))
+
+≤ C(λ, ϑ )t−ϑ, ϑ > 0, (6.5) 
+
+∥(Aδλ)−ϑ(e−tAδλ − I)∥L (L2  
+
+> βδ γ(Γ R))
+
+≤ C(λ, ϑ )tϑ, ϑ ∈ (0 , 1) . (6.6) 24 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+PROOF . For a fixed λ > 18 κ1, by (6.3) and (6.4), we obtain 
+
+⟨A δλϕ, ϕ ⟩L2  
+
+> βδ γ(Γ R)
+
+≤ C(λ)
+
+c(λ) ℜ⟨A δλϕ, ϕ ⟩L2 
+
+> βδ γ(Γ R)
+
+, ϕ ∈ D(Aδλ) = D( ˇLδ).
+
+Therefore, the numerical range N (Aδλ) of Aδλ (see [ 31 , Definition 1.26]), defined by 
+
+N (Aδλ) := 
+
+n
+
+⟨A δλϕ, ϕ ⟩L2  
+
+> βδ γ(Γ R)
+
+: ϕ ∈ D(Aδλ), ∥ϕ∥L2  
+
+> βδ γ(Γ R)
+
+= 1 
+
+o
+
+,
+
+is a subset of the sector Σ0(θ0) := {y ∈ C, y ̸ = 0 , 0 ≤ | arg y| ≤ θ0} where θ0 = arccos( c(λ)/C (λ)) ∈
+
+(0 , π 
+
+> 2
+
+). Fix θ1 ∈ (θ0, π 
+
+> 2
+
+) and denote Σπ(θ1) := {y ∈ C, θ 1 ≤ | arg y| ≤ π}. Then by [ 27 , Proposition C.3.1], the resolvent set ρ(Aδλ) of Aδλ contains Σπ(θ1), and for any y ∈ Σπ(θ1),
+
+∥(yI − A δλ)−1∥L (L2  
+
+> βδ γ(Γ R))
+
+≤ 1
+
+dist (y, N (Aδλ)) ≤ 1
+
+dist (y, Σ0(θ0)) ≤ 1sin( θ1 − θ0)1
+
+|y| . (6.7) If we introduce the contour Y = {y : y = re ±iθ1 , r ≥ 0}, then it follows from (6.7) that for any 
+
+ϑ > 0,
+
+∥(Aδλ)ϑe−tAδλ ϕ∥L2  
+
+> βδ γ(Γ R)
+
+= 12πi
+
+Z
+
+> Y
+
+yϑe−yt (yI − A δλ)−1ϕdy 
+
+> L2
+> βδ γ(Γ R)
+
+≤ C∥ϕ∥L2 
+
+> βδ γ(Γ R)
+
+Z ∞
+
+> 0
+
+rϑ−1e−rt cos θ1 dr ≤ Ct −ϑ∥ϕ∥L2 
+
+> βδ γ(Γ R)
+
+,
+
+where C := C(ϑ, λ ) > 0 is independent of ϕ ∈ L2  
+
+> βδγ
+
+(Γ R). This completes the proof of (6.5). Finally, (6.6) comes from (I − e−tAδλ )ϕ = R t 
+
+> 0
+
+Aδλe−sAδλ ϕds and an application of (6.5). □
+
+To facilitate the a-priori estimate of ˇuδ, we introduce the following random PDE 
+
+∂tvδ(t) = ˇLδvδ(t) + ˇB(ˇ uδ(t)) , vδ(0) = ˇ u(0) , (6.8) for any δ ∈ (0 , δ 0). Then rδ := ˇ uδ − vδ is the stochastic convolution given by 
+
+rδ(t) = 
+
+Z t
+
+> 0
+
+e(t−s) ˇLδ ˇG(ˇ uδ(s))d W (s), t ∈ [0 , T ].
+
+LEMMA 6.5. Let Assumptions 4.2–4.3 hold, 1Γ ∈ L2 
+
+> βγ
+
+(Γ) , and u0 ∈ W 1,2(α+1) γ,βγ (Γ) . Then there exists a constant C > 0 such that for any R > H 0 and δ ∈ (0 , δ 0),
+
+sup  
+
+> t∈[0 ,T ]
+
+∥vδ(t)∥W 1,2  
+
+> αRγ,βγ (Γ R)
+
++
+
+Z T
+
+> 0
+
+∥∂svδ(s)∥2 
+
+> L2
+> γ(Γ R)
+
+ds ≤ C. (6.9) PROOF . By αR,δ k ≤ c2(αk + 1) and βδk ≤ c5βk in Assumption 4.2, for all δ ∈ (0 , δ 0) we have 
+
+∥vδ(0) ∥W 1,2  
+
+> αR,δ γ,β δ γ(Γ R)
+
+= ∥ˇu(0) ∥W 1,2  
+
+> αR,δ γ,β δ γ(Γ R)
+
+≤ C∥u0∥W 1,2(α+1) γ,βγ (Γ) . (6.10) For t ∈ [0 , T ], we denote 
+
+Q(vδ(t)) := 12
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+αR,δ k (z)| ∂∂z vδ(t, z, k )|2γk(z)d z. 
+
+From (6.8), Assumption 4.3, Young’s inequality, and the linear growth of b, it holds 
+
+ddt Q(vδ(t)) = −
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+αR,δ k (z) ∂∂z vδ(t)∂tvδ(t)γ′
+
+> k
+
+(z)d z − 2⟨ ˇLδvδ(t), ∂ tvδ(t)⟩L2  
+
+> βδ γ(Γ R)FEM FOR SPDE ON GRAPH 25
+
+= 12 κ1Q(vδ(t)) + ∥∂tvδ(t)∥2  
+
+> L2
+> βδ γ(Γ R)
+
+− 2⟨∂tvδ(t) − ˇB(ˇ uδ(t)) , ∂ tvδ(t)⟩L2 
+
+> βδ γ(Γ R)
+
+≤ 12 κ1Q(vδ(t)) − 12 ∥∂tvδ(t)∥2  
+
+> L2
+> βδ γ(Γ R)
+
++ C
+
+
+
+1 + ∥ˇuδ(t)∥2 
+
+> L2
+> βδ γ(Γ R)
+
+
+
+.
+
+As a result of (6.10) and Lemma 6.3, we can readily apply the Gr¨ onwall inequality to obtain 
+
+Q(vδ(t)) + 
+
+Z T
+
+> 0
+
+∥∂svδ(s)∥2 
+
+> L2
+> βδ γ(Γ R)
+
+ds ≤ C
+
+
+
+1 + ∥u0∥2  
+
+> W1,2(α+1) γ,βγ (Γ)
+
+
+
+, t ∈ [0 , T ]. (6.11) According to (6.11), for any 0 ≤ s ≤ t ≤ T ,
+
+∥vδ(t) − vδ(s)∥2  
+
+> L2
+> βδ γ(Γ R)
+
+≤ (t − s)
+
+Z ts
+
+∥∂s1 vδ(s1)∥2 
+
+> L2
+> βδ γ(Γ R)
+
+ds1 ≤ C(t − s). (6.12) A combination of (6.11) and (6.12) with s = 0 proves 
+
+∥vδ(t)∥W 1,2  
+
+> αR,δ γ,β δ γ(Γ R)
+
++
+
+Z T
+
+> 0
+
+∥∂svδ(s)∥2 
+
+> L2
+> βδ γ(Γ R)
+
+ds ≤ C. (6.13) To prove (6.9), recall that we have split each edge Jk into two parts J(1)  
+
+> k
+
+and J(2)  
+
+> k
+
+, where {J(l) 
+
+> k
+
+}2
+
+> l=1
+
+connects exactly one vertex Oi = ( H(xi), k ) of ΓR.Case 1. If Oi is an exterior vertex, then βδk = βk on J(l) 
+
+> k
+
+, which implies 
+
+∥f ∥2   
+
+> L2
+> βγ (J(l)
+> k)
+
+= ∥f ∥L2 
+
+> βδ γ(Γ R)
+
+, f ∈ W 1,2   
+
+> αR,δ γ,β δγ
+
+(Γ R). (6.14) Case 2. If Oi is an interior vertex, then αR,δ k = αRk is uniformly bounded from below and above by positive constants on J(l) 
+
+> k
+
+. Since γ is continuous on Γ, for any (z, k ) ∈ ΓR with z ∈
+
+[0 , H 0 + 1] ,
+
+C−1 ≤ γk(z) ≤ C. (6.15) Assume without loss of generality that the left endpoint of J(l) 
+
+> k
+
+corresponds to the interior vertex Oi; otherwise the integral domain [H(xi), H (xi) + |J(l) 
+
+> k
+
+|] in (6.16) is replaced by 
+
+[H(xi) − | J(l) 
+
+> k
+
+|, H (xi)] . Then, by βδk ≥ c3 > 0, the Sobolev embedding W 1,2(J(l) 
+
+> k
+
+) ,→
+
+L∞(J(l) 
+
+> k
+
+), (2.6), and (6.15), we obtain 
+
+∥f ∥2   
+
+> L2
+> βγ (J(l)
+> k)
+
+=
+
+Z H(xi)+ |J(l) 
+
+> k|
+> H(xi)
+
+|f (z, k )|2βkγkdz (6.16) 
+
+≤ ∥ f (·, k )∥L2(J(l) 
+
+> k)
+
+∥f (·, k )∥L∞(J(l) 
+
+> k)
+
+ Z H(xi)+ |J(l) 
+
+> k|
+> H(xi)
+
+|βkγk|2dz
+
+ 12
+
+≤ C∥f ∥L2  
+
+> βδ γ(J(l)
+> k)
+
+∥f ∥W 1,2  
+
+> αR,δ γ,β δ γ(J(l)
+> k)
+
+ Z H(xi)+ |J(l) 
+
+> k|
+> H(xi)
+
+(1 + | log |z − H(xi)|| 2)γ2 
+
+> k
+
+dz
+
+ 12
+
+≤ C∥f ∥L2 
+
+> βδ γ(Γ R)
+
+∥f ∥W 1,2 
+
+> αR,δ γ,β δ γ(Γ R)
+
+, f ∈ W 1,2   
+
+> αR,δ γ,β δγ
+
+(Γ R).
+
+Combining (6.14) and (6.16) in the above two cases allows us to conclude 
+
+∥f ∥2  
+
+> L2
+> βγ (Γ R)
+
+≤ C∥f ∥L2 
+
+> βδ γ(Γ R)
+
+∥f ∥W 1,2 
+
+> αR,δ γ,β δ γ(Γ R)
+
+, (6.17) 26 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+for some constant C > 0 independent of f ∈ W 1,2   
+
+> αR,δ γ,β δγ
+
+(Γ R). Taking further the assumption αR,δ k ≥
+
+c0αRk and (6.17) into account, we arrive at 
+
+∥f ∥W 1,2  
+
+> αRγ,βγ (Γ R)
+
+≤ C∥f ∥W 1,2 
+
+> αR,δ γ,β δ γ(Γ R)
+
+, f ∈ W 1,2   
+
+> αR,δ γ,β δγ
+
+(Γ R). (6.18) Since βδk ≥ c3, we can combine (6.18) and (6.13) to finish the proof of (6.9). □
+
+Given a Banach space (X, ∥ · ∥ X ), for any ϑ ∈ (0 , 1) , we denote the seminorm of ϑ-H¨ older continuous functions x : [0 , T ] → X by 
+
+|x|Cϑ([0 ,T ]; X) := sup 
+
+> 0≤s<t ≤T
+
+∥x(t) − x(s)∥X
+
+|t − s|ϑ .
+
+LEMMA 6.6. Under the conditions of Lemma 6.5, for any p > 2, ϑ ∈ (0 , 14 ), and R > H 0, there exists a constant C := C(R, p, ϑ ) > 0 such that for any δ ∈ (0 , δ 0),
+
+E
+
+
+
+|rδ|p  
+
+> Cϑ([0 ,T ]; L2
+> βγ (Γ R))
+
+
+
+≤ C. 
+
+PROOF . The proof is divided into three steps. 
+
+Step 1 . Let λ > 18 κ1. If we denote rδλ(t) := e−λt rδ(t) , then 
+
+rδλ(t) = 
+
+Z t
+
+> 0
+
+e−A δλ(t−s)e−λs ˇG(ˇ uδ(s))d W (s), t ∈ [0 , T ], (6.19) where Aδλ = λI − ˇLδ. For any 0 ≤ s < t ≤ T ,
+
+rδλ(t) − rδλ(s) = 
+
+Z s
+
+> 0
+
+(Aδλ)ϑe−A δλ(s−s1)(Aδλ)−ϑ(e−A δλ(t−s) − I)e−λs 1 ˇG(ˇ uδ(s1))d W (s1)+
+
+Z ts
+
+e−A δλ(t−s1)e−λs 1 ˇG(ˇ uδ(s1))d W (s1).
+
+Then, invoking (6.5), (6.6), the contraction of {e−A δλt}t≥0 on L2  
+
+> βδγ
+
+(Γ R), and the Burkholder inequal-ity [ 17 ], we infer from the linear growth of g and Lemma 6.3 that for any ϑ ∈ (0 , 12 ) and any p ≥ 2,
+
+E
+
+
+
+∥rδλ(t) − rδλ(s)∥pL2 
+
+> βδ γ(Γ R)
+
+
+
+≤ C(λ, ϑ, p )( t − s)ϑp 
+
+
+
+1 + E
+
+h
+
+sup  
+
+> s1∈[0 ,T ]
+
+∥ˇuδ(s1)∥pLpβδ γ (Γ R)
+
+i
+
+(6.20) 
+
+≤ C(ϑ, λ, p )( t − s)ϑp , 0 ≤ s ≤ t ≤ T. 
+
+Because rδ(t) = eλt rδλ(t), it can be shown that for any ϑ ∈ (0 , 12 ) and any p ≥ 2.
+
+E
+
+
+
+∥rδ(t) − rδ(s)∥pL2 
+
+> βδ γ(Γ R)
+
+
+
+≤ C(ϑ, λ, p )( t − s)ϑp , 0 ≤ s ≤ t ≤ T. (6.21) 
+
+Step 2. By Lemma 6.3, −A δλ generates a contraction semigroup on L2 
+
+> βδ
+
+(Γ R), which implies that the assumption of [ 17 , Proposition A.19] holds (see [ 17 , Remark A.20]). Therefore, by applying [ 17 ,Proposition A.21], there exists a constant C > 0 such that for any t ∈ [0 , T ],
+
+Z t
+
+> 0
+
+∥(Aδλ) 12 e−sAδλ ϕ∥2 
+
+> L2
+> βδ γ(Γ R)
+
+ds ≤ C∥ϕ∥2 
+
+> L2
+> βδ γ(Γ R)
+
+, ϕ ∈ L2  
+
+> βδγ
+
+(Γ R). (6.22) For the stochastic process rδλ defined in (6.19), applying the Burkholder inequality leads to 
+
+E
+
+
+
+∥(Aδλ) 12 rδλ(t)∥pL2 
+
+> βδ γ(Γ R)
+
+
+
+≤ CE
+
+"Z t
+
+> 0
+
+∥(Aδλ) 12 e−A δλ(t−s)e−λs ˇG(ˇ uδ(s)) ∥2 
+
+> L2(U0,L 2
+> βδ γ(Γ R))
+
+ds
+
+ p
+
+> 2
+
+#
+
+.FEM FOR SPDE ON GRAPH 27 
+
+Moreover, owing to (6.5) and (6.22), we have 
+
+Z t
+
+0
+
+∥(Aδλ) 12 e−A δλ(t−s)e−λs ˇG(ˇ uδ(s)) ∥2
+
+L2(U0,L 2 
+
+> βδ γ
+
+(Γ R)) ds
+
+≤ 2
+
+Z t
+
+0
+
+(Aδλ) 12 e−A δλ(t−s)e−λs   ˇG(ˇ uδ(s)) − ˇG(ˇ uδ(t))  2
+
+L2(U0,L 2 
+
+> βδ γ
+
+(Γ R)) ds
+
++ 2 
+
+Z t
+
+0
+
+∥(Aδλ) 12 e−A δλ(t−s)e−λs ˇG(ˇ uδ(t)) ∥2
+
+L2(U0,L 2 
+
+> βδ γ
+
+(Γ R)) ds
+
+≤ C
+
+Z t
+
+0
+
+(t − s)−1∥ ˇG(ˇ uδ(s)) − ˇG(ˇ uδ(t)) ∥2
+
+L2(U0,L 2 
+
+> βδ γ
+
+(Γ R)) ds + C∥ ˇG(ˇ uδ(t)) ∥2
+
+L2(U0,L 2 
+
+> βδ γ
+
+(Γ R)) .
+
+Besides, utilizing the Lipschitz continuity of g, it holds that 
+
+∥ ˇG(ˇ uδ(s)) − ˇG(ˇ uδ(t)) ∥L2(U0,L 2 
+
+> βδ γ
+
+(Γ R)) ≤ C∥ˇuδ(s) − ˇuδ(t)∥L2 
+
+> βδ γ
+
+(Γ R)
+
+≤ ∥ rδ(s) − rδ(t)∥L2 
+
+> βδ γ
+
+(Γ R) + ∥vδ(s) − vδ(t)∥L2 
+
+> βδ γ
+
+(Γ R).
+
+Together with (6.12) and (6.21), we deduce that for any p ≥ 2 and λ > 18 κ1,
+
+E
+
+
+
+∥(Aδλ) 12 rδλ(t)∥pL2 
+
+> βδ γ
+
+(Γ R)
+
+
+
+≤ C(p, λ ), 0 ≤ t ≤ T. (6.23) 
+
+Step 3. In view of (6.17), for any 0 ≤ s ≤ t ≤ T we have 
+
+∥rδ(t) − rδ(s)∥2
+
+L2 
+
+> βγ
+
+(Γ R) ≤ C∥rδ(t) − rδ(s)∥L2 
+
+> βδ γ
+
+(Γ R)
+
+
+
+∥rδ(t)∥W 1,2 
+
+> αR,δ γ,β δ γ
+
+(Γ R) + ∥rδ(s)∥W 1,2 
+
+> αR,δ γ,β δ γ
+
+(Γ R)
+
+
+
+.
+
+This, combined with (6.21) and H¨ older’s inequality, yields that for any ϑ ∈ (0 , 14 ) and any p ≥ 2,
+
+E
+
+
+
+∥rδ(t) − rδ(s)∥pL2 
+
+> βγ
+
+(Γ R)
+
+
+
+≤ C(R)( t − s)ϑp sup 
+
+t∈[0 ,T ]
+
+
+
+E
+
+
+
+∥rδ(t)∥pW 1,2 
+
+> αR,δ γ,β δ γ
+
+(Γ R)
+
+ 12
+
+. (6.24) By continuity of γ, for any R > H 0 we have 
+
+cγ (R) := inf 
+
+ΓR γ ≤ γk(z) ≤ sup 
+
+ΓR
+
+γ =: Cγ (R) ∀ (z, k ) ∈ ΓR. (6.25) In addition, for any ϕ ∈ W 1,2
+
+αR,δ ,β δ (Γ R),
+
+∥(Aδλ) 12 ϕ∥2
+
+L2 
+
+> βδ
+
+(Γ R) = ⟨A δλϕ, ϕ ⟩L2 
+
+> βδ
+
+(Γ R) = λ
+
+mX
+
+k=1 
+
+Z
+
+Jk
+
+|ϕ|2βδkdz + 12
+
+mX
+
+k=1 
+
+Z
+
+Jk
+
+αR,δ k | ddz ϕ|2dz, (6.26) and thus the fractional norm ∥(Aδλ) 12 · ∥ L2 
+
+> βδ
+
+(Γ R) is an equivalent norm of ∥ · ∥ W 1,2 
+
+> αR,δ ,β δ
+
+(Γ R). Combining (6.25), (6.26), and the relation rδλ(t) = e−λt rδ(t), we arrive at 
+
+E
+
+
+
+∥rδ(t)∥pW 1,2 
+
+> αR,δ γ,β δ γ
+
+(Γ R)
+
+
+
+≤ C(R)E
+
+
+
+∥rδ(t)∥pW 1,2 
+
+> αR,δ ,β δ
+
+(Γ R)
+
+
+
+≤ C(R)E
+
+
+
+∥rδλ(t)∥pW 1,2 
+
+> αR,δ ,β δ
+
+(Γ R)
+
+
+
+≤ C(R)E
+
+
+
+∥(Aδλ) 12 rδλ(t)∥pL2 
+
+> βδ
+
+(Γ R)
+
+
+
+≤ C(R)E
+
+
+
+∥(Aδλ) 12 rδλ(t)∥pL2 
+
+> βδ γ
+
+(Γ R)
+
+
+
+≤ C, (6.27) where the last step is due to (6.23). Substituting the above inequality (6.27) into (6.24) yields that for any ϑ ∈ (0 , 14 ) and any p ≥ 2,
+
+E
+
+
+
+∥rδ(t) − rδ(s)∥pL2 
+
+> βγ
+
+(Γ R)
+
+
+
+≤ C(R, p )( t − s)ϑp .28 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+Finally, we apply the Garsia–Rodemich–Rumsey inequality [ 25 , Theorem 2 & Corollary 1] to com-plete the proof. □
+
+On account of Lemma 6.6 and (6.27), for any p ≥ 2 and ϑ ∈ (0 , 14 ) we have 
+
+sup  
+
+> t∈[0 ,T ]
+
+E
+
+
+
+∥rδ(t)∥pW 1,2 
+
+> αRγ,βγ (Γ R)
+
+
+
++ E
+
+
+
+|rδ|p  
+
+> Cϑ([0 ,T ]; L2
+> βγ (Γ R))
+
+
+
+≤ C(R, p ), (6.28) which, along with Lemma 6.5, implies that for any p ≥ 2,
+
+sup  
+
+> t∈[0 ,T ]
+
+E
+
+
+
+∥ˇuδ(t)∥pW 1,2 
+
+> αRγ,βγ (Γ R)
+
+
+
+≤ C(R, p ). (6.29) LEMMA 6.7. Let (4.6) and Assumptions 4.2–4.3 hold. Assume that 1Γ ∈ L2 
+
+> βγ
+
+(Γ) and u0 ∈
+
+W 1,2(α+1) γ,βγ (Γ) . Then for any fixed R > H 0, the law of {ˇuδ}δ∈(0 ,δ 0) is tight in C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) .
+
+PROOF . Due to (4.7), (2.5), and (2.6), it follows from [ 16 , Claim 1 in Lemma 5.6] that the embed-ding W 1,2 
+
+> αRγ,βγ
+
+(Γ R) ,→ L2 
+
+> βγ
+
+(Γ R) is compact. Then due to L2 
+
+> βγ
+
+(Γ R) ⊂ L2 
+
+> γ
+
+(Γ R), applying Aubin–Lions theorem implies that for any M > 0, the set 
+
+VM := 
+
+
+
+ϕ ∈ C ([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) , ∥ϕ∥L∞(0 ,T ;W 1,2  
+
+> αRγ,βγ (Γ R))
+
++ ∥∂tϕ∥L2(0 ,T ;L2  
+
+> γ(Γ R))
+
+≤ M
+
+
+
+is a pre-compact subset of C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) .By [ 35 , Theorem 1], a subset F ⊂ C ([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) is relatively compact in C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) 
+
+if the following two conditions hold: 
+
+Z t2
+
+> t1
+
+f (t)d t : f ∈ F
+
+
+
+is relatively compact in L2 
+
+> βγ
+
+(Γ R) ∀ 0 < t 1 < t 2 < T, 
+
+∥f (· + τ ) − f (·)∥L∞(0 ,T −τ ;L2  
+
+> βγ (Γ R))
+
+→ 0 as τ → 0, uniformly for f ∈ F.
+
+Recall that W 1,2 
+
+> αRγ,βγ
+
+(Γ R) is compactly embedded into L2 
+
+> βγ
+
+(Γ R). Hence for any M > 0 and ϑ > 0,the set 
+
+KM := 
+
+
+
+ϕ ∈ C ([0 , T ]; L2 
+
+> βγ
+
+(Γ R)); ∥ϕ∥L1(0 ,T ;W 1,2  
+
+> αRγ,βγ (Γ R))
+
++ |ϕ|Cϑ([0 ,T ]; L2  
+
+> βγ (Γ R))
+
+≤ M
+
+
+
+is a pre-compact subset of C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) . For any M > 0, the sum KM + VM := {x + y, x ∈
+
+KM , y ∈ VM } is a pre-compact subset of C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) . By the Markov inequality, (6.28) and Lemma 6.5, it holds that 
+
+P
+
+n
+
+ˇuδ ∈ KM + VM
+
+o
+
+≥ P
+
+n
+
+rδ ∈ KM , v δ ∈ VM
+
+o
+
+≥ 1 − P
+
+n
+
+rδ /∈ KM
+
+o
+
+− P
+
+n
+
+vδ /∈ VM
+
+o
+
+≥ 1 − C(R)M −1,
+
+which proves the tightness of the law of ˇuδ in C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) . □
+
+6.2. Convergence. In this subsection, we prove the convergence of the truncated regularized ap-proximation (4.16) to the truncated problem (4.1) as δ → 0. The convergence analysis is based on the tightness argument in Lemma 6.7, combined with the Gy¨ ongy–Krylov characterization of convergence in probability stated below (see also [ 26 , Lemma 1.1]). FEM FOR SPDE ON GRAPH 29 
+
+LEMMA 6.8 (Gy¨ ongy–Krylov). Let {Yn}n∈N be a sequence of X-valued random variables, where 
+
+X is a complete separable metric space. Then {Yn}n∈N converges in probability if and only if for ev-ery two subsequences {Yni }i∈N and {Yli }i∈N, the joint sequence {(Yni , Y li )}i∈N has a further subse-quence whose laws converge weakly to a probability measure ν supported on the diagonal of X × X:
+
+ν({(x, y ) ∈ X × X : x = y}) = 1 .
+
+By (4.16) and the integration by parts formula, for any real valued function φ ∈ ⊕ mk=1 C∞ 
+
+> c
+
+(Jk),
+
+⟨ˇuδ(t), φ ⟩L2  
+
+> βδ γ(Γ R)
+
+= ⟨ˇu(0) , φ ⟩L2  
+
+> βδ γ(Γ R)
+
+− 12
+
+Z t
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+αR,δ k
+
+∂∂z ˇuδ(s) ddz (φγ k)d zds
+
++
+
+Z t
+
+> 0
+
+⟨ ˇB(ˇ uδ(s)) , φ ⟩L2 
+
+> βδ γ(Γ R)
+
+ds +
+
+Z t
+
+> 0
+
+⟨ ˇG(ˇ uδ(s))d W (s), φ ⟩L2 
+
+> βδ γ(Γ R)
+
+.
+
+To identify the limiting equation, we reformulate 
+
+⟨ˇuδ(t), φ ⟩L2  
+
+> βγ (Γ R)
+
+= ⟨ˇu(0) , φ ⟩L2  
+
+> βγ (Γ R)
+
+− 12
+
+Z t
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+αRk
+
+∂∂z ˇuδ(s) ddz (φγ k)d zds (6.30) 
+
++
+
+Z t
+
+> 0
+
+⟨ ˇB(ˇ uδ(s)) , φ ⟩L2 
+
+> βγ (Γ R)
+
+ds +
+
+Z t
+
+> 0
+
+⟨ ˇG(ˇ uδ(s))d W (s), φ ⟩L2  
+
+> βγ (Γ R)
+
++ R φ,δ (t; ˇ uδ),
+
+where the remainder term is given by 
+
+Rφ,δ (t; ˇ uδ) := 
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+ ˇuδ(t) − ˇu(0) φ(βk − βδk)γkdz
+
++ 12
+
+Z t
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+ αRk − αR,δ k
+
+ ∂∂z ˇuδ(t) ddz (φγ k)d zds
+
++
+
+Z t
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+ˇB(ˇ uδ(s)) φ(βδk − βk)γkdzds
+
++
+
+Z t
+
+> 0
+
+⟨ ˇG(ˇ uδ(s))d W (s), φ (βδ − β)γ⟩L2(Γ R) =: 
+
+> 4
+
+X
+
+> i=1
+
+Rφ,δ i (t; ˇ uδ).
+
+In the following lemma, we show that the remainder term Rφ,δ (t; ˇ uδ) becomes negligible in the limit 
+
+δ → 0.LEMMA 6.9. Let (4.6) and Assumptions 4.2–4.3 hold. Assume that 1Γ ∈ L2 
+
+> βγ
+
+(Γ) and u0 ∈
+
+W 1,2(α+1) γ,βγ (Γ) . Then for any real valued function φ ∈ ⊕ mk=1 C∞ 
+
+> c
+
+(Jk),
+
+lim  
+
+> δ→0
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+|Rφ,δ (t; ˇ uδ)|2
+
+
+
+= 0 .
+
+PROOF . Invoking the Cauchy–Schwarz inequality, together with the uniform lower bound βδk ≥
+
+c3 > 0, we have 
+
+|Rφ,δ  
+
+> 1
+
+(t; ˇ uδ)|2 ≤ 1
+
+c3
+
+
+
+∥ˇuδ(t)∥2  
+
+> L2
+> βδ γ(Γ R)
+
++ ∥ˇu(0) ∥2 
+
+> L2
+> βδ γ(Γ R)
+
+ mX
+
+> k=1
+
+Z
+
+> Jk
+
+φ2|βk − βδk|2γkdz30 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+Similarly, from the linear growth of ˇB : L2 
+
+> βγ
+
+(Γ R) → L2 
+
+> βγ
+
+(Γ R), we can readily obtain 
+
+|Rφ,δ  
+
+> 3
+
+(t; ˇ uδ)|2 ≤ C
+
+c3
+
+Z T
+
+> 0
+
+
+
+1 + ∥ˇuδ(s)∥2 
+
+> L2
+> βδ γ(Γ R)
+
+
+
+ds
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+φ2|βk − βδk|2γkdz. 
+
+Next, by Doob’s martingale inequality and the linear growth of ˇG : L2 
+
+> βγ
+
+(Γ R) → L2(U0, L 2 
+
+> βγ
+
+(Γ R)) ,
+
+E
+
+"
+
+sup  
+
+> t∈[0 ,T ]
+
+|Rφ,δ  
+
+> 4
+
+(t; ˇ uδ)|2
+
+#
+
+≤ CE
+
+Z T
+
+> 0
+> ∞
+
+X
+
+> i=0
+
+⟨ ˇG(ˇ uδ(s)) ei, φ (βδ − β)γ⟩2
+
+> L2(Γ R)
+
+ds
+
+≤ C
+
+c3
+
+E
+
+Z T
+
+> 0
+
+
+
+1 + ∥ˇuδ(s)∥2 
+
+> L2
+> βδ γ(Γ R)
+
+
+
+ds
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+φ2|βk − βδk|2γkdz. 
+
+Consequently, for i = 1 , 3, 4 we employ Lemma 6.3 to infer that 
+
+E
+
+"
+
+sup  
+
+> t∈[0 ,T ]
+
+|Rφ,δ i (t; ˇ uδ)|2
+
+#
+
+≤ CE
+
+
+
+1 + sup  
+
+> s∈[0 ,T ]
+
+∥ˇuδ(s)∥2 
+
+> L2
+> βδ γ(Γ R)
+
+ mX
+
+> k=1
+
+Z
+
+> Jk
+
+φ2|βk − βδk|2γkdz
+
+≤ C
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+φ2|βk − βδk|2γkdz. 
+
+From βδk ≤ c5βk it follows that for all δ ∈ (0 , δ 0), φ2|βk − βδk|2γk ≤ 2 1 + c25
+
+φ2|βk|2γk, where the right-hand side is integrable over ΓR. Together with the pointwise convergence of βδk to βk as δ → 0
+
+in Assumption 4.2, the Lebesgue dominated convergence theorem implies 
+
+lim 
+
+> δ→0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+φ2|βk − βδk|2γkdz = 0 .
+
+As for Rφ,δ  
+
+> 2
+
+, using the Cauchy–Schwarz inequality again, 
+
+|Rφ,δ  
+
+> 2
+
+(t; ˇ uδ)|2 ≤ T
+
+Z T
+
+> 0
+
+∂∂z ˇuδ(s) 2 
+
+> L2
+> αR,δ γ(Γ R)
+
+ds
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+|αRk − αR,δ k |2| ddz (φγ k)|2γ−1 
+
+> k
+
+(αR,δ k )−1dz
+
+!
+
+.
+
+Since φ has compact support on each edge Jk, by (4.12), the function αR,δ ≥ c0αRk admits a positive lower bound on supp (φ) uniformly in δ ∈ (0 , δ 0). Thus, according to Lemma 6.3 and (6.25), 
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+|Rφ,δ  
+
+> 2
+
+(t; ˇ uδ)|2
+
+
+
+≤ C
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+|αRk − αR,δ k |2| ddz (φγ k)|2γ−1 
+
+> k
+
+(αR,δ k )−1dz
+
+≤ C(R, ϕ )
+
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+|αRk − αR,δ k |2dz. 
+
+The right-hand side converges to zero as δ → 0 by the dominated convergence theorem, and the pointwise convergence of αδk to αk stated in Assumption 4.2. □
+
+With Lemma 6.9 at hand, we are now ready to present the proof of Theorem 4.4. 
+
+Proof of Theorem 4.4. By the tightness of the family {P ◦ (ˇ uδ)−1}δ∈(0 ,δ 0) in C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) ,the Skorokhod theorem yields that for any two sequences {δn}n∈N ⊂ (0 , δ 0) and {λn}n∈N ⊂ (0 , δ 0)
+
+converging to 0, there exist subsequences {δn(i)}i∈N and {λn(i)}i∈N and a sequence of random vari-ables ρi = {(wi
+
+> 1
+
+, w i
+
+> 2
+
+, Wi)}i∈N taking values in C1 := C([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) 2 × C ([0 , T ]; D′(Γ)) , defined on some probability space ( ¯Ω, ¯F , ¯P) such that the law of ρi coincides with that of (ˇ uδn(i) , ˇuλn(i) , W )
+
+for each i ∈ N, and that ρi converges ¯P-a.s. to a C1-valued random element ρ := ( w1, w 2, W). Here FEM FOR SPDE ON GRAPH 31 
+
+D′(Γ) is the dual space of C∞ 
+
+> 0
+
+(Γ) . For both j = 1 and j = 2 , wij solves (6.30) with (W, Rφ,δ (t; ˇ uδ)) 
+
+replaced by (Wi, Rφ,δ (t; wij )) , i.e., 
+
+⟨wij (t), φ ⟩L2  
+
+> βγ (Γ R)
+
+= ⟨ˇu(0) , φ ⟩L2  
+
+> βγ (Γ R)
+
+− 12
+
+Z t
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+αRk
+
+∂∂z wij (s) ddz (φγ k)d zds (6.31) 
+
++
+
+Z t
+
+> 0
+
+⟨ ˇB(wij (s)) , φ ⟩L2 
+
+> βγ (Γ R)
+
+ds +
+
+Z t
+
+> 0
+
+⟨ ˇG(wij (s))d Wi(s), φ ⟩L2  
+
+> βγ (Γ R)
+
++ R φ,δ (t; wij ).
+
+According to Lemma 6.9, both Rφ,δ (·; wi
+
+> 1
+
+) and Rφ,δ (·; wi
+
+> 2
+
+) converges in L2( ¯Ω; C([0 , T ])) to 0, as 
+
+δn(i) and λn(i) tends to 0. Hence, we can take further subsequences of {δn(i)}i∈N and {λn(i)}i∈N,still denoted by {δn(i)}i∈N and {λn(i)}i∈N for simplicity, such that the corresponding remainder terms 
+
+Rφ,δ (t; wi
+
+> 1
+
+) and Rφ,δ (t; wi
+
+> 2
+
+) converges ¯P-a.s. to 0 as i → ∞ . Passing to the limit as i → ∞ on both sides of (6.31), we infer that for j = 1 , 2,
+
+⟨wj (t), φ ⟩L2  
+
+> βγ (Γ R)
+
+= ⟨ˇu(0) , φ ⟩L2  
+
+> βγ (Γ R)
+
+− 12
+
+Z t
+
+> 0
+> m
+
+X
+
+> k=1
+
+Z
+
+> Jk
+
+αRk
+
+∂∂z wj (s) ddz (φγ k)d zds (6.32) 
+
++
+
+Z t
+
+> 0
+
+⟨ ˇB(wj (s)) , φ ⟩L2 
+
+> βγ (Γ R)
+
+ds +
+
+Z t
+
+> 0
+
+⟨ ˇG(wj (s))d W(s), φ ⟩L2 
+
+> βγ (Γ R)
+
+.
+
+By the pathwise uniqueness of the solution to (6.32), we obtain that w1 = w2, ¯P-a.s. Due to Lemma 6.8, this proves that the family {ˇuδ}δ∈(0 ,δ 0) of random variables converges in probability to some random variable ˇu0 ∈ C ([0 , T ]; L2 
+
+> βγ
+
+(Γ R)) . We can find a subsequence of {ˇuδ}δ∈(0 ,δ 0) converging P-a.s. to ˇu0. This, along with (6.30) and Lemma 6.9, yields that ˇu0 also satisfies (6.32) with W replaced by W . This identifies that ˇu0 = ˇ u, by the pathwise uniqueness of (4.9). In other words, for any ϵ > 0,
+
+lim  
+
+> δ→0
+
+P
+
+n
+
+∥ˇuδ − ˇu∥C([0 ,T ]; L2  
+
+> βγ (Γ R))
+
+> ϵ 
+
+o
+
+= 0 . (6.33) Due to the Vatali convergence theorem, for any fixed p ≥ 1, the family {ˇuδ}δ∈(0 ,δ 0) converges in 
+
+Lp(Ω; C([0 , T ]; L2 
+
+> βγ
+
+(Γ R))) to ˇu as δ → 0 if and only if {ˇuδ}δ∈(0 ,δ 0) converges in probability to ˇu as 
+
+δ → 0 and the family {∥ ˇuδ∥p  
+
+> C([0 ,T ]; L2
+> βγ (Γ R))
+
+}δ∈(0 ,δ 0) is uniformly integrable. Owing to Lemma 6.6, (6.25), and rδ(0) = 0 , we obtain that for any q > 2,
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥rδ(t)∥qL2 
+
+> βγ (Γ R)
+
+
+
+≤ CE
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥rδ(t) − rδ(0) ∥qL2 
+
+> β(Γ R)
+
+
+
+≤ C(R, q, T ). (6.34) Since ˇuδ = vδ + rδ, combining (6.34) with Lemma 6.5 gives that 
+
+sup  
+
+> t∈[0 ,T ]
+
+∥ˇuδ(t)∥L2  
+
+> βγ (Γ R)
+
+≤ sup  
+
+> t∈[0 ,T ]
+
+∥vδ(t)∥W 1,2  
+
+> αRγ,βγ (Γ R)
+
++ sup  
+
+> t∈[0 ,T ]
+
+∥rδ(t)∥L2 
+
+> βγ (Γ R)
+
+is uniformly bounded in Lq(Ω) for any q > p with respect to δ ∈ (0 , δ 0). In particular, the family 
+
+{∥ ˇuδ∥p  
+
+> C([0 ,T ]; L2
+> βγ (Γ R))
+
+}δ∈(0 ,δ 0) is uniformly integrable, which, in combination with (6.33), allows us to conclude the proof of Theorem 4.4. □
+
+7. Error analysis of finite element approximation 
+
+In this section, we prove Theorem 4.6 on the error analysis of the finite element method for the truncated regularized problem (4.16). We emphasize that the generic constant C in this section may depend on R and δ, but is independent of h. To simplify the notation, henceforth we denote 
+
+ˇL2 
+
+> δ
+
+:= L2  
+
+> βδγ
+
+(Γ R), ˇW 1,2 
+
+> δ
+
+:= W 1,2   
+
+> αR,δ γ,β δγ
+
+(Γ R).32 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+By repeating the proof of Lemma 6.3, we have the following lemma. LEMMA 7.1. Let Assumptions 4.2–4.3 hold, R > H 0, and δ ∈ (0 , δ 0). Then we have the follow-ing. (1) For any λ ≥ 18 κ1, −λI + ˇLδh generates an analytic contraction semigroup on Vh(Γ R) such that for any t > 0,
+
+∥et ˇLδh ∥L ( ˇL2  
+
+> δ)
+
+≤ e 18 κ1t.
+
+(2) If {1Γ, u 0} ⊂ L2 
+
+> βγ
+
+(Γ) , then the discrete regularized truncated equation (4.19) admits a unique mild solution such that for any R > H 0 and δ ∈ (0 , δ 0),
+
+E
+
+
+
+sup  
+
+> t∈[0 ,T ]
+
+∥ˇuδh(t)∥2ˇL2
+
+> δ
+
+
+
+≤ C
+
+
+
+1 + ∥u0∥2 
+
+> L2
+> βγ (Γ)
+
+
+
+, (7.1) 
+
+where C := C(κ1, T ) > 0 is independent of δ and R.
+
+Fix a λ > 18 κ1 with κ1 as in Assumption 4.3, and let 0 < θ 0 < θ 1 < π 
+
+> 2
+
+be the same as in the proof of Lemma 6.4. As we have already shown in (6.7), the resolvent set ρ(− ˇLδ) of − ˇLδ contains the sector Σλπ(θ1) := {y ∈ C : θ1 ≤ | arg( y + λ)| ≤ π} and 
+
+∥(yI + ˇLδ)−1∥L ( ˇL2  
+
+> δ)
+
+≤ 1sin( θ1 − θ0)1
+
+|y + λ| ∀ y ∈ Σλπ(θ1).
+
+We shall use the contour Yλ := {y ∈ C : y = −λ + re ±iθ1 , r ≥ 0}. Then 
+
+Eh(t)φ := et ˇLδ
+
+φ − et ˇLδh Phφ = 12πi
+
+Z
+
+> Yλ
+
+e−yt (w − wh)d y, (7.2) where w = ( yI + ˇLδ)−1φ and wh = ( yI + ˇLδh)−1Phφ.
+
+FIGURE 4. Distance between y ∈ Y λ and Σφ in Lemma 7.2. LEMMA 7.2. Let Assumption 4.3 hold and λ > 18 κ1. Then there exists C := C(λ) > 0 such that for any R > H 0, δ ∈ (0 , δ 0), φ ∈ W 1,2cont (Γ R), and y ∈ Y λ,
+
+|y + λ|∥ φ∥2ˇL2
+
+> δ
+
++ ∥φ∥2ˇW 1,2
+
+> δ
+
+≤ C y∥φ∥2ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(φ, φ ) .FEM FOR SPDE ON GRAPH 33 
+
+PROOF . Recall that θ0 = arccos( c(λ)/C (λ)) and θ1 ∈ (θ0, π 
+
+> 2
+
+), where c(λ) and C(λ) are the constants given in (6.3) and (6.4), respectively. Choose θ ∈ (θ0, θ 1) and set c1 := C(λ) cos θ. If we set ℓ := c(λ) − c1 > 0, then by (6.3) and (6.4), 
+
+ℜaR,δ  
+
+> 0
+
+(φ, φ ) + λ∥φ∥2ˇL2
+
+> δ
+
+− ℓ∥φ∥2ˇW 1,2
+
+> δ
+
+≥ c1∥φ∥2ˇW 1,2
+
+> δ
+
+≥ cos θ aR,δ  
+
+> 0
+
+(φ, φ ) + λ∥φ∥2ˇL2
+
+> δ
+
+.
+
+Dividing both sides by ∥φ∥ˇL2
+
+> δ
+
+and by denoting μφ := ℓ∥φ∥2ˇW 1,2
+
+> δ
+
+/∥φ∥2ˇL2
+
+> δ
+
+, we have (see Fig. 4), 
+
+aR,δ  
+
+> 0
+
+(φ, φ )
+
+∥φ∥ˇL2
+
+> δ
+
+∈ Σφ := {y ∈ C : | arg( y + λ − μφ)| ≤ θ} .
+
+Notice that for y ∈ Y λ (see Fig. 4), dist (y, Σφ) ≥ | y + λ| sin( θ1 − θ) + sin( θ)μφ.
+
+Consequently, for any y ∈ Y λ,
+
+y∥φ∥2ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(φ, φ ) ≥ dist (y, Σφ)∥φ∥2ˇL2
+
+> δ
+
+≥ | y + λ| sin( θ1 − θ)∥φ∥2ˇL2
+
+> δ
+
++ sin( θ)ℓ∥φ∥2ˇW 1,2
+
+> δ
+
+.
+
+This completes the proof. □
+
+Denote by Πhφ ∈ Vh(Γ R) the Lagrangian first-order interpolation of a function φ : Γ R → R in the nodes and the vertices. When restricted to each edge Jk, the functions in Vh(Γ R) are piecewise linear. Thus, we have the following interpolation error estimate (see, e.g., [ 9, Theorem 4.4.4]) 
+
+∥Πhφ − φ∥L2(Γ R) ≤ Ch ∥φ′∥L2(Γ R), (7.3) 
+
+∥(Π hφ − φ)′∥L2(Γ R) ≤ Ch ∥φ′′ ∥L2(Γ R), (7.4) provided that the right-hand sides are finite. The following lemma extends the standard interpolation error estimates (7.3) and (7.4) to weighted Sobolev spaces on the graph ΓR.LEMMA 7.3. Let Assumptions 4.2, 4.3 and 4.5 hold. Then for any fixed R > H 0 and δ ∈ (0 , δ 0),there exists C := C(R, δ ) > 0 such that 
+
+∥Πhφ − φ∥ˇL2
+
+> δ
+
+≤ C(R, δ )h∥φ∥ ˇW 1,2
+
+> δ
+
+∀ φ ∈ ˇW 1,2 
+
+> δ
+
+, (7.5) 
+
+∥Πhφ − φ∥ ˇW 1,2
+
+> δ
+
+≤ C(R, δ )h(∥φ∥ ˇW 1,2
+
+> δ
+
++ ∥ ˇLδφ∥ˇL2
+
+> δ
+
+) ∀ φ ∈ D( ˇLδ). (7.6) PROOF . According to Assumption 4.2, for a fixed δ ∈ (0 , δ 0) and R > H 0,
+
+c1(δ) ≤ αR,δ k (z) ≤ CR, c3 ≤ βδk(z) ≤ c4(δ) ∀ (z, k ) ∈ ΓR, (7.7) which, along with (7.3) and (6.25), yields (7.5). Similarly, by (7.4) and (7.7) we also have 
+
+Z
+
+> Jk
+
+ddz (Π hφ − φ) 2
+
+αR,δ k γkdz ≤ C(R, δ )h2
+
+Z
+
+> Jk
+
+αR,δ k
+
+βδk
+
+d2
+
+dz2 φ 2
+
+βδkγkdz, k = 1 , . . . , m. (7.8) From (4.14), Minkowski’s inequality, and H¨ older’s inequality, it follows that 
+
+Z
+
+> Jk
+
+αR,δ k
+
+βδk
+
+d2
+
+dz2 φ 2
+
+βδkγkdz − 8
+
+Z
+
+> Jk
+
+| ˇLδφ|2βδkγkdz ≤ 2
+
+Z
+
+> Jk
+
+(αR,δ k )′
+
+βδk
+
+ddz φ 2
+
+βδkγkdz (7.9) 
+
+≤ 2
+
+Z
+
+> Jk
+
+|(αR,δ k )′|4
+
+|βδk|2 γ2 
+
+> k
+
+dz
+
+! 12
+
+∥φ′∥2  
+
+> L4(Jk)
+
+≤ C(R, δ )∥φ′∥2 
+
+> L4(Jk)
+
+,34 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+where the last step used (6.25), (7.7), and Assumption 4.5. The Gagliardo–Nirenberg inequality (see, e.g., [ 24 ]), together with Young’s inequality implies that, for any ϵ > 0,
+
+∥φ′∥L4(Jk ) ≤ C∥φ′′ ∥ 14 
+
+> L2(Jk)
+
+∥φ′∥ 34  
+
+> L2(Jk)
+
++ C∥φ′∥L2(Jk ) ≤ ϵ∥φ′′ ∥L2(Jk ) + C(ϵ)∥φ′∥L2(Jk ). (7.10) Combining (7.9) and (7.10) yields that for any ϵ > 0,
+
+Z
+
+> Jk
+
+αR,δ k
+
+βδk
+
+d2
+
+dz2 φ 2
+
+βδkγkdz − 8
+
+Z
+
+> Jk
+
+| ˇLδφ|2βδkγkdz
+
+≤ ϵC (R, δ )∥φ′′ ∥2  
+
+> L2(Jk)
+
++ C(ϵ, R, δ )∥φ′∥2 
+
+> L2(Jk)
+
+≤ ϵC 1(R, δ )
+
+Z
+
+> Jk
+
+| αR,δ k
+
+βδk
+
+d2
+
+dz2 φ|2βδkγkdz + C(ϵ, R, δ )∥φ′∥2  
+
+> L2
+> αR,δ kγk
+> (Jk)
+
+,
+
+where in the last step we used (7.7) and (6.25). If we choose ϵ > 0 such that ϵC 1(R, δ ) ≤ 12 , then 
+
+Z
+
+> Jk
+
+αR,δ k
+
+βδk
+
+d2
+
+dz2 φ 2
+
+βδkγdz ≤ 16 
+
+Z
+
+> Jk
+
+| ˇLδφ|2βδkγkdz + C(R, δ )∥φ′∥2  
+
+> L2
+> αR,δ kγk
+> (Jk)
+
+. (7.11) Inserting (7.11) into (7.8), summing over k = 1 , . . . , m and then combining (7.5) leads to (7.6). □
+
+The following lemma provides an estimate of the error between the resolvents of ˇLδ and its dis-crete counterpart. LEMMA 7.4. Let Assumptions 4.2, 4.3, and 4.5 hold. Then for any λ > 18 κ1, R > H 0 and 
+
+δ ∈ (0 , δ 0), there exists C := C(R, δ, λ ) > 0 such that for any y ∈ Y λ and φ ∈ ˇL2 
+
+> δ
+
+,
+
+∥wh − w∥ˇL2
+
+> δ
+
++ h∥wh − w∥ ˇW 1,2
+
+> δ
+
+≤ Ch 2∥φ∥ˇL2
+
+> δ
+
+,
+
+where w = ( yI + ˇLδ)−1φ and wh = ( yI + ˇLδh)−1Phφ.
+
+PROOF . From the definition of w and wh, it follows that 
+
+y⟨w, ψ ⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(w, ψ ) = ⟨φ, ψ ⟩ˇL2
+
+> δ
+
+∀ ψ ∈ W 1,2cont (Γ R),y⟨wh, ψ ⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(wh, ψ ) = ⟨φ, ψ ⟩ˇL2
+
+> δ
+
+∀ ψ ∈ Vh(Γ R).
+
+Since Vh(Γ R) ⊂ W 1,2cont (Γ R), subtracting the above two equations yields that ϖ := w − wh satisfies 
+
+y⟨ϖ, ψ ⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ϖ, ψ ) = 0 ∀ ψ ∈ Vh(Γ R). (7.12) Together with Lemma 7.2, this yields that for any ψ1 ∈ Vh(Γ R),
+
+|y + λ|∥ ϖ∥2ˇL2
+
+> δ
+
++ ∥ϖ∥2ˇW 1,2
+
+> δ
+
+≤ C y∥ϖ∥2ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ϖ, ϖ )
+
+= C y⟨ϖ, ϖ + ( wh − ψ1)⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ϖ, ϖ + ( wh − ψ1)) 
+
+= C y⟨ϖ, w − ψ1⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ϖ, w − ψ1)
+
+= C (y + λ)⟨ϖ, w − ψ1⟩ˇL2
+
+> δ
+
+− aR,δ λ (ϖ, w − ψ1) .
+
+In particular, if we choose ψ1 = Π hw, then by Lemma 7.3 and (6.4), 
+
+|y + λ|∥ ϖ∥2ˇL2
+
+> δ
+
++ ∥ϖ∥2ˇW 1,2
+
+> δ
+
+≤ C(R, δ )h|y + λ|∥ ϖ∥ˇL2
+
+> δ
+
+∥w∥ ˇW 1,2
+
+> δ
+
+(7.13) 
+
++ C(R, δ, λ )h∥ϖ∥ ˇW 1,2
+
+> δ
+
+(∥w∥ ˇW 1,2
+
+> δ
+
++ ∥ ˇLδw∥ˇL2
+
+> δ
+
+).FEM FOR SPDE ON GRAPH 35 
+
+Invoking Lemma 7.2 again, we obtain 
+
+|y + λ|∥ w∥2ˇL2
+
+> δ
+
++ ∥w∥2ˇW 1,2
+
+> δ
+
+≤ C ⟨(yI + ˇLδ)w, w ⟩ˇL2
+
+> δ
+
+≤ C∥φ∥ˇL2
+
+> δ
+
+∥w∥ˇL2
+
+> δ
+
+,
+
+which reveals that 
+
+∥w∥ˇL2
+
+> δ
+
+≤ C|y + λ|−1∥φ∥ˇL2
+
+> δ
+
+, ∥w∥ ˇW 1,2
+
+> δ
+
+≤ C|y + λ|− 12 ∥φ∥ˇL2
+
+> δ
+
+. (7.14) On the other hand, by the first inequality of (7.14), along with w = ( yI + ˇLδ)−1φ, we get 
+
+∥(−λI + ˇLδ)w∥ˇL2
+
+> δ
+
+= ∥(yI + ˇLδ)w − (y + λ)w∥ˇL2
+
+> δ
+
+≤ C(∥φ∥ˇL2
+
+> δ
+
++ |y + λ|∥ w∥ˇL2
+
+> δ
+
+) ≤ C∥φ∥ˇL2
+
+> δ
+
+.
+
+By the coercivity of aR,δ λ in (6.3), we also have 
+
+c(λ)∥w∥2ˇW 1,2
+
+> δ
+
+≤ ℜ aR,δ λ (w, w ) ≤ | aR,δ λ (w, w )| = |⟨ (λI − ˇLδ)w, w ⟩ˇL2
+
+> δ
+
+| ≤ ∥ w∥ˇL2
+
+> δ
+
+∥φ∥ˇL2
+
+> δ
+
+.
+
+Consequently, it holds that 
+
+∥w∥ ˇW 1,2
+
+> δ
+
++ ∥ ˇLδw∥ˇL2
+
+> δ
+
+≤ (λ + 1) ∥w∥ ˇW 1,2
+
+> δ
+
++ ∥(−λI + ˇLδ)w∥ˇL2
+
+> δ
+
+≤ C∥φ∥ˇL2
+
+> δ
+
+.
+
+Furthermore, from (7.13) and the second inequality of (7.14), we can conclude that 
+
+|y + λ|∥ ϖ∥2ˇL2
+
+> δ
+
++ ∥ϖ∥2ˇW 1,2
+
+> δ
+
+≤ C(R, δ )h|y + λ| 12 ∥ϖ∥ˇL2
+
+> δ
+
+∥φ∥ˇL2
+
+> δ
+
++ C(R, δ, λ )h∥ϖ∥ ˇW 1,2
+
+> δ
+
+∥φ∥ˇL2
+
+> δ
+
+≤ 12 |y + λ|∥ ϖ∥2ˇL2
+
+> δ
+
++ 12 ∥ϖ∥2ˇW 1,2
+
+> δ
+
++ C(R, δ, λ )h2∥φ∥2ˇL2
+
+> δ
+
+.
+
+In other words, we have proven 
+
+|y + λ|∥ ϖ∥2ˇL2
+
+> δ
+
++ ∥ϖ∥2ˇW 1,2
+
+> δ
+
+≤ C(R, δ, λ )h2∥φ∥2ˇL2
+
+> δ
+
+. (7.15) Next, we study the ˇL2 
+
+> δ
+
+-norm of the error ϖ by a duality argument. Given φ1 ∈ ˇL2 
+
+> δ
+
+, we find 
+
+v = ( yI + ( ˇLδ)∗)−1φ1 and vh = ( yI + ( ˇLδh)∗)−1Phφ1 such that 
+
+y⟨ψ, v ⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ψ, v ) = −⟨ φ1, ψ ⟩ˇL2
+
+> δ
+
+, ψ ∈ W 1,2cont (Γ R), (7.16) 
+
+y⟨ψ, v ⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ψ, v h) = −⟨ φ1, ψ ⟩ˇL2
+
+> δ
+
+, ψ ∈ Vh(Γ R). (7.17) Due to (7.12) and (7.15), we have 
+
+|y⟨ϖ, v ⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ϖ, v )| = |y⟨ϖ, v − vh⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ϖ, v − vh)| (7.18) 
+
+≤ | y + λ|∥ ϖ∥ˇL2
+
+> δ
+
+∥v − vh∥ˇL2
+
+> δ
+
++ C∥ϖ∥ ˇW 1,2
+
+> δ
+
+∥v − vh∥ ˇW 1,2
+
+> δ
+
+≤ C(R, δ )h2∥φ∥ˇL2
+
+> δ
+
+∥φ1∥ˇL2
+
+> δ
+
+.
+
+Finally, by duality, we infer from (7.16) and (7.18) that 
+
+∥ϖ∥ˇL2
+
+> δ
+
+= sup  
+
+> ∥φ1∥ˇL2
+> δ
+> =1
+
+|⟨ φ1, ϖ ⟩ˇL2
+
+> δ
+
+| = sup  
+
+> ∥φ1∥ˇL2
+> δ
+> =1
+
+|y⟨ϖ, v ⟩ˇL2
+
+> δ
+
+− aR,δ  
+
+> 0
+
+(ϖ, v )| ≤ C(R, δ )h2∥φ∥ˇL2
+
+> δ
+
+.
+
+The proof is finished. □
+
+LEMMA 7.5. Let Assumptions 4.2, 4.3, and 4.5 hold, and {u0, 1Γ} ⊂ L2 
+
+> βγ
+
+(Γ) . Then for any 
+
+R ≥ H0, δ ∈ (0 , δ 0), and ϑ ∈ (0 , 12 ), there exists C := C(R, δ, ϑ ) > 0 such that 
+
+E
+
+h
+
+∥ˇuδ(t) − ˇuδh(t)∥2ˇL2
+
+> δ
+
+i
+
+≤ Ch 4ϑ(1 + t−2ϑ)∥ˇu(0) ∥2ˇL2
+
+> δ
+
+. (7.19) 36 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+PROOF . As a consequence of (7.2) and Lemma 7.4, we have 
+
+∥Eh(t)φ∥ˇL2
+
+> δ
+
+≤ C
+
+Z ∞
+
+> 0
+
+e−(r cos θ1−λ)t∥w − wh∥ˇL2
+
+> δ
+
+dr ≤ C(R, δ, λ )h2t−1∥φ∥ˇL2
+
+> δ
+
+, t ∈ [0 , T ].
+
+Since {et ˇLδ
+
+}t≥0 and {et ˇLδh }t≥0 are strongly continuous semigroups on ˇL2 
+
+> δ
+
+(see Lemmas 6.3 and 7.1), by interpolation, for any ϑ ∈ [0 , 1] it holds 
+
+∥Eh(t)φ∥ˇL2
+
+> δ
+
+≤ C(R, δ, λ, T )h2ϑt−ϑ∥φ∥ˇL2
+
+> δ
+
+, t ∈ [0 , T ]. (7.20) Subtracting (4.19) from (4.16) gives that for any t ∈ [0 , T ],
+
+ˇuδ(t) − ˇuδh(t) = Eh(t)ˇ u(0) + 
+
+Z t
+
+> 0
+
+Eh(t − s) ˇB(ˇ uδ(s))d s +
+
+Z t
+
+> 0
+
+e(t−s) ˇLδh Ph
+
+  ˇB(ˇ uδ(s)) − ˇB(ˇ uδh(s)) ds
+
++
+
+Z t
+
+> 0
+
+Eh(t − s) ˇG(ˇ uδ(s))d W (s) + 
+
+Z t
+
+> 0
+
+e(t−s) ˇLδh Ph
+
+  ˇG(ˇ uδ(s)) − ˇG(ˇ uδh(s)) dW (s).
+
+It follows from the boundedness of the semigroup generated by the discrete operator ˇLδh, the contrac-tion of the projection Ph, the H¨ older inequality, the Burkholder inequality, and (7.20) that for any 
+
+ϑ ∈ (0 , 12 ),
+
+E
+
+h
+
+∥ˇuδ(t) − ˇuδh(t)∥2ˇL2
+
+> δ
+
+i
+
+≤ C(R, δ )h4ϑt−2ϑ∥ˇu(0) ∥2ˇL2
+
+> δ
+
++ C(R, δ )h4ϑ
+
+Z t
+
+> 0
+
+(t − s)−ϑE
+
+h
+
+∥ ˇB(ˇ uδ(s)) ∥2ˇL2
+
+> δ
+
+i
+
+ds
+
++ C
+
+Z t
+
+> 0
+
+E
+
+h
+
+∥ ˇB(ˇ uδ(s)) − ˇB(ˇ uδh(s)) ∥2ˇL2
+
+> δ
+
+i
+
+ds
+
++ C(R, δ )h4ϑ
+
+Z t
+
+> 0
+
+(t − s)−2ϑE
+
+h
+
+∥ ˇG(ˇ uδ(s)) ∥2  
+
+> L2(U0,ˇL2
+> δ)
+
+i
+
+ds
+
++ C
+
+Z t
+
+> 0
+
+E
+
+h
+
+∥ ˇG(ˇ uδ(s)) − ˇG(ˇ uδh(s)) ∥2  
+
+> L2(U0,ˇL2
+> δ)
+
+i
+
+ds. 
+
+By the linear growth and Lipschitz continuity of both ˇB and ˇG, as well as Lemma 6.3, we arrive at (7.19) by applying the Gr¨ onwall inequality. □
+
+Based on Lemma 7.5, we now present the proof of Theorem 4.6. 
+
+Proof of Theorem 4.6. Applying (6.17) leads to 
+
+∥ˇuδ(t) − ˇuδh(t)∥2  
+
+> L2
+> βγ (Γ R)
+
+≤ C∥ˇuδ(t) − ˇuδh(t)∥ˇL2
+
+> δ
+
+
+
+∥ˇuδ(t)∥ ˇW 1,2
+
+> δ
+
++ ∥ˇuδh(t)∥ ˇW 1,2
+
+> δ
+
+
+
+. (7.21) Due to ˇuδ = vδ + rδ, it follows from (6.13) and (6.27) that for any p ≥ 2,
+
+E
+
+
+
+∥ˇuδ(t)∥p 
+
+> ˇW1,2
+> δ
+
+
+
+≤ C(R, p ). (7.22) Similarly, it can be shown that p ≥ 2,
+
+E
+
+
+
+∥ˇuδh(t)∥p 
+
+> ˇW1,2
+> δ
+
+
+
+≤ C(R, p ). (7.23) Taking expectations on both sides of (7.21), and then using Lemma 7.5, (7.22), (7.23), we infer from the H¨ older inequality that for any ϑ ∈ (0 , 12 )
+
+E
+
+h
+
+∥ˇuδ(t) − ˇuδh(t)∥2 
+
+> L2
+> βγ (Γ R)
+
+i
+
+≤ C
+
+
+
+E
+
+h
+
+∥ˇuδ(t) − ˇuδh(t)∥2ˇL2
+
+> δ
+
+i 12
+
+≤ Ch 2ϑ(1 + t−ϑ),
+
+which completes the proof of Theorem 4.6. □FEM FOR SPDE ON GRAPH 37 
+
+References 
+
+[1] S. Alexander. Superconductivity of networks. A percolation approach to the effects of disorder. Phys. Rev. B (3) ,27(3):1541–1557, 1983. [2] E. Anderes, J. Mø ller, and J. G. Rasmussen. Isotropic covariance functions on graphs and their edges. Ann. Statist. ,48(4):2478–2503, 2020. [3] M. Arioli and M. Benzi. A finite element method for quantum graphs. IMA J. Numer. Anal. , 38(3):1119–1163, 2018. [4] G. Berkolaiko and P. Kuchment. Introduction to Quantum Graphs , volume 186 of Mathematical Surveys and Mono-graphs . American Mathematical Society, Providence, RI, 2013. [5] D. Bolin, M. Kov´ acs, V. Kumar, and A. B. Simas. Regularity and numerical approximation of fractional elliptic differ-ential equations on compact metric graphs. Math. Comp. , 93(349):2439–2472, 2024. [6] D. Bolin, A. B. Simas, and J. Wallin. Gaussian Whittle-Mat´ ern fields on metric graphs. Bernoulli , 30(2):1611–1639, 2024. [7] S. Bonaccorsi, C. Marinelli, and G. Ziglio. Stochastic FitzHugh-Nagumo equations on networks with impulsive noise. 
+
+Electron. J. Probab. , 13:no. 49, 1362–1379, 2008. [8] S. Bonaccorsi and D. Mugnolo. Existence of strong solutions for neuronal network dynamics driven by fractional Brownian motions. Stoch. Dyn. , 10(3):441–464, 2010. [9] S. C. Brenner and L. R. Scott. The Mathematical Theory of Finite Element Methods , volume 15 of Texts in Applied Mathematics . Springer, New York, third edition, 2008. [10] S. Cerrai and M. Freidlin. Fast flow asymptotics for stochastic incompressible viscous fluids in R2 and SPDEs on graphs. Probab. Theory Related Fields , 173(1-2):491–535, 2019. [11] S. Cerrai and W.-T. Hsu. SPDEs on narrow channels and graphs: convergence and large deviations in case of non smooth noise. arXiv e-prints , page arXiv:2403.13493, Mar. 2024. [12] S. Cerrai and G. Xi. Incompressible viscous fluids in R2 and SPDEs on graphs, in presence of fast advection and non smooth noise. Ann. Inst. Henri Poincar´ e Probab. Stat. , 57(3):1636–1664, 2021. [13] J. Cui, S. Liu, and H. Zhou. Optimal control for stochastic nonlinear Schr¨ odinger equation on graph. SIAM J. Control Optim. , 61(4):2021–2042, 2023. [14] J. Cui, S. Liu, and H. Zhou. Wasserstein Hamiltonian flow with common noise on graph. SIAM J. Appl. Math. ,83(2):484–509, 2023. [15] J. Cui and D. Sheng. Asymptotic-preserving approximations for stochastic incompressible viscous fluids and SPDEs on graph. To appear in IMA J. Numer. Anal. 
+
+[16] J. Cui and D. Sheng. Large and moderate deviation principles for stochastic partial differential equation on graph. 
+
+arXiv:2509.05622 .[17] G. Da Prato and J. Zabczyk. Stochastic Equations in Infinite Dimensions , volume 152 of Encyclopedia of Mathematics and its Applications . Cambridge University Press, Cambridge, second edition, 2014. [18] C. Flesia, R. Johnston, and H. Kunz. Strong localization of classical waves: A numerical study. Europhysics Letters ,3(4):497, 1987. [19] M. Freidlin and M. Weber. Random perturbations of nonlinear oscillators. Ann. Probab. , 26(3):925–967, 1998. [20] M. Freidlin and M. Weber. On random perturbations of Hamiltonian systems with many degrees of freedom. Stochastic Process. Appl. , 94(2):199–239, 2001. [21] M. Freidlin and M. Weber. Random perturbations of dynamical systems and diffusion processes with conservation laws. Probab. Theory Related Fields , 128(3):441–466, 2004. [22] M. I. Freidlin and A. D. Wentzell. Random perturbations of Hamiltonian systems. Mem. Amer. Math. Soc. ,109(523):viii+82, 1994. [23] M. I. Freidlin and A. D. Wentzell. Random Perturbations of Dynamical Systems , volume 260 of Grundlehren der math-ematischen Wissenschaften [Fundamental Principles of Mathematical Sciences] . Springer, Heidelberg, third edition, 2012. Translated from the 1979 Russian original by Joseph Sz¨ ucs. [24] E. Gagliardo. Ulteriori propriet` a di alcune classi di funzioni in pi` u variabili. Ricerche Mat. , 8:24–51, 1959. [25] E. Gobet and M. Mrad. Convergence rate of strong approximations of compound random maps, application to SPDEs. 
+
+Discrete Contin. Dyn. Syst. Ser. B , 23(10):4455–4476, 2018. [26] I. Gy¨ ongy and N. Krylov. Existence of strong solutions for Itˆ o’s stochastic equations via approximations. Probab. Theory Related Fields , 105(2):143–158, 1996. [27] M. Haase. The Functional Calculus for Sectorial Operators , volume 169 of Operator Theory: Advances and Applica-tions . Birkh¨ auser Verlag, Basel, 2006. [28] B. Jin, R. Lazarov, and Z. Zhou. Error estimates for a semidiscrete finite element method for fractional order parabolic equations. SIAM J. Numer. Anal. , 51(1):445–466, 2013. 38 JIANBO CUI, MIH ´ ALY KOV ´ ACS, AND DERUI SHENG 
+
+[29] M. Kov´ acs and E. Sikolya. On the stochastic Allen-Cahn equation on networks with multiplicative noise. Electron. J. Qual. Theory Differ. Equ. , pages Paper No. 7, 24, 2021. [30] W. Liu and M. R¨ ockner. Stochastic Partial Differential Equations: An Introduction . Universitext. Springer, Cham, 2015. [31] E. M. Ouhabaz. Analysis of Heat Equations on Domains , volume 31 of London Mathematical Society Monographs Series . Princeton University Press, Princeton, NJ, 2005. [32] L. Pauling. The diamagnetic anisotropy of aromatic molecules. J. Chem. Phys. , 4(10):673–677, 1936. [33] S. Peszat and J. Zabczyk. Stochastic evolution equations with a spatially homogeneous Wiener process. Stochastic Process. Appl. , 72(2):187–204, 1997. [34] B. Shapiro. Renormalization-group transformation for the anderson transition. Phys. Rev. Lett. , 48:823–825, Mar 1982. [35] J. Simon. Compact sets in the space Lp(0 , T ; B). Ann. Mat. Pura Appl. (4) , 146:65–96, 1987. DEPARTMENT OF APPLIED MATHEMATICS , T HE HONG KONG POLYTECHNIC UNIVERSITY , H UNG HOM , K OWLOON ,HONG KONG 
+
+Email address : jianbo.cui@polyu.edu.hk 
+
+DEPARTMENT OF MATHEMATICAL SCIENCES , C HALMERS , G OTHENBURG , SE-41296, S WEDEN ; D EPARTMENT OF ANALYSIS AND OPERATIONS RESEARCH , U NIVERSITY OF TECHNOLOGY AND ECONOMICS , M ˝ UEGYETEM RKP .3-9, B UDAPEST , H-1111, H UNGARY ; F ACULTY OF INFORMATION TECHNOLOGY AND BIONICS , P ´ AZM ´ANY P ´ ETER 
+
+CATHOLIC UNIVERSITY , P R ´ATER U . 50/ A, B UDAPEST , H-1083, H UNGARY 
+
+Email address : mkovacs@math.bme.hu 
+
+DEPARTMENT OF APPLIED MATHEMATICS , T HE HONG KONG POLYTECHNIC UNIVERSITY , H UNG HOM , K OWLOON ,HONG KONG 
+
+Email address : sdr@lsec.cc.ac.cn

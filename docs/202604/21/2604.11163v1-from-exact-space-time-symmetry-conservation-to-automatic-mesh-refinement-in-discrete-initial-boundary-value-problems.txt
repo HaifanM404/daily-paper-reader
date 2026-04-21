@@ -1,0 +1,743 @@
+Title: From Exact Space-Time Symmetry Conservation to Automatic Mesh Refinement in Discrete Initial Boundary Value Problems
+
+URL Source: https://arxiv.org/pdf/2604.11163v1
+
+Published Time: Tue, 14 Apr 2026 02:24:22 GMT
+
+Number of Pages: 18
+
+Markdown Content:
+## From Exact Space-Time Symmetry Conservation to Automatic Mesh Refinement in Discrete Initial Boundary Value Problems 
+
+Alexander Rothkopf 1[0000 −0002 −5526 −0809] ,W. A. Horowitz 2,3,4[0000 −0001 −5804 −2738] , and Jan Nordström 5,6[0000 −0002 −7972 −6183]  
+
+> 1
+
+Department of Physics, Korea University, Seoul 02841, Republic of Korea, 
+
+akrothkopf@korea.ac.kr  
+
+> 2
+
+Department of Physics, University of Cape Town, Private Bag X3, Rondebosch 7701, South Africa  
+
+> 3
+
+Department of Physics, New Mexico State University, Las Cruces, New Mexico, 88003, USA  
+
+> 4
+
+Theoretical Sciences Visiting Program, Okinawa Institute of Science and Technology Graduate University, Onna, 904-0495, Japan  
+
+> 5
+
+Department of Mathematics, Linköping University, SE-581 83 Linköping, Sweden  
+
+> 6
+
+Department of Mathematics and Applied Mathematics, University of Johannesburg, P.O. Box 524, Auckland Park 2006, Johannesburg, South Africa 
+
+Abstract. In this contribution we present recent developments in the formulation and solution of Initial Boundary Value Problems (IBVPs). Building upon a modern variational action formulation of classical dy-namics, we treat Initial Boundary Value Problems directly on the action level, bypassing governing equations. We show that by including coordi-nate maps as dynamical degrees of freedom together with propagating fields two key results emerge. Space-time symmetries remain protected even after discretization, leading to an exact conservation of Noether charges even for discrete IBVPs. The dynamical nature of the coordinate maps leads to an adjustment of space-time resolution, guided by Noether charge conservation, realizing a form of automatic adaptive mesh refine-ment. We stress that as long as SBP operators are used for the discretiza-tion, our results are independent of whether the dynamics are solved on the action or governing equation level and hold in particular also at high order. As proof-of-principle for our approach we present its application to scalar wave-propagation in 1+1 dimensions. 
+
+Keywords: IBVP · Space-Time Symmetry · Automatic Mesh Refinement 
+
+1 Motivation 
+
+Describing the outcome of an experiment requires us to solve an Initial Boundary Value Problem (IBVP), where we set out to predict the dynamics of a continuous degree of freedom (a field) in space and time. In the laboratory we prepare the 
+
+> arXiv:2604.11163v1 [math.NA] 13 Apr 2026
+
+2 A. Rothkopf et al. Example: (1+1)d scalar   
+
+> wave propagation
+> Boundary Conditions:
+> Interplay of physical
+> data & mathematical
+> consistency
+> Dynamics : via classical action
+> orgoverning equations
+> Initial Conditions:
+> physical data
+
+Fig. 1. Initial Boundary Value Problems: unique predictions for the outcome of exper-iments from the interplay of dynamics, informed by experimental input in the form of initial and boundary conditions. 
+
+experimental setup, representing the initial conditions for our prediction. The dynamics of the subsequent evolution in time is encoded in the classical action of the system, often represented in the form of governing equations [6]. These equations provide a unique prediction, if in addition to initial conditions also boundary conditions are supplied. These arise from an interplay of available physical data and mathematical consistency. Our work is motivated by two sets of challenges that affect the formulation of IBVPs. When formulated in terms of governing equations many relevant physical systems require the use of second derivatives in time, the wave equation being one example. It is known [9] that the discretization of second order systems presents a theoretical challenge in that first and second derivatives require sepa-rate discretization for a consistent treatment. Our working hypothesis is that by using an action based formulation instead, the system can be discretized using a single first order derivative. In the process of deriving governing equations one may encounter further conceptual challenges, such as the need to choose a gauge (as e.g. in electromagnetism formulated in terms of gauge potentials) and the possibility to lose intrinsic constraints which must be reintroduced a posteriori (see e.g. [10]). To address these challenges we set out to formulate the IBVP on the action level and obtain the classical field configuration directly from the action without utilizing governing equations. The second set of challenges is related to space-time symmetries. The dis-cretization on the level of space-time coordinates t, x breaks the continuum symmetries (see also discussion in [1]). As Noether’s theorem relates continu-ous symmetries and conserved charges (such as energy- or momentum density), the breaking of symmetries implies a lack of conservation. This issue affects even symplectic schemes, which preserve energy on average but not exactly at each time step. Space-time Symmetries and Mesh Refinement in Discrete IBVPs 3
+
+To address these challenges, we borrow concepts from the general theory of relativity to disentangle discretization from space-time symmetries .
+
+2 Part I: Action based formulation of classical dynamics t1 t2   
+
+> x(t 1)
+> x(t 2)
+> xcl (t)
+> BVP
+> t1t2
+> x(t 1)x(t 1)
+> xcl (t): x1(t) =x2(t)
+> IVP
+
+Fig. 2. The variational formulation of classical mechanics. (left) Traditional Hamilton’s principle formulated as boundary value problem. It applies to problems where the final state of the system is known priori. (right) Modern Schwinger-Keldysh-Galley principle formulated as genuine initial value problem. It is based on a doubling of d.o.f. akin to a double shooting method. (figure from [14]) 
+
+Let us start by considering the conventional variational principle of classical mechanics, Hamilton’s principle. It relies on the fact that there exists a score functional S[x, ˙x], built from the Lagrangian L[x, ˙x], whose extremum is equiv-alent to the solution of the Euler-Lagrange equations 
+
+S =
+
+Z tf
+
+> ti
+
+L[x, ˙x]dt =
+
+Z tf
+
+> ti
+
+ 12 m ˙x2(t) − V (x)
+
+
+
+dt, δS = 0 ⇔ ∂L ∂x − ∂t
+
+∂L ∂ ˙x = 0 .
+
+(1) This equivalence only holds if we impose initial and final time data to combat boundary terms that arise during variation. I.e. Hamilton’s principle determines the trajectory between a known starting point x(ti) and end point x(tf ) (see left panel of fig. 2). Note that the imposition of final time data is acausal. If we wish to predict the trajectory of a point particle, its final position in principle cannot be known a priori, otherwise there would not be a need to solve for the trajectory in the first place. The reason the boundary value nature of Hamil-ton’s principle remains hidden in practice is that the Euler-Lagrange equations derived from Hamilton’s principle are amenable to an evaluation as initial value problem. Strictly speaking, at this point, we are however only allowed to solve the governing equations as boundary value problem. We may ask whether it is possible to formulate a variational principle on the action level for initial value problems. The problem in Hamilton’s principle 4 A. Rothkopf et al. 
+
+manifests as presence of acausal boundary terms. Since in an IVP we do not know the final position x(t2) it cannot be referenced. The solution to this conundrum has long been known in quantum theory and has recently been rediscovered in the classical context [5]. The Schwinger-Keldysh-Galley (SKG) action principle (for a detailed derivation see [7]) introduces a copy of the physical degrees of freedom, placed on a forward and backward time path. This entails that the action for the doubled degrees of freedom contains the Lagrangian on the forward path and minus the Lagrangian on the backward path 
+
+SSKG =
+
+Z tf
+
+> ti
+
+L[x1, ˙x1] − L[x2, ˙x2]dt. (2) The equations of motion are most intuitively obtained after going over to a new set of coordinates, the following linear combinations of the doubled d.o.f. 
+
+x+ = ( x1 + x2)/2, x− = ( x1 − x2) (3) The classical equations of motion follow again from the variation of this action. To see how this resembles a double-shooting method consider the right panel of fig. 2. By supplying initial conditions at ti we perform a forward shoot leading to some final value at tf . At this point we use the final position and velocity as initial conditions for the backward shoot. It turns out that the classical trajectory is found if both forward and backward shoot agree. In order to initialize the backward shoot, we must identify the value and velocity of both paths at final time, leading us to the so-called connecting conditions at tf . Note that we have not fixed that value of the classical path at final time, avoiding the need to supply acausal data. Expressed in terms of the +/− coordinates we have 
+
+x+(ti) = qcl (ti), ˙x+(ti) = ˙ qcl (ti)
+
+> initial conditions
+
+, x−(tf ) = 0 , ˙x+(tf ) = 0 
+
+> connecting conditions
+
+(4) The equations of motion for x+ follow from the variation of the action w.r.t. to 
+
+x− and vice versa. What one finds is that the governing equations for x− always allow for the vanishing constant solution, which is enforced by the connecting conditions. I.e. any term in the equation of motion for x+ that contains reference to x− will vanish. In turn the equations of motion for the classical trajectory xcl 
+
+can be directly obtained in the SKG formalism by the stationarity condition 
+
+δS δx− x−=0 ,x+=xcl 
+
+= 0 (5) This prescription in the SKG action principle recovers the standard Euler-Lagrange equations for x+ while requiring specification of only physical initial data. As the next step we wish to discretize this action to make it amenable to numerical optimization. This will allow us to obtain the classical trajectory with-out having to formulate the governing equations. In the following our focus will Space-time Symmetries and Mesh Refinement in Discrete IBVPs 5
+
+lie on symmetries and Noether’s theorem, whose derivation in the continuum relies heavily on integration by parts (IBP). Thus we wish to retain a discrete form of IBP, which leads us to the adoption of Summation-by-Parts (SBP) fi-nite difference operators (for reviews see e.g. [17,4,8]). IBP connects integration and differentiation in the presence of boundaries so that in the discrete setting quadrature and finite difference stencil structure must be considered together. Let us briefly review the key ingredients to the SBP construction. We start by selecting a quadrature for discretizing the integral on N grid points, encoded in a diagonal positive definite matrix H
+
+Z
+
+dtu (t)v(t) ≈ ut H v, D = H−1 Q, (6) 
+
+Q + Qt = EN − E1 = diag[ −1, 0, . . . , 0, 1] . (7) The inverse of H is used to define the finite difference operator D using a stencil matrix Q, which fulfills the SBP condition given in eq. (7). In fact such an operator produces not only the necessary change in sign but also the correct boundary terms, when being moved from one side of an inner product to the other side 
+
+ Dut H v = −ut H D v + uN vN − u0v0. (8) The lowest order realization of the SBP principle is obtained by choosing the trapezoid rule as quadrature 
+
+H[1 ,2,1] = ∆t 
+
+
+
+> 12
+
+11 12
+
+ , D[1 ,2,1] = 1
+
+∆t 
+
+
+
+−1 1 0 0
+
+− 12 0 12 00 − 12 0 12
+
+0 0 −1 1 
+
+ . (9) While the SBP operator defined as such is null-space consistent when con-sidered in the context of governing equations (see [18]), we have to consider its null-space structure more carefully if it is to be used for the discretization of an action. Let us demonstrate the issue by considering the simplest non-trivial mechanical system of a point mass in a constant force field with action 
+
+S = R dt ( 12 m ˙x2 − mgx ). The corresponding discretized IVP action reads 
+
+SIVP =
+
+n 12 (Dx1)TH(Dx1) − g1THx1
+
+o
+
+> forward branch
+
+−
+
+n 12 (Dx2)TH(Dx2) − g1THx2
+
+o
+
+> backward branch
+
++ λ1(( x1(0) + x2(0)) /2 − xi) + λ2((( Dx1)(0) + ( Dx2)(0)) /2 − ˙xi)+ λ3(x1(Nt) − x2(Nt)) + λ4(( Dx1)( Nt) − (Dx2)( Nt)) . (10) Here we have introduced the discretized paths x1,2 and make explicit both initial and connecting conditions via Lagrange multipliers (for the role of multipliers see [16]). We will carry out a concurrent optimization in {x1, x2, λ 1−4}, which amounts to a fully globally implicit scheme. As check of correct convergence we test that x1 = x2.6 A. Rothkopf et al. 0.2 0.4 0.6 0.8 1.0 t0.2 0.4 0.6 1.0 x(t)1 2 3 4 5
+
+> -30
+> -20
+> -10
+> 10
+> 20
+> 30
+
+Fig. 3. (left) Solution for x1 (red open circles) and x2 (blue crosses), obtained from finding the extremum of the naively discretized action eq. (10) shows contamination by the highly oscillatory π-mode. Analytic solution given as gray solid line. (right) Spectrum of the unregularized lowest order SBP operator D[1 ,2,1] (blue open circles) and the regularized SBP operator (green triangles). Note that the latter does not show any zero mode and that the physical constant function is associated with the eigenvalue unity. (figure from [14]) 
+
+As shown in the right panel of fig. 3 the solution we obtain ( x1 as red open circles, x2 as blue crosses) only follows the analytic solution (gray solid) closely at half the time steps. The other half exhibits contamination by the so-called 
+
+π-mode the maximally oscillating function supported on a grid of size N. The reason for the occurrence of the π-mode lies in the spectrum of the SBP opera-tor, shown as blue open circles in the right panel of fig. 3. It features two zero eigenvalues. When inspecting the right eigenvectors, both zeros are associated with the constant function, the two zero modes are degenerate. Since D is not antisymmetric due to the boundary its left and right eigenvectors do not nec-essarily agree. And indeed the left eigenvectors associated with the zero modes are indeed the π-mode. They too are degenerate. While in a differential equation setting only the right eigenvectors are rele-vant, here terms like (Dx)tH D x appear in the action, where both left and right eigenvectors may play a role in determining the extremum. We decide to tackle the π-mode by taking inspiration from the modern treat-ment of initial boundary value problems, using weakly imposed boundary data to provide regularization. The Simultaneous Approximation Term (SAT) tech-nique [8] introduces penalty terms to impose boundary conditions. Here we will modify the finite difference operator D by adding to it a penalty term using affine coordinates. Defining a discrete array x0 which only contains the initial value in its first entry, we can write 
+
+¯Dx = Dx + H−1E1
+
+ x − xi
+
+. (11) The matrix E1 projects out the first entry of the array its is applied to. While the part of the penalty term that is proportional to x can be absorbed straight forwardly into the new ¯D the constant shift requires us to extend the N × N
+
+matrix structure of D by a single column and row as indicated by the light blue Space-time Symmetries and Mesh Refinement in Discrete IBVPs 7
+
+shading below 
+
+1
+
+∆t 
+
+
+
+−1 + 2 1 0 0 −2xi
+
+− 12 0 12 0 00 − 12 0 12 00 0 −1 1 00 0 0 0 1
+
+ . (12) The newly added column carries the information about the shift. When we plot the spectrum of this regularized SBP operator, we find on the right panel of fig. 4 that the green triangles show no more zero modes. All eigenvalues have positive real part and, except for one, occur in complex conjugate pairs. The eigenvalue at unity is associated with the physical constant mode. Let us stress that this regularization prescription is independent of the order of the SBP op-erator and thus applies also for higher order schemes. It offers an alternative to the conventional upwind regularization [3] or the Wilson term regularization [19] applicable in case of complex valued functions. 0.2 0.4 0.6 0.8 1.0 t0.85 0.90 0.95 1.00 1.05 x(t)SBP [2,1 ]                  
+
+> Best fit Δt2.03
+> 0.005 0.010 0.020 0.050 1/Nt
+> 5. ×10 -6
+> 1. ×10 -5
+> 5. ×10 -5
+> 1. ×10 -4
+> 5. ×10 -4
+> 0.001
+> |x-xtrue |( 1)
+
+Fig. 4. (left) Solution for x1 (red open circles) and x2 (blue crosses), obtained from finding the extremum of the discretized action eq. (10) using the regularized SBP operator ¯D[1 ,2,1] . No more contamination by the π-mode appears in the comparison to the analytic solution (gray solid). (right) Competitive convergence of the solution under grid refinement showing a powerlaw behavior with ∆t 2.03 as expected for a well-defines SBP scheme of lowest order. (figure from [14]) 
+
+Repeating the global optimization of eq. (10) after replacing unregularized SBP operators by their regularized counterparts finally provides us with a clas-sical trajectory devoid of the π-mode contamination, as shown in the left panel of fig. 4. The solution for x1 (red open circles) and x2 (blue crosses) now cleanly follows closely the analytic solution given as gray solid line. Performing a grid refinement analysis we confirm that the solution obtained from the extremum of the IVP action approaches the true analytic solution with a powerlaw according to ∆t 2.03 , as shown in the right panel of fig. 4. I.e. our approach exhibits scaling competitive with the conventional lowest order SBP treatment of the governing equations. In [14] we confirmed competitive scaling also for the SBP operator of order [4 , 2, 4] , indicating that competitive scaling persists also for higher order schemes. 8 A. Rothkopf et al. 
+
+3 Part II: Dynamical coordinate maps for space-time symmetry preservation 
+
+In the preceding section we described how to formulate IVPs directly on the action level. On the one hand this gives us direct access to a discrete form of Noether’s theorem, on the other hand it does not yet provide conserved Noether charges, since a discretization in terms of space-time coordinates (in case of an IVP, i.e. time) violated continuous space-time symmetries. To disentangle discretization from space-time symmetries let us consider the treatment of point particle mechanics in general relativity (for an introduction see [2]). We will not be concerned with dynamical gravity here, we simply wish to borrow the underlying mathematical formalism to use it to our advantage. I.e. the motion of our system will always proceed in conventional flat spacetime. However general relativity emphasizes that space and time must be treated on the same footing. I.e. instead of thinking of the trajectory of a particle as a function x(t), we should think of the path that the particle traces out in space-time as a one-dimensional manifold, a line. This line can be parameterized by an abstract world-line parameter γ. Along the world-line the particle carries with it both a space and a time label encoded in the coordinate maps t(γ) and x(γ).Often these maps are collected in a vector Xμ(γ) = ( t(γ), x(γ)) μ.General relativity tells us that the motion of a point particle is described by the shortest path in a given space-time , a so-called geodesic. Space-time is defined in general relativity from the so-called metric tensor Gμν , which defines distances and angle relations among different space-time points. For conventional flat spac-time Gμν = diag[ c2, −1, −1, −1] .One may ask whether geodesics too arises from a variational principle. The answer is in the affirmative and the corresponding geodesic action takes on the following form 
+
+S =
+
+Z γf
+
+> γi
+
+dγ (−mc )
+
+s G00 + V (X)/2mc 2 dX 0
+
+dγ dX 0
+
+dγ − Gii 
+
+dX i
+
+dγ dX i
+
+dγ . (13) And while this formula appears involved, a closer inspection reveals that it is but the multidimensional generalization of the arc-length formula known from elementary calculus ℓ = R p 1 + f ′(x)2. As shown in [15], if we consider motion where the potential energy remains much lower than the rest energy of the particle V (x)/2mc 2 ≪ 1 and velocity remains well below the speed of light 
+
+dX i/dγ/dt/dγ/c = v/c ≪ 1 we can take the non-relativisitc limit and recover the standard classical action 
+
+Snr =
+
+Z tf
+
+> ti
+
+dt 
+
+
+
+− mc 2 + 12 m
+
+ dx
+
+dt 
+
+2
+
+− V (x)
+
+
+
+. (14) Note the appearance of the constant term −mc 2 in eq. (14). Had we not known about the geodesic action, we would have been unable to discover this term in the Space-time Symmetries and Mesh Refinement in Discrete IBVPs 9Independent variables                
+
+> t
+> x
+> Dependent variables Discrete solution Noether Charge
+> Conventional approach Our novel approach
+> t
+> x
+> t
+> xt0.0 0.2 0.4 0.6 0.8 1.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> τ
+> σ
+> τ
+> σ
+> τ
+> σt
+> x
+> t0.2 0.4 0.6 0.8 1.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> Φ(t i,x j)
+> Φ(τ,σ) Φ(t(τ i,σ j), x(τ i,σ j))
+> τσ
+> t(τ,σ) x(τ,σ)
+> Φ(t,x)
+> coordinate maps
+> fields
+> fields
+> τ
+> σ
+
+Fig. 5. (top row) Conventional formulation of IBVPs using space-time coordinates 
+
+(t, x ) as independent variables. The dynamical degree of freedom ϕ(t, x ) evolves as function of space-time coordinates. When naively discretized, the grid structure in space-time coordinates breaks space-time symmetries and continuum Noether charges fail to be conserved. (bottom row) Proposed formulation of IBVPs in the presence of dynamical coordinate maps. Inspired by the world-line formalism we consider abstract parameters τ and σ to parameterize temporal and spatial directions. Not only the conventional dynamical d.o.f. ϕ(τ, σ ) is expressed as a function of τ, σ but in addition we introduce dynamical time t(τ, σ ) and spatial x(τ, σ ) maps that evolve alongside ϕ.We show that discretizing τ, σ leaves the coordinate maps continuous and thus allows us to retain continuum space-time symmetries in the discrete setting, leading to exactly preserved Noether charges. (figure from [13]) 
+
+non-relativistic setting, since a constant term does not contribute to the Euler-Lagrange equations. Importantly mc 2 denotes an important physical scale , which is where the motion through space and motion through time become inseparable. The world-line action offers an interesting new handle to discretization, in that we may discretize in the abstract parameter γ instead of time. While it entails that the coordinate maps t(γi) and x(γi) are evaluated on discrete values of γi, the values of the map themselves remain continuous. In [15] we showed that since the maps remain continuous, the world-line action remains invariant under continuous space-time symmetries even after discretization in γ. In turn Noether’s theorem provides us with conserved charges in the discrete setting. In this contribution we report on the extension of this idea from IVPs to IBVPs as developed in [13]. The differences between the conventional formulation of IBVPs and our proposed novel approach are outlined and discussed in fig. 5. Our starting point is the reparameterization invariant action, a standard expression in general relativity textbooks (we took the liberty to pull out an 10 A. Rothkopf et al. 
+
+overall factor of one-half for notational convenience) 
+
+S =
+
+Z
+
+d(d+1) X p−det[ G]
+
+n 12
+
+
+
+Gμν ∂μϕ(X)∂ν ϕ(X) + V (ϕ)
+
+o 
+
+. (15) Remembering the discussion around the non-relativistic limit of the world-line action we may ask whether this action is missing a constant term. We proceed by adding it in the form of −T below 
+
+S =
+
+Z
+
+d(d+1) X p−det[ G]
+
+n
+
+− T + 12
+
+
+
+Gμν ∂μϕ(X)∂ν ϕ(X) + V (ϕ)
+
+o 
+
+. (16) So far we have not changed the classical motion. Let us factor out the term (−T )
+
+up front which leads to the following expression 
+
+S ≡ 
+
+Z
+
+d(d+1) X p−det[ G]  − T n
+
+1 − 12T
+
+
+
+Gμν ∂μϕ(X)∂ν ϕ(X) + V (ϕ)
+
+o 
+
++ O(κ2),
+
+(17) where the presence of an integrand of the form {1 − 12 κ} reminds us of the first terms in the series expansion we encountered in the world-line action. Our proposal amounts to interpreting this action as the low-energy limit of a more general action including higher powers of κ = action density /T . Undoing the ap-parent expansion leads us to an expression featuring a square-root term (similar to the world-line action in eq. (13)) 
+
+S =
+
+Z
+
+d(d+1) X p−det[ G]  − T r
+
+1 − 1
+
+T
+
+
+
+Gμν ∂μϕ(X)∂ν ϕ(X) + V (ϕ)
+
+
+
+. (18) The crucial next step lies in elevating the space-time coordinates to actual dy-namical coordinate maps. Whereas in the world-line action we had t → t(γ) we here introduce Xμ → Xμ(τ, σ), where Σa = ( τ, σ)a denote the new indepen-dent variables for our integral. The change of variables Xμ → Σa introduces the Jacobian of the coordinate transform into the integrand. The reparameteriza-tion invariance of the action however allows us to write the action in the new variables in the same form as in the old variables 
+
+S =
+
+Z
+
+d(d+1) Σ p−det[ g]  − T r
+
+1 − 1
+
+T
+
+
+
+Gμν ∂μϕ(X(Σ)) ∂ν ϕ(X(Σ)) + V (ϕ)
+
+
+
+,
+
+(19) where p−det[ g] now makes reference to the induced metric on the space of abstract coordinates, instead of the metric of the former space-time coordinates. Note that the induced metric is defined from the known space-time metric G
+
+and the dynamical coordinate maps gab = Gμν (dX μ/dΣ a)( dX ν /dΣ b).The terms under the square root still make reference to derivatives in the old coordinates with indices (μ, ν ) but with a bit of algebra they can be re-expressed fully in terms of the new coordinates with indices (a, b ). The final result for our Space-time Symmetries and Mesh Refinement in Discrete IBVPs 11 
+
+novel action in the presence of dynamical coordinate maps, introduced in [13], reads 
+
+SBVP =
+
+Z
+
+d(d+1) Σ   − T r 1
+
+T V (ϕ) − 1
+
+
+
+det[ g] + 1
+
+T ∂aϕ(Σ)∂bϕ(Σ)adj[ g]ab .
+
+(20) The first term under the square root only depends on the coordinate maps and is known in the theoretical physics literature as the Nambu-Goto action [20]. The second term contains the field ϕ dependence and the adjugate of the metric 
+
+adj[ g]ab connects the derivatives in the new coordinates to those in the old space-time coordinates. The scale T in analogy to the world-line action here denotes a scale at which the dynamics of the field becomes inseparable from the dynamics of the coordinate maps. In order to formulate the evolution of the field ϕ and the coordinate maps 
+
+Xμ as a genuine initial value problem we must return to the Schwinger-Keldysh-Galley prescription of doubling all dynamical d.o.f. and assigning Lagrangians with opposite sign to each copy 
+
+SIBVP =
+
+Z
+
+d(d+1) Σ
+
+n
+
+SBVP [X1, ∂ aX1, ϕ 1, ∂ aϕ1] − SBVP [X2, ∂ aX2, ϕ 2, ∂ aϕ2]
+
+o
+
+.
+
+(21) Here we must now supply initial and in particular connecting conditions for all propagating degrees of freedom 
+
+Xμ 
+
+> 1
+
+(τ = τ f , σ) = Xμ 
+
+> 2
+
+(τ = τ f , σ), ∂0Xμ 
+
+> 1
+
+|τ =τ f = ∂0Xμ 
+
+> 2
+
+|τ =τ f , (22) 
+
+ϕ1(τ = τ f , σ) = ϕ2(τ = τ f , σ), ∂0ϕ1|τ =τ f = ∂0ϕ2|τ =τ f . (23) Note that if we set values equal on the final time slice, then we have also automat-ically set equal all of the spatial derivatives. I.e. why in the above connecting conditions only values and temporal derivatives are explicitly mentioned (for more details of the SKG construction see [13]). In order to obtain the solution numerically, we must discretize the action 
+
+SBVP and we decide to do so using the simplest generalization of the regularized one-dimensional SBP operators introduced in section 2. Introducing the (d + 1) 
+
+dimensional discretized arrays Xμ and ϕ we use Kronecker products to con-struct from one-dimensional SBP finite difference operators (d + 1) dimensional ones. While the SBP stencil structure is the same for each d.o.f. in the system, we must use appropriate penalty terms for their regularization. I.e. there exists individually regularized versions of the SBP operators to be applied to either the coordinate maps or the field, such as ¯Dμa Xμ where the repeated index is not summed over but indicates onto which spacetime coordinate the Σa deriva-tive is applied. Similarly we have ¯Dϕa ϕ indicating the appropriately regularized derivative operator in Σa direction acting on the field. 12 A. Rothkopf et al. 
+
+The resulting discretized action is given as 
+
+EBVP [Xμ 
+
+> 1
+
+, ¯Dμa Xμ 
+
+> 1
+
+, ϕ1, ¯Dϕa ϕ1]= 12
+
+n 1
+
+T V (ϕ1) − 1
+
+
+
+◦ det[ g1] + 1
+
+T ( ¯Dϕa ϕ1) ◦ ( ¯Dϕb ϕ1) ◦ adj[ g1]ab 
+
+o 12
+
+h. (24) Here the inner product in function space has been rewritten in a simplified nota-tion, where the discrete array {. . . } 12 , arising from the element-wise application of the square root, is dotted into the discrete array h, which contains the diagonal entries of the quadrature matrix H. Let us inspect how the discrete coordinate maps enter this action. They do so via the induced metric and its adjugate 
+
+gab = Gμν ( ¯Dμa Xμ) ◦ ( ¯Dνb Xν ), det[ g] = X
+
+> i0,...,i d
+
+ϵi0··· id g0,i 0 ◦ · · · ◦ gd,i d . (25) We would like to highlight the fact that after discretization each entry of the 
+
+gab matrix remains invariant under the full continuous Poincaré transformation group . The fact that derivatives are contracted with the space-time metric Gμν 
+
+means that the expression is invariant under rotations and space-time boosts (the relativistic generalization of rotations involving both space and time coor-dinates). The fact that a derivative acts on the coordinate maps entails that constant shifts are annihilated, leading to translational invariance. Since the en-tries of the coordinate maps remain continuous, these symmetries can be realized infinitesimally, as required in Noether’s theorem to yield conserved charges. Since we use a mimetic SBP operator, the derivation of the Noether charge proceeds as in the continuum, simply replacing derivatives by SBP finite differ-ences. For completeness let us quote here the explicit expression for the Noether charge associated with space-time translations, including terms that arise from the imposition of initial and connecting conditions via Lagrange multipliers ˜λ
+
+and ˜γ. The discrete version of the one-dimensional delta function is denoted by 
+
+δ(t − ti) ≈ d0[i]
+
+QL =
+
+
+
+Hσ
+
+∂EBVP 
+
+∂(D0Xμ) + ( hTσ ˜λμ)d0[0] + ( hTσ ˜γμ)d0[N0]
+
+
+
+δXμ. (26) As proof-of-principle we present a treatment of scalar wave propagation in 
+
+(1 + 1) dimensions. The full action in this case reads 
+
+SBVP =
+
+Z
+
+dτ dσ   − T n
+
+c2( ˙ tx ′ − ˙xt ′)2+ (27) 
+
+1
+
+T
+
+ ˙ϕ2(c2(t′)2 − (x′)2) + 2 ˙ϕϕ ′( ˙ xx ′ − c2 ˙tt ′) + ( ϕ′)2(c2 ˙t2 − ˙x2)
+
+o 1/2
+
+.
+
+A comparison of this action to the conventional action of scalar wave propagation is given in fig. 6. In the following we will simplify the computation by restricting ourselves to only a dynamical temporal map t = t(τ, σ ) and we fix apriori to a trivial spatial map x(τ, σ ) = σ.Space-time Symmetries and Mesh Refinement in Discrete IBVPs 13 Novel action 
+
+coordinate maps 
+
+τ σ
+
+x(τ,σ) 
+
+τ σ
+
+t(τ,σ) 
+
+σΦ(τ,σ) ττ
+
+σ
+
+Conventional action  
+
+> <latexit sha1_base64="r2+uWzkOE6OFJmG/Wf9+oMWJ0JM=">AAACfnicZVDLTsMwENyGV3kXOHKxqEBFgpIgBL0gIbhwBEEBiZTKcdzWwokje4NaRf1CvoDP4AoXnFAELSvbOxrP7toTJFIYdN23kjM1PTM7V55fWFxaXlmtrK3fGZVqxptMSaUfAmq4FDFvokDJHxLNaRRIfh88X+T39y9cG6HiWxwkvBXRbiw6glG0VLvCb059ESMJ7eoT/1x0/axINeInVKOgso0W9kQN9/q7xdXu0yHZJ8yeE8L+r/BHV3QctitVt+4WQf4DbwSqMIqr9lqp5IeKpRGPkUlqzKPnJtjK8kFM8uGCnxqeUPZMu/zRwphG3LSywo8h2bZMSDpK223/VrDjFdhptDIRJynymH0XdFJJUJHcJBIKzRnKgQWUaWFnEtajmjK0Vv7tlNHImEEU7NkcUezlOZ9pcoC9aOyhWa5ApaQZp4MJWVi0yE3zJi36D+4O695x/fj6qHp2PrKvDJuwBTXw4ATO4BKuoAkMXuEdPuDTAWfH2XcOvqVOaVSzAWPhNL4A4ZDAmA==</latexit>
+
+S =
+
+Z
+
+dtdx 
+
+n⇣ 
+
+@t (t, x )
+
+⌘2
+
+  c2⇣
+
+@x (t, x )
+
+⌘2o 
+
+> <latexit sha1_base64="s/mugmTQIi8JW2hRYwTmATf6iDY=">AAACS3icZVDLSgMxFM1Uq7W+Wl26CRahgpaZItWNUHTjsoJ9gK0lk6Y2NDMZkjvSMvQ//Bq3uvED/A534sLMdBBrL4R77rmv3OMGgmuw7Q8rs7KaXVvPbeQ3t7Z3dgvFvZaWoaKsSaWQquMSzQT3WRM4CNYJFCOeK1jbHV/H+fYTU5pL/w6mAet55NHnQ04JGKpfqHYDooAT0YcHg0e8DCeT41P6UMW/mUkSpKlLu18o2RU7MbwMnBSUUGqNftGyugNJQ4/5QAXR+t6xA+hF8Xgq2CzfDTULCB2TR3ZvoE88pntRctwMHxlmgIdSmecDTtjFDhhe9CLuByEwn84bhqHAIHF8MR5wxSiIqQGEKm52YjoiilAwuvydFBFP66nnnhjvERjFPt6pYwAjb+GjUVwBUgq9SLv/ygbJiJkRzfkv0TJoVStOrVK7PSvVr1L5cugAHaIyctA5qqMb1EBNRNEzekGv6M16tz6tL+t7Xpqx0p59tGCZ7A9OYbLS</latexit>
+
+@2
+
+t  (t, x )   c2@2
+
+x (t, x ) = 0 
+
+wave equation 
+
+convert derivatives in (σ,τ )
+
+into derivatives in (x,t )
+
+New scale T: energy density where ɸ & coordinates are coupled (c.f. mc ) 
+
+> <latexit sha1_base64="VtatdLuJ3qRepq7cV+r4jeIrp5E=">AAADLHicZVHLjtMwFHXCayivmWHJxqJilKq0NBEa2CCNyoZlEW1npHFTOY7bWmMnke2gVla+hS1s+Bo2CLHlO7CbCNqZK9m+OT73HOfepOBM6cHgp+ffun3n7r2D+60HDx89fnJ4dDxVeSkJnZCc5/IiwYpyltGJZprTi0JSLBJOz5Or9+7+/DOViuXZWG8KOhN4mbEFI1hbaH7kHRtEMIefqrlBUsDhdFTBd/AEsUzDFGlc2l2xpcAw6I07aMiWyJA4ClCaa6jhOkaFZILCHtwia6gbpBNHCLVg9wQtJCYmrMy4QglbBjURFSsWRzAgbtup6QXr/x+dbuTIjlsX1DdBY7Vj7mSaJ/0T68Jgp8jKObOaZH1qDevhHlX/WBWb8FVUzQ/bg/5gG/BmEjZJGzQxsl30rBopBc004Vipy3BQ6JnBUjPCadVCpaIFJld4SS9tmmFB1cxsp1fBFxZJ4SKXdtmmb9H9Cr14OzMsK0pNM1IXLEoOdQ7dSGHKJCWab2yCiWTWE5IVtk3XdvC7SgYLpTYieWlPgfXKnc5TuUSvxN5DjWPoPOdqH06u0dKthGtaeL1FN5Np1A9P+6cfX7fPhk37DsAz8BwEIARvwBn4AEZgAoi38b54X71v/nf/h//L/11Tfa+peQr2wv/zF+I7/XQ=</latexit>
+
+SBVP =
+
+Z
+
+d⌧ d ( T )
+
+n
+
+c2( ˙tx 0   ˙xt 0)2
+
++ 1
+
+T
+
+  ˙ 2(c2(t0)2   (x0)2) + 2 ˙   0( ˙ xx 0   c2 ˙tt 0) + (  0)2(c2 ˙t2   ˙x2) o1/2
+
+Fig. 6. The setup for our proof-of-principle in 1+1 dimensions. (left) The conventional action approach to scalar wave evolution. The action is expressed in terms of space-time coordinates and its variation leads to the well-known wave equation. (right) Our new action is expressed in abstract τ, σ variables. The Nambu-Goto term (blue-green shaded) takes on a simple form involving only coordinate map derivatives. The field dependent term contains the different derivatives of the field w.r.t. the abstract pa-rameters, each multiplied by a term that relates τ, σ derivatives to the original x, t 
+
+derivatives. The new scale T serves as a reminder that field dynamics and coordinate dynamics are now interlinked. 
+
+Even though the resulting action is only invariant under infinitesimal time translations, the dynamical nature of the t-map suffices to demonstrate the va-lidity of our approach 
+
+EBVP 
+
+x=σ
+
+=
+
+Z
+
+dτ dσ 12
+
+n
+
+( ˙ t)2 + 1
+
+T
+
+ ˙ϕ2(( t′)2 − 1) − 2 ˙ϕϕ ′ ˙tt ′ + ( ϕ′)2( ˙ t2)
+
+o 
+
+. (28) Note that we have squared the integrand here. Since taking the square amounts to a monotonic transformation, the new integrand will lead to the same ex-tremum of the action. After converting the action of eq. (28) to its SKG form and discretizing it with regularized SBP operators on a Nτ × Nσ = 60 × 48 grid, we obtain the classical solution for the field ϕ, as well as the dynamical coordinate maps 
+
+t from a numerical optimization using the IPOPT library implemented in the 
+
+Mathematica software (open access code is available at [12]). In the following we use T = 10 .000 in order to achieve coupling of the maps with the field dynamics on the percent level. As shown and described in detail in the caption of fig. 7 we find that the dynamical coordinate map adjusts automatically to the dynamics of the prop-agating field. When the wave-packages in our simulation leave the interior of the simulation domain, the temporal map decreases the resolution there. On the other hand, in the instant that the wave-packages scatter from the Dirich-let boundary, we find that the temporal map introduces a finer time resolution to adequately capture the violent dynamics. This automatic adaptation of the temporal resolution amounts to a intrinsic form of automatic adaptive mesh re-finement .14 A. Rothkopf et al. 
+
+Fig. 7. (left) Numerical solution of the field evolution as a function of τ and σ, ob-tained from the optimization of the discretized action eq. (28). Wave propagation is initialized from a bump centered in the spatial domain from which both a left- and right-moving wave-package emanates. The packages approach the Dirichlet boundary, reflect, including a phase flip, and approach the center of the simulation domain. When they meet, they interfere constructively and begin to move towards the opposite spatial boundary. (right) The τ -derivative of the dynamical temporal map. Large values here denote a coarser time resolution, while smaller values indicate a finer time resolution. We find interesting structures that closely align with the field dynamics. As the wave packages recede from the interior of the simulation domain the dynamical coordinate map automatically reduces the resolution there. On the other hand, at the boundary, where the wave-packages violently scatter off the Dirichlet boundary, the dynamics require finer resolution as indicated by the lower values found there. (figure from [13]) Space-time Symmetries and Mesh Refinement in Discrete IBVPs 15 
+
+Let us continue and inspect the Noether charge of the single manifest space-time symmetry of our discretized (1+1) dimensional action, continuous time translations. In fig. 8 we plot the values of the discrete Noether charge according to eq. (26) evaluated on the solutions shown in fig. 7. As one can see clearly, the values of the Noether charge are constant in τ , they remain exactly conserved. If we subtract from these points the initial value of the Noether charge, we find zero within machine precision. This verifies the central claim of our approach: the retention of continuous space-time symmetries in the presence of dynami-cal coordinate maps after discretization, leads to an exact conservation of the associated Noether charges .0 10 20 30 40 50 60 τ/Δτ     
+
+> 2.495 2.500 2.505 2.510
+> QtL
+> Fig. 8. Discrete Noether charge associated with infinitesimal time translations defined in eq. (26) and evaluated on the solution of the discretized action eq. (28). Note that it is preserved exactly at each τstep. (figure from [13])
+
+The exact conservation of Noether charges actually provides the guiding prin-ciple for the automatic mesh refinement we observe. This can be understood al-ready in the continuum formulation. Let us take a closer look at the expression of the Noether charge for time translations 
+
+Qt(τ ) = 
+
+Z
+
+dσ 
+
+n ˙t + 1
+
+T
+
+
+
+(ϕ′)2 ˙t − ˙ϕϕ ′t′o 
+
+= const . (29) In our example the solution takes on the form of two traveling wave packages. If we focus on a single rightward traveling package, its functional form reads 
+
+ϕWP (x − t). Inserting this solution into the above expression yields 
+
+Z
+
+dσ 
+
+n ˙t + 1
+
+T
+
+
+
+(ϕ′
+
+> WP
+
+)2( ˙ t + t′)
+
+o 
+
+= const . (30) Due to causality, ˙t and t′ must be positive. It follows that in order to keep the overall expression constant, the sum of ( ˙ t+t′) must adjust to the spatial gradients present in the field dynamics (ϕ′
+
+> WP
+
+)2. In case that there are stronger gradients, the values of the temporal map derivatives must decrease. This corresponds to 16 A. Rothkopf et al. 
+
+a finer time resolution. Conversely, if there are weaker gradients present, the temporal map derivatives must increase, which leads to an automatic coarsening of the temporal resolution. We have thus connected the two key observations of our proof of principle study. Introduction of dynamical coordinate maps allows to protect space-time symmetries after discretization, enforcing the conservation of associated Noether charges. In turn, this constraint on the Noether charges guides the resolution of the coordinate maps to adjust in order to capture the relevant dynamics adequately. 
+
+4 Summary and Outlook 
+
+In this contribution we have described how IBVPs can be formulated and solved on the level of the classical action, bypassing governing equations. The use of mimetic SBP finite difference operators gave access to Noether’s theorem and associated Noether charges in a straight forward manner. In order to retain space-time symmetries, we propose to incorporate dynamical coordinate maps in addition to the conventional propagating degrees of freedom. Our proposal takes inspiration from the world-line formalism of general relativity and we de-rived an action for scalar wave propagation in the presence of fully dynamical coordinate maps. As a proof-of-principle we presented (1+1)d wave propagation with a reduced set of dynamical maps, incorporating only manifest time transla-tion invariance. We confirmed the preservation of that symmetry in the discrete setting, as well as the associated conservation of the Noether charge. The cou-pling of field and coordinate dynamics led to a form of automatic adaptive mesh refinement. 
+
+Outlook 
+
+In order to retain all space-time symmetries we need to incorporate both fully dynamic maps t(τ, σ ) and x(τ, σ ), which is work in progress. In the presence of fully dynamical maps, in order to find a unique solution, one must select a particular choice of coordinate representation. Analytically and in the continuum this is achieved using e.g. imposition of conformal gauge ˙tt ′ − ˙xx ′ = 0 . Note that this constraint involves the derivatives of the coordinate maps and thus constitutes a non-integrable non-holonomic constraint. We have just recently finalized the action based treatment of non-holonomic constraints, based on the SKG formalism in [11]. We look forward to exploring the novel freedom in the treatment of spatial boundaries that arises from the presence of the new coordinate map degrees of freedom. In the long term our goal is to extend the approach discussed in this contri-bution to systems with intrinsic constraints, such as Maxwell electromagnetism and to explore the conservation of Gauss’ law. Space-time Symmetries and Mesh Refinement in Discrete IBVPs 17 
+
+Acknowledgements 
+
+A. R. gladly acknowledges support by the National Research Foundation of Ko-rea under the Emerging Researcher Grant RS-2026-25486880. A. R. thanks Ko-rea University for support through project K2510461 Fully Dynamical Coordi-nate Maps for Space-Time Symmetry Preserving Lattice Field Theory as well as project K2511131 and K2503291. J. N. was supported by Vetenskapsrådet, Sweden [award no. 2021-05484 VR] and University of Johannesburg Global Ex-cellence and Stature Initiative Funding. Part of this research was conducted in collaboration by WAH while visiting the Okinawa Institute of Science and Technology (OIST) through the Theoretical Sciences Visiting Program (TSVP). WAH thanks the National Research Foundation and the SA-CERN collaboration for their generous financial support during the course of this work. 
+
+References 
+
+1. Anerot, B., Cresson, J., Hariz Belgacem, K., Pierret, F.: Noether’s-type theorems on time scales. Journal of Mathematical Physics 61 (11) (2020) 2. Carroll, S.: Spacetime and Geometry. Cambridge University Press (2019) 3. Courant, R., Isaacson, E., Rees, M.: On the solution of nonlinear hyperbolic differ-ential equations by finite differences. Communications on pure and applied math-ematics 5(3), 243–255 (1952) 4. Fernández, D.C.D.R., Hicken, J.E., Zingg, D.W.: Review of summation-by-parts operators with simultaneous approximation terms for the numerical solution of partial differential equations. Computers & Fluids 95 , 171–196 (2014) 5. Galley, C.R.: Classical Mechanics of Nonconservative Systems. Physical Review Letters 110 (17), 174301 (Apr 2013). https://doi.org/10.1103/PhysRevLett. 110.174301 , https://link.aps.org/doi/10.1103/PhysRevLett.110.174301 ,publisher: American Physical Society 6. Goldstein, H.: Classical mechanics. Pearson Education India (2011) 7. Horowitz, W.A., Rothkopf, A.: Hamilton Revised: The Action Principle for Initial Value Problems (3 2026) 8. Lundquist, T., Nordström, J.: The SBP-SAT technique for initial value problems. Journal of Computational Physics 270 , 86–104 (2014) 9. Nordström, J., Lundquist, T.: Summation-by-parts in time: the second derivative. SIAM Journal on Scientific Computing 38 (3), A1561–A1586 (2016) 10. Pinto, M.C., Mounier, M., Sonnendrücker, E.: Handling the divergence constraints in maxwell and vlasov–maxwell simulations. Applied Mathematics and Computa-tion 272 , 403–419 (2016) 11. Rothkopf, A., Horowitz, W.A.: Variational approach to nonholonomic and inequality-constrained mechanics. Phys. Rev. E 113 (2), 024126 (2026). https: //doi.org/10.1103/rch9-wsbw 
+
+12. Rothkopf, A.: Exact symmetry preservation and automatic mesh refinement for 1+1d scalar wave propagation (Apr 2024). https://doi.org/10.5281/zenodo. 11082746 , https://doi.org/10.5281/zenodo.11082746 
+
+13. Rothkopf, A., Horowitz, W.A., Nordström, J.: Exact symmetry conservation and automatic mesh refinement in discrete initial boundary value problems. J. Comput. Phys. 524 , 113686 (2025). https://doi.org/10.1016/j.jcp.2024.113686 18 A. Rothkopf et al. 14. Rothkopf, A., Nordström, J.: A new variational discretization technique for ini-tial value problems bypassing governing equations. J. Comput. Phys. 477 , 111942 (2023). https://doi.org/10.1016/j.jcp.2023.111942 
+
+15. Rothkopf, A., Nordström, J.: A symmetry and Noether charge preserving dis-cretization of initial value problems. J. Comput. Phys. 498 , 112652 (2024). https: //doi.org/10.1016/j.jcp.2023.112652 
+
+16. Rothkopf, A., Nordström, J.: The crucial role of Lagrange multipliers in a space-time symmetry preserving discretization scheme for IVPs. J. Comput. Phys. 511 ,113138 (2024). https://doi.org/10.1016/j.jcp.2024.113138 
+
+17. Svärd, M., Nordström, J.: Review of summation-by-parts schemes for initial– boundary-value problems. Journal of Computational Physics 268 , 17–38 (2014) 18. Svärd, M., Nordström, J.: On the convergence rates of energy-stable finite-difference schemes. Journal of Computational Physics 397 , 108819 (2019) 19. Wilson, K.G.: Confinement of Quarks. Phys. Rev. D 10 , 2445–2459 (1974). https: //doi.org/10.1103/PhysRevD.10.2445 
+
+20. Zwiebach, B.: A first course in string theory. Cambridge university press (2004)

@@ -1,0 +1,1212 @@
+Title: Learning to Test: Physics-Informed Representation for Dynamical Instability Detection
+
+URL Source: https://arxiv.org/pdf/2604.10967v1
+
+Published Time: Tue, 14 Apr 2026 02:04:43 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+# Learning to Test: Physics-Informed Representation for Dynamical Instability Detection 
+
+Minxing Zheng 
+
+Carnegie Mellon University 
+
+Zewei Deng 
+
+University of Minnesota 
+
+Liyan Xie 
+
+University of Minnesota 
+
+Shixiang Zhu 
+
+Carnegie Mellon University 
+
+# Abstract 
+
+Many safety-critical scientific and engineering systems evolve according to differ-ential–algebraic equations (DAEs), where dynamical behavior is constrained by physical laws and admissibility conditions. In practice, these systems operate under stochastically varying environmental inputs, so stability is not a static property but must be reassessed as the context distribution shifts. Repeated large-scale DAE simulation, however, is computationally prohibitive in high-dimensional or real-time settings. This paper proposes a test-oriented learning framework for stability assessment under distribution shift. Rather than re-estimating physical parameters or repeatedly solving the underlying DAE, we learn a physics-informed latent representation of contextual variables that captures stability-relevant structure and is regularized toward a tractable reference distribution. Trained on baseline data from a certified safe regime, the learned representation enables deployment-time safety monitoring to be formulated as a distributional hypothesis test in latent space, with controlled Type I error. By integrating neural dynamical surrogates, uncertainty-aware calibration, and uniformity-based testing, our approach pro-vides a scalable and statistically grounded method for detecting instability risk in stochastic constrained dynamical systems without repeated simulation. 
+
+# 1 Introduction 
+
+Many scientific and engineering systems evolve according to well-established physical laws while simultaneously operating under hard constraints that must never be violated [ 39 ]. Power grids must satisfy Kirchhoff’s laws at every instant [ 37 ]; aircraft structures must respect stress–strain compati-bility and material constitutive relations [ 4]; biochemical networks must conserve mass and charge [ 60 ]. A natural mathematical language for describing such systems is that of differential–algebraic equations (DAEs), which couple differential dynamics with algebraic constraints that define a feasible manifold [ 10 ]. Unlike unconstrained ordinary differential equations, DAEs explicitly encode the fact that system trajectories must evolve on structured, physically admissible sets. In practice, however, these systems are rarely deterministic [ 3]. Beyond internal physical parameters ,their evolution is continuously influenced by exogenous randomness —fluctuating loads in power systems, environmental exposure in materials degradation, or variable operating forces in structural components [ 31 ]. In many DAE-governed systems, such inputs vary stochastically over time, shifting the operating point on the constraint manifold [42, 54, 62, 69]. Because stability depends jointly on system states and input conditions, changes in the environment can alter both the local geometry and dynamical behavior of the system [ 14 ]. Stability therefore cannot be treated as a one-time certification based on nominal conditions; it must be continuously re-evaluated as inputs evolve [46]. Yet repeated stability assessment faces two fundamental challenges. (i) From a computational standpoint, each environmental change may require re-solving high-dimensional and often stiff DAE systems or recomputing local linearizations and spectral properties—tasks that quickly become 
+
+> Preprint.
+> arXiv:2604.10967v1 [cs.LG] 13 Apr 2026
+
+Figure 1: Illustration of Cartesian pendulum systems and their one-dimensional latent representations induced by our method. The dynamical system takes a context variable ( e.g. , initial conditions or external disturbances) as input and generates the corresponding pendulum trajectory. A system is considered stable when the context follows the “safe” distribution. Representative trajectories under three exogenous context distributions are shown top: green segments satisfy the angular stability cri-terion, while red segments indicate violations. Under stable regimes, the learned latent representation is approximately uniform; under unstable regimes, it deviates noticeably from uniformity. prohibitive in large-scale or real-time settings. ( ii ) From a statistical standpoint, observations are typically available only from a single baseline domain, corresponding to a singleton within the safe regime. Such data capture system behavior under limited operating conditions and do not span the full set of stable scenarios. As a result, conventional end-to-end learning approaches that map inputs directly to stability labels can be systematically biased: they perform well near the training distribution but fail under distribution shift, as they lack access to the underlying physical structure governing how stability evolves across domains. These challenges motivate a central question: how can we assess the stability and safety of constrained dynamical systems under stochastically varying inputs without incurring the cost of repeated full-scale analysis, while also ensuring reliable generalization beyond observed conditions? More broadly, how can we efficiently detect, with uncertainty quantification, when such a system is approaching or has entered an unsafe regime in a changing environment? 
+
+In this work, we adopt a perspective closely related to decision-focused learning [ 53 ], but tailored to hypothesis testing. Rather than learning a direct mapping from inputs to stability labels or fully identifying physical parameters for repeated simulation, we leverage baseline observations to infer stability-relevant structure of the underlying dynamical system. This enables us to construct a physics-informed representation that generalizes across domains, even when observations are available only from a single safe domain. Our approach is therefore test-oriented : the representation is learned not for accurate trajectory prediction per se, but for reliable stability assessment under distribution shift. As illustrated by Figure 1, our central idea is to learn a latent representation of contextual variables that encodes stability-relevant features of the constrained dynamics, while being regularized toward a simple and tractable reference distribution. Trained on baseline data from a certified safe operating regime, this representation induces a structured latent space in which stability-preserving contexts follow a known reference law. At deployment, safety monitoring reduces to a distributional hypothesis test in this latent space. If contexts under the new regime remain statistically consistent with the reference distribution, stability is inferred to persist; systematic deviations signal elevated instability risk. By learning the representation end-to-end with respect to this testing objective, we bypass repeated large-scale DAE simulation, extract stability-relevant structure from baseline trajectories, and enable scalable context-only monitoring under stochastic environmental change. Our framework integrates physics-informed representation learning and distributional testing. We use neural dynamical surrogates to summarize trajectory information into compact embeddings, jointly learn a context encoder aligned with stability geometry, and regularize the latent space to enable a 2simple goodness-of-fit test. On the theory side, we show that stability verification can be reformulated as a distributional test in the latent space and establish finite-sample exponential error bounds via large deviation theory. Empirically, we validate the approach on two synthetic dynamical systems and a real-world transient stability assessment (TSA) benchmark based on the IEEE 39-bus power system [5, 67], demonstrating accurate and scalable detection of instability under distribution shift. Our work makes three main contributions: ( i) We introduce a test-oriented learning framework that directly targets stability verification under distribution shift, bypassing explicit system identification and repeated trajectory simulation. ( ii ) We provide a latent reformulation of stability, showing that a trajectory-level chance constraint in constrained dynamical systems can be equivalently characterized as a distributional hypothesis test in a learned latent space. ( iii ) We develop a physics-informed representation learning approach that leverages trajectory data from a single safe domain to capture stability-relevant dynamics, enabling reliable generalization to unseen environments where no tra-jectory observations are available. Together, these contributions establish a scalable and statistically principled framework for safety assessment in stochastic constrained dynamical systems. 
+
+Related Work. Stability analysis studies how dynamical systems respond to perturbations and establishes conditions under which trajectories remain near equilibria or invariant sets. Classical theory originates from Lyapunov’s seminal work [ 50 ], including linearization-based methods and Lyapunov function techniques, and has been extended through invariance principles [ 41 ]. These tools underpin stability analysis across domains such as power systems [ 2 , 37 , 38 , 68 , 83 ], control [ 74 , 75 , 78 ], transportation [ 6, 30 , 49 , 66 , 80 ], chemical processes [ 23 , 76 ], and epidemiology [ 9, 11 , 19 , 22 , 36 ]. These approaches typically assess stability pointwise under fixed operating conditions or deterministic perturbations [ 1 , 14 , 49 ], while stochastic extensions focus on process noise in state evolution [ 44 ]. In contrast, we treat exogenous operating conditions as random variables and study stability as a distributional property under context shift. Closely related, [ 56 ] evaluates transient stability under sampled operating scenarios, but does not address statistical testing or generalization across domains without trajectory observations. A natural data-driven approach is to learn an end-to-end mapping from context to a binary stability label, followed by a plug-in or binomial test. Many recent scientific machine learning methods can be viewed through this lens: they learn predictive or surrogate models of system behavior using architectures such as RNNs [ 21 , 65 ], LSTMs [ 27 ], and GRUs [ 15 , 16 , 88 ], continuous-time models such as neural ODEs [ 8, 12 , 13 , 45 ] and Latent ODEs [ 64 ], and physics-informed approaches including PINNs [ 59 ], universal differential equations [ 58 ], and DAE-specific architectures [ 28 , 35 ]. While these methods improve prediction and simulation efficiency, they are typically optimized for pointwise accuracy or system identification, rather than for stability certification under distribution shift. Such approaches face two fundamental limitations in our setting. First, training data are usually collected from a single baseline domain, corresponding to a singleton within the safe regime, and therefore do not capture the diversity of stable operating conditions. As a result, models that learn direct input–output mappings may perform well near the training distribution but fail to generalize when the context shifts [ 55 , 63 , 85 , 87 , 90 ]. Second, reducing stability to a binary label discards rich trajectory-level information, ignoring how instability emerges through the underlying dynamics [ 64 , 84 , 91 ]. Even when surrogate models capture temporal patterns, they are not explicitly aligned with stability geometry and may not preserve the structural invariances required for reliable testing [7, 32 , 34 , 57 ]. In contrast, our approach leverages trajectory-level information and physical structure to learn representations that encode stability-relevant dynamics, enabling principled and robust generalization beyond observed domains. Our work is also related to learning-to-optimize and decision-focused learning [ 20 , 43 , 53 , 77 ], which train predictive models to perform well on downstream decisions rather than on prediction error alone, including differentiable optimization layers [ 82 ] and ranking-based approaches [ 52 ]. At a high level, our work shares a similar emphasis on aligning model training with the downstream objective of interest, rather than with predictive accuracy alone. Our work is also connected to the literature on learning-based statistical testing, where learned representations, kernels, or predictive scores are designed to improve the power of downstream hypothesis tests. This includes, for example, representation-based two-sample tests [ 25 , 34 , 79 ] and sequential testing procedures [ 81 , 89 , 92 , 93 ]. Our perspective differs from both lines of work in its inferential structure and target. Unlike learning-to-optimize, our downstream object is not an optimization decision, but a hypothesis test outcome. Unlike generic learning-based testing, our learned representation is explicitly constrained by physical laws and trajectory information so as to preserve the dynamical features that determine stability. 32 Problem Setup 
+
+We consider a dynamical system, parameterized by deterministic but unknown physical parameters 
+
+θ ∈ Θ, with state variables {s(t)}t≥0 that evolves on the time horizon t ∈ [0 , +∞] according to the following differential–algebraic equation (DAE): 
+
+˙s(t) = fθ
+
+ s(t), a (t); X, t ≥ 0; and s(0) = s0(θ, X ), (1a) 
+
+0 = gθ
+
+ s(t), a (t); X. (1b) where ˙s(t) denotes the time derivative of the state s(t). Here X ∈ X is a random exogenous context (fixed once realized) drawn from a distribution, a(·) ∈ A is an auxiliary algebraic variable enforcing instantaneous constraints, and s0(·, ·) specifies the initial state of the system at time t = 0 .For notational clarity, given a context realization X = x, we write the resulting state trajectory as 
+
+{sθ (t; x)}t≥0 ∈ S , where S denotes the space of admissible state trajectories, and the associated algebraic variables as {aθ (t; x)}t≥0. We assume that fθ and gθ are unknown, continuously differen-tiable in (s, a ) and that Eq. (1) is well-posed, so that for each (θ, x ) there exists a unique solution 
+
+(sθ (·; x), a θ (·; x)) . When gθ ≡ 0 in Eq. (1b) , the system in Eq. (1) reduces to an ordinary differential equation (ODE). It is worth emphasizing that the system trajectory {sθ (t; X)} is stochastic, with randomness induced by the distribution of X. Concrete examples are given in Appendix A. Let η : S → R be a user-specified stability functional; for instance, one may take η(s(·)) = max t∈[0 ,T ] |s(t)| which measures the maximum magnitude of the trajectory over the time horizon. In many applications, stability requires that the system state remain within prescribed limits determined by a tolerance level [ 50 ]. Given a threshold τ > 0, stability under exogenous context distribution can be formulated as a chance constraint on the random trajectory sθ (·; X) as in the following definition. 
+
+Definition 1 ((τ, α )-Stability) . Let X ∼ P . The system is said to be (τ, α )-stable under P if 
+
+PX∼P
+
+η sθ (·; X) ≤ τ  ≥ 1 − α. (2) That is, the system satisfies the prescribed stability requirement η(sθ (·; X)) ≤ τ with probability at least 1 − α over the randomness of the context X.
+
+Definition 2 (Safe Regime) . Let P(X ) denote the set of Borel probability measures on the context space X . The safe regime is the subset of context distributions in P(X ) for which the induced trajectory satisfies the prescribed chance constraint in Eq. (2), i.e. ,
+
+P0 := {P ∈ P (X ) : the system with parameter θ is (τ, α )-stable under P } . (3) The safe regime P0 is assumed to be unknown, as the system’s physical parameters θ and the governing mappings fθ and gθ are both unknown. We assume access to observations collected from a baseline domain with (unknown) context distribution P0 ∈ P 0. Specifically, we observe i.i.d. samples 
+
+{(Xi, Si)}ni=1 , where Xi ∼ P0 and 
+
+Si = {˜sθ (t; Xi)}t∈[0 ,T ], ˜sθ (t; X) = sθ (t; X) + ε(t),
+
+with ε(t) denoting an independent measurement-noise process. These data characterize system behavior in a domain where the stability constraint is known to hold, but without revealing the underlying physical parameters or dynamical equations. We now consider a new domain in which contexts {Xj }n+mj=n+1 are drawn i.i.d. from a potentially new distribution P1, but the corresponding system trajectories are unobserved. The key question is whether the stability verified in the baseline domain persists under this distribution shift. Formally, we determine whether P1 belongs to the safe regime. This leads to the following hypothesis test: 
+
+H0 : P1 ∈ P 0 vs. H1 : P1 /∈ P 0. (4) Rejecting H0 therefore provides statistical evidence that the system no longer satisfies the prescribed stability requirement under the new context distribution. 
+
+# 3 Proposed Framework: Learning to Test 
+
+We propose an end-to-end framework, termed “learning to test” ( L2T ), that directly targets the hypothesis testing problem in Eq. (4) , rather than first estimating the physical parameters and then simulating state trajectories under the new domain. We learn a latent representation of the contextual 4𝑋 𝑖 ∼ 𝑃 0
+
+## 𝑋 𝑗 ∼ 𝑃 1
+
+## 𝒮 𝑖 
+
+Encoder 
+
+𝜙 
+
+## 𝑈 𝑖 ∼ 𝑄 0
+
+Update 
+
+𝜑 
+
+Decoder 
+
+𝜓  መ𝒮 𝑖 
+
+## 𝑈 𝑗 ∼ 𝑄 1
+
+## ℒrec ℒreg 
+
+> Baseline Context
+> New Context
+> Baseline
+> Trajectory
+> Reconstructed
+> Trajectory
+
+## 𝐻 0: 𝑄 1 = 𝑄 0
+
+Test 
+
+Train  Governed by underlying DAE        
+
+> determined by 𝑋 𝑖 and 𝜃
+> ℎ𝑘 +1=𝜑 (𝑠 𝑘 ,ℎ𝑘 ,𝑢 )
+> ℎ𝑘
+> uniform regularization
+
+Figure 2: Overview of the proposed “Learning-to-Test” ( L2T ) paradigm. Training phase (bottom): Baseline contexts Xi ∼ P0 and their DAE-governed trajectories Si are used to jointly train an encoder 
+
+ϕ, dynamical update φ, and decoder ψ. The objectives combine trajectory reconstruction ( Lrec ) and latent uniformity regularization ( Lreg ), yielding a stability-aware latent representation Ui ∼ Q0.Testing phase (top): For new contexts Xj ∼ P1, the encoder produces latent variables Uj ∼ Q1, and instability detection is reduced to a distributional test between Q1 and Q0 in latent space. variable using baseline data so that it captures the distributional factors governing stability of the DAE system. In the learned latent space, contexts associated with stable operation in the baseline domain are regularized to follow a uniform distribution. The original stability assessment under distribution shift is then reformulated as a distributional test: if the latent representations of contexts in the new domain remain uniform, stability is preserved; otherwise, the deviation from uniformity provides evidence of instability. Figure 2 summarizes the proposed L2T paradigm. This approach offers two advantages: ( i) Representation learning can be carried out efficiently offline 
+
+using baseline data, without requiring repeated simulation in the new domain. ( ii ) By operating directly at the level of the testing objective, the method bypasses the need to estimate physical parameters or repeatedly solve the DAE, focusing instead on detecting shifts relevant to stability. 
+
+3.1 Physics-Informed Representation Learning 
+
+We use neural ordinary differential equations (ODE) [ 12 , 89 ] as a flexible surrogate to learn a reduced ODE whose dynamics approximate the evolution of the DAE on the constraint manifold. Specifically, for a continuous-time series {s(t), t ≥ 0}, we define a compact history embedding h(t) ∈ H , where 
+
+H denotes the embedding space. This history embedding encapsulates the key information about the past observations up to time t. The evolution of h(t) is governed by the differential equation below: 
+
+dh(t)dt = φ(s(t), h (t); θ, x ), (5) where φ is an update function that captures, in a reduced form, the effective dynamics induced by the underlying DAE in Eq. (1) , jointly determined by the physical parameter θ and the context 
+
+x. In practice, we work with K discrete time steps {tk}Kk=1 and adopt the Euler method [ 12 ] to approximate the solution to Eq. (5): 
+
+hk+1 = hk + φ(sk, h k; θ, x )∆ tk, k = 1 , . . . , K − 1, (6) where hk and hk+1 are the history embeddings at times tk and tk+1 , respectively, and ∆tk = tk+1 −tk
+
+is time difference between them. 
+
+Latent Representation. We seek to construct a latent representation of the contextual variable X
+
+such that: (i) its distribution encodes the stability-relevant dynamics of the underlying DAE; and (ii )
+
+it is regularized toward a uniform law. To this end, we introduce an encoder 
+
+ϕ : X → [0 , 1] d, u = ϕ(x),
+
+which maps each context x to a latent variable u. Accordingly, we reparameterize the history-embedding update and state reconstruction as 
+
+hk+1 = φ(sk, h k, u ), ˆsk = ψ(hk). (7) 5Here φ denotes the history-update function using the current observation sk, previous history hk, and latent representation u, corresponding by a slight abuse of notation to the right-hand side of Eq. (6) ; ψ
+
+is a decoder that maps the history embedding hk back to the state space. The history-update function 
+
+φ can typically be implemented via a recurrent architecture ( e.g. , recurrent neural network, long-short term memory [86], or Transformer [73]). 
+
+Training Objectives. The encoder ϕ is trained jointly with decoder ψ and update function φ to construct latent representations that preserve stability-relevant information while remaining distri-butionally uniform. Given the baseline data {(xi, Si)}ni=1 , where Si = {si,k }Ki 
+
+> k=1
+
+consists of Ki
+
+observations and is associated with context xi, the training objective consists of three components: 1. Reconstruction loss : To ensure that the latent representation captures the DAE-induced trajectory behavior observed in the baseline regime, we minimize the reconstruction loss: 
+
+Lrec (ϕ, ψ, φ ) := 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1
+
+KiKiX
+
+> k=1
+
+∥si,k − ˆsi,k ∥2, (8) where ˆsi,k are the reconstructed output in Eq. (7). 2. Latent uniformity regularization : To facilitate distributional testing in the latent space, we regular-ize the learned representations toward a uniform reference distribution by minimizing 
+
+Lreg (ϕ) := KL pU Unif(0 , 1) d = −H (pU ) + const , (9) where KL[ ·∥· ] represents Kullback–Leibler (KL) divergence, pU denotes the empirical distribution of the latent variables {ui}ni=1 with ui = ϕ(xi), and H(p) = − R 
+
+> [0 ,1] d
+
+p(u) log p(u) d u is the differential entropy. Minimizing this objective is equivalent to maximizing the entropy of the latent representation, thereby encouraging uniformity. This regularization produces a well-conditioned latent space in which deviations from baseline behavior can be detected via uniformity testing. 3. Stability-aware reweighting : To preserve sensitivity to the stability condition, we augment the reconstruction loss in Eq. (8) with an asymmetric penalty based on the stability metric. For example, using η(s(·)) = max t∈[0 ,T ] |s(t)|, the sample-level weight can be defined as 
+
+ωstb (s, ˆs) = 
+
+ω, |s| > τ and sign( s)ˆ s < sign( s)s, 
+
+1, otherwise ,
+
+for some ω > 1, where sign( s) = 1 if s > 0 and sign( s) = −1 if s < 0. This weighting scheme distinguishes errors based on whether the trajectory lies in the unstable region and on the direction of the reconstruction error. When |s| ≤ τ , the trajectory is considered stable and assigned a unit weight. When s > τ or s < −τ , the weight depends on whether the reconstruction exaggerates or attenuates the instability. In particular, the model is encouraged to overestimate positive instability and underestimate negative instability. This asymmetric design intentionally exaggerates truly unstable trajectories, improving sensitivity near the stability boundary. The overall objective is therefore 
+
+L(ϕ, ψ, φ ) := 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+1
+
+KiKiX
+
+> k=1
+
+ωstb (si,k , ˆsi,k ) · ∥ si,k − ˆsi,k ∥2 + λ · L reg (ϕ), (10) where λ ≥ 0 controls the trade-off between reconstruction fidelity and latent uniformity regularization. In practice, we represent ϕ, ψ, and φ using deep neural networks. We minimize the empirical objective 
+
+L using stochastic gradient descent (SGD) or adaptive variants ( e.g. , Adam [ 33 ]). Each iteration samples a mini-batch from the baseline data, rolls out the latent dynamics via Eq. (7) to obtain reconstructions, evaluates the three loss components, and updates all parameters by backpropagation. We note that the latent uniformity term is implemented by estimating pU from the mini-batch latent representations and differentiating a tractable surrogate of Eq. (9) (e.g. , via maximum mean discrepancy (MMD) [ 26 ] or a flow matching loss [ 47 , 61 ]), so that gradients can be computed end-to-end. More implementation details are in Appendix B. 
+
+3.2 Latent Goodness-of-Fit Test for Dynamic Instability Detection 
+
+After training on the baseline domain, we freeze the learned encoder ϕ and use it to map contexts into a latent space where distributional testing is convenient. We denote the induced latent random variable 6as U = ϕ(X). Intuitively, the encoder is trained so that U retains stability-relevant information (via reconstruction and stability supervision), while being regularized toward a well-conditioned reference law which we denote as Q∗ (uniform distribution) due to the latent uniformity regularization. At deployment, we observe only new contexts Xj ∼ P1; therefore, our goal is to detect whether the latent pushforward distribution Q1 induced by the new context distribution P1, i.e. , Q1 := P1 ◦ ϕ−1,has shifted in a stability-relevant manner by comparing Q1 to the reference distribution Q∗.
+
+Assumption 1 (Latent Sufficiency for Stability) . We assume that U is sufficient for the decision, in the sense that there exists a measurable function ρ : [0 , 1] d → { 0, 1} such that 
+
+1 η sθ (·; X) ≤ τ = ρ(U ), a.s. That is, the stability event {η(sθ (·; X)) ≤ τ } depends on X only through U .
+
+We provide the following reformulation, which shows that the original stability testing problem can be reduced to testing uniformity in the latent space. The proof is provided in Appendix D. 
+
+Theorem 1 (Reformulation) . There exists a mapping ϕ : X → U such that U = ϕ(X) satisfies the Assumption 1 and the hypothesis test in (4) is equivalent to the following hypothesis test on the distribution Q1 of U :
+
+H0 : TV( Q1, Q ∗) ≤ α/ 2 vs. H1 : TV( Q1, Q ∗) > α/ 2, (11) 
+
+where Q∗ is the uniform distribution. 
+
+Remark 1. Theorem 1 shows that stability testing can be reduced from a complex and system-dependent problem to a purely distributional test in the latent space. More precisely, the encoder 
+
+ϕ can be constructed so that the latent variable preserves the stability label by mapping every safe context variable to the same reference law Q∗, while mapping contexts that violate the stability condition to latent laws that depart from Q∗. Under this construction, the tolerance parameter α
+
+determines how much probability mass is mapped to Q∗ and thus governs the magnitude of the resulting deviation from uniformity. 
+
+While Theorem 1 establishes an exact equivalence under ideal latent representations, this requirement can be relaxed. In Appendix E, we show that when the learned mapping only approximately satisfies latent sufficiency and calibration, the equivalence continues to hold up to an explicit error tolerance, yielding a robust testing criterion under representation misspecification. In the following Theorem, we characterize the type-I and type-II errors of the test induced by the alternative hypothesis in Eq. (11) , which is the test that achieves the optimal error exponent and thus characterizes the fundamental limits of testing performance. The proof is provided in Appendix F. 
+
+Theorem 2 (Testing Performance) . Consider latent samples U1, . . . , U n
+
+> i.i.d.
+
+∼ Q from the induced distribution Q as in Theorem 1, with empirical distribution bQn := 1
+
+> n
+
+Pni=1 δUi . Let KL( ·∥· ) denote the Kullback–Leibler divergence, and consider the test χn = 1{TV( bQn, Q ∗) > α/ 2}.
+
+1. Under the null hypothesis Q = Q0 with TV( Q0, Q ∗) ≤ α/ 2, type-I error is upper bounded by 
+
+PQ0
+
+
+
+TV( bQn, Q ∗) > α/ 2
+
+
+
+≤ exp 
+
+
+
+−n inf   
+
+> P: TV( P,Q ∗)>α/ 2
+
+KL( P ∥Q0) + o(n)
+
+
+
+.
+
+2. Under the alternative hypothesis Q = Q1 with TV( Q1, Q ∗) > α/ 2, type-II error is upper bounded by 
+
+PQ1
+
+
+
+TV( bQn, Q ∗) ≤ α/ 2
+
+
+
+≤ exp 
+
+
+
+−n inf   
+
+> P: TV( P,Q ∗)≤α/ 2
+
+KL( P ∥Q1) + o(n)
+
+
+
+.
+
+In practice, to account for possible deviations from exact uniformity in the learned encodings, we implement the testing procedure via a two-sample test in the latent space. Let D(·, ·) denote a discrepancy between distributions on [0 , 1] d, such as maximum mean discrepancy (MMD) [ 26 ], energy distance [ 72 ], or a classifier-based statistic [ 24 , 32 , 48 ]. Using {(xi, Si)}n′ 
+
+> i=1
+
+for training, we reserve a subset of baseline samples U0 = {Ui}ni=n′+1 for calibration and collect latent samples U1 =
+
+{Uj }n+mj=n+1 from the new domain. We then compute the empirical discrepancy ˆD = D(U0, U1)
+
+and reject the null if ˆD exceeds a threshold. The full procedure is summarized in Algorithm 1 7(a) Mass–spring–damper system. 
+
+> (b) Cartesian pendulum system.
+
+Figure 3: Comparison between L2T and other baselines under various distribution shifts. Green and red regions denote stable and unstable contexts, respectively, while dashed gray and solid black contours represent the baseline and shifted distributions. The top row of each panel shows baseline ( P0) and shifted ( P1) context distributions in the 2D space across representative regimes: null ( H0 → H0), boundary transition ( H0 → H1), and alternative ( H1 → H1). The bottom row presents empirical rejection rates of L2T and baseline methods, for varying shift magnitudes. The dotted horizontal line marks the nominal level α. The L2T achieves reliable type-I error control while maintaining better detection power near critical stability boundaries. (Appendix C). Compared to directly testing against the ideal uniform reference distribution, the two-sample formulation is more robust computationally: it implicitly calibrates against the learned baseline latent distribution, thereby mitigating errors due to finite-sample training, imperfect uniformization, and model misspecification. As a result, the test focuses on detecting relative shifts in stability-relevant structure and tends to be more reliable in practice. 
+
+# 4 Experiments 
+
+We evaluate the proposed method through synthetic experiments and a realistic power-system bench-mark dataset generated from physics-based simulations. The synthetic experiments include two representative dynamical systems: a mass–spring–damper system and a Cartesian pendulum sys-tem. In both cases, trajectories are generated under stochastic contexts, and stability is defined via trajectory-level functionals (maximum displacement or swing angle). Distribution shift is introduced through controlled perturbations of the context distribution, including mean, covariance, marginal, and dependence shifts, covering null, boundary-transition, and alternative regimes. 8Table 1: Comparison of empirical Type I and Type II errors at significance level 0.1.                                                                                                           
+
+> Dataset Metric MMD-ON -XBINARY -CLF .RECON -ONLY UNIFORM -ONLY L2T
+> Spring–mass–damper Type I ↓1.00 ±0.00 0.17 ±0.03 1.00 ±0.00 1.00 ±0.00 0.12 ±0.03
+> Type II ↓0.47 ±0.05 0.00 ±0.00 0.54 ±0.05 0.00 ±0.00 0.00 ±0.00
+> Cartesian pendulum Type I ↓1.00 ±0.04 0.83 ±0.04 0.00 ±0.00 0.13 ±0.03 0.13 ±0.03
+> Type II ↓0.00 ±0.00 0.56 ±0.05 1.00 ±0.00 0.90 ±0.03 0.02 ±0.01
+> IEEE 39-bus TSA Type I ↓0.26 ±0.05 0.28 ±0.05 0.08 ±0.03 0.12 ±0.04 0.15 ±0.04
+> Type II ↓0.00 ±0.00 0.00 ±0.00 0.07 ±0.03 0.54 ±0.06 0.02 ±0.02
+> Type I error is reported under the null, and Type II error is reported at a representative shift magnitude in the boundary-transition regime. For Type I error, values closer to level 0.1indicate better control; for Type II error, smaller values indicate higher detection power.
+
+For the power-system dataset, we use the IEEE 39-bus transient stability assessment (TSA) benchmark [ 5, 67 ], consisting of 12 ,852 simulated trajectories with 50 features from the IEEE New England 39-bus test system. Each trajectory corresponds to generator-level signals under varying operating conditions and fault scenarios, and is labeled as stable or unstable. We train on an imbalanced mixture of stable and unstable trajectories with a 90:10 ratio to reflect the practical setting where training data arise from the safe regime, with unstable samples appearing only rarely. For evaluation, we vary the proportion of unstable samples in the test set from 0% to 50% , thereby inducing shifts of increasing instability. Full details are provided in Appendix G. 
+
+Baselines and Configurations. We compare L2T against four methods: two baseline methods and two ablated variants of the proposed method. The baseline methods are: ( i) Context MMD [ 26 ]: a direct two-sample test on raw contexts X, ignoring system dynamics. ( ii ) Binary classifier : a supervised model that predicts trajectory stability from contexts X and then conducts a two-sample mean test on the predicted stability probabilities between baseline and deployment samples. The ablated variants, each retaining only one component of the training objective, are: ( iii ) Uniform-only :a latent representation trained with only uniformity regularization. (iv ) Reconstruction-only : a latent representation trained solely via trajectory reconstruction. Together, these methods provide complementary comparisons: the two baselines represent alternative instability detection strategies, while the two ablated variants isolate the contributions of latent representation geometry and dynamics-aware modeling in L2T . Unless otherwise specified, synthetic experiments use an MMD-based surrogate for the uniformity regularization in Eq. (10) . Models are trained for 100 epochs using Adam with learning rate 3 × 10 −3, regularization weight λ = 0 .01 , and stability-aware weighting parameter ω = 2 . For the binary classifier, we use a multi-layer perceptron trained with the same Adam configuration and logistic binary cross-entropy loss. Evaluation is based on empirical rejection rates under varying shift magnitudes. Unless otherwise specified, all hypothesis tests are conducted at the significance level 0.1.
+
+Results on Simulation Studies. Figure 3a summarizes results for the mass–spring–damper system, and Figure 3b for the Cartesian pendulum system. Table 1 provides a complementary comparison, reporting empirical Type I and Type II errors at one representative shift magnitude for each setting and dataset. In particular, we consider δ = 1 for the null setting and δ = 0 .50 for the boundary-transition setting. Across all settings, L2T consistently achieves reliable Type I error control under the null, with rejection rates close to the nominal significance level 0.1, while maintaining low Type II error and hence high power under the alternative, particularly in the boundary-transition regime where detection is most challenging. In contrast, existing methods exhibit clear failure modes. The context-only test is often overly sensitive to benign null shifts, leading to inflated type-I error. The reconstruction-only variant fails to detect instability reliably, indicating that accurate trajectory reconstruction alone does not induce a representation suitable for stability testing. The uniform-only variant can improve type-I error control in some settings but often has limited power, reflecting the importance of dynamics-aware structure. The binary classifier performs well in some regimes, particularly for the mass–spring–damper system, but is less consistent across datasets and may exhibit either poor type-I error control or weaker sensitivity in more challenging settings. These results highlight a central insight of our framework: effective stability testing requires both dynamics-aware representation learning and test-aligned latent geometry . The proposed method integrates these two aspects, enabling reliable detection even near critical stability boundaries where small shifts in context can induce qualitative changes in system behavior. 
+
+Results on TSA Benchmark. Unlike the synthetic experiments, where distribution shifts can be precisely controlled through parametric perturbations, the TSA data do not permit direct manipulation 9of the underlying context distribution. We therefore adopt a semi-synthetic evaluation protocol by varying the proportion of unstable trajectories in the test set, ranging from the null regime (100% stable) to increasingly contaminated mixtures. Table 1 provides a representative comparison, using a 100:0 stable-to-unstable ratio for the null setting and an 80:20 mixture for the alternative setting. Under the stronger shift ( 80:20 ), most methods achieve near-perfect detection, suggesting that sufficiently large distribution shifts are easily detectable regardless of representation. The key distinction, therefore, lies in type-I error control under the null regime. In particular, L2T achieves a favorable balance between Type I error control and detection power. Although it does not attain the smallest Type I error on this benchmark, it remains reasonably close to the target level while preserving near-perfect power. In contrast, several baselines perform well on only one of the two criteria, either exhibiting inflated Type I error or suffering a noticeable loss in power. This suggests that L2T yields the most balanced overall performance on the IEEE real-data benchmark. 
+
+# 5 Conclusion 
+
+We study stability assessment for constrained dynamical systems under distributional shifts and propose a test-oriented framework that integrates physics-informed representation learning with distributional hypothesis testing. By learning a latent representation that captures stability-relevant dynamics while inducing a test-friendly geometry, we reduced trajectory-level stability verification to a simple distributional test, supported by theoretical guarantees via a reformulation and large-deviation analysis. Empirically, our method achieved reliable type-I error control and strong detection power across synthetic systems and a real-world power system benchmark, particularly near critical stability boundaries where existing approaches struggle. 
+
+# Acknowledgments and Disclosure of Funding 
+
+The authors gratefully acknowledges Prof. Bai Cui (Iowa State University) for insightful discussions that helped shape the problem formulation and identify relevant real-world applications. 
+
+# References 
+
+[1] Zohreh Abbasi and Xinzhi Liu. Switched epidemic models: A contact rate dependent analysis. 
+
+Applied Mathematical Modelling , 128:168–194, 2024. [2] Paul M Anderson and Aziz A Fouad. Power system control and stability . John Wiley & Sons, 2008. [3] Ludwig Arnold. Random dynamical systems. In Dynamical Systems: Lectures Given at the 2nd Session of the Centro Internazionale Matematico Estivo (CIME) held in Montecatini Terme, Italy, June 13–22, 1994 , pages 1–43. Springer, 2006. [4] Uri M Ascher and Linda R Petzold. Computer methods for ordinary differential equations and differential-algebraic equations . SIAM, 1998. [5] Tom Athay, Robin Podmore, and Sudhir Virmani. A practical method for the direct analysis of transient stability. IEEE Transactions on Power Apparatus and Systems , (2):573–584, 2007. [6] Georges Bastin, Bertrand Haut, Jean-Michel Coron, and Brigitte d Andrea-Novel. Lyapunov stability analysis of networks of scalar conservation laws. Networks and Heterogeneous media ,2(4):749, 2007. [7] Felix Biggs, Antonin Schrab, and Arthur Gretton. Mmd-fuse: Learning and combining kernels for two-sample testing without data splitting. Advances in Neural Information Processing Systems , 36:75151–75188, 2023. [8] Marin Biloš, Johanna Sommer, Syama Sundar Rangapuram, Tim Januschowski, and Stephan Günnemann. Neural flows: Efficient alternative to neural odes. Advances in neural information processing systems , 34:21325–21337, 2021. [9] Bernard Bonzi, AA Fall, Abderrahman Iggidr, and Gauthier Sallet. Stability of differential susceptibility and infectivity epidemic models. Journal of mathematical biology , 62(1):39–64, 2011. 10 [10] Kathryn Eleda Brenan, Stephen L Campbell, and Linda Ruth Petzold. Numerical solution of initial-value problems in differential-algebraic equations . SIAM, 1995. [11] Nicolò Cangiotti, Marco Capolli, Mattia Sensi, and Sara Sottile. A survey on lyapunov functions for epidemic compartmental models. Bollettino dell’Unione Matematica Italiana , 17(2):241– 257, 2024. [12] Ricky TQ Chen, Yulia Rubanova, Jesse Bettencourt, and David K Duvenaud. Neural ordinary differential equations. Advances in neural information processing systems , 31, 2018. [13] Shuyi Chen, Ferdinando Fioretto, Feng Qiu, and Shixiang Zhu. Global-decision-focused neural odes for proactive grid resilience management. IEEE Transactions on Smart Grid , pages 1–1, 2025. [14] Hsiao-Dong Chiang, Felix Wu, and Peon Varaiya. Foundations of direct methods for power system transient stability analysis. IEEE Transactions on Circuits and systems , 34(2):160–173, 1987. [15] Kyunghyun Cho, Bart Van Merriënboer, Dzmitry Bahdanau, and Yoshua Bengio. On the properties of neural machine translation: Encoder–decoder approaches. In Proceedings of SSST-8, eighth workshop on syntax, semantics and structure in statistical translation , pages 103–111, 2014. [16] Junyoung Chung, Caglar Gulcehre, KyungHyun Cho, and Yoshua Bengio. Empirical evaluation of gated recurrent neural networks on sequence modeling. arXiv preprint arXiv:1412.3555 ,2014. [17] Amir Dembo and Ofer Zeitouni. Large deviations techniques and applications , volume 38. Springer Science & Business Media, 2009. [18] DIgSILENT GmbH. Digsilent powerfactory. https://www.digsilent.de/en/powerfactory.html. [19] David JD Earn and C Connell McCluskey. Global stability of epidemic models with uniform susceptibility. Proceedings of the National Academy of Sciences , 122(49):e2510156122, 2025. [20] Adam N Elmachtoub and Paul Grigas. Smart “predict, then optimize”. Management Science ,68(1):9–26, 2022. [21] Jeffrey L Elman. Finding structure in time. Cognitive science , 14(2):179–211, 1990. [22] A Fall, Abderrahman Iggidr, Gauthier Sallet, and Jean-Jules Tewa. Epidemiological models and lyapunov functions. Mathematical Modelling of Natural Phenomena , 2(1):62–83, 2007. [23] Audrey Favache and Denis Dochain. Thermodynamics and chemical systems stability: The cstr case study revisited. Journal of Process Control , 19(3):371–379, 2009. [24] Jerome Friedman. On multivariate goodness-of-fit and two-sample testing. Technical report, Stanford Linear Accelerator Center, Menlo Park, CA (US), 2004. [25] Tom Ginsberg, Zhongyuan Liang, and Rahul G Krishnan. A learning based hypothesis test for harmful covariate shift. arXiv preprint arXiv:2212.02742 , 2022. [26] Arthur Gretton, Karsten M. Borgwardt, Malte J. Rasch, Bernhard Schölkopf, and Alexander Smola. A kernel two-sample test. Journal of Machine Learning Research , 13(25):723–773, 2012. [27] Sepp Hochreiter and Jürgen Schmidhuber. Long short-term memory. Neural computation ,9(8):1735–1780, 1997. [28] Yicun Huang, Changfu Zou, Yang Li, and Torsten Wik. Minn: Learning the dynamics of differential-algebraic equations and application to battery modeling. IEEE Transactions on Pattern Analysis and Machine Intelligence , 46(12):11331–11344, 2024. 11 [29] Josh Kacher, Yao Xie, Sven P. Voigt, Shixiang Zhu, Henry Yuchi, Jordan Key, and Surya R. Kalidindi. In situ transmission electron microscopy: Signal processing challenges and examples. 
+
+IEEE Signal Processing Magazine , 39(1):89–103, 2022. [30] Arne Kesting and Martin Treiber. How reaction time, update time, and adaptation time influence the stability of traffic flow. Computer-Aided Civil and Infrastructure Engineering , 23(2):125– 137, 2008. [31] Rafail Khasminskii. Stochastic stability of differential equations , volume 66. Springer Science & Business Media, 2011. [32] Ilmun Kim, Aaditya Ramdas, Aarti Singh, and Larry Wasserman. Classification accuracy as a proxy for two-sample testing. The Annals of Statistics , 49(1):411–434, 2021. [33] Diederik P Kingma and Jimmy Ba. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 , 2014. [34] Matthias Kirchler, Shahryar Khorasani, Marius Kloft, and Christoph Lippert. Two-sample testing using deep learning. In International Conference on Artificial Intelligence and Statistics ,pages 1387–1398. PMLR, 2020. [35] James Koch, Madelyn Shapiro, Himanshu Sharma, Draguna Vrabie, and Ján Drgoˇ na. Learning neural differential algebraic equations via operator splitting. In 2025 IEEE 64th Conference on Decision and Control (CDC) , pages 2077–2084. IEEE, 2025. [36] Andrei Korobeinikov and Graeme C Wake. Lyapunov functions and global stability for sir, sirs, and sis epidemiological models. Applied mathematics letters , 15(8):955–960, 2002. [37] Prabha Kundur. Power System Stability and Control . McGraw-Hill, New York, 1994. [38] Prabha Kundur, John Paserba, Venkat Ajjarapu, Göran Andersson, Anjan Bose, Claudio Canizares, Nikos Hatziargyriou, David Hill, Alex Stankovic, Carson Taylor, et al. Defini-tion and classification of power system stability ieee/cigre joint task force on stability terms and definitions. IEEE transactions on Power Systems , 19(3):1387–1401, 2004. [39] Peter Kunkel and Volker Mehrmann. Differential-Algebraic Equations: Analysis and Numerical Solution . European Mathematical Society, Zürich, 2006. [40] Dieter Landolt. Corrosion and surface chemistry of metals . EPFL press, 2007. [41] Joseph LaSalle. Some extensions of liapunov’s second method. IRE Transactions on circuit theory , 7(4):520–527, 1960. [42] Jun-Young Lee and Hyung-Jun Chae. 6.6-kw onboard charger design using dcm pfc converter with harmonic modulation technique and two-stage dc/dc converter. IEEE Transactions on Industrial Electronics , 61(3):1243–1252, 2013. [43] Ke Li and Jitendra Malik. Learning to optimize. arXiv preprint arXiv:1606.01885 , 2016. [44] Lijuan Li, Yuange Li, Yongdong Chen, Hongliang Liu, and Qingsong Zhang. Analysis of power system angle stability based on heun algorithm under gauss and jump excitation. In Journal of Physics: Conference Series , volume 2369, page 012036. IOP Publishing, 2022. [45] Ting Li, Jianguo Li, and Zhanxing Zhu. Neural lad: A neural latent dynamics framework for times series modeling. In Thirty-seventh Conference on Neural Information Processing Systems ,2023. [46] Daniel Liberzon. Switching in systems and control , volume 190. Springer, 2003. [47] Yaron Lipman, Ricky TQ Chen, Heli Ben-Hamu, Maximilian Nickel, and Matt Le. Flow matching for generative modeling. arXiv preprint arXiv:2210.02747 , 2022. [48] David Lopez-Paz and Maxime Oquab. Revisiting classifier two-sample tests. arXiv preprint arXiv:1610.06545 , 2016. 12 [49] Enrico Lovisari, Giacomo Como, Anders Rantzer, and Ketan Savla. Stability analysis and control synthesis for dynamical transportation networks. arXiv preprint arXiv:1410.5956 , 2014. [50] Aleksandr Mikhailovich Lyapunov. The general problem of the stability of motion. International journal of control , 55(3):531–534, 1992. [51] Digby D Macdonald. The point defect model for the passive state. Journal of the Electrochemical Society , 139(12):3434–3449, 1992. [52] Jayanta Mandi, Vıctor Bucarey, Maxime Mulamba Ke Tchomba, and Tias Guns. Decision-focused learning: Through the lens of learning to rank. In International conference on machine learning , pages 14935–14947. PMLR, 2022. [53] Jayanta Mandi, James Kotary, Senne Berden, Maxime Mulamba, Victor Bucarey, Tias Guns, and Ferdinando Fioretto. Decision-focused learning: Foundations, state of the art, benchmark and future opportunities. Journal of Artificial Intelligence Research , 80:1623–1701, 2024. [54] Federico Milano. Power system modelling and scripting . Springer Science & Business Media, 2010. [55] Yaniv Ovadia, Emily Fertig, Jie Ren, Zachary Nado, David Sculley, Sebastian Nowozin, Joshua Dillon, Balaji Lakshminarayanan, and Jasper Snoek. Can you trust your model’s uncertainty? evaluating predictive uncertainty under dataset shift. Advances in neural information processing systems , 32, 2019. [56] Panagiotis N Papadopoulos and Jovica V Milanovi´ c. Probabilistic framework for transient stability assessment of power systems with high penetration of renewable generation. IEEE Transactions on Power Systems , 32(4):3078–3088, 2016. [57] Aleksandr Podkopaev and Aaditya Ramdas. Sequential predictive two-sample and independence testing. Advances in neural information processing systems , 36:53275–53307, 2023. [58] Christopher Rackauckas, Yingbo Ma, Julius Martensen, Collin Warner, Kirill Zubov, Rohit Supekar, Dominic Skinner, Ali Ramadhan, and Alan Edelman. Universal differential equations for scientific machine learning. arXiv preprint arXiv:2001.04385 , 2020. [59] Maziar Raissi, Paris Perdikaris, and George E Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational physics , 378:686–707, 2019. [60] Christopher V Rao and Adam P Arkin. Stochastic chemical kinetics and the quasi-steady-state assumption: Application to the gillespie algorithm. The Journal of chemical physics ,118(11):4999–5010, 2003. [61] Danilo Rezende and Shakir Mohamed. Variational inference with normalizing flows. In 
+
+International conference on machine learning , pages 1530–1538. PMLR, 2015. [62] John Brian Roberts and Pol D Spanos. Random vibration and statistical linearization . Courier Corporation, 2003. [63] Elan Rosenfeld, Pradeep Ravikumar, and Andrej Risteski. An online learning approach to interpolation and extrapolation in domain generalization. In International Conference on Artificial Intelligence and Statistics , pages 2641–2657. PMLR, 2022. [64] Yulia Rubanova, Ricky TQ Chen, and David K Duvenaud. Latent ordinary differential equations for irregularly-sampled time series. Advances in neural information processing systems , 32, 2019. [65] David E Rumelhart, Geoffrey E Hinton, and Ronald J Williams. Learning representations by back-propagating errors. nature , 323(6088):533–536, 1986. [66] Sobhan Sadri and Christine Wu. Stability analysis of a nonlinear vehicle model in plane motion using the concept of lyapunov exponents. Vehicle System Dynamics , 51(6):906–924, 2013. 13 [67] Petar Sarajcev, Antonijo Kunac, Goran Petrovic, and Marin Despalatovic. IEEE New England 39-bus test case: Dataset for the transient stability assessment. 2022. [68] Peter W Sauer, Mangalore A Pai, and Joe H Chow. Power system dynamics and stability: with synchrophasor measurement and power system toolbox . John Wiley & Sons, 2017. [69] Kazimierz Sobczyk. Stochastic differential equations: with applications to physics and engi-neering , volume 40. Springer Science & Business Media, 2013. [70] Živko Sokolovi´ c. Dataset for transient stability assessment of IEEE 39-bus system, 2024. [71] Subra Suresh. Fatigue of materials . Cambridge university press, 1998. [72] Gábor J Székely and Maria L Rizzo. Energy statistics: A class of statistics based on distances. 
+
+Journal of statistical planning and inference , 143(8):1249–1272, 2013. [73] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. Advances in neural information processing systems , 30, 2017. [74] R Venkatesh, Deepak Dasaratha Rao, V Sangeetha, Ch Subbalakshmi, V Bala Dhandayuthapani, and R Mekala. Enhancing stability in autonomous control systems through fuzzy gain scheduling (fgs) and lyapunov function analysis. International Journal of Applied and Computational Mathematics , 10(4):130, 2024. [75] Gregory C Walsh, Hong Ye, and Linda G Bushnell. Stability analysis of networked control systems. IEEE transactions on control systems technology , 10(3):438–446, 2002. [76] Hangzhou Wang, Zhihong Yuan, Bingzhen Chen, Xiaorong He, Jinsong Zhao, and Tong Qiu. Analysis of the stability and controllability of chemical processes. Computers & chemical engineering , 35(6):1101–1109, 2011. [77] Prince Zizhuang Wang, Shuyi Chen, Jinhao Liang, Ferdinando Fioretto, and Shixiang Zhu. Gen-dfl: Decision-focused generative learning for robust decision making. arXiv preprint arXiv:2502.05468 , 2025. [78] Xiaoting Wang and Sophie G Schirmer. Analysis of lyapunov method for control of quantum states. IEEE Transactions on Automatic control , 55(10):2259–2270, 2010. [79] Xinyi Wang and Lang Tong. Innovations autoencoder and its application in one-class anomalous sequence detection. Journal of Machine Learning Research , 23(49):1–27, 2022. [80] Yu Wang, Xiaopeng Li, Junfang Tian, and Rui Jiang. Stability analysis of stochastic linear car-following models. Transportation Science , 54(1):274–297, 2020. [81] Song Wei, Shixiang Zhu, Minghe Zhang, and Yao Xie. Goodness-of-fit test for mismatched self-exciting processes. In International Conference on Artificial Intelligence and Statistics ,pages 1243–1251. PMLR, 2021. [82] Bryan Wilder, Eric Ewing, Bistra Dilkina, and Milind Tambe. End to end learning and optimization on graphs. Advances in Neural Information Processing Systems , 32, 2019. [83] Qing-Hua Wu, Yuqing Lin, Chao Hong, Yinsheng Su, Tianhao Wen, and Yang Liu. Transient stability analysis of large-scale power systems: A survey. CSEE Journal of Power and Energy Systems , 9(4):1284–1300, 2023. [84] Qiao Xiao, Boqian Wu, Yu Zhang, Shiwei Liu, Mykola Pechenizkiy, Elena Mocanu, and Decebal Constantin Mocanu. Dynamic sparse network for time series classification: Learning what to “see”. Advances in Neural Information Processing Systems , 35:16849–16862, 2022. [85] Rose Yu and Rui Wang. Learning dynamical systems from data: An introduction to physics-guided deep learning. Proceedings of the National Academy of Sciences , 121(27):e2311808121, 2024. 14 [86] Yong Yu, Xiaosheng Si, Changhua Hu, and Jianxun Zhang. A review of recurrent neural networks: Lstm cells and network architectures. Neural computation , 31(7):1235–1270, 2019. [87] Lingxiao Yuan, Harold S Park, and Emma Lejeune. Towards out of distribution generalization for problems in mechanics. Computer Methods in Applied Mechanics and Engineering , 400:115569, 2022. [88] Henry Yuchi, Shixiang Zhu, Li Dong, Yigit M. Arisoy, and Matthew C. Spencer. New user event prediction through the lens of causal inference. In Yingzhen Li, Stephan Mandt, Shipra Agrawal, and Emtiyaz Khan, editors, Proceedings of The 28th International Conference on Artificial Intelligence and Statistics , volume 258 of Proceedings of Machine Learning Research ,pages 2953–2961. PMLR, 03–05 May 2025. [89] Aoran Zhang, Wenbin Zhou, Liyan Xie, and Shixiang Zhu. Recurrent neural goodness-of-fit test for time series. In Yingzhen Li, Stephan Mandt, Shipra Agrawal, and Emtiyaz Khan, editors, 
+
+Proceedings of The 28th International Conference on Artificial Intelligence and Statistics ,volume 258 of Proceedings of Machine Learning Research , pages 2917–2925. PMLR, 03–05 May 2025. [90] Guowei Zhang, Xianguang Kong, Qibin Wang, Jingli Du, Jinrui Wang, and Hongbo Ma. Single domain generalization method based on anti-causal learning for rotating machinery fault diagnosis. Reliability Engineering & System Safety , 250:110252, 2024. [91] Xi Zhang, Yuan Pu, Yuki Kawamura, Andrew Loza, Yoshua Bengio, Dennis L Shung, and Alexander Tong. Trajectory flow matching with applications to clinical time series modelling. 
+
+Advances in Neural Information Processing Systems , 37:107198–107224, 2024. [92] Wenbin Zhou, Liyan Xie, Zhigang Peng, and Shixiang Zhu. Sequential change point detection via denoising score matching. arXiv preprint arXiv:2501.12667 , 2025. [93] Wenbin Zhou, Liyan Xie, and Shixiang Zhu. Score-based change-point detection and region localization for spatio-temporal point processes. arXiv preprint arXiv:2602.04798 , 2026. 15 A Motivating Examples 
+
+We highlight two representative application domains where this formulation in Eq. (4) arises naturally. 
+
+Power systems with stochastic loads or generations . Electric power grids must maintain frequency, voltage, and thermal limits while accommodating stochastic demand and renewable generation. Their dynamics are described by the generator swing equations coupled with algebraic power-flow constraints [ 2, 37 , 68 ]. The state s(t) includes generator rotor angles and frequencies, while algebraic variables a(t) enforce network power balance and voltage constraints. The exogenous context X
+
+captures load profiles, renewable outputs, or network configurations. A baseline domain corresponds to normal operating conditions under which stability margins are well established. When the context distribution shifts—due to large data-center loads, renewable intermittency, or extreme weather—new operating conditions arise. Full dynamic trajectories under these regimes are typically unavailable, as large-scale disturbance experiments or exhaustive simulations are costly and potentially risky. Instead, operators often observe only contextual information such as load forecasts or topology changes. The proposed framework evaluates whether the probability of violating stability limits over a time horizon remains below a prescribed level under the shifted context distribution, enabling statistically grounded security assessment under emerging grid conditions. 
+
+Material degradation and structural integrity . Material degradation processes such as corrosion and fatigue crack growth are governed by physical laws that couple time-evolving damage dynamics with thermodynamic and mechanical constraints. These processes are commonly modeled by differential equations for damage evolution together with algebraic constitutive or equilibrium relations [ 29 , 40 , 51 , 71 ]. The state s(t) may represent corrosion depth or crack length, while the exogenous context X encodes environmental and usage conditions such as humidity, temperature, salinity, or load cycles. A baseline regime corresponds to operating conditions where degradation behavior and safety margins are well understood. When the environment changes, the distribution of 
+
+X shifts, yet full degradation trajectories under the new regime are typically unavailable without long-term monitoring or destructive testing. Our framework asks whether the probability that degradation exceeds a critical threshold over a given horizon remains below a target level under the new context distribution, enabling uncertainty-aware maintenance and inspection decisions. 
+
+# B Implementation Details on Physics-Informed Representation Learning 
+
+This section describes practical implementations of the three loss components in Eq. (10) . Throughout, we train the parameters of the encoder ϕ, decoder ψ, and update function φ using mini-batch stochastic gradient methods. Each iteration samples a mini-batch B = {(xi, Si)}i∈I from the baseline data, computes latent representations ui = ϕ(xi), rolls out the latent dynamics in Eq. (7) to obtain reconstructions, evaluates the losses on the mini-batch, and updates parameters by backpropagation through the unrolled computation graph. 
+
+Reconstruction loss in Eq. (8) : The sample size Ki may vary across trajectories (irregular sampling). We either ( i) pad shorter sequences and apply a mask, or ( ii ) subsample a fixed-length window per trajectory per iteration. Gradients are computed by differentiating through ˆsi,k = ψ(hi,k ) and the recurrent updates hi,k +1 = φ(si,k , h i,k , u i).
+
+Uniformity regularization in Eq. (9) : We encourage the latent representations u = ϕ(x) ∈ [0 , 1] d
+
+to follow Unif(0 , 1) d, so that downstream stability testing reduces to detecting deviations from uniformity in the new domain. We present two practical implementations. 
+
+Maximum Mean Discrepancy (MMD) to Uniform. Let {ui}Bi=1 be latent representations from a mini-batch with B being the sample size of the mini-batch, and let {vj }Bj=1 be i.i.d. samples from vj ∼ Unif(0 , 1) d. The squared maximum mean discrepancy (MMD) [ 26 ] between pU and the uniform distribution is 
+
+MMD 2(pU , Unif) = Eu∼pU [κ(u, ·)] − Ev∼Unif [κ(v, ·)] 2
+
+> Hκ
+
+,
+
+where κ is a positive definite kernel and Hκ is the associated reproducing kernel Hilbert space. Using unbiased (or biased) V-statistic estimators, we implement 
+
+LMMD reg := \MMD 2
+
+({ui}Bi=1 , {vj }Bj=1 )
+
+16 = 1
+
+B2
+
+> B
+
+X
+
+> i=1
+> B
+
+X
+
+> i′=1
+
+κ(ui, u i′ ) + 1
+
+B2
+
+> B
+
+X
+
+> j=1
+> B
+
+X
+
+> j′=1
+
+κ(vj , v j′ ) − 2
+
+B2
+
+> B
+
+X
+
+> i=1
+> B
+
+X
+
+> j=1
+
+κ(ui, v j ).
+
+A common choice is the Gaussian kernel κ(u, u ′) = exp( −∥ u − u′∥2/(2 σ2)) with bandwidth 
+
+σ chosen by a median heuristic or a small grid. This loss is fully differentiable in {ui}, hence differentiable in ϕ via ui = ϕ(xi).At each iteration, we proceed as follows: ( i) compute ui = ϕ(xi) for i = 1 , . . . , B ; ( ii ) sample 
+
+vj ∼ Unif(0 , 1) d for j = 1 , . . . , B ; ( iii ) evaluate the kernel matrices Kuu = [ κ(ui, u i′ )] , Kvv =[κ(vj , v j′ )] , Kuv = [ κ(ui, v j )] ; ( iv ) compute LMMD reg via the above V-statistic and backpropagate. This option is typically stable and requires no density estimation when d is small. 
+
+Direct Entropy Maximization via a Normalizing Flow. An alternative is to model the latent distribution explicitly using a bijective normalizing flow [ 47 , 61 ]. Let v ∈ Rd be a base random variable with known density pV (e.g. , uniform). Let Fβ : Rd → (0 , 1) d be an invertible map parameterized by β, and define the latent code as 
+
+u = Fβ (v), v ∼ pV .
+
+The induced density of u is given by the change-of-variables formula: 
+
+pU (u) = pV
+
+ F−1 
+
+> β
+
+(u) · det ∇uF−1 
+
+> β
+
+(u) . (12) To couple this with the context encoder, we parameterize ϕ itself as a flow mapping from a simple base distribution conditioned on x. A simple and effective approach is to fit a flow to the empirical latent representations and use the flow log-density to approximate differential entropy. The differential entropy satisfies H(pU ) = −Eu∼pU [log pU (u)] . Using Eq. (12), we obtain 
+
+H(pU ) = −Eu∼pU
+
+ log pU (u)
+
+= −Eu∼pU
+
+h
+
+log pV
+
+ F−1 
+
+> β
+
+(u) + log det ∇uF−1 
+
+> β
+
+(u)
+
+i
+
+. (13) Thus, maximizing entropy is equivalent to minimizing the negative log-likelihood under the flow model. In practice, given a mini-batch {ui}Bi=1 , we implement 
+
+Lflow reg := 1
+
+B
+
+> B
+
+X
+
+> i=1
+
+h
+
+− log pV (vi) − log det ∇uF−1 
+
+> β
+
+(ui)
+
+i
+
+, vi = F−1 
+
+> β
+
+(ui),
+
+and differentiate through both ϕ (via ui = ϕ(xi)) and the flow parameters β.To explicitly enforce Unif(0 , 1) d, we can choose the base density pV to be uniform and select Fβ as an invertible transformation on (0 , 1) d. In this case, minimizing Lflow reg encourages {ui} to match the target law by making them high-likelihood under a flow whose output is constrained to [0 , 1] d.At each iteration, we proceed as follows: ( i) compute ui = ϕ(xi) for i = 1 , . . . , B ; ( ii ) evaluate 
+
+vi = F−1 
+
+> β
+
+(ui) and log | det ∇uF−1 
+
+> β
+
+(ui)| via the flow; ( iii ) compute Lflow reg and backpropagate through 
+
+(ϕ, β ). Compared with the MMD-based approach, the flow-based formulation provides an explicit parametric density model for pU and a direct estimate of differential entropy. It scales more naturally to higher-dimensional latent spaces, albeit at the cost of increased computational overhead and additional modeling complexity. 
+
+# C Details of Two-Sample Test Procedure 
+
+In this section, we describe the practical implementation corresponding to Theorem 1. In the ideal setting, the baseline latent distribution Q0 coincides with the reference distribution Q∗, and the resulting test reduces to the one-sample formulation in Theorem 2. In practice, however, due to finite-sample training noise, model misspecification, and optimization error, the learned baseline latent distribution typically only approximates Q∗.For this reason, we implement the procedure using a two-sample test in the latent space. Let 
+
+{Xi}ni=n′+1 ∼ P0 denote a held-out set of baseline contexts, and let {Xj }n+mj=n+1 ∼ P1 denote the 17 Algorithm 1 Learning-to-Test ( L2T ) with a two-sample test 
+
+Require: Baseline data {(xi, Si)}ni=1 ; new contexts {xj }n+mj=n+1 ; discrepancy D; significance level 
+
+α; split point n′ < n  
+
+> 1:
+
+Train encoder ˆϕ on {(xi, Si)}n′ 
+
+> i=1
+> 2:
+
+U0 ← { ˆϕ(xi)}ni=n′+1 , U1 ← { ˆϕ(xj )}n+mj=n+1  
+
+> 3:
+
+bT ← D(U0, U1) 
+
+> 4:
+
+Reject H0 if bT > t α ▷ t α denotes a level-α critical value; see Remark 2 for details.  
+
+> 5:
+
+return 1{ bT > t α}
+
+contexts from the test domain. After training the encoder ˆϕ on {(xi, Si)}n′
+
+> i=1
+
+, we map both sets of contexts into the latent space and obtain 
+
+U0 = { ˆϕ(Xi)}ni=n′+1 , U1 = { ˆϕ(Xj )}n+mj=n+1 .
+
+which are samples from the induced latent empirical distributions bQ0 = P0 ◦ ˆϕ−1 and bQ1 = P1 ◦ ˆϕ−1,respectively. We then perform a two-sample test between bQ0 and bQ1.Given a discrepancy measure D(·, ·), we compute the test statistic bT = D(U0, U1), and reject the null hypothesis whenever bT exceeds a calibrated critical value tα, indicating evidence that the system has moved away from the stable baseline regime. The full procedure is summarized in Algorithm 1. 
+
+Remark 2. The choice of the critical value tα depends on the discrepancy D. For example, if D is taken to be the two-sample Kolmogorov–Smirnov statistic, then tα can be chosen according to its asymptotic null distribution. If D is given by the MMD or the energy distance, then tα may be chosen by permutation or bootstrap. More generally, any valid testing method that ensures level-α control for the chosen two-sample test can be used. 
+
+# D Proof of Theorem 1 
+
+Proof. Let 
+
+Y := 1 η sθ (·; X) ≤ τ ,
+
+so that Y = 1 denotes a stable context and Y = 0 an unstable context. By Definition 1, 
+
+P1 ∈ P 0 ⇐⇒ PP1 (Y = 1) ≥ 1 − α ⇐⇒ p1 := PP1 (Y = 0) ≤ α. 
+
+Thus, the original hypothesis test is equivalent to 
+
+H0 : p1 ≤ α vs. H1 : p1 > α. (14) We now construct a latent variable U = ϕ(X) ∈ [0 , 1] . Since X is standard Borel and the conditional laws P1(· | Y = 0) and P1(· | Y = 1) are nonatomic, there exist measurable maps 
+
+T0 : X → [0 , 1] , T1 : X → [0 , 1] ,
+
+such that 
+
+T0(X) | (Y = 0) ∼ Unif[0 , 1] , T1(X) | (Y = 1) ∼ Unif[0 , 1] .
+
+Define 
+
+ϕ(X) = 
+
+
+
+α
+
+2 T0(X), Y = 0 ,α
+
+2 +
+
+
+
+1 − α
+
+2
+
+
+
+T1(X), Y = 1 .
+
+(15) Then U = ϕ(X) satisfies 
+
+U | (Y = 0) ∼ Unif[0 , α/ 2] , U | (Y = 1) ∼ Unif[ α/ 2, 1] .
+
+Hence Y is a measurable function of U , namely 
+
+Y = ρ(U ), ρ(u) = 1{u ≥ α/ 2},
+
+which proves the latent sufficiency claim. 18 Next, let Q1 denote the law of U under P1, and write p1 = PP1 (Y = 0) . By the above conditional construction, Q1 has density f1 with respect to Lebesgue measure on [0 , 1] :
+
+f1(u) = 2p1
+
+α 1[0 ,α/ 2] (u) + 1 − p1
+
+1 − α/ 2 1(α/ 2,1] (u).
+
+On the other hand, the reference law Q∗ = Unif[0 , 1] has density f ∗(u) ≡ 1.We now compute the total variation distance: 
+
+TV( Q1, Q ∗) = 12
+
+Z 10
+
+f1(u) − 1 du 
+
+= 12
+
+"Z α/ 20
+
+2p1
+
+α − 1 du +
+
+Z 1
+
+> α/ 2
+
+1 − p1
+
+1 − α/ 2 − 1 du 
+
+#
+
+.
+
+Evaluating each term gives 
+
+Z α/ 20
+
+2p1
+
+α − 1 du = α
+
+2
+
+2p1 − αα = p1 − α
+
+2 ,
+
+and Z 1
+
+> α/ 2
+
+1 − p1
+
+1 − α/ 2 − 1 du = (1 − p1) −
+
+
+
+1 − α
+
+2
+
+
+
+= p1 − α
+
+2 .
+
+Therefore, 
+
+TV( Q1, Q ∗) = p1 − α
+
+2 .
+
+Since p1 ∈ [0 , 1] , we have 
+
+p1 ≤ α ⇐⇒ p1 − α
+
+2 ≤ α
+
+2 .
+
+Combining this with (14), we obtain 
+
+P1 ∈ P 0 ⇐⇒ TV( Q1, Q ∗) ≤ α/ 2.
+
+This proves that the original hypothesis test in (4) is equivalent to the latent distribution test in (11). 
+
+# E Approximate Reformulation under Imperfect Representations 
+
+The exact reformulation in Theorem 1 relies on the existence of an ideal latent representation that is both sufficient for stability and perfectly calibrated to a reference distribution. In practice, however, the encoder ϕ is learned from finite data and will generally only satisfy these properties approximately. In this section, we show that the proposed L2T framework remains valid under such approximation errors. Specifically, we quantify how deviations from latent sufficiency and distributional calibration translate into controlled perturbations of the induced testing problem. We establish that the total variation distance between the latent distribution and the reference law continues to characterize the original stability condition up to an explicit error tolerance, resulting in a decision rule with a well-defined ambiguity band. This provides a robustness guarantee for the proposed approach when the learned representation is imperfect. 
+
+Assumption 2 (Approximate latent sufficiency and calibration) . Let U = ϕ(X) ∈ [0 , 1] be the learned latent representation, and let 
+
+bY := ρ(U ) = 1{U > α/ 2}.
+
+Assume the following hold under the new-domain distribution P1:1. Approximate latent sufficiency :
+
+PP1
+
+
+
+Y̸ = bY
+
+
+
+≤ εsuf .
+
+19 2. Approximate class-conditional calibration : writing bp1 := PP1 ( bY = 0) , and letting bQ0 and bQ1
+
+denote the conditional laws of U given bY = 0 and bY = 1 , respectively, we have 
+
+TV   bQ0, Unif[0 , α/ 2]  ≤ ε0, TV   bQ1, Unif[ α/ 2, 1]  ≤ ε1.
+
+Theorem 3 (Approximate reformulation) . Suppose Assumption 2 holds. Let 
+
+p1 := PP1 (Y = 0) , Q1 := P1 ◦ ϕ−1, Q∗ = Unif[0 , 1] .
+
+Then 
+
+TV( Q1, Q ∗) − p1 − α
+
+2 ≤ εsuf + bp1ε0 + (1 − bp1)ε1. (16) 
+
+In particular, defining ¯ε := εsuf + max {ε0, ε 1}, we have the simpler bound 
+
+TV( Q1, Q ∗) − p1 − α
+
+2 ≤ ¯ε. (17) 
+
+Consequently, if ( i) TV( Q1, Q ∗) ≤ α/ 2 − ¯ε, then P1 ∈ P 0; ( ii ) if TV( Q1, Q ∗) > α/ 2 + ¯ ε, then 
+
+P1 /∈ P 0.Hence, the exact equivalence in Theorem 1 is replaced by an ambiguity band of width 2¯ ε around the threshold α/ 2.Proof. Let 
+
+bp1 = PP1 ( bY = 0) .
+
+Since bY = 1{U ≤ α/ 2}, the law Q1 of U admits the mixture decomposition 
+
+Q1 = bp1 bQ0 + (1 − bp1) bQ1.
+
+Also, the uniform reference law can be written as 
+
+Q∗ = α
+
+2 Unif[0 , α/ 2] + 
+
+
+
+1 − α
+
+2
+
+
+
+Unif[ α/ 2, 1] .
+
+We first compare Q1 against the ideal mixture built from the predicted label mass: 
+
+eQ1 := bp1 Unif[0 , α/ 2] + (1 − bp1) Unif[ α/ 2, 1] .
+
+By convexity of total variation under mixtures, 
+
+TV( Q1, eQ1) = TV 
+
+bp1 bQ0 + (1 − bp1) bQ1, bp1 Unif[0 , α/ 2] + (1 − bp1) Unif[ α/ 2, 1] 
+
+
+
+≤ bp1 TV   bQ0, Unif[0 , α/ 2]  + (1 − bp1) TV   bQ1, Unif[ α/ 2, 1] 
+
+≤ bp1ε0 + (1 − bp1)ε1. (18) Next, because the supports [0 , α/ 2] and [α/ 2, 1] are disjoint, the total variation distance between eQ1
+
+and Q∗ is exactly the difference in mixture weights: 
+
+TV( eQ1, Q ∗) = bp1 − α
+
+2 . (19) Indeed, writing the corresponding densities with respect to Lebesgue measure, 
+
+˜f1(u) = 2bp1
+
+α 1[0 ,α/ 2] (u) + 1 − bp1
+
+1 − α/ 2 1(α/ 2,1] (u), f ∗(u) ≡ 1,
+
+a direct calculation yields 
+
+TV( eQ1, Q ∗) = 12
+
+Z 10
+
+| ˜f1(u) − 1| du = bp1 − α
+
+2 .
+
+Combining (18), (19), and the triangle inequality gives 
+
+TV( Q1, Q ∗) − bp1 − α
+
+2 ≤ bp1ε0 + (1 − bp1)ε1. (20) 20 We now relate bp1 to the true instability probability p1 = PP1 (Y = 0) . Observe that 
+
+|p1 − bp1| = P(Y = 0) − P( bY = 0) ≤ P(Y̸ = bY ) ≤ εsuf .
+
+Since the map x 7 → | x − α/ 2| is 1-Lipschitz, 
+
+bp1 − α
+
+2 − p1 − α
+
+2 ≤ | bp1 − p1 | ≤ εsuf . (21) Finally, combining (20) and (21) yields 
+
+TV( Q1, Q ∗) − p1 − α
+
+2 ≤ εsuf + bp1ε0 + (1 − bp1)ε1,
+
+which proves (16). The simplified bound (17) follows immediately from 
+
+bp1ε0 + (1 − bp1)ε1 ≤ max {ε0, ε 1}.
+
+To prove part (a), suppose 
+
+TV( Q1, Q ∗) ≤ α
+
+2 − ¯ε. 
+
+Then by (17), 
+
+p1 − α
+
+2 ≤ TV( Q1, Q ∗) + ¯ ε ≤ α
+
+2 .
+
+Since p1 ∈ [0 , 1] , the inequality p1 − α/ 2 ≤ α/ 2 is equivalent to p1 ≤ α. Hence P1 ∈ P 0.For part (b), suppose 
+
+TV( Q1, Q ∗) > α
+
+2 + ¯ ε. 
+
+Again by (17), 
+
+p1 − α
+
+2 ≥ TV( Q1, Q ∗) − ¯ε > α
+
+2 .
+
+Since p1 ≥ 0, the strict inequality p1 − α/ 2 > α/ 2 implies p1 > α . Therefore P1 /∈ P 0.This establishes the claimed ambiguity band. 
+
+# F Proof of Theorem 2 
+
+Proof. We prove the two claims separately by applying Sanov’s theorem [ 17 ]. We first define the acceptance and rejection regions in the measure space on U as 
+
+A0 := {P ∈ P (U) : TV( P, Q ∗) ≤ α/ 2} , A1 := {P ∈ P (U) : TV( P, Q ∗) > α/ 2} .
+
+Then the test can be rewritten as 
+
+χn = 1{ bQn ∈ A 1}.
+
+Type-I error bound. Under the null hypothesis Q = Q0 with TV( Q0, Q ∗) ≤ α/ 2. The type-I error probability is 
+
+PQ0 (χn = 1) = PQ0
+
+ bQn ∈ A 1
+
+
+
+= PQ0
+
+
+
+TV( bQn, Q ∗) > α/ 2
+
+
+
+.
+
+Apply the large-deviation upper bound from Sanov’s theorem yields 
+
+lim sup 
+
+> n→∞
+
+1
+
+n log PQ0
+
+ bQn ∈ A 1
+
+
+
+≤ − inf  
+
+> P∈A 1
+
+KL( P ∥Q0).
+
+Equivalently, 
+
+PQ0
+
+ bQn ∈ A 1
+
+
+
+≤ exp 
+
+
+
+−n inf  
+
+> P∈A 1
+
+KL( P ∥Q0) + o(n)
+
+
+
+.
+
+That is, 
+
+PQ0
+
+
+
+TV( bQn, Q ∗) > α/ 2
+
+
+
+≤ exp 
+
+
+
+−n inf   
+
+> P: TV( P,Q ∗)≥α/ 2
+
+KL( P ∥Q0) + o(n)
+
+
+
+,
+
+21 which proves the first claim. 
+
+Type-II error bound. Under the alternative hypothesis Q = Q1 with TV( Q1, Q ∗) > α/ 2. The type-II error probability is 
+
+PQ1 (χn = 0) = PQ1
+
+ bQn ∈ A 0
+
+
+
+= PQ1
+
+
+
+TV( bQn, Q ∗) ≤ α/ 2
+
+
+
+.
+
+Applying Sanov’s theorem directly gives 
+
+lim sup 
+
+> n→∞
+
+1
+
+n log PQ1
+
+ bQn ∈ A 0
+
+
+
+≤ − inf  
+
+> P∈A 0
+
+KL( P ∥Q1).
+
+Equivalently, 
+
+PQ1
+
+ bQn ∈ A 0
+
+
+
+≤ exp 
+
+
+
+−n inf  
+
+> P∈A 0
+
+KL( P ∥Q1) + o(n)
+
+
+
+.
+
+Substituting the definition of A0, we obtain 
+
+PQ1
+
+
+
+TV( bQn, Q ∗) ≤ α/ 2
+
+
+
+≤ exp 
+
+
+
+−n inf   
+
+> P: TV( P,Q ∗)≤α/ 2
+
+KL( P ∥Q1) + o(n)
+
+
+
+,
+
+which proves the second claim. Therefore, both type-I and type-II errors decay exponentially fast. This completes the proof. 
+
+# G Details of Experimental Configuration and Additional Results 
+
+This section provides detailed descriptions of the experimental setups and additional results supporting the main text. We present the full configurations of synthetic and real-data experiments, including system dynamics, context distributions, and distribution shift designs, as well as supplementary empirical results that further illustrate the statistical performance and robustness of the proposed method. 
+
+G.1 Simulation Experiments 
+
+This section describes the synthetic experimental setups used to evaluate our method. We consider two representative systems: an unconstrained mass–spring–damper system and a constrained Cartesian pendulum governed by DAEs. 
+
+Mass–Spring–Damper System. We consider a one-dimensional mass–spring–damper system with state s(t) ∈ R evolving as 
+
+m¨s(t) + c ˙s(t) + ks (t) = u(t; X), t ∈ [0 , T ],
+
+where θ = ( m, c, k ) are fixed physical parameters. Unless otherwise specified, we initialize the system at rest with s(0) = 0 and ˙s(0) = 0 . The external forcing is parameterized by a random context X = ( X1, X 2) ∈ X via 
+
+u(t; X) = X1 sin( X2t),
+
+where X1 controls the forcing magnitude and X2 the oscillation frequency. For a trajectory sθ (·; X),we define the stability functional 
+
+η sθ (·; X) = max  
+
+> t∈[tℓ,t u]
+
+|sθ (t; X)|,
+
+and declare the trajectory stable if η ≤ τ for a given tolerance τ > 0.The baseline context distribution is P0 = N (0, I 2) over (X1, X 2). We consider two types of distribution shifts: ( i) mean shifts , P1(δ) = N (μ0 + δv, I 2) with ∥v∥2 = 1 , and ( ii ) covariance shifts , P1(δ) = N (0, Σδ ) with 
+
+Σδ =
+
+1 + δ1 00 1 + δ2
+
+
+
+.
+
+These perturbations induce regimes corresponding to null, boundary-transition, and alternative settings (Table 2). 22 Table 2: Summary of the synthetic shift settings.                                                      
+
+> Example Shift Null Boundary-transition Alternative
+> Spring Mean μ0= (0 ,0) ,
+> v= (0 ,1)
+> μ0= (0 ,0) ,
+> v= (1 ,0)
+> μ0= ( −1,0) ,
+> v= (0 ,1)
+> Covariance Σδ=
+> 1001 + δ
+> 
+> Σδ=
+> 1 + δ001
+> 
+> N/A Pendulum Marginal (α1, β 1) =  1 + 10 3δ, 2 + 20 3δ
+> (α2, β 2) = (1 ,4) (α1, β 1) = (1 ,2)
+> α2= 1 + 1 .5δ, β 2= 4 −1.5δ
+> (α1, β 1) = (1 .5,1.5)
+> α2= 1 + 1 .5δ, β 2= 4 −1.5δ
+> Dependence ρ=−δρ=δN/A
+
+Cartesian Pendulum System. We consider a constrained dynamical system governed by DAEs. Let s(t) ∈ R3 denote the bob position and u(t; X) ∈ R3 the pivot trajectory. The dynamics are 
+
+m¨s(t) = mg 0 + ( s(t) − u(t; X)) a(t), g0 = (0 , 0, −g)⊤, (22a) 
+
+0 = 12
+
+ ∥s(t) − u(t; X)∥22 − ℓ2, (22b) where θ = ( m, ℓ, g ) and a(t) enforces the rigid rod constraint. Unless otherwise specified, we initialize the system with bob position 
+
+s(0) = (0 .15 , 0, −0.9887) ⊤,
+
+initial velocity 
+
+˙s(0) = (0 , 0.8, 0) ⊤,
+
+and initial pivot position 
+
+u(0; X) = (0 , 0, 0) ⊤.
+
+The pivot trajectory is parameterized by a random context X = ( X1, X 2, X 3) ∈ X via 
+
+u(t; X) = X1 exp 
+
+
+
+− (t − t0)2
+
+2X23
+
+
+
+sin  X2(t − t0) q, 
+
+where q = (1 , 0, 0) ⊤. Here X1, X2, and X3 control the excitation magnitude, oscillation frequency, and temporal spread, respectively. We define stability via the maximum swing angle 
+
+η(sθ (·; X)) = max   
+
+> t∈[0 ,T ]
+
+φθ (t; X), φθ (t; X) = arccos 
+
+
+
+− (sθ (t; X) − u(t; X)) ⊤ez
+
+ℓ
+
+
+
+,
+
+with ez = (0 , 0, 1) ⊤. A trajectory is stable if η ≤ τ for τ ∈ (0 , π/ 2) . Geometrically, this restricts motion on the sphere of radius ℓ to a downward cone, equivalently a bounded region in the horizontal projection. For the baseline distribution, we fix X3 = 1 and sample (X1, X 2) independently using scaled Beta distributions: 
+
+X1 ∼ Amin + ( Amax − Amin ) Beta( α1, β 1), [Amin , A max ] = [0 .1, 0.3] ,X2 ∼ ωmin + ( ωmax − ωmin ) Beta( α2, β 2), [ωmin , ω max ] = [1 , 5] ,
+
+with α1, β 1 = 1 , 2 and α2, β 2 = 1 , 4. We consider two classes of shifts: ( i) marginal shifts , induced by changing the Beta parameters of (X1, X 2), and ( ii ) dependence shifts , induced by introducing correlation ρ between X1 and X2. These shifts define null, boundary-transition, and alternative regimes (Table 2). 
+
+Experimental Configurations. Across both synthetic examples, trajectories are simulated over the time interval [0 , T ] with T = 10 and discretized using a uniform step size ∆t = 0 .05 , yielding 
+
+200 time points per trajectory. For each setting in Table 2, contexts are drawn from the baseline distribution P0 for training and held-out evaluation, and from the corresponding shifted distribution P1
+
+for testing. We use 5,000 trajectories for training, 1,000 held-out baseline trajectories for evaluation, and 1,000 test trajectories for evaluation under the shifted regime. Unless otherwise specified, the training data are constructed to contain approximately 90% stable and 10% unstable trajectories. The stability threshold is set to τ = 1 for the spring system and to τ = 35 ◦ (equivalently, τ ≈ 0.61 
+
+radians) for the pendulum. Throughout the synthetic experiments, we use a one-dimensional latent representation, i.e. , d = 1 . All reported means and standard deviations in Figures 3a and 3b, and in Table 1, are computed over 100 independent runs. 23 (a) Active Power (b) Excitation Current (c) Rotor Angle  
+
+> (d) Rotor Speed (e) Terminal Voltage
+
+Figure 4: Trajectory visualization for generator G01. Blue curves denote stable trajectories, while red curves denote unstable ones. Each subplot corresponds to a different system variable: active power, excitation current, rotor angle, rotor speed, and terminal voltage. Stable trajectories exhibit consistent and structured dynamics, whereas unstable trajectories show greater variability and dispersion. 
+
+G.2 Transient Stability Assessment on IEEE 39-Bus System 
+
+We evaluate our framework on a transient stability assessment (TSA) benchmark generated from the IEEE New England 39-bus power system [ 70 ]. The dataset contains 12 ,852 time-domain simulation trajectories with 50 features, produced using DIgSILENT PowerFactory [ 18 ] with Python-based automation. To cover diverse operating conditions, generation and load levels are varied from 80% to 120% in 5% 
+
+increments. For each operating point, three-phase short-circuit faults are applied at seven locations (0% , 10% , 20% , 50% , 80% , 90% , 100% ) along transmission lines, with clearing times ranging from 
+
+0.1s to 0.3s. Each simulation runs for 10 s, and post-fault trajectories are sampled at 0.01 s resolution from the fault clearance time to 0.6s afterward. Each trajectory records generator-level signals for 10 generators, including active power, terminal voltage, excitation current, rotor speed, and rotor angle (relative to G02, the reference machine). Each sample is labeled as stable ( 1) or unstable ( 0), with approximately 42% unstable cases. 
+
+Data Split We adopt a stable-versus-unstable testing protocol. Among 12 ,852 trajectories, 7,460 
+
+are stable and 5,392 are unstable. For training, we sample 5,000 trajectories consisting of 90% stable and 10% unstable samples, resulting in 4,500 stable and 500 unstable trajectories. The remaining stable and unstable samples are reserved for evaluation. At test time, we construct evaluation sets under both the null regime ( 100% stable) and shifted regimes by varying the proportion of unstable trajectories (e.g., 80% /20% mixtures). All features are normalized using statistics computed from the training set only, across both sample and time dimensions. The same normalization is applied to all evaluation data to avoid leakage. 
+
+Trajectory Characteristics. To provide intuition on the TSA dataset, we visualize a subset of trajectories from generator G01 across five representative variables: active power, excitation current, rotor angle, rotor speed, and terminal voltage. For each variable, we randomly sample 10 stable and 10 unstable trajectories. As shown in Figure 4, stable trajectories exhibit relatively consistent patterns in both magnitude and temporal dynamics, forming a concentrated and structured region in trajectory space. In contrast, 24 unstable trajectories display significantly higher variability, with diverse shapes, amplitudes, and temporal behaviors. 
+
+Context Construction Each trajectory has length 60 with 50 features per time step. In our setting, the exogenous context is defined as the first observation of each trajectory: 
+
+Xi = si, 1 ∈ R50 .
+
+This corresponds to using the initial system state as the context variable. Since trajectories in this dataset begin immediately after fault clearance, this observation represents the post-fault system state at the onset of transient dynamics. The remaining trajectory is used to construct a single training pair per sample. Specifically, each trajectory is evenly split into two halves: 
+
+ohist  
+
+> i
+
+= ( si, 1, . . . , s i,T / 2), onext  
+
+> i
+
+= ( si,T / 2+1 , . . . , s i,T ),
+
+where T = 60 . This yields one (ohist , o next ) pair per trajectory. 
+
+Model Training We train a conditional GRU model to predict future dynamics conditioned on the context and past trajectory segment. The latent dimension is set to dv = 1 , and models are trained using Adam with standard hyperparameters. The latent representation is regularized toward a uniform distribution via an MMD-based objective. All models are trained on GPU (CUDA). 
+
+Evaluation Protocol At test time, each trajectory is mapped to a latent representation using only its context Xi. We sample a reference set of 1,000 stable trajectories from the held-out stable pool to represent the baseline latent distribution. To perform hypothesis testing, we repeatedly construct reference and test batches. Each batch consists of 512 samples drawn with replacement. The reference batch is sampled from the reference stable pool, while the test batch is constructed from a mixture of stable and unstable samples according to a specified ratio. We perform two-sample tests in the latent space, comparing the reference and test batches using either MMD-based statistics or Welch’s t-test on predicted probabilities. For each setting, the testing procedure is repeated 200 times, and we report the empirical rejection rate. 25
