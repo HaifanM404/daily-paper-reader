@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-001.webp",
+      "caption": "Figure 4: Performance comparison on testing data. (a) 1-step ranking: NN1PR vs. Tanimoto similarity baseline. About 55% of samples were ranked among the top-10 by NN1PR, compared to only 3% by the baseline. (b) 2-step ranking: NN2PR vs. NN1PR. NN2PR increased top-10 coverage by about 26% over NN1PR, but the improvement was narrower as rank increased to top-100.",
+      "page": 6,
+      "index": 1,
+      "width": 819,
+      "height": 350
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-002.webp",
+      "caption": "Figure 1: A general retrobiosynthesis workflow consists of two parts. In network generation, the target is used as the seed for metabolic network generation, which adopts some candidate selection algorithm to choose candidate intermediates and applies generalized enzymatic reaction rules on those intermediates to propose hypothetical reactions for network expansion. In pathway pruning/ranking, all generated reactions/pathways are evaluated by pruning/ranking models to reduce the number of candidates. All remaining pathways are extracted for qualitative and quantitative analysis. Pruning/ranking algorithms generally incorporate domain-specific knowledge, like structural similarity and enzyme availability assessment, theoretical yield in the context of a metabolic model, and thermodynamic constraints, to analyze the plausibility of each pathway. Scoring functions are popular choices for quantifying the plausibility of all remaining pathways and give a list of ranked pathway candidates for assisting experimental design. (adapted from [95, 26]).",
+      "page": 2,
+      "index": 2,
+      "width": 819,
+      "height": 331
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-003.webp",
+      "caption": "Figure 5: Ranks assigned by NN1PR to the BDO pathway reported in [95] in a backward manner with 234501 templates (116 BNICE + 234384 RetroPath). Each step is annotated with a rank. Multiple ECs could produce the desired result in each step as summarized in Table 1.",
+      "page": 7,
+      "index": 3,
+      "width": 736,
+      "height": 919
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-004.webp",
+      "caption": "Table 1: EC numbers for BDO pathway using 234501 reaction templates.",
+      "page": 10,
+      "index": 4,
+      "width": 849,
+      "height": 458
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-005.webp",
+      "caption": "Figure 8: Three candidates for BDO synthesis found by the proposed pipeline. At the top is the reported pathway that synthesizes BDO (1,4-Butanediol) from 4-Hydroxybutyrate. Three candidates were found by the computational pipeline proposed. Candidate 1 skipped compound C in the original pathway; candidate 2 was an exact match; candidate 3 replaced the -CoA group in compound C with -SH group.",
+      "page": 10,
+      "index": 5,
+      "width": 731,
+      "height": 354
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-006.webp",
+      "caption": "Figure 6: Ranks assigned by NN1PR for glycolysis pathway in a backward manner. 234501 templates were used in backward enumeration step to produce results here. Ranks here were the best ranks if there were alternatives leading to the same target. ECs were ECs associated with the corresponding rank, and ECs in bold were the ECs recorded in KEGG.",
+      "page": 8,
+      "index": 6,
+      "width": 740,
+      "height": 1039
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-007.webp",
+      "caption": "Figure 2: Architectures of the neural network pathway ranking models. (a) NN1PR: a 1-step pathway ranking model that takes the concatenation of target and precursor ECFPs (1024-bit) as input. (b) NN2PR: a 2-step pathway ranking model that takes the concatenation of target, first-step precursor, and second-step precursor ECFPs (1536-bit) as input. Both models output a scalar score ∈ [0, 1] quantifying the plausibility of the pathway.",
+      "page": 4,
+      "index": 7,
+      "width": 826,
+      "height": 410
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-008.webp",
+      "caption": "Figure 7: Ranks assigned by NN1PR for the naloxone pathway designed by human expert in a backward manner. Each step was annotated with a rank and corresponding EC number(s). The 116 templates in BNICE rule set and 234384 templates from RetroPath were used in backward enumeration step to produce results in this figure.",
+      "page": 9,
+      "index": 8,
+      "width": 819,
+      "height": 1034
+    },
+    {
+      "url": "assets/figures/arxiv/2604.13471v1/fig-009.webp",
+      "caption": "Figure 3: Proposed multistep metabolic pathway design pipeline with NN1PR and NN2PR as ranking models. Given a compound for retrobiosynthesis, enzymatic templates are applied for 1st-step backward enumeration, followed by NN1PR ranking. High-ranked candidates are chosen for 2nd-step enumeration and results are pruned by NN1PR before being ranked by NN2PR. The process goes on as in the 2nd step until reaching the specified maximum step. A pathway reconstruction step would then search through all generated pathways for desired ones (not shown in the figure).",
+      "page": 5,
+      "index": 9,
+      "width": 826,
+      "height": 270
+    }
+  ]
+}

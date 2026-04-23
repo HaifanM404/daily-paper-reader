@@ -1,0 +1,758 @@
+Title: "Excuse me, may I say something..." CoLabScience, A Proactive AI Assistant for Biomedical Discovery and LLM-Expert Collaborations
+
+URL Source: https://arxiv.org/pdf/2604.15588v1
+
+Published Time: Mon, 20 Apr 2026 00:18:23 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# "Excuse me, may I say something... " CoLabScience, A Proactive AI Assistant for Biomedical Discovery and LLM-Expert Collaborations 
+
+Yang Wu ♣ Jinhong Yu ♣ Jingwei Xiong ♡
+
+Zhimin Tao ♢ Xiaozhong Liu ♣∗ ♣Worcester Polytechnic Institute, Worcester, MA, USA 
+
+> ♡
+
+University of California, Davis, CA, USA 
+
+> ♢
+
+Jiangsu University, Zhenjiang, Jiangsu, China 
+
+{ywu19, jyu7, xliu14}@wpi.edu jwxxiong@ucdavis.edu jsutao@ujs.edu.cn 
+
+Abstract 
+
+The integration of Large Language Models (LLMs) into scientific workflows presents ex-citing opportunities to accelerate biomedical discovery. However, the reactive nature of LLMs, which respond only when prompted, limits their effectiveness in collaborative set-tings that demand foresight and autonomous engagement. In this study, we introduce CoLab-Science, a proactive LLM assistant designed to enhance biomedical collaboration between AI systems and human experts through timely, context-aware interventions. At the core of our method is PULI ( Positive-Unlabeled Learning-to-Intervene ), a novel framework trained with a reinforcement learning objective to determine when and how to intervene in streaming sci-entific discussions, by leveraging the team’s project proposal and long- and short-term con-versational memory. To support this work, we introduce BSDD ( Biomedical Streaming Dia-logue Dataset ), a new benchmark of simulated research discussion dialogues with intervention points derived from PubMed articles. Exper-imental results show that PULI significantly outperforms existing baselines in both inter-vention precision and collaborative task utility, highlighting the potential of proactive LLMs as intelligent scientific assistants. 1
+
+1 Introduction 
+
+Recent developments in large language models (LLMs) have fostered advancements in scientific research, enabling accelerated discovery in biomed-ical fields (Luo et al., 2022; Ma et al., 2024; Jin et al., 2025). In particular, existing work has ex-plored their potential across tasks such as drug repurposing, disease diagnosis, and clinical ques-tion answering (Qi et al., 2024; Zhao et al., 2023; Lu et al., 2024c). Despite these successes, current models primarily function in a reactive paradigm 
+
+> ∗
+
+Corresponding author. 
+
+> 1
+
+https://github.com/YANGWU001/CoLabScience. Reactive 
+
+> LLM
+> Proactive LLM
+> We’re dealing with
+> hormone receptor -
+> negative… I suggest…
+> Project Goal: Develop a PTEN -targeted therapy
+> for hormone -negative breast cancer…
+> Excuse me, may I provide a
+> suggestion… PTEN loss often
+> co -occurs with PIK3CA or
+> TP53 mutations…
+> How about
+> isogenic TNBC cell
+> lines with PTEN…
+> …validate PTEN
+> signaling changes…
+> Meeting Memory
+> learn
+> Answer
+> Question
+> When/how to
+> intervene
+
+Figure 1: Comparison of Reactive and Proactive LLMs in Biomedical Collaboration. Traditional reactive LLMs (left) respond only after being prompted, while proactive LLMs (right) monitor ongoing discussions, identify op-portunities to contribute domain-relevant insights, and intervene with timely and context-aware suggestions without explicit prompting. 
+
+(Liao et al., 2023; Lu et al., 2024c; Yao et al., 2025a), responding solely upon explicit prompts from researchers. This interaction mode signifi-cantly restricts their effectiveness in collaborative settings, where the absence of proactive interven-tions can lead to missed critical insights and oppor-tunities (Yang et al., 2025b; Wu et al., 2024b). In re-sponse to these limitations, we propose that LLMs supporting biomedical research should evolve to-ward proactive engagement: continuously track-ing ongoing discussions, understanding emerging contexts, and autonomously identifying appropri-ate moments for contribution—integrating into the team as an active team member rather than remain-ing a passive tool. For instance, as illustrated in Figure 1, a traditional reactive LLM (Hassouna et al., 2025; Zhou et al., 2026) responds passively only after being explicitly prompted by the Clini-cal Physician, whereas a proactive LLM tracks the discussion, identifies timely opportunities to con-tribute PTEN-relevant insights, and initiates sug-gestions that facilitate scientific progress without 
+
+> arXiv:2604.15588v1 [cs.CL] 16 Apr 2026
+
+waiting for direct queries. Motivated by the need for proactive engagement, we present CoLabScience, a novel AI assistant that transforms LLMs from reactive tools to proac-tive collaborators in biomedical research. At its core lies PULI ( Positive-Unlabeled Learning-to-Intervene ), a framework trained with reinforcement learning to determine when and how to intervene during scientific discussions. To train this model, we constructed BSDD ( Biomedical Streaming Dia-logue Dataset ), a collection of simulated scientific dialogues characterized by multiple research roles (e.g., Pharmacologist, Clinical Physician), gener-ated by LLMs with content grounded in PubMed literature (Sayers et al., 2024). To ensure the relia-bility of LLM-derived labels and mitigate halluci-nation risk (Huang et al., 2025; Sriramanan et al., 2024), we adopt a sparse labeling strategy in which only the most valuable intervention points are la-beled as positive, while all others remain unlabeled (Kiryo et al., 2017; Wu et al., 2023). By leveraging CoLabScience’s coordinator to identify reliable negative interventions from the positive-unlabeled (PU) data, we employ a two-tier approach: training a small Observer LLM with Group Relative Policy Optimization (GRPO) (Shao et al., 2024) to determine when to intervene and fine-tuning a large-scale Presenter LLM with su-pervised learning to generate appropriate interven-tion content. This architecture enables real-time di-alogue monitoring via the efficient Observer model, invoking the computationally expensive Presenter model only when an intervention is needed. Re-ward signals from both models are integrated to train the reinforcement learning coordinator, en-abling an end-to-end training loop. By incorporat-ing the project proposal (i.e., project goals, datasets, and background knowledge) and dual-scale con-versational memory, in which long-term memory retains critical prior insights and short-term mem-ory captures the evolving conversational context (Hatalis et al., 2023; Zhong et al., 2024), CoLab-Science proactively delivers scientifically grounded interventions without requiring explicit prompting. Our contributions in this paper are threefold and can be summarized as follows: 
+
+• We propose CoLabScience, a proactive LLM assistant that supports efficient biomedical re-search collaboration through context-aware inter-ventions. Unlike reactive LLMs, CoLabScience au-tonomously determines when and how to intervene during ongoing research discussions by leveraging project context and conversational history. 
+
+• We introduce BSDD, a new open benchmark consisting of simulated biomedical research dia-logues grounded in PubMed articles and annotated with proactive intervention labels. BSDD provides a valuable resource for training and evaluating fu-ture proactive scientific assistants, advancing re-search in this emerging area. 
+
+• We empirically validate CoLabScience’s effec-tiveness through both simulation-based evaluation and human evaluation. The results demonstrate the model’s strong generalization ability and robust-ness across a range of LLM backbones. 
+
+2 Related Work 
+
+Large Language Models as Scientific Assistants 
+
+Recent advances in LLMs have shown promise in biomedical research through protein structure pre-diction, antibiotic discovery, and drug repurposing (Wong et al., 2024; Zambaldi et al., 2024; Jumper et al., 2021; Swanson et al., 2024; Gottweis et al., 2025; Yao et al., 2025b). Beyond the biomedical domain, systems like Agent Laboratory and AI Sci-entist (Schmidgall et al., 2025; Lu et al., 2024a) automate research pipelines from hypothesis gen-eration to reporting, while Agentic Reasoning (Wu et al., 2025a) enhances multi-step reasoning. Complementing these systems, RECODE-H (Miao et al., 2025) benchmarks human-agent collabora-tion through multi-turn code development. How-ever, these approaches are largely reactive, whereas CoLabScience enables context-aware, timely inter-ventions during ongoing scientific discussions. 
+
+Proactive Capabilities in Large Language Models Recent work explores LLM proactivity through structured prompting, including initiative-taking in collaboration (Zhang et al., 2024a; Lu et al., 2024b; Wu et al., 2025c), clarification-seeking behaviors (Zhang et al., 2024c; Qian et al., 2024; Liu et al., 2024; Pang et al.; Li et al., 2024; Wu et al., 2024c), and requesting user support in complex tasks (Wu et al., 2024a). VideoLLM-Online (Chen et al., 2024) extends this to multi-modal streaming, training models to determine op-timal narration timing. However, these approaches rely on hand-crafted prompts and fixed logic, limit-ing adaptive intervention. In contrast, we introduce a trainable reinforcement learning mechanism that enables context-aware, timing-sensitive proactive decision-making. 3 Methodology 
+
+3.1 Preliminary Definitions 
+
+We formalize the proactive intervention task based on multi-round scientific dialogues, where each round corresponds to a single utterance from one team member. Let D = {D1, D 2, . . . , D M } de-note a collection of independent multi-round di-alogues. Each dialogue Di = {di
+
+1, d i
+
+2, . . . , d iNi }
+
+consists of Ni rounds generated from a fixed project proposal Ci, which defines the research goal, background knowledge, and relevant datasets. We aggregate all dialogue rounds into a positive-unlabeled (PU) intervention training set: 
+
+{d1, d 2, . . . , d N },
+
+where N = PMi=1 Ni is the total number of can-didate rounds. The PU training set contains u un-labeled rounds U = {d1, . . . , d u} with unknown intervention necessity, and (N −u) labeled positive rounds P = {du+1 , . . . , d N }.Based on the PU dataset, our task is to jointly learn (1) when to intervene, using a Observer Hϕ,and (2) how to intervene, using a Presenter Gψ.To facilitate the training of both LLMs, we intro-duce a reinforcement learning framework where a coordinator model Fθ identifies potential positive and negative samples from the unlabeled data. To enhance understanding and clarity, a summary of notations is provided in Table 1.                                    
+
+> Notations Descriptions
+> D={D1, . . . , D M}Set of Mmulti-round dialogues.
+> Di={di
+> 1, . . . , d iNi}i-th dialogue with Nirounds.
+> CiProject proposal context of Di(goal, back-ground, datasets).
+> U={d1, . . . , d u}Unlabeled intervention rounds.
+> P={du+1 , . . . , d N}Positive intervention rounds.
+> dnn-th unlabeled intervention round.
+> C(dn)Project proposal associated with the original dialogue of dn.
+> ML(dn)Long-term memory of dn.
+> MS(dn)Short-term memory of dn.
+> M(dn)Overall contextualized memory.
+> FθCoordinator model.
+> HϕObserver LLM for intervention timing.
+> GψPresenter LLM for intervention responses.
+
+Table 1: Notations. 
+
+3.2 PULI Mechanism 
+
+In this section, we introduce the PULI mechanism, which jointly learns when and how to intervene in multi-round scientific dialogues using a positive-unlabeled dataset. An overview of the framework is shown in Figure 2. ......  ...... 
+
+> Pr oj ect Pr oposal (e.g., goal , back gr ou n d)
+> LTM
+> STM
+
+U Un l abel ed 
+
+> I nt er vent i on s
+> LTM
+> STM
+> LTM
+> STM
+> ......
+> ......
+> Con cat en at e
+> ......
+> Tr ai n i n g Dat aset
+> Coor di n at or
+> State
+> ......
+
+P
+
+> Action Spa ce
+> Si l ent
+> Label ed Posi t i ve
+> I nt er vent i on s
+> I nt er ven e
+> Pr esent er
+> SFT
+> Updat e
+> Au gm ent ed
+> Posi t i ve
+> I nt er vent i on s
+> Rewa r d
+
++
+
+?
+
+(1- ?) .
+
+.
+
+> Negat i ve
+> I nt er vent i on s
+
+N
+
+> GRPO
+> Updat e
+> Obser ver
+> Updat e
+> Coor di n at or
+> Pol i cy
+
+Figure 2: Illustration of PULI framework. The coordi-nator decides whether to intervene or remain silent for each unlabeled dialogue round. Silent rounds are used as negative samples to update the Observer through GRPO training to learn intervention timing, while intervention rounds augment positive data to refine the Presenter to generate appropriate intervention content. The Observer and Presenter collaboratively provide rewards to opti-mize the coordinator in an end-to-end training process. 
+
+3.2.1 Multi-Round Dialogue State 
+
+For each unlabeled intervention round dn ∈ U at local dialogue step t, we construct a contextualized memory Mt(dn) comprising three components: (1) the project proposal C(dn), specifying the re-search goal, background, and data information; (2) a short-term memory MSt (dn), capturing the cur-rent utterance and its two most recent predecessors; (3) a long-term memory MLt (dn), summarizing accumulated meeting insights up to step t. The memory construction is defined as: 
+
+MSt (dn) = {dt−2 
+
+> n
+
+, d t−1 
+
+> n
+
+, d tn},
+
+MLt (dn) = 
+
+(
+
+∅, if t = 0 ,
+
+Γ  MLt−1(dn) ∪ M St−1(dn) , if t > 0,
+
+Mt(dn) = [ C(dn), MSt (dn), MLt (dn)] .
+
+(1) 
+
+For initial steps where t < 2, we omit unavail-able indices in MSt (dn), e.g., MS
+
+0 (dn) = {d0
+
+n}and MS 
+
+> 1
+
+(dn) = {d0
+
+> n
+
+, d 1
+
+> n
+
+}. This design ensures that the short-term memory is well-formed at all time steps, while the long-term memory recursively compresses earlier rounds via the LLM summarizer 
+
+Γ( ·) to prevent excessive memory accumulation. To obtain the reinforcement learning state, we process the memory input Mt(dn) through both the Observer Hϕ and the Presenter Gψ, and extract their final hidden representations to construct the state embedding Sn:         
+
+> Sn=Concat  ΨHϕ(Mt(dn)) ,Ω ΨGψ(Mt(dn))  ,
+> (2)
+
+where ΨHϕ (·) and ΨGψ (·) denote the last hidden layer representations of Hϕ and Gψ, respectively, and Concat (·, ·) denotes the concatenation operator. To ensure dimensional consistency between the last hidden layer representations of the Observer and Presenter, we introduce a learnable linear projec-tor Ω( ·) that projects ΨGψ (Mt(dn)) into the same dimension as the ΨHϕ (Mt(dn)) . The projector is jointly optimized with the coordinator policy Fθ to determine whether to intervene at round dn.
+
+3.2.2 Silent or Intervene? 
+
+To identify potential intervene (positive) and silent (negative) samples from the PU data, the coordi-nator in our PULI framework formulates a binary decision-making problem. Specifically, for each unlabeled candidate round dn, the coordinator ob-serves the dialogue state Sn and selects an action 
+
+an ∈ { 0, 1}, where an = 1 indicates choosing to intervene, and an = 0 corresponds to remaining silent. Formally, we implement the coordinator Fθ
+
+as a multilayer perceptron (MLP), which takes the state Sn as input and outputs an intervention prob-ability Fθ(Sn) ranging from 0 to 1. The MLP uses ReLU activations in hidden layers and a sigmoid function in the output layer to produce probabilistic decisions. We adopt a fixed decision threshold of 0.5 to map Fθ(Sn) to a binary action: an = 1 if 
+
+Fθ(Sn) ≥ 0.5, and an = 0 otherwise. The coordinator’s policy function is defined as:               
+
+> πθ(Sn, a n) = Pθ(an|Sn)=an· F θ(Sn) + (1 −an)·(1 − F θ(Sn)) ,
+> (3)
+
+where πθ(Sn, a n) denotes the probability of select-ing action an given state Sn. This design enables the coordinator Fθ to learn to identify reliable neg-ative examples (i.e., rounds to remain silent) from unlabeled intervention candidates, supporting ef-fective policy refinement. 
+
+3.2.3 Learning-to-Intervene Reward 
+
+At each global training epoch T of PULI, after the coordinator selects a set of negative interventions 
+
+N , these negative samples are combined with the labeled positive interventions P from the training dataset to construct a binary supervision signal. The Observer is then trained using GRPO (Shao et al., 2024), where it is rewarded with 1 for cor-rectly identifying a sample’s intervention label and 0 otherwise. The model’s performance is evalu-ated on a held-out validation set, and we denote the validation accuracy at epoch T as zT .To effectively encourage learning, we compare the current Observer’s performance against the best historical performance. Specifically, we define the reward for intervention timing, rwhen , as: 
+
+rwhen = zT − xT , (4) where xT = max( z0, z 1, . . . , z T −1) represents the best validation accuracy achieved in previous epochs, and z0 corresponds to the Observer trained at initialization by treating all unlabeled instances as negative. In parallel, the selected positive samples are used to augment the labeled positive intervention set, re-sulting in an expanded positive set P′. This set is used to train the Presenter via supervised fine-tuning. To evaluate the quality of generated in-terventions, we compute the ROUGE-1 score of the LLM on held-out validation examples. Let the ROUGE-1 score at epoch T be denoted as lT . The reward for intervention content quality, rhow , is defined as 
+
+rhow = lT − hT , (5) where hT = max( l0, l 1, . . . , l T −1) is the highest validation ROUGE-1 score observed up to epoch 
+
+T − 1.Finally, the total reward rtotal used to update the coordinator is a weighted combination of the two components: 
+
+rtotal = λ · rwhen + (1 − λ) · rhow , (6) where λ ∈ [0 , 1] balances the importance between 
+
+when to intervene and how to intervene. In all experiments, we set the default value of λ = 0 .6.
+
+3.3 Model Training Coordinator Optimization Inspired by (Luo et al., 2021), we train the coordinator Fθ using a reinforcement learning objective with the reward function defined in Equation 6. At each training epoch T , the coordinator observes the dialogue state Sn for each unlabeled round dn ∈ U and samples an action an from its policy πθ(Sn). The resulting action sequence is evaluated using rtotal ,which integrates improvements in both intervention timing and content quality. Given the trajectory 
+
+τ = {(Sn, a n)}un=1 in epoch T , the coordinator’s objective is to maximize the expected reward: 
+
+J(θ) = Eπθ
+
+rT
+
+total 
+
+ . (7) We apply the REINFORCE algorithm to compute the policy gradient: 
+
+∇θJ(θ) ≈
+
+uX
+
+n=1 
+
+rT
+
+total · ∇ θ log πθ(Sn, a n), (8) and update the coordinator parameters with learn-ing rate η:
+
+θ ← θ + η
+
+uX
+
+n=1 
+
+rT
+
+total · ∇ θ log πθ(Sn, a n), (9) 
+
+End-to-End Training The overall training pro-cedure is performed in an end-to-end iterative loop that jointly updates the coordinator, Observer, and Presenter. Initially, the Observer and Presenter are independently pre-trained by treating all unlabeled rounds in U as negative. The coordinator is ran-domly initialized. At each epoch, the coordinator observes each unlabeled dialogue round dn, encodes its state Sn
+
+using the last hidden layer representations from the Observer and Presenter, and samples an action 
+
+an. Rounds selected for intervention ( an = 1 ) are used to augment the positive set for updating the Presenter, while rounds with an = 0 are treated as negatives to refine the Observer. After training both LLMs, the resulting changes in Observer ac-curacy and Presenter ROUGE-1 scores are used to compute the total reward rT
+
+total and update the coor-dinator via policy gradient. This iterative process continues for a fixed number of epochs, leading to an end-to-end training framework to optimize intervention strategies. 
+
+4 Dataset Construction 
+
+LLMs have demonstrated strong capability for gen-erating high-quality role-play datasets (Tao et al., 2024; Lim et al., 2024; Wu et al., 2025b). While biomedical dialogue corpora such as MedDialog M u l t i -Rou n d 
+
+> Di al ogu e Ti m el i n e
+> Pu bM ed
+> Paper
+> M edi ci n al Ch em i st
+> Bi oi n f or m at i ci an
+> Cl i n i cal Physi ci an
+> Ph ar m acol ogi st
+> Rol e-Pl ay Tem pl at es
+> You ar e Dr . <Nam e>, a <Rol e> i n a dr u g
+> di scover y t eam . You ar e en gagi n g i n a
+> l i ve m eet i n g w i t h t h e t eam .
+> You r r espon si bi l i t i es ar e:
+> <r espon si bi l i t i es>.
+> Ex am pl e beh av i or s ar e:
+> <ex am pl e beh av i or s>.
+> Pr oj ect Pr oposal
+> (e.g., goal ,
+> back gr ou n d)
+> I nt er vent i on
+> Label i n g
+> I nt er vent i on s
+> Tempor a lly
+> Ra ndom
+> Select
+> Pr oph et
+> LLM
+> t 1
+> t 2
+> t 3
+> Con st r u ct
+> Label t 1 as posi t i ve (t h e
+> m ost goal -di ver gent
+> di al ogu e r ou n d)
+> Ot h er r ou n ds (t 2, t 3, ...)
+> r em ai n u n l abel ed
+> Di al ogu e
+> Si m u l at or
+
+Figure 3: Overview of BSDD dataset generation. Prophet LLM first extracts the project goal and back-ground from PubMed papers. Dialogue-Simulator LLM then generates multi-role scientific dialogues using role-specific prompt templates. Finally, Prophet LLM labels the most goal-divergent dialogue round as a positive in-tervention point, while other rounds remain unlabeled. 
+
+(Zeng et al., 2020), MediTOD (Saley et al., 2024), and MaLP (Zhang et al., 2024b) primarily fo-cus on doctor–patient interactions, scientific dia-logues among team members remain largely un-explored. Moreover, existing datasets lack anno-tated intervention labels that allow LLMs to learn proactive engagement. To fill this gap, we build BSDD ( Biomedical Streaming Dialogue Dataset ), a multi-role scientific dialogue dataset grounded in PubMed literature (Sayers et al., 2024). As shown in Figure 3, we employ two specialized LLMs: a Dialogue-Simulator (DS-LLM) and a Prophet (P-LLM). 2 For each PubMed paper, P-LLM ac-cesses the full text but extracts only limited infor-mation, including the research goal, background knowledge, and relevant datasets (a mini-proposal), while withholding methodological details, experi-mental procedures, and conclusions from DS-LLM. Using a prompt template, DS-LLM instantiates four domain roles: Pharmacologist, Medicinal Chemist, Bioinformatician , and Clinical Physician ,each with role-specific responsibilities (e.g., the Medicinal Chemist focuses on compound struc-ture and synthesis). The roles then engage in a multi-round team discussion toward the predefined objective (e.g., designing a cancer-targeting com-pound), with each turn randomly sampled along a temporal timeline to mimic asynchronous participa-tion. After dialogue generation, P-LLM labels the 
+
+> 2
+
+In practice, we deploy GPT o3-mini as the backbone of both DS-LLM and P-LLM. The prompt details are provided in Appendix F. round that deviates most from the research goal as the positive intervention point, while the remaining rounds are treated as unlabeled. We annotate only one high-confidence intervention per dialogue to reduce annotation noise and mitigate hallucination risks when LLMs make multiple fine-grained judg-ments in a single pass (Manakul et al., 2023; Zhou et al., 2022). To assess dataset quality, six biomedical experts are recruited to evaluate 100 randomly selected dialogues, each containing one positive and one negative candidate. Experts rate both candidates on Timing and Quality using a 5-point scale. For posi-tive interventions, the average Timing and Quality scores are 3.82 and 4.21, with inter-expert Cohen’s Kappa of 0.63 and 0.58, respectively. For nega-tive interventions, the average Timing and Quality scores are 1.82 and 2.15, with Cohen’s Kappa of 0.45 and 0.52, respectively. 3 Detailed dataset statis-tics are provided in Appendix A. 
+
+5 Experiments 
+
+5.1 Experimental Settings 
+
+Our PULI end-to-end training involves three com-ponents: a coordinator, an Observer LLM, and a Presenter LLM. The Observer LLM is trained with GRPO (Shao et al., 2024) using AdamW opti-mizer with learning rate of 1×10 −6, and batch size of 8. The Presenter LLM is fine-tuned via super-vised learning with LoRA (rank 16, scaling factor 
+
+α = 64 ). The coordinator is a 6-layer MLP opti-mized with learning rate of 1 × 10 −4. Experiments are conducted using TRL (von Werra et al., 2020), Transformers (Wolf et al., 2020), PEFT (Man-grulkar et al., 2022), and PyTorch (Paszke et al., 2017) on eight 80GB A100 GPUs. 
+
+5.2 Baselines 
+
+We compare PULI with several representative baselines, including Standard, Random, Proac-tive Agent (Lu et al., 2024b), In-context Learn-ing (ICL) (Koike et al., 2024), and vanilla SFT. Standard denotes the original dialogue without any intervention, while Random triggers interventions at arbitrary turns. For Proactive Agent, we fol-low Lu et al. (2024b) and adapt the system prompt instructions to when and how intervention task. In ICL, we incorporate few-shot positive and nega-
+
+> 3Details of the scoring criteria for dataset quality are pro-vided in Table 6. Note that negative interventions only appear in the validation and test sets.
+
+tive samples into the prompt. For vanilla SFT, we fine-tune the Presenter model using only the labeled positive intervention samples from our dataset. We conduct experiments on two LLM families: LLaMA3 (Grattafiori et al., 2024) and Qwen3 (Yang et al., 2025a), which are widely used open-source backbones and support reproducible evaluation. For each family, we pair a small-scale model to determine when to intervene and a Pre-senter model to generate intervention content, sim-ulating our dual-objective approach to proactive intervention in scientific dialogues. Specifically, we use (LLaMA3.2-1B-Instruct + LLaMA3.1-8B-Instruct) and (Qwen3-0.6B + Qwen3-14B) as the respective backbone combinations. 
+
+5.3 Tasks and Metrics 
+
+We follow the evaluation protocols of prior proac-tive agent studies (Lu et al., 2024b; Zhang et al., 2024a) to assess our approach on two tasks: 
+
+Intervention Timing Classification We evaluate whether the Observer LLM in PULI can accurately predict the necessity of intervention at each dia-logue round. Standard binary classification metrics are reported, including accuracy, precision, recall, and F1-score. 
+
+Intervention Content Quality We assess whether applying interventions leads to improved dialogue-level conclusions. For each dialogue, a new con-clusion is generated based on the intervention-augmented context and compared against the golden conclusion derived from the corresponding PubMed paper. We report ROUGE-1 and BLEU-1 scores between the generated and golden conclu-sions. Furthermore, we perform LLM as judge 4 to compare different methods, where GPT-4.1 (Ope-nAI, 2025) is deployed to select the best among all generated conclusions. Each method receives one win if its output is judged as best. The Win Rate (WR) for method i is computed as: 
+
+WR i = Wi
+
+P 
+
+> j
+
+Wj
+
+, (10) where Wi denotes the number of dialogues where method i is selected as the best. Notably, WR-Intra in Table 2 evaluates methods under the same LLM family by fixing the backbone and comparing meth-ods (e.g., PULI vs. baselines within GPT, Qwen3, or LLaMA3). In contrast, Inter-Group Win Rate in Figure 4 compares across different LLM families                                                                                                                          
+
+> 4The LLM-as-Judge prompt is detailed in Appendix F. LLM Backbone (Observer + Presenter) Method Intervention Timing Classification (%) Intervention Content Quality (%) Accuracy Recall Precision F1 ROUGE-1 BLEU-1 WR-Intra (GPT-4o-mini + GPT-4o) Standard 50.0 0.0 0.0 0.0 26.2 14.7 14.9 Random 47.9 26.3 46.3 33.6 29.5 16.4 20.1 Proactive Agent 62.3 31.7 81.5 45.6 30.7 17.2 28.3 ICL 63.8 34.1 83.8 48.5 31.3 17.5 36.7
+> (Qwen3-0.6B + Qwen3-14B) Standard 50.0 0.0 0.0 0.0 25.2 13.8 0.0 Random 46.7 26.9 44.6 33.5 27.2 14.9 0.0 Proactive Agent 53.9 14.9 67.6 24.5 27.6 15.5 14.8 ICL 55.7 16.2 79.4 28.9 29.4 16.3 18.3 Vanilla SFT 58.6 20.9 85.4 33.7 29.2 15.8 27.1 PULI (Ours) 64.1 31.2 91.0 46.4 32.4 20.1 39.8
+> (LLaMA3.2-1B-Instruct + LLaMA3.1-8B-Instruct) Standard 50.0 0.0 0.0 0.0 25.2 13.8 0.0 Random 47.9 39.5 47.5 43.1 28.5 15.4 5.8 Proactive Agent 54.5 53.4 68.8 60.2 29.1 15.4 7.5 ICL 58.4 54.5 59.1 56.7 30.9 17.7 20.8 Vanilla SFT 61.7 57.5 62.8 60.0 32.5 20.9 26.7 PULI (Ours) 67.4 61.7 69.6 65.4 33.5 21.8 39.2
+
+Table 2: Main results on intervention timing and content quality across different LLM families and intervention methods. WR-Intra is the win rate computed by comparing different methods under the same LLM backbone judged by GPT-4.1. The best result is highlighted in bold , and the second-best is underlined. 
+
+by selecting the strongest method from each family and then computing win rates among these family representatives. 
+
+5.4 Main Results 
+
+We evaluate PULI across multiple LLM backbones and baselines to assess both intervention timing accuracy and content quality. As shown in Table 2, PULI consistently achieves the best performance across all metrics and backbones 5. On the (Qwen3-0.6B + Qwen3-14B) configuration, PULI outper-forms strong baselines such as ICL and Vanilla SFT, achieving 64.1% accuracy in intervention timing classification and 32.4% ROUGE-1 in content qual-ity, with a Win Rate of 39.8%. Similarly, on the (LLaMA3.2-1B + LLaMA3.1-8B) setting, PULI attains 67.4% accuracy, 33.5% ROUGE-1, and the highest intra-backbone Win Rate of 39.2%. To further assess cross-model robustness, Figure 4 compares the best-performing method for each backbone using GPT-4.1 as judge. Notably, PULI achieves a Win Rate of 45.8% on LLaMA3 and 35.9% on Qwen3 —both significantly higher than the best-performing method on GPT pair models (ICL: 18.3%). These results indicate that PULI out-performs proprietary models like GPT-4o, despite being trained with significantly fewer parameters. 
+
+> 5
+
+Finetuning GPT models is a black-box, we didn’t find a way to finetune GPT-4o-mini using GRPO and some results are omitted. However, the results express the power of PULI. ICL 
+
+> (GPT Pair)
+> PULI
+> (Qwen3 Pair)
+> PULI
+> (LLaMA3 Pair)
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> Inter-Group Win Rate (%)
+> 18.3%
+> 35.9%
+> 45.8%
+
+Figure 4: Cross-backbone comparison of the best-performing methods (Inter-Group Win Rate). For each LLM family, we first select the strongest method based on the within-family win rate under a fixed backbone, and then compute Inter-Group Win Rate among these family representatives using GPT-4.1 as the judge. 
+
+5.5 Ablation Study 5.5.1 Variants Comparison 
+
+We compare PULI with several variants to assess the contribution of each component. As shown in Table 3, w PN treats all unlabeled samples as negatives, serving as a naive baseline. w SFT and 
+
+w DPO (Rafailov et al., 2023) train the Observer model using supervised fine-tuning and direct pref-erence optimization, respectively. PULI outper-forms all variants on both intervention timing clas-LLM Backbone (Observer + Presenter) Method Intervention Timing Classification (%) Intervention Content Quality (%) Accuracy Recall Precision F1 ROUGE-1 BLEU-1 WR-Intra (LLaMA-3.2-1B-Instruct + LLaMA-3.1-8B-Instruct) w PN 57.3 51.2 58.3 54.5 28.7 15.1 4.1 w SFT 61.9 53.9 64.3 58.6 31.7 18.0 6.7 w DPO 64.6 60.5 66.1 63.1 31.5 18.6 31.7 PULI 67.4 61.7 69.6 65.4 33.5 21.8 57.5 
+
+Table 3: Comparison with method variants. WR-Intra is the win rate computed by comparing different methods under the same LLM backbone judged by GPT-4.1. 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 
+
+> 58
+> 60
+> 62
+> 64
+> 66
+> 68
+> 70
+> Observer Accuracy (%)
+> 63.8
+> Accuracy: 67.4
+> PULI Observer (LLaMA3)
+> GPT-4o-mini Observer
+> PULI Presenter (LLaMA3)
+> GPT-4o Presenter
+> 31
+> 32
+> 33
+> 34
+> 35
+> Presenter ROUGE-1 (%)
+> 31.3
+> ROUGE-1: 33.5
+
+Figure 5: Effect of the balancing weight λ on Observer and Presenter performance. 
+
+sification and content quality tasks. Among the variants, w DPO performs second best, achieving Accuracy of 64.6%, F1 score of 63.1% and Win Rate of 57.5%. These results suggest that combin-ing PU supervision with reward-based coordination improves both timing and content quality. 
+
+5.5.2 Impact of λ in the Joint Objective 
+
+We conduct an ablation study to investigate the effect of the balancing weight λ in our joint ob-jective using the LLaMA3 backbone. As shown in Figure 5, smaller λ emphasizes Presenter opti-mization, while larger λ prioritizes Observer clas-sification. We find that λ = 0 .6 provides the best trade-off, achieving 67.4% Observer accuracy and 33.5% ROUGE-1. When λ is too small (e.g., 0.1), Observer accuracy drops sharply, whereas overly large values reduce Presenter quality. 
+
+5.6 Human Involved Validation 
+
+In addition, we conduct human evaluation 6 follow-ing the point-wise protocol proposed by Wang et al. (2023). Specifically, two master’s-level students with strong biomedical backgrounds and research experience are recruited to assess 100 randomly sampled intervention response pairs (along with 
+
+> 6
+
+Details of the human information and scoring criteria for model evaluation are provided in Appendix E.2 and Table 7. 
+
+Method Timing Quality Helpfulness Average GPTs 4.36 4.18 4.43 4.32 
+
+PULI 4.65 ∗ 4.35 ∗ 4.60 ∗ 4.53 
+
+Table 4: Human evaluation results comparing PULI (LLaMA3 pair) and ICL (GPT pair) on Timing, Quality, and Helpfulness (1–5 scale). In addition, ∗ indicates 
+
+p-value < 0.05 under two-sided paired Student’s t-test between PULI and baseline. 
+
+meeting and project context), generated by ICL (with GPT pair) and PULI (with LLaMA3 pair). The evaluators are blinded to the source of each re-sponse. Each response is rated on a 1–5 scale (5 is best) along three dimensions: intervention timing (Timing ), whether the intervention occurs at an ap-propriate point; content quality ( Quality ), fluency and informativeness; and overall usefulness for ad-vancing the project objective ( Helpfulness ). Table 4 shows that PULI outperforms the GPT pair base-line on all dimensions, with higher scores in timing (4.65 vs. 4.36), quality (4.35 vs. 4.18), and help-fulness (4.60 vs. 4.43), leading to a higher overall average (4.53 vs. 4.32). 
+
+6 Discussion 
+
+Ablation Study for Training Method In our framework, the Observer and Presenter optimize different objectives. The Observer is a binary de-cision module with a clear reward signal, so SFT, DPO, and GRPO are directly applicable, and we ablate them for the Observer in Section 5.5.1. How-ever, the Presenter generates open-ended scientific suggestions, where an RL-style objective is not straightforward without introducing additional de-sign choices such as a reward model or preference data, which would confound the comparison. We therefore fix the Presenter to SFT for a stable and reproducible generation objective. Number of Positive and Unlabeled Data BSDD labels one positive intervention per dialogue to pro-vide a clear supervision signal, and the remaining rounds are treated as unlabeled under the PU setup. Changing the labeled–unlabeled ratio would re-quire a different annotation protocol or regenerated candidates, which effectively defines a different benchmark version rather than a minor training tweak. We keep this protocol fixed for PULI and all baselines to ensure comparability, and leave sys-tematic budget and ratio variations to future work. 
+
+Cross-Domain Applicability Although we in-stantiate PULI in biomedicine, its core mechanisms are domain-agnostic by design, including moni-toring discussion flow, detecting goal divergence, and generating context-aware interventions. Our current implementation grounds interventions in biomedical literature through dataset embeddings. Extending PULI to other knowledge-intensive do-mains, such as legal or education, would primarily require domain-specific dialogue data and corre-sponding knowledge bases, which we view as a promising direction for future work. 
+
+Model Selection and Experimental Scope We select representative open-source LLMs (e.g., Qwen, LLaMA) and adopt a controlled same-backbone comparison to isolate framework-level improvements. Our goal is not to exhaustively benchmark all models, but to demonstrate that the gains arise from the proposed PULI framework and generalize across model families. To ensure fair comparison, we evaluate PULI against baselines under the same backbone. We further include cross-family evaluation to examine whether PULI en-ables smaller open-source models to achieve com-petitive performance compared to closed-source GPT-based baselines, highlighting its robustness beyond specific architectures. Model selection is also guided by our real-time interaction objec-tive. Larger models introduce higher inference la-tency, which may hinder timely intervention in collaborative settings. Therefore, we focus on lightweight and mid-scale models to balance perfor-mance and responsiveness, leaving broader model coverage and latency–performance trade-offs to fu-ture work. 
+
+7 Conclusion & Future Work 
+
+We introduce CoLabScience, a proactive AI assis-tant for biomedical discovery that integrates inter-vention timing and content generation to elevate human–AI collaboration. CoLabScience leverages a novel PULI framework, combining PU learning with policy coordination, to co-train a low-cost in-tervention model that decides when to act and an LLM presentation module that optimizes how to communicate. Experiments across diverse LLM backbones demonstrate significant gains in inter-vention accuracy and content quality, delivering robust generalization in collaborative biomedical research. Future work will extend PULI to other domains, e.g., law and education, further advancing human–AI synergy in interdisciplinary discovery. 
+
+Limitations 
+
+While CoLabScience demonstrates promising re-sults in proactive scientific assistance, we acknowl-edge several limitations of the current work: 
+
+• Dataset Construction. Our BSDD dataset relies on LLM-simulated dialogues grounded in PubMed literature. Although we incorporate expert vali-dation, the simulated nature may not fully cap-ture the complexity, nuance, and unpredictability of real-world scientific collaborations. Moreover, our annotation strategy labels only one optimal in-tervention point per dialogue to reduce noise and annotation cost. Compared with annotating ev-ery dialogue round individually—which would in-cur substantial labeling effort—this sparse labeling scheme greatly simplifies data construction. Nev-ertheless, given the strong empirical advantages of Positive–Unlabeled (PU) learning, PULI can still learn effectively from sparsely labeled data. 
+
+• Evaluation Scope. Our experiments are con-ducted on simulated dialogues, and future work will extend evaluation to actual research team meet-ings. The generalizability of PULI to real-world scientific discussions—characterized by overlap-ping turns, informal reasoning, and evolving re-search objectives—remains an important direction for future research. Real-world deployment would also benefit from small-scale user studies with prac-ticing researchers to assess ecological validity and identify practical deployment challenges. 
+
+• Computational Considerations in Real-world In-ference. While the Observer serves as a lightweight gate to minimize computational overhead, real-world deployment requires integration with auto-matic speech recognition (ASR) and text-to-speech (TTS) systems for live interaction, which may in-troduce additional latency—approximately 0.8 sec-onds per turn in our prototype. Further optimiza-tion of the inference pipeline will be needed to ensure seamless real-time intervention. 
+
+• Intervention Design. Our current intervention formulation focuses on detecting whether a dia-logue round diverges from the project goal, misses opportunities to advance progress, or reflects insuf-ficient team coordination. However, real-world in-terventions can take diverse forms, such as clarify-ing misunderstandings, fostering collaboration, or reframing research directions. Future work should explore a broader taxonomy of intervention types and contextual factors that determine their appro-priateness and timing. 
+
+Ethics Statement 
+
+All human annotation work in this study is con-ducted by domain experts who are not co-authors of this paper. The annotation process is coordinated by a Principal Investigator (PI) from a biomedical research institution, who is listed as a co-author but does not directly participate in any annotation tasks. The expert annotators include one medical doctor, three PhD candidates, and two master’s-level stu-dents in biomedical fields. All annotators are blind to the study’s hypotheses and model architecture during the annotation process. All annotation work is performed during the ex-perts’ regular paid working hours as part of their institutional research responsibilities, and no addi-tional compensation is provided beyond their stan-dard employment. The six annotators evaluate 100 randomly sampled dialogues for dataset quality as-sessment, rating intervention timing and content quality on established scales. For model evalua-tion, the two master’s-level students with biomedi-cal backgrounds assess intervention responses fol-lowing point-wise evaluation protocols. All ex-perts provide informed consent for their annota-tions to be used in this research and released with the dataset. The content annotated consists entirely of simu-lated scientific dialogues generated from publicly available PubMed literature. No personal, sensi-tive, or confidential information is involved in the annotation process. All research procedures follow institutional guidelines, and no additional ethics board review is required under the ACL Ethics Pol-icy. The dataset and annotation guidelines will be made publicly available upon publication to sup-port reproducibility and future research in proactive scientific assistance systems. 
+
+References                         
+
+> Joya Chen, Zhaoyang Lv, Shiwei Wu, Kevin Qinghong Lin, Chenan Song, Difei Gao, Jia-Wei Liu, Ziteng Gao, Dongxing Mao, and Mike Zheng Shou. 2024. Videollm-online: Online video large language model for streaming video. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , pages 18407–18418. Juraj Gottweis, Wei-Hung Weng, Alexander Daryin, Tao Tu, Anil Palepu, Petar Sirkovic, Artiom Myaskovsky, Felix Weissenberger, Keran Rong, Ryu-taro Tanno, et al. 2025. Towards an ai co-scientist.
+> arXiv preprint arXiv:2502.18864 .Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, et al. 2024. The llama 3 herd of mod-els. arXiv preprint arXiv:2407.21783 .Amine Ben Hassouna, Hana Chaari, and Ines Belhaj. 2025. Llm-agent-umf: Llm-based agent unified mod-eling framework for seamless design of multi active/-passive core-agent architectures. Information Fusion ,page 103865. Kostas Hatalis, Despina Christou, Joshua Myers, Steven Jones, Keith Lambert, Adam Amos-Binks, Zohreh Dannenhauer, and Dustin Dannenhauer. 2023. Mem-ory matters: The need to improve long-term memory in llm-agents. In Proceedings of the AAAI Sympo-sium Series , volume 2, pages 277–280. Lei Huang, Weijiang Yu, Weitao Ma, Weihong Zhong, Zhangyin Feng, Haotian Wang, Qianglong Chen, Weihua Peng, Xiaocheng Feng, Bing Qin, et al. 2025. A survey on hallucination in large language models: Principles, taxonomy, challenges, and open questions.
+> ACM Transactions on Information Systems , 43(2):1– 55. Ruofan Jin, Zaixi Zhang, Mengdi Wang, and Le Cong. 2025. Stella: Self-evolving llm agent for biomedical research. arXiv preprint arXiv:2507.02004 .John Jumper, Richard Evans, Alexander Pritzel, Tim Green, Michael Figurnov, Olaf Ronneberger, Kathryn Tunyasuvunakool, Russ Bates, Augustin Žídek, Anna Potapenko, et al. 2021. Highly accurate pro-tein structure prediction with alphafold. nature ,596(7873):583–589. Ryuichi Kiryo, Gang Niu, Marthinus C Du Plessis, and Masashi Sugiyama. 2017. Positive-unlabeled learn-ing with non-negative risk estimator. Advances in neural information processing systems , 30. Ryuto Koike, Masahiro Kaneko, and Naoaki Okazaki. 2024. Outfox: Llm-generated essay detection
+
+through in-context learning with adversarially gen-erated examples. In Proceedings of the AAAI Con-ference on Artificial Intelligence , volume 38, pages 21258–21266. Shuyue Stella Li, Vidhisha Balachandran, Shangbin Feng, Jonathan Ilgen, Emma Pierson, Pang Wei Koh, and Yulia Tsvetkov. 2024. Mediq: question-asking llms for adaptive and reliable clinical reasoning. Ad-vances in Neural Information Processing Systems .Lizi Liao, Grace Hui Yang, and Chirag Shah. 2023. Proactive conversational agents in the post-chatgpt world. In Proceedings of the 46th international ACM SIGIR conference on research and development in information retrieval , pages 3452–3455. Jung Hoon Lim, Sunjae Kwon, Zonghai Yao, John P Lalor, and Hong Yu. 2024. Large language model-based role-playing for personalized medical jargon extraction. arXiv preprint arXiv:2408.05555 .Tianjian Liu, Hongzheng Zhao, Yuheng Liu, Xingbo Wang, and Zhenhui Peng. 2024. Compeer: A genera-tive conversational agent for proactive peer support. In Proceedings of the 37th Annual ACM Symposium on User Interface Software and Technology , pages 1–22. Chris Lu, Cong Lu, Robert Tjarko Lange, Jakob Foer-ster, Jeff Clune, and David Ha. 2024a. The ai scien-tist: Towards fully automated open-ended scientific discovery. arXiv preprint arXiv:2408.06292 .Yaxi Lu, Shenzhi Yang, Cheng Qian, Guirong Chen, Qinyu Luo, Yesai Wu, Huadong Wang, Xin Cong, Zhong Zhang, Yankai Lin, et al. 2024b. Proactive agent: Shifting llm agents from reactive responses to active assistance. arXiv preprint arXiv:2410.12361 .Zhiyong Lu, Yifan Peng, Trevor Cohen, Marzyeh Ghas-semi, Chunhua Weng, and Shubo Tian. 2024c. Large language models in biomedicine and health: current research landscape and future directions. Journal of the American Medical Informatics Association ,31(9):1801–1811. Chuan Luo, Pu Zhao, Chen Chen, Bo Qiao, Chao Du, Hongyu Zhang, Wei Wu, Shaowei Cai, Bing He, Sar-avanakumar Rajmohan, et al. 2021. Pulns: Positive-unlabeled learning with effective negative sample selector. In Proceedings of the AAAI conference on artificial intelligence , volume 35, pages 8784–8792. Renqian Luo, Liai Sun, Yingce Xia, Tao Qin, Sheng Zhang, Hoifung Poon, and Tie-Yan Liu. 2022. Biogpt: generative pre-trained transformer for biomedical text generation and mining. Briefings in bioinformatics , 23(6):bbac409. Tengfei Ma, Xuan Lin, Tianle Li, Chaoyi Li, Long Chen, Peng Zhou, Xibao Cai, Xinyu Yang, Dao-jian Zeng, Dongsheng Cao, et al. 2024. Y-mol: a multiscale biomedical knowledge-guided large lan-guage model for drug development. arXiv preprint arXiv:2410.11550 .Potsawee Manakul, Adian Liusie, and Mark Gales. 2023. Selfcheckgpt: Zero-resource black-box hallucination detection for generative large language models. In 
+
+Proceedings of the 2023 conference on empirical methods in natural language processing , pages 9004– 9017. Sourab Mangrulkar, Sylvain Gugger, Lysandre De-but, Younes Belkada, Sayak Paul, Benjamin Bossan, and Marian Tietz. 2022. PEFT: State-of-the-art parameter-efficient fine-tuning methods. https: //github.com/huggingface/peft .Chunyu Miao, Henry Peng Zou, Yangning Li, Yankai Chen, Yibo Wang, Fangxin Wang, Yifan Li, Wooseong Yang, Bowei He, Xinni Zhang, et al. 2025. Recode-h: A benchmark for research code devel-opment with interactive human feedback. arXiv preprint arXiv:2510.06186 .OpenAI. 2025. Gpt-4.1 api documentation. https: //platform.openai.com/docs/models/gpt-4.1 .Accessed: 2025-05-11. Jing-Cheng Pang, Heng-Bo Fan, Pengyuan Wang, Jia-Hao Xiao, Nan Tang, Si-Hang Yang, Chengxing Jia, Ming-Kun Xie, Xiang Chen, Sheng-Jun Huang, et al. Interactive large language models for reliable answer-ing under incomplete context. Transactions on Ma-chine Learning Research .Adam Paszke, Sam Gross, Soumith Chintala, Gregory Chanan, Edward Yang, Zachary DeVito, Zeming Lin, Alban Desmaison, Luca Antiga, and Adam Lerer. 2017. Automatic differentiation in pytorch. Biqing Qi, Kaiyan Zhang, Kai Tian, Haoxiang Li, Zhang-Ren Chen, Sihang Zeng, Ermo Hua, Hu Jinfang, and Bowen Zhou. 2024. Large lan-guage models as biomedical hypothesis genera-tors: A comprehensive evaluation. arXiv preprint arXiv:2407.08940 .Cheng Qian, Bingxiang He, Zhong Zhuang, Jia Deng, Yujia Qin, Xin Cong, Zhong Zhang, Jie Zhou, Yankai Lin, Zhiyuan Liu, et al. 2024. Tell me more! towards implicit user intention understanding of language model driven agents. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 1088– 1113. Rafael Rafailov, Archit Sharma, Eric Mitchell, Christo-pher D Manning, Stefano Ermon, and Chelsea Finn. 2023. Direct preference optimization: Your language model is secretly a reward model. Advances in neural information processing systems , 36:53728–53741. Vishal Vivek Saley, Goonjan Saha, Rocktim Jyoti Das, Dinesh Raghu, et al. 2024. Meditod: An english dialogue dataset for medical history taking with com-prehensive annotations. In Proceedings of the 2024 Conference on Empirical Methods in Natural Lan-guage Processing , pages 16843–16877. Eric W Sayers, Jeff Beck, Evan E Bolton, J Rodney Brister, Jessica Chan, Donald C Comeau, Ryan Con-nor, Michael DiCuccio, Catherine M Farrell, Michael Feldgarden, et al. 2024. Database resources of the na-tional center for biotechnology information. Nucleic acids research , 52(D1):D33–D43. Samuel Schmidgall, Yusheng Su, Ze Wang, Ximeng Sun, Jialian Wu, Xiaodong Yu, Jiang Liu, Michael Moor, Zicheng Liu, and Emad Barsoum. 2025. Agent laboratory: Using llm agents as research assis-tants. Findings of the Association for Computational Linguistics: EMNLP 2025 , pages 5977–6043. Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK Li, Yang Wu, et al. 2024. Deepseekmath: Pushing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300 .Gaurang Sriramanan, Siddhant Bharti, Vinu Sankar Sadasivan, Shoumik Saha, Priyatham Kattakinda, and Soheil Feizi. 2024. Llm-check: Investigating detection of hallucinations in large language models. 
+
+Advances in Neural Information Processing Systems ,37:34188–34216. Richard S Sutton, David McAllester, Satinder Singh, and Yishay Mansour. 1999. Policy gradient methods for reinforcement learning with function approxima-tion. Advances in neural information processing systems , 12. K Swanson, W Wu, NL Bulaong, JE Pak, and J Zou. 2024. The virtual lab: Ai agents design new sars-cov-2 nanobodies with experimental validation. biorxiv, 2024. URL https://www. biorxiv. org/content/ear-ly/2024/11/12/2024.11 , 11. Yufei Tao, Ameeta Agrawal, Judit Dombi, Tetyana Sydorenko, and Jung In Lee. 2024. Chatgpt role-play dataset: Analysis of user motives and model natural-ness. In Proceedings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024) ,pages 3133–3145. Leandro von Werra, Younes Belkada, Lewis Tunstall, Edward Beeching, Tristan Thrush, Nathan Lambert, Shengyi Huang, Kashif Rasul, and Quentin Gal-louédec. 2020. TRL: Transformers Reinforcement Learning. Hongru Wang, Rui Wang, Fei Mi, Zezhong Wang, Ruifeng Xu, and Kam-Fai Wong. 2023. Chain-of-thought prompting for responding to in-depth dialogue questions with llm. arXiv preprint arXiv:2305.11792 .Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement Delangue, Anthony Moi, Pier-ric Cistac, Tim Rault, Rémi Louf, Morgan Funtowicz, et al. 2020. Transformers: State-of-the-art natural language processing. In Proceedings of the 2020 con-ference on empirical methods in natural language processing: system demonstrations , pages 38–45. Felix Wong, Erica J Zheng, Jacqueline A Valeri, Nina M Donghia, Melis N Anahtar, Satotaka Omori, Alicia Li, Andres Cubillos-Ruiz, Aarti Krishnan, Wengong Jin, et al. 2024. Discovery of a structural class of antibiotics with explainable deep learning. Nature ,626(7997):177–185. Cheng-Kuang Wu, Zhi Rui Tam, Chao-Chung Wu, Chieh-Yen Lin, Hung-yi Lee, and Yun-Nung Chen. 2024a. I need help! evaluating llm’s ability to ask for users’ support: A case study on text-to-sql gen-eration. In Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing ,pages 2191–2199. Junde Wu, Jiayuan Zhu, and Yuyuan Liu. 2025a. Agen-tic reasoning: Reasoning llms with tools for the deep research. arXiv preprint arXiv:2502.04644 .Yang Wu, Xurui Li, Xuhong Zhang, Yangyang Kang, Changlong Sun, and Xiaozhong Liu. 2023. Community-based hierarchical positive-unlabeled (pu) model fusion for chronic disease prediction. In 
+
+Proceedings of the 32nd ACM International Confer-ence on Information and Knowledge Management ,pages 2747–2756. Yang Wu, Raha Moraffah, Rujing Yao, Jinhong Yu, Zhimin Tao, and Xiaozhong Liu. 2025b. Active do-main knowledge acquisition with 100-dollar budget: Enhancing llms via cost-efficient, expert-involved interaction in sensitive domains. arXiv preprint arXiv:2508.17202 .Yang Wu, Chenghao Wang, Ece Gumusel, and Xi-aozhong Liu. 2024b. Knowledge-infused legal wis-dom: Navigating llm consultation through the lens of diagnostics and positive-unlabeled reinforcement learning. arXiv preprint arXiv:2406.03600 .Yang Wu, Rujing Yao, Tong Zhang, Yufei Shi, Zhuoren Jiang, Zhushan Li, and Xiaozhong Liu. 2025c. Teaching according to students’ aptitude: Personalized mathematics tutoring via persona-, memory-, and forgetting-aware llms. arXiv preprint arXiv:2511.15163 .Yang Wu, Huayi Zhang, Yizheng Jiao, Lin Ma, Xi-aozhong Liu, Jinhong Yu, Dongyu Zhang, Dezhi Yu, and Wei Xu. 2024c. Rose: A reward-oriented data selection framework for llm task-specific instruction tuning. arXiv preprint arXiv:2412.00631 .An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. 2025a. Qwen3 technical report. arXiv preprint arXiv:2505.09388 .Bufang Yang, Yunqi Guo, Lilin Xu, Zhenyu Yan, Hongkai Chen, Guoliang Xing, and Xiaofan Jiang. 2025b. Socialmind: Llm-based proactive ar social as-sistive system with human-like perception for in-situ live interactions. Proceedings of the ACM on Interac-tive, Mobile, Wearable and Ubiquitous Technologies ,9(1):1–30. Rujing Yao, Yang Wu, Chenghao Wang, Jingwei Xiong, Fang Wang, and Xiaozhong Liu. 2025a. Elevating le-gal llm responses: harnessing trainable logical struc-tures and semantic knowledge with legal reasoning. In Proceedings of the 2025 Conference of the Na-tions of the Americas Chapter of the Association for Computational Linguistics: Human Language Tech-nologies (Volume 1: Long Papers) , pages 5630–5642. Rujing Yao, Yiquan Wu, Tong Zhang, Xuhui Zhang, Yuting Huang, Yang Wu, Jiayin Yang, Changlong Sun, Fang Wang, and Xiaozhong Liu. 2025b. In-telligent legal assistant: An interactive clarification system for legal question answering. In Companion Proceedings of the ACM on Web Conference 2025 ,pages 2935–2938. Vinicius Zambaldi, David La, Alexander E Chu, Harsh-nira Patani, Amy E Danson, Tristan OC Kwan, Thomas Frerix, Rosalia G Schneider, David Saxton, Ashok Thillaisundaram, et al. 2024. De novo de-sign of high-affinity protein binders with alphaproteo. 
+
+arXiv preprint arXiv:2409.08022 .Guangtao Zeng, Wenmian Yang, Zeqian Ju, Yue Yang, Sicheng Wang, Ruisi Zhang, Meng Zhou, Jiaqi Zeng, Xiangyu Dong, Ruoyu Zhang, et al. 2020. Med-dialog: Large-scale medical dialogue datasets. In 
+
+Proceedings of the 2020 conference on empirical methods in natural language processing (EMNLP) ,pages 9241–9250. Ceyao Zhang, Kaijie Yang, Siyi Hu, Zihao Wang, Guanghe Li, Yihang Sun, Cheng Zhang, Zhaowei Zhang, Anji Liu, Song-Chun Zhu, et al. 2024a. Proa-gent: building proactive cooperative agents with large language models. In Proceedings of the AAAI Con-ference on Artificial Intelligence , volume 38, pages 17591–17599. Kai Zhang, Yangyang Kang, Fubang Zhao, and Xi-aozhong Liu. 2024b. Llm-based medical assistant personalization with short-and long-term memory co-ordination. In Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Tech-nologies (Volume 1: Long Papers) , pages 2386–2398. Xuan Zhang, Yang Deng, Zifeng Ren, See Kiong Ng, and Tat-Seng Chua. 2024c. Ask-before-plan: Proac-tive language agents for real-world planning. In Find-ings of the Association for Computational Linguistics: EMNLP 2024 , pages 10836–10863. Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang, Xiaolei Wang, Yupeng Hou, Yingqian Min, Beichen Zhang, Junjie Zhang, Zican Dong, et al. 2023. Asurvey of large language models. arXiv preprint arXiv:2303.18223 , 1(2):1–124. Wanjun Zhong, Lianghong Guo, Qiqi Gao, He Ye, and Yanlin Wang. 2024. Memorybank: Enhancing large language models with long-term memory. In Pro-ceedings of the AAAI conference on artificial intelli-gence , volume 38, pages 19724–19731. Denny Zhou, Nathanael Schärli, Le Hou, Jason Wei, Nathan Scales, Xuezhi Wang, Dale Schuurmans, Claire Cui, Olivier Bousquet, Quoc Le, et al. 2022. Least-to-most prompting enables complex reason-ing in large language models. arXiv preprint arXiv:2205.10625 .Yuyang Zhou, Guang Cheng, Kang Du, Zihan Chen, and Yuyu Zhao. 2026. Toward intelligent and secure cloud: Large language model empowered proactive defense. IEEE Communications Magazine .A Data Statistics 
+
+We select PubMed papers (Sayers et al., 2024) cov-ering various biomedical topics, including cancer, Alzheimer’s disease, and sepsis. To ensure scien-tific rigor, we filter for papers published between January 1, 2024 and January 1, 2025 that include concrete methodological descriptions, such as ex-perimental design, procedures, and analysis. Since speakers in each dialogue are temporally and ran-domly sampled, we vary the random seed to gen-erate up to five dialogues per paper using our data construction pipeline. For each training dialogue, one positive inter-vention is automatically annotated by our Prophet LLM within the construction pipeline, and four additional rounds are randomly sampled as unla-beled interventions. To evaluate the Observer’s ability to detect appropriate intervention timing, we construct validation and test sets where each dialogue includes one positive and one negative round. The positive round corresponds to the ef-fective intervention point, while the negative round is first selected by Prophet LLM as the least likely point requiring intervention, and then verified by human experts. The resulting negative samples achieve an average agreement score of 0.85 with human annotations, ensuring the reliability of eval-uation. Detailed statistics of the constructed BSDD (Biomedical Streaming Dialogue Dataset) dataset are provided in Table 5.                        
+
+> Raw Data Statistics of PubMed Papers
+> # Cancer Papers 452 # Alzheimer’s Papers 204 # Sepsis Papers 41
+> Generated Data Statistics
+> # Generated Dialogue 3,206 # Avg. Rounds per Dialogue 20 # Avg. Tokens per Round 378
+> Data Split Statistics
+> Train Validation Test
+> # Dialogues 2,726 240 240 # Sampled Rounds 13,630 480 480 # Positive Rounds 2,726 240 240 # Unlabeled Rounds 10,904 --# Negative Rounds -240 240
+
+Table 5: Statistics of the constructed BSDD dataset Obser ver  
+
+> Pr esent er
+> Sci ent i f i c
+> Di al ogu e
+> Act i vat e
+> I nt er vent i on
+> Cont ent
+> I nt er vent i on
+> Au di o
+> St r eam i n g
+> TTS
+> Au di o
+> Tr an scr i pt
+> St r eam i n g
+> ASR
+> Di al ogu e
+> Au di o
+> Si l ent I nt er ven e
+> Ou t pu t
+> 0/1
+> CoLa bScience
+> I npu t
+
+Figure 6: Inference pipeline of CoLabScience in real-world scientific collaboration. The Observer monitors ongoing dialogue and determines when to intervene. Upon intervention trigger, the Presenter generates scien-tific suggestions for the research team. 
+
+B CoLabScience in Real-World Scientific Collaboration 
+
+The inference workflow of CoLabScience is illus-trated in Figure 6. In a live scientific discussion scenario, dialogue audio is first captured and tran-scribed in real time via a streaming ASR (Auto-matic Speech Recognition) module. The result-ing transcripts are continuously fed into the Ob-server, which monitors the conversation and makes a binary decision—either to remain silent or to 
+
+intervene . If an intervention is triggered, the Pre-senter LLM is activated to generate scientifically grounded suggestions based on the conversation context. The generated intervention content is then converted into audio via a TTS (Text-to-Speech) system and delivered back into the ongoing dia-logue, completing the feedback loop. This modular inference design enables CoLab-Science to function as a proactive AI assistant in real-world biomedical research settings. By sep-arating the decision-making process (Observer) from the content generation (Presenter), the sys-tem avoids unnecessary computation and improves responsiveness. Compared to reactive paradigms that invoke large LLMs at every round, our two-stage approach—with a small-scale Observer deter-mining intervention necessity before invoking the full generation model—offers significantly greater inference efficiency. A demonstration of CoLab-Science in a real-world streaming environment is available in the supplementary video. 
+
+C PULI Algorithm 
+
+In this section, we present the details of the end-to-end training procedure of PULI, as illustrated in Algorithm 1. Algorithm 1 End-to-End Training of PULI Frame-work                                                                                                                       
+
+> Input: Unlabeled rounds U={d1, . . . , d u}, positive rounds
+> P={du+1 , . . . , d N}; coordinator policy πθ; Observer
+> Hϕ; Presenter Gψ; learning rate η; reward trade-off λ;total epochs E
+> Output: Optimized πθ,Hϕ, and Gψ
+> 1: Pretrain Hϕand Gψby treating all dn∈Uas negative 2: Initialize coordinator parameters θ
+> 3: for epoch T= 1 to Edo
+> 4: Initialize selected intervention set P+← ∅ and silent set N ← ∅
+> 5: for each dialogue round dn∈Udo
+> 6: Construct memory M(dn)and encode state Sn=
+> Concat  ΨHϕ(M(dn)) ,Ω(Ψ Gψ(M(dn))) 
+> 7: Sample action an∼πθ(Sn)
+> 8: if an= 1 then
+> 9: Add dnto P+
+> 10: else
+> 11: Add dnto N
+> 12: end if
+> 13: end for
+> 14: Train Hϕvia GRPO on P ∪ N and compute reward
+> rwhen
+> 15: Fine-tune Gψon P′=P∪ P +and compute reward
+> rhow
+> 16: Compute total reward:
+> rtotal =λ·rwhen + (1 −λ)·rhow
+> 17: Update coordinator via REINFORCE:
+> θ←θ+η
+> uX
+> n=1
+> rtotal · ∇ θlog πθ(Sn, a n)
+> 18: end for
+> 19: Return Optimized πθ,Hϕ,Gψ
+
+D REINFORCE Policy Gradient Derivation 
+
+We follow the standard REINFORCE framework (Sutton et al., 1999) to derive the policy gradient update used in our coordinator optimization. Let θ denote the parameters of the coordi-nator policy πθ(a | S). At each training epoch T , the coordinator samples a sequence of actions over unlabeled dialogue rounds τ =
+
+{(S1, a 1), . . . , (Su, a u)}, forming a trajectory un-der its current policy. Given the total reward of the trajectory as a scalar rT
+
+> total
+
+, the goal is to maximize the expected reward: 
+
+J(θ) = Eτ ∼πθ
+
+rT
+
+> total
+
+ . (11) The gradient of this expectation can be computed via the score function estimator: 
+
+∇θJ(θ) = ∇θEτ ∼πθ
+
+rT
+
+> total
+
+ (12) 
+
+= Eτ ∼πθ
+
+rT 
+
+> total
+
+· ∇ θ log Pθ(τ ) , (13) where Pθ(τ ) is the probability of the trajectory under the current policy. Assuming the trajectory is composed of condi-tionally independent actions, we can express the trajectory probability as the product of individual decisions: 
+
+Pθ(τ ) = 
+
+> u
+
+Y
+
+> n=1
+
+πθ(an | Sn), (14) so the log-probability becomes: 
+
+log Pθ(τ ) = 
+
+> u
+
+X
+
+> n=1
+
+log πθ(an | Sn). (15) Substituting into the gradient, we obtain: 
+
+∇θJ(θ) = Eτ ∼πθ
+
+"
+
+rT 
+
+> total
+
+·
+
+> u
+
+X
+
+> n=1
+
+∇θ log πθ(an | Sn)
+
+#
+
+.
+
+(16) In practice, we estimate this gradient using a single-sample Monte Carlo approximation: 
+
+∇θJ(θ) ≈
+
+> u
+
+X
+
+> n=1
+
+rT 
+
+> total
+
+· ∇ θ log πθ(an | Sn), (17) which corresponds to the update used in our main training algorithm. This derivation assumes that the total reward 
+
+rT 
+
+> total
+
+is obtained after observing the entire trajectory. If intermediate rewards were available per step, the derivation could be generalized using discounted or shaped rewards. 
+
+E Human Annotation Details 
+
+E.1 Data Quality Assessment Human Experts We engage six domain experts with extensive biomedical research experience, in-cluding one medical doctor, three PhD candidates, and two master’s-level students. All experts con-duct their work during regular paid working hours as part of their institutional duties, and are compen-sated accordingly. 
+
+Assessment Metrics To assess dataset quality, ex-perts are asked to annotate the Timing and content Quality of pre-labeled positive interventions iden-tified by Prophet LLM. In addition, for evaluation purpose, we introduce a small set of negative sam-ples into the validation and test sets. These negative rounds are initially identified by the Prophet LLM as having low likelihood of requiring intervention and are subsequently verified by human experts. The average annotation scores are 3.82 for timing and 4.21 for quality on a 5-point scale (5 being the highest), and the Agreement rate on negative sam-ple identification is 0.85. The detailed assessment rubric is presented in Table 6. 
+
+E.2 Human-Involved Model Evaluation Human Experts Two master’s-level students with biomedical backgrounds perform the human evalu-ation. This task is assigned as part of their regular research assistant responsibilities and is compen-sated through standard RA funding, consistent with the data annotation setup. 
+
+Evaluation Metrics For each predicted interven-tion round in the dialogue, experts evaluate inter-vention Timing and Quality using the same rubric as in the data quality assessment. Furthermore, we introduce an additional metric Helpfulness to mea-sure the overall contribution of the intervention to the team’s scientific progress. Full definitions of these criteria are provided in Table 7. Intervention – Timing 
+
+Score Label Description 1 Poor Timing Intervention occurs at an inappropriate moment; disrupts dialogue flow or misses critical context. 2 Weak Timing Slightly mistimed; not harmful but lacks context awareness. 3 Acceptable Timing Timing is reasonable and does not mislead, but could be improved. 4 Good Timing Well-timed intervention that aligns with team’s discussion flow. 5 Excellent Timing Precisely timed to redirect or enhance discussion at a critical moment. 
+
+Intervention – Quality 
+
+Score Label Description 1 Poor Quality Intervention is off-topic, incorrect, or lacks relevance. 2 Weak Quality Information is vague, partially relevant, or lacks clarity. 3 Acceptable Quality Reasonable relevance; generally informative but not insightful. 4 Good Quality Clear and useful; provides relevant direction for the team. 5 Excellent Quality Highly informative, well-reasoned, and clearly advances the team’s goal. 
+
+> Table 6: Data quality scoring form for both positive and negative interventions.
+
+Timing 
+
+Score Label Description 1 Poor Timing Intervention occurs at an inappropriate moment; disrupts dialogue flow or misses critical context. 2 Weak Timing Slightly mistimed; not harmful but lacks context awareness. 3 Acceptable Timing Timing is reasonable and does not mislead, but could be improved. 4 Good Timing Well-timed intervention that aligns with team’s discussion flow. 5 Excellent Timing Precisely timed to redirect or enhance discussion at a critical moment. 
+
+Quality 
+
+Score Label Description 1 Poor Quality Intervention is off-topic, incorrect, or lacks relevance. 2 Weak Quality Information is vague, partially relevant, or lacks clarity. 3 Acceptable Quality Reasonable relevance; generally informative but not insightful. 4 Good Quality Clear and useful; provides relevant direction for the team. 5 Excellent Quality Highly informative, well-reasoned, and clearly advances the team’s goal. 
+
+Helpfulness 
+
+Score Label Description 1 Not Helpful Distracting, misaligned with team needs, possibly harmful. 2 Slightly Helpful Low impact; repeats known info or barely contributes. 3 Moderately Helpful Somewhat useful; might inspire ideas but not essential. 4 Helpful Helps move the discussion forward meaningfully. 5 Very Helpful Crucially contributes to team progress, solves key problem. 
+
+> Table 7: Human-involved model evaluation metrics.
+
+F Prompt Details 
+
+In this section, we present the detailed prompts used in our work, including dataset construction for generating scientific dialogues and interven-tion annotations, baseline in-context learning (ICL) setups for model comparison, and LLM-as-judge evaluation prompts for computing win rates. LLM-as-Judge Prompt 
+
+<|im_start|>system You are an expert scientific evaluator special-izing in research conclusion assessment. You will be given a golden standard conclusion of a scientific research paper, followed by multiple candidate conclusions generated by different methods. The golden standard conclusion sum-marizes the key elements of the research project, including its main experimental design, core findings, and overall scientific significance. It serves as a high-quality reference for evaluating the quality, clarity, and relevance of alternative conclusions. Your task is to evaluate and rank these candidate conclusions based on the following criteria: 1. Scientific Accuracy & Consistency: How well does the conclusion align with established scientific knowledge and the project’s context? 2. Completeness & Comprehensiveness: Does the conclusion adequately address all key aspects mentioned in the original discussion? 3. Clarity & Structure: Is the conclusion well-organized, clearly written, and logically structured? 4. Clinical/Research Relevance: How effectively does the conclusion translate findings into actionable insights for the field? 5. Evidence Integration: How well does the con-clusion synthesize and integrate the discussed evidence? 6. Golden Standard Alignment: How closely does the conclusion match the quality and content depth of the golden standard? You will receive multiple conclusions labeled as "Method A", "Method B", etc. Your task is to determine which method produces the BEST conclusion overall. CRITICAL INSTRUCTIONS: - You must output ONLY ONE LETTER corre-sponding to the best method (A, B, C, D, or E) - Consider the golden standard as a reference for quality, but evaluate which generated conclusion is objectively best - Focus on scientific merit and practical value - If conclusions are very similar in quality, choose based on clarity and completeness - Do NOT explain your reasoning — output only the single letter of the best method Example Output: B <|im_end|> <|im_start|>user Golden Standard Conclusion: <golden standard conclusion> Candidate Conclusions to Evaluate: <method A> <method B> ... <|im_end|> 
+
+Positive Intervention Labeling Prompt 
+
+<|im_start|>system You are an AI moderator specializing in research coherence and integrity. You will analyze amulti-turn scientific team discussion and iden-tify the single most critical point where an in-tervention should be made to help the team stay focused on the research goal. You should identify and describe the most valu-able intervention point in the discussion. Include the following elements in your output: - "intervention position": After which turn/round this issue was observed. Use the round number (starting from 0). - "issue type": One of ["scientific error", "low collab-oration", "scope drift", "missed opportunity"]. - "target members": Role(s) that should be addressed (e.g., ["Medicinal Chemist"]). -"intervention content": A short explanation of why this intervention is helpful for tracking team member contributions and advancing the research project. This should include **con-structive suggestions** grounded in the actual dialog, such as pointing out unexplored ideas, prompting clarification, further direction or encouraging collaboration. - "modified dialog": A revised version of the identified turn that improves the discussion focus or productivity. Additional context: - You may assume access to the uploaded research paper, but do NOT reference its conclusions directly. - Intervene when the team loses focus, fails to act on key cues, misses cross-role collaboration, or drifts from the research goal. - Your goal is not to fix all problems, but to insert one helpful redirection that will facilitate clearer progress and collaboration. - Each part of your output should be clearly written and self-contained. Do not include any external commentary or formatting instructions. <|im_end|> <|im_start|>user <project proposal> <dialogue history> <|im_end|> 
+
+Baseline ICL Prompt 
+
+<|im_start|>system You are an AI moderator specializing in research coherence and integrity. Your task is to analyze a multi-turn scientific team discussion and deter-mine whether the specified round of conversation requires an intervention. An intervention may be required for one of the following reasons: - "scientific error" - "low col-laboration" - "scope drift from project goal" -"missed opportunity" You will be shown example cases that illus-trate both intervention and non-intervention out-comes: <Positive sample: dialogue context + Intervention Content>, <Negative sample: di-alogue context + No Need Intervention> Your response must be one of the following: - Intervention Content: <brief reason> - No Need Intervention <|im_end|> <|im_start|>user <dialogue context> <specified round of interest> <|im_end|> Clinical Physician Prompt 
+
+<|im_start|>system You are a Clinical Physician. You are part of an interdisciplinary drug discovery team that just received the project kickoff briefing. You’re now engaging in a live strategy meeting with your colleagues. Your responsibilities: - Contribute ideas and critiques from your domain perspective. - Engage with previous comments (your own or others’) and develop them further. - Express uncertainty or enthusi-asm naturally — like a real person. Guidelines: - DO NOT begin every message with “As aClinical Physician...”. - Use first-person natural language — just speak as yourself. - Respond based on the meeting history so far — don’t repeat what’s already said. - Ask questions or challenge others when appropriate. - Use domain-specific terminology, but focus on clarity. Example behavior: - A Clinical Physician might emphasize patient outcomes or trial design feasibility. Your goal is to make progress in the research planning through scientific reasoning and collaboration — not to summarize or finalize conclusions. <|im_end|> <|im_start|>user <project proposal> <dialogue history> Clinical Physician: <|im_end|> 
+
+Pharmacologist Prompt 
+
+<|im_start|>system You are a Pharmacologist. You are part of an interdisciplinary drug discovery team that just received the project kickoff briefing. You’re now engaging in a live strategy meeting with your colleagues. Your responsibilities: - Contribute ideas and critiques from your domain perspective. - Engage with previous comments (your own or others’) and develop them further. - Express uncertainty or enthusi-asm naturally — like a real person. Guidelines: - DO NOT begin every message with “As apharmacologist...”. - Use first-person natural language — just speak as yourself. - Respond based on the meeting history so far — don’t repeat what’s already said. - Ask questions or challenge others when appropriate. - Use domain-specific terminology, but focus on clarity. Example behavior: - A Pharmacologist might raise concerns about off-target effects or bioavailability. Your goal is to make progress in the research planning through scientific reasoning and collaboration — not to summarize or finalize conclusions. <|im_end|> <|im_start|>user <project proposal> <dialogue history> Pharmacologist: <|im_end|> 
+
+Bioinformatician Prompt 
+
+<|im_start|>system You are a Bioinformatician. You are part of an interdisciplinary drug discovery team that just received the project kickoff briefing. You’re now engaging in a live strategy meeting with your colleagues. Your responsibilities: - Contribute ideas and critiques from your domain perspective. - Engage with previous comments (your own or others’) and develop them further. - Express uncertainty or enthusi-asm naturally — like a real person. Guidelines: - DO NOT begin every message with “As aBioinformatician...”. - Use first-person natural language — just speak as yourself. - Respond based on the meeting history so far — don’t repeat what’s already said. - Ask questions or challenge others when appropriate. - Use domain-specific terminology, but focus on clarity. Example behavior: - A Bioinformatician might offer to analyze omics data or suggest in silico approaches. Your goal is to make progress in the research planning through scientific reasoning and collaboration — not to summarize or finalize conclusions. <|im_end|> <|im_start|>user <project proposal> <dialogue history> Bioinformatician: <|im_end|> 
+
+Medicinal Chemist Prompt 
+
+<|im_start|>system You are a Medicinal Chemist. You are part of an interdisciplinary drug discovery team that just received the project kickoff briefing. You’re now engaging in a live strategy meeting with your colleagues. Your responsibilities: - Contribute ideas and critiques from your do-main perspective. - Engage with previous com-ments (your own or others’) and develop them further. - Express uncertainty or enthusiasm nat-urally — like a real person. Guidelines: - DO NOT begin every message with “As aMedicinal Chemist...”. - Use first-person natural language — just speak as yourself. - Please respond based on the meet-ing history so far — do not repeat what’s already said. - Ask questions or challenge others when appro-priate. - Use domain-specific terminology, but focus on clarity. Example behavior: - A Medicinal Chemist might comment on molec-ular reactivity or synthesis pathways. Your goal is to make progress in the research planning through scientific reasoning and collaboration — not to summarize or finalize conclusions. <|im_end|> <|im_start|>user <project proposal> <dialogue history> Medicinal Chemist: <|im_end|> Project Proposal Extraction Prompt 
+
+<|im_start|>system You are an AI project initiator with a god-level perspective. Your task is to simulate a project kickoff discussion for a drug development team. A scientific research paper has been provided (you may reference data indirectly, but do NOT disclose its final conclusions, efficacy results, or drug identity). Instead, your job is to establish a realistic and motivating starting point for a team about to begin this research journey. Please include the following: 1. Project Background and Motivation: - Clini-cal or biological challenge the team is trying to address. - Any early-stage leads, unexplained phenomena, or prior failures in the field. - Theo-retical or mechanistic hypotheses that might be worth exploring. 2. Team Composition: - The project team includes a Pharmacologist, Medicinal Chemist, Bioinformatician, and Clinical Physician. - Each will bring a different perspective to strategy for-mulation. 3. Known Constraints or Urgencies: - Any tech-nical risks, knowledge gaps, resource constraints, or regulatory considerations. 4. Suggested Discussion Paths: - Propose 2–3 open research questions or dilemmas that the team might pursue in early planning stages. -Avoid narrowing to one "correct" solution — keep it open-ended. Do NOT include any specific results from the final paper or assume the project’s ultimate outcome. Your goal is to set up a plausible, incomplete, and challenging starting point. <|im_end|> <|im_start|>user The research paper is <the uploaded paper>. Please review the research paper and use it as background material (without revealing any fi-nal findings). Generate a kickoff briefing for the research team that sets up a realistic early-stage starting point for this drug development effort. <|im_end|>

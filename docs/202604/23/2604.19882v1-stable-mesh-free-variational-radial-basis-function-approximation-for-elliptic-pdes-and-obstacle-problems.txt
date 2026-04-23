@@ -1,0 +1,2489 @@
+Title: Stable Mesh-Free Variational Radial Basis Function Approximation for Elliptic PDEs and Obstacle Problems
+
+URL Source: https://arxiv.org/pdf/2604.19882v1
+
+Published Time: Thu, 23 Apr 2026 00:09:59 GMT
+
+Number of Pages: 50
+
+Markdown Content:
+# Stable Mesh-Free Variational Radial Basis Function Approximation for Elliptic PDEs and Obstacle Problems 
+
+## Phuong Dong Le, Giang Tran, and Hans De Sterck Department of Applied Mathematics, University of Waterloo Waterloo, ON N2L 3G1, Canada 
+
+## {pdle,giang.tran,hans.desterck}@uwaterloo.ca 
+
+Abstract 
+
+We present a comprehensive study of radial basis function (RBF) approximations for elliptic and obstacle-type boundary value problems under a variational formulation. Our focus is on practical accuracy, robustness and efficiency. To address ill-conditioning in dense systems, we apply truncated singular value decomposition (TSVD) and investigate its effect on stability and accuracy trade-offs. Numerical experiments report benchmarks on accuracy and show fast error decay. We investigate the trade-off between approximation and truncation errors for practical settings for the number of basis functions, the oversampling ratio and the truncation threshold. In comparison with other methods, RBF variational solvers deliver high accuracy at similar or lower cost for boundary value problems. 
+
+Keywords: Radial basis function approximation; Free-boundary value problem; ℓ1-penalty method; Alternating direction method of multipliers; Kernel-based approximation; Non-smooth convex optimization. 
+
+# 1 Introduction 
+
+Radial Basis Function (RBF) methods have been used as a tool in mesh-free approximation to solve the boundary value problem, offering high-order accuracy and flexibility [ 6 , 21 ]. A common kernel choice in RBF methods is the Gaussian radial basis function because of its spectral accuracy [ 6]. However, this choice of basis function often leads to severe ill-conditioning of the system matrix when the shape parameter becomes small or when the number of centers is large. The system matrix then amplifies round-off errors which makes the numerical system unstable. This ill-conditioning has been studied in the literature [ 19 , 8 ], and recent results have proposed regularization techniques to address it. In [ 3 ], the authors demonstrate that accurate and stable least-squares approximations on a bounded domain can still be achieved from ill-conditioned RBF matrices in the linear scaling regime: when the scale parameter, 
+
+b, is chosen proportional to the number of basis functions, N as (b ∼ c N ) for Gaussian RBFs, [ 3 , 1, 2] propose an overdetermined stabilized discrete least-squares formulation on bounded domains, rather than interpolation. Their setting combines (i) placing a portion of RBF centers outside the problem domain, Ω, to improve accuracy, and (ii) oversampling by using more least-squares evaluation points than centers, which improves numerical stability even when the associated RBF matrix is severely ill-conditioned. They further quantify the regime and provide explicit guidance for parameter choices, motivated by a redundancy/frame-based analysis. These results inspire our methodology in this work. Specifically, we are interested in expanding this technique to solve the variational problems, including the partial differential equations: elliptic and free-boundary value problems. We start by formulating elliptic boundary value problems as variational problems, which represent the solution as the minimizer of an energy functional. Similarly to [ 22 ], we also incorporate the boundary conditions 1
+
+> arXiv:2604.19882v1 [math.NA] 21 Apr 2026
+
+to the objective function by adding a suitable penalty term. To solve the corresponding optimization problem, we approximate the unknown solution using Gaussian radial basis functions, where some centers are outside of the domain. By approximating this minimizer using RBF networks, we project the infinite-dimensional variational problem into a finite-dimensional subspace spanned by radial basis functions. We examine various choices of the shape parameters, including optimal values suggested in [ 3] for the one-dimensional problems, to obtain numerical solutions with high accuracy. In addition to the linear elliptic problems, we extend our methodology to a class of free boundary value problems which impose an inequality constraint between solution and obstacle function. Such problems appear in many applications including contact mechanics and American financial options. The classical obstacle problem by [9, 10, 18] seeks a solution u that satisfies the following constraints: 
+
+u(x) ≥ ψ(x), −∆u(x) ≥ 0, and min {− ∆u(x), u (x) − ψ(x)} = 0 in Ω, u = g on ∂Ω
+
+where ψ(x) is the obstacle function. By formulating the obstacle problem as a constrained optimization problem and adopting an ℓ1-penalty approach based on [ 20 , 24 ], we impose the constraint u ≥ ψ via a non-smooth penalty term, and for the boundary condition we apply the penalization via parameter β such that: 
+
+min 
+
+> u
+
+{ 12
+
+∫
+
+> Ω
+
+∥∇ u∥22 d⃗ x + μ
+
+∫
+
+> Ω
+
+(ψ − u)+ d⃗ x + β
+
+2
+
+∫
+
+> ∂Ω
+
+(u − g)2 d⃗ s
+
+}
+
+where μ, β > 0 are penalty parameters and (·)+ = max {· , 0}. To solve the corresponding optimization problem, similar to the elliptic boundary value problem, we also approximate the unknown solution of the variational obstacle problem as a linear combination of Gaussian radial basis functions. Motivated by [ 3], we sample the centers of those radial basis functions on an extended domain ΩT where T > 0 is some expansion domain factor. Our numerical experiments in Section 4 indicate that the proposed method can deliver high accuracy solutions for free-boundary value problems. The discretized variational formulation leads to linear systems that are ill-conditioned particularly for small values of the shape parameter in the radial basis functions. For this reason, we combine an ℓ1 optimization method with truncated singular value decomposition (TSVD) to enforce the inequality constraint and stabilize the solution of the linear system. This formulation allows for robust numerical approximation and efficiency for the variational inequality. We use the alternating direction method of multipliers (ADMM) in [5] to solve the optimization problem. The main contribution of this paper is a mesh-free variational framework for elliptic and obstacle boundary value problems, combining stabilized RBF approximations with an ℓ1-based optimization method. Specifically: 
+
+• We propose a mesh-free RBF approximation, and using TSVD [2, 3] and for ℓ1 optimization ADMM. 
+
+• We use a penalty method for elliptic BVPs and obstacle problems as in [20, 24] and [23]. 
+
+• We present numerical experiments validating the convergence, stability, and accuracy of our proposed method for elliptic and obstacle-type boundary value problems. The remainder of our research paper is organized as follows. Section 2 states the problem setting and introduces the radial basis function networks representation, the assumptions on center distributions, and the variational equations for linear elliptic and obstacle-type boundary value problems. Section 3 presents our methodology, including variational formulations for boundary value problems, the TSVD method for solving linear systems, and the ADMM framework used for non-smooth ℓ1 penalization. Section 4 presents numerical experiments that assess. Finally, Section 5 summarizes the main findings and discusses limitations and directions for future work. 22 Problem Statement 
+
+In this section, we introduce the class of elliptic boundary value problems under consideration and a mesh-free approximation framework based on RBF approximation. The objective is to seek weak solutions of elliptic and obstacle-type partial differential equations on a bounded domain Ω ⊆ Rd by a finite-dimensional approximation ˆu. The unknown coefficients of this representation will be determined through variational equations, which leads to stabilized linear least-squares systems or non-smooth constrained optimization problems. 
+
+## 2.1 Variational Functionals for Boundary Value Problem 
+
+We are interested in solving elliptic and free-boundary partial differential equations with inequality constraints using a variational framework and penalty terms. Let Ω ⊂ Rd be a bounded open domain with a smooth boundary ∂Ω. First, we start with the Poisson boundary value problem, which is defined as follows: 
+
+{
+
+−∆u = f (⃗x), ∀⃗x ∈ Ω
+
+u(⃗x) = g(⃗x),⃗ x ∈ ∂Ω. (1) The variational problem corresponding to Eq. (1) is given by: 
+
+12
+
+∫
+
+> Ω
+
+∥∇ u∥22d⃗ x −
+
+∫
+
+> Ω
+
+f u d⃗ x, such that u(⃗x) = g(⃗x) ∀⃗x ∈ ∂Ω. (2) Following [ 22 ], we apply a penalty method to impose the boundary condition and consider minimizing a modified functional: 
+
+min  
+
+> u
+
+Jβ, poisson (u),
+
+where 
+
+Jpoisson ,β (u) = 12
+
+∫
+
+> Ω
+
+∥∇ u∥22 d⃗ x −
+
+∫
+
+> Ω
+
+f u d⃗ x + β
+
+2
+
+∫
+
+> ∂Ω
+
+(u − g)2 d⃗ s, (β > 0) . (3) Similarly, we consider the classical obstacle problem which is defined as follows: 
+
+
+
+−∆u(⃗x) ≥ 0, ∀⃗x ∈ Ω
+
+u(⃗x) = g(⃗x), ∀⃗x ∈ ∂Ω
+
+u(⃗x) ≥ ψ(⃗x), in Ω(−∆u) ( u − ψ) = 0 , in Ω
+
+(4) where ψ is a given obstacle function. The following ℓ1-penalty approach provides a powerful alternative method to formulate the obstacle problem (4) with g = 0 :
+
+min 
+
+> u
+
+12
+
+∫
+
+> Ω
+
+∥∇ u∥22 d⃗ x + μ
+
+∫
+
+> Ω
+
+(ψ − u)+ d⃗ x, 
+
+where μ > 0 is the penalty coefficient. According to a result in [ 20 ], for sufficiently large μ > 0, the minimizer coincides with the solution of Eq. (4). Adding the boundary condition as in Eq. (3), we obtain the optimization problem: 
+
+min  
+
+> u
+
+Jobstacle ,μ,β (u),
+
+where 
+
+Jobstacle ,μ,β (u) = 12
+
+∫
+
+> Ω
+
+∥∇ u∥22 d⃗ x + μ
+
+∫
+
+> Ω
+
+(ψ − u)+d⃗ x + β
+
+2
+
+∫
+
+> ∂Ω
+
+(u − g)2 d⃗ s. (5) 3The boundary penalty term, ∫
+
+> ∂Ω
+
+(u − g)2d⃗ s , softly enforces the Dirichlet condition u = g on ∂Ω. Although it is possible to construct RBFs or modified ansatz functions that satisfy the boundary conditions exactly, such constructions often increase complexity and reduce flexibility for a generic function g. In contrast, enforcing the boundary via a penalty term retains the generality of the basis. To solve the optimization problems in Eqs. (3) and (5) , we will use a collocation method and approximate the solution using radial basis functions. In the following, we recall the radial basis function representation and related assumptions. 
+
+## 2.2 Radial Basis Function Approximation 
+
+To formulate boundary value problems (BVPs), we consider a bounded open domain Ω ⊂ Rd with a smooth boundary ∂Ω. We are interested in finding a function u : Ω → R in some Sobolev space satisfying a prescribed differential equation in the domain and adhering to the boundary conditions. In this setting, we seek an approximate solution constructed by a linear combination of N radial basis functions centered at points {⃗c i}Ni=1 where each ⃗c i ∈ Rd. For the sake of completeness, we recall the definition and some important properties of radial basis functions (see also [14, 11, 8]). 
+
+Definition 1. A function Φ : Rd → R is called radial when it depends on the distance of the argument from a center ⃗c ∈ R d; equivalently, there exists a univariate mapping ϕ : [0 , ∞) → R such that 
+
+Φ( ⃗x) = ϕ(r), where r = ∥⃗x −⃗c∥
+
+and ∥ · ∥ denotes a norm on Rd.
+
+Let ϕ : [0 , ∞) → R be a well-defined basis function. Given a set of N center vectors {⃗c i}Ni=1 in Rd, a radial basis function approximation ˆu : Ω → R of a function u is defined as: 
+
+ˆu(⃗x) := 1
+
+√N
+
+> N
+
+∑
+
+> i=1
+
+wiϕ(∥⃗x −⃗c i∥2), (6) where ⃗x ∈ Ω and the weight coefficient vector is given by ⃗w = ( w1, . . . , w N )⊤ ∈ RN . The scaling factor 1√N
+
+normalizes the formulation with respect to the number of centers. The universal approximation theorem in [ 13 ] establishes that a single hidden layer with fixed-shape radial basis units can uniformly approximate any integrable function on a compact subset of Rd. Mesh-free approximation frameworks use the smoothness and locality properties of radial basis functions to approximate solutions [ 21 , 8 ]. The coefficients in the representation are determined by considering residuals of the differential operator and boundary conditions using collocation or variational methods. A one-layer RBF network is illustrated in Figure 1. ⃗x ∈ R d⃗ c 1⃗c 2                           
+
+> ...⃗cN
+> ϕ(
+> ∥⃗x−⃗ci∥)1
+> √N
+> N∑
+> i=1
+> wiϕ(∥⃗x−⃗ci∥)ˆu(⃗x)
+> Figure 1: Illustration of a RBF network. A single input vector ⃗x∈Rdis combined with a set of center points ⃗ci∈Rd,i= 1 , . . . , N , to evaluate radial kernels ϕ(∥⃗x−⃗ci∥).The resulting basis function values ϕ’s are combined linearly using weights wito obtain the approximation ˆu(⃗x) = 1√N
+
+∑Ni=1 wiϕ(∥⃗x −⃗c i∥).
+
+4Table 1 summarizes some of the most popular radial basis kernels, including global functions and compactly supported functions. 
+
+Name Formula ϕ(r) Smoothness Locality 
+
+Gaussian e−(br )2
+
+C∞ Global Multiquadric √1 + ( br )2 C∞ Global Inverse Quad 11+( br )2 C∞ Global Inverse MQ 1√1+( br )2 C∞ Global Wendland C2 χ[0 ,1] (br )(1 − br )4(4 br + 1) C2 Compact Wendland C4 χ[0 ,1] (br )(1 − br )6(35( br )2 + 18 br + 3) C4 Compact 
+
+Table 1: Examples of radial basis functions with the shape parameter b > 0. Here, the indicator function, χ[0 ,1] (br ), equals 1 when br ≤ 1, and 0 otherwise. 
+
+Each RBF in the network is activated when the input ⃗x lies near its corresponding center ⃗c i. We now outline the assumptions that we make when using RBFs to approximate solutions of PDEs in this paper. 
+
+Assumption 1. In numerical experiments, we normally use the Gaussian kernel defined in Table 1, 
+
+ϕ(r) = e−(br )2
+
+.
+
+In some numerical tests, we state the use of different kernels. 
+
+Assumption 2 (Fill distance, see [ 8, 12 ]) . The center points are sampled from a distribution such that 
+
+{⃗c 1, . . . ,⃗ c N } ⊂ Ω. Then, the fill distance property states that 
+
+hΩ := sup ⃗x∈Ω
+
+min  
+
+> 1≤i≤N
+
+|⃗x −⃗c i| → 0, as N → ∞ .
+
+Assumption 3 (Separation distance, see [ 8, 12 ]) . For a set of center points {⃗c 1, . . . ,⃗ c N } ⊂ Ω, the separation distance qΩ satisfies 
+
+qΩ := 12 min 
+
+> i,j =1 ,...,N i̸=j
+
+∥⃗c i −⃗c j ∥2 → 0, as N → ∞ .
+
+Corollary 1 (See Corollary 10.13 in [ 21 ] and Section 2.1 in [ 12 ]) . Let ϕ(r) = e−(br )2
+
+as in Assumption 1, and choose center points C = {⃗c i}Ni=1 ⊂ Ω uniformly distributed as in Assumptions 2–3. Then there exist constants B1, B 2 > 0, independent of N , such that for all ⃗ω ∈ R N ,
+
+B1
+
+> N
+
+∑
+
+> i=1
+
+|ωi|2 ≤
+
+∥∥∥
+
+> N
+
+∑
+
+> i=1
+
+ωi ϕ(∥⃗x −⃗c i∥2)
+
+∥∥∥2 
+
+> Ws, 2(Ω)
+
+≤ B2
+
+> N
+
+∑
+
+> i=1
+
+|ωi|2.
+
+Thus {ϕ(∥⃗x −⃗c i∥2)}Ni=1 forms a frame for its closed span in W s, 2(Ω) .
+
+In practice, we place centers in an expanded domain, see Section 4. The first assumption states we use Gaussian kernels, which meet the requirements of the universal approximation property of RBFs. The Assumptions 2 and 3 guide our construction of center points. While the fill distance hΩ measures the 5largest distance from any point in Ω to the nearest center, the separation distance qΩ measures the minimal spacing between centers. Corollary 1 states that using our radial kernel from Assumption 1 results in a frame sequence for the closed span {ϕ(∥⃗x −⃗c i∥2)}Ni=1 , giving uniform equivalence between the coefficient and function norms. In [ 21 ], the author expands this from the Gaussian RBF to any compactly supported function ϕ ∈ L1(Rd) ∩ C(Rd). This would guaranty that the kernels in Table 1, including both global and compactly supported functions, to satisfy the property in Corollary 1. The property in Corollary 1 is to allow the application of TSVD as in [1, 2]. In this work, we approximate the solution by the representation ˆu in Eq. (6) . The weighted coefficients are optimized using TSVD for linear elliptic boundary value problems, and the ADMM is used for obstacle-type problems. 
+
+# 3 Methodology 
+
+We now describe the numerical framework used to approximate the linear elliptic and free-boundary value problems. Specifically, we aim to find the minimizers of the corresponding variational PDEs in Eq. (3) and Eq. (5) . We approximate the minimizers by radial basis functions as in Eq. (6) . To approximate the integrals in the variational PDEs, we select m collocation points from the domain Ω = Ω ∪ ∂Ω, including mΩ interior points ⃗x (Ω) 1 , . . . ,⃗ x (Ω)  
+
+> mΩ
+
+and m∂Ω boundary points ⃗x (∂Ω) 1 , . . . ,⃗ x (∂Ω)  
+
+> m∂Ω
+
+. The corresponding discrete form of Eq. (3) for Poisson’s equation is as follows: ̂
+
+Jpoisson ,β (⃗x) = |Ω|
+
+mΩ
+
+> mΩ
+
+∑
+
+> j=1
+
+( 12 ∥∇ ˆu(⃗x (Ω)  
+
+> j
+
+)∥22 − f (⃗x (Ω)  
+
+> j
+
+)ˆ u(⃗x (Ω)  
+
+> j
+
+)
+
+)
+
++ β |∂Ω|
+
+2 m∂Ω
+
+> m∂Ω
+
+∑
+
+> n=1
+
+(
+
+ˆu(⃗x (∂Ω)  
+
+> n
+
+) − g(⃗x (∂Ω)  
+
+> n
+
+)
+
+)2
+
+. (7) In the same manner, the discrete form of Eq. (5) for the obstacle problem is defined as follows: ̂
+
+Jobstacle ,μ,β (⃗x) = |Ω|
+
+mΩ
+
+> mΩ
+
+∑
+
+> j=1
+
+( 12 ∥∇ ˆu(⃗x (Ω)  
+
+> j
+
+)∥22 + μ max 
+
+(
+
+ψ(⃗x (Ω)  
+
+> j
+
+) − ˆu(⃗x (Ω)  
+
+> j
+
+), 0
+
+))
+
++ β |∂Ω|
+
+2 m∂Ω
+
+> m∂Ω
+
+∑
+
+> n=1
+
+(
+
+ˆu(⃗x (∂Ω)  
+
+> n
+
+) − g(⃗x (∂Ω)  
+
+> n
+
+)
+
+)2
+
+.
+
+(8) Here, |Ω| and |∂Ω| denote the Lebesgue measure of the computational domains Ω, ∂ Ω, respectively. It remains for us to compute the explicit derivatives for the discretized variational formulation in each boundary value problem. Under Assumption 1 and the RBF approximation in Eq. (6) , we use the Gaussian basis function such that ϕ(r) = exp (−(b r )2). In particular, we get ϕ′(r) = −2b2 r exp (−(b r )2). Thus, for ⃗c i ∈ Rd, we compute the gradient ∇ˆu(⃗x (Ω)  
+
+> j
+
+) as follows: 
+
+∇ˆu(⃗x (Ω)  
+
+> j
+
+) = 1
+
+√N
+
+> N
+
+∑
+
+> i=1
+
+wi∇ϕ(∥⃗x (Ω)  
+
+> j
+
+−⃗c i∥2), 1 ≤ j ≤ mΩ. (9) Hence, we deduce that 
+
+∥∇ ˆu(⃗x (Ω)  
+
+> j
+
+)∥22 = 1
+
+N
+
+> N
+
+∑
+
+> i=1
+> N
+
+∑
+
+> l=1
+
+wi wℓ
+
+(∇ϕ(∥⃗x (Ω)  
+
+> j
+
+−⃗c i∥2))⊤ ∇ϕ(∥⃗x (Ω)  
+
+> j
+
+−⃗c ℓ∥2), 1 ≤ j ≤ mΩ. (10) The remainder of this section is divided into two parts: (i) an unconstrained optimization framework for linear elliptic boundary value problems and (ii) a constrained optimization framework for obstacle-type problems. 63.1 Unconstrained Optimization for Elliptic Boundary Value Problems 
+
+In this section, we derive a numerical scheme to solve the Poisson boundary value problem by minimizing the convex functional of Eq. (7) . The details of the derivation are given by Appendix B.1. Using the basis kernel’s differentiability, we need to solve the following: 
+
+min ⃗w∈R N̂ Jpoisson ,β (⃗w),
+
+where ̂ Jpoisson ,β (⃗w) = 12⃗w ⊤A(poisson) 1⃗ w −⃗ f ⊤A2⃗w + β
+
+2 ∥A3⃗w −⃗g∥ 22, (11) and the matrices A1, A 2 and A3 are given by 
+
+(A1)i,l = |Ω|
+
+mΩ N
+
+> mΩ
+
+∑
+
+> j=1
+
+∇ϕ⊤(∥⃗x (Ω)  
+
+> j
+
+−⃗c i∥2) ∇ϕ(∥⃗x (Ω)  
+
+> j
+
+−⃗c ℓ∥2), for 1 ≤ i, ℓ ≤ N. (12) 
+
+A2 ∈ RmΩ×N , (A2)j,i = |Ω|
+
+mΩ
+
+√N ϕ(∥⃗x (Ω)  
+
+> j
+
+−⃗c i∥2), j = 1 , . . . , m Ω, i = 1 , . . . , N, (13) 
+
+A3 ∈ Rm∂Ω×N , (A3)n,i =
+
+√
+
+|∂Ω|
+
+m∂Ω N ϕ(∥⃗x (∂Ω)  
+
+> n
+
+−⃗c i∥2), n = 1 , . . . , m ∂Ω, i = 1 , . . . , N. (14) The vectors of the source function and boundary data are given by ⃗f := 
+
+
+
+f
+
+(⃗x (Ω) 1
+
+)
+
+...
+
+f
+
+(⃗x (Ω) 
+
+> mΩ
+
+) ∈ RmΩ ,⃗ g := 
+
+√
+
+|∂Ω|
+
+m∂Ω
+
+
+
+g
+
+(⃗x (∂Ω) 1
+
+)
+
+...
+
+g
+
+(⃗x (∂Ω) 
+
+> m∂Ω
+
+) ∈ Rm∂Ω . (15) The minimizer ⃗w ∗ satisfies the following equation: 
+
+Aelliptic ⃗w ∗ =⃗ belliptic , (16) where Aelliptic := A1 + βA ⊤ 
+
+> 3
+
+A3 ∈ RN ×N and ⃗ belliptic := A⊤
+
+> 2
+
+⃗ f + βA ⊤
+
+> 3
+
+⃗g ∈ R N . However, the choice of the shape parameter b in the kernel function ϕ affects the condition number of the stiffness matrix in Eq. (11) . To address this, we compute the TSVD solution: ⃗w τ := A†
+
+> elliptic ,τ
+
+⃗ belliptic = Vp Σ−1 
+
+> τ
+
+U ⊤
+
+> p
+
+⃗ belliptic , (17) where Σ−1 
+
+> τ
+
+= diag (1 /σ 1, · · · , 1/σ p) with σp > σ 1 τ ≥ σp+1 , Aelliptic = U ΣV ⊤ is the SVD of Aelliptic , and 
+
+Up ∈ RN ×p, V p ∈ RN ×p are matrices of the first p columns of U and V , respectively. It is proved in [ 3] that, with a suitable choice of parameters for RBFs, the TSVD solution yields an accurate function approximation, 
+
+ˆuτ (⃗x) = 1
+
+√N
+
+> N
+
+∑
+
+> i=1
+
+wτ,i ϕ(∥⃗x −⃗c i∥2). (18) Hence, the following algorithm 1 summarizes our schematic solver for linear elliptic partial differential equations and establishes the foundation for the subsequent algorithmic scheme addressing obstacle-type problems. 7Algorithm 1: Stable radial basis function weak - form solver for variational elliptic PDEs using TSVD solutions. 
+
+Input: ϕ(·) (kernel function); {⃗c i}Ni=1 ⊆ ΩT (sampled center nodes from the expansion domain); {⃗x (Ω)  
+
+> j
+
+}mΩ
+
+> j=1
+
+(interior nodes); {⃗x (∂Ω)  
+
+> n
+
+}m∂Ω 
+
+> n=1
+
+(boundary nodes); f (·), g (·) (source/boundary data); β > 0 (boundary penalty parameter); τ > 0 (truncaction tolerance) 
+
+Output: Weight vector ⃗w τ ∈ RN ; Approximation ˆuτ (⃗x) ∈ R.
+
+Assemble discrete operators ;Compute A1 ∈ RN ×N using Eq. (12); Compute A2 ∈ RmΩ×N and A3 ∈ Rm∂Ω×N using Eqs. (13)–(14); Form vectors ⃗ f ,⃗g as in Eq. (15) ; 
+
+Build normal-equation system according to Eq. (16); 
+
+Aelliptic ← A1 + βA ⊤ 
+
+> 3
+
+A3;⃗belliptic ← A⊤
+
+> 2
+
+⃗ f + βA ⊤
+
+> 3
+
+⃗g;
+
+Stabilize via TSVD ;Compute TSVD: Aelliptic = U ΣV ⊤;Identify index set Tτ = {k : σk > τ σ 1};Form truncated pseudo-inverse Σ−1 
+
+> τ
+
+where (Σ −1 
+
+> τ
+
+)kk = 1 /σ k if k ∈ T τ and 0 otherwise; Form the pseudo-inverse matrix A† 
+
+> elliptic ,τ
+
+← Vp
+
+(Σ−1
+
+> τ
+
+) U ⊤ 
+
+> p
+
+;
+
+Compute the weights ;⃗w τ ← A†
+
+> elliptic ,τ
+
+⃗ belliptic using Eq. (17) ; 
+
+return ⃗w τ ∈ RN , ˆuτ (⃗x) = 1√N
+
+∑Ni=1 w(τ ),i ϕ(∥⃗x −⃗c i∥2) as in Eq. (18). 
+
+## 3.2 Constrained Optimization for Obstacle-Type Problems 
+
+Using the radial basis function representation for ˆu (see Eq. (6) )and the formulation of the gradient of ˆu in terms of the weight vector (see Eq. (9)), the discrete form for the obstacle problem in Eq. (8) becomes: ̂
+
+Jobstacle ,μ,β (⃗w) = 12⃗w ⊤A1⃗w + μ∥(⃗ ψ − A2⃗w) +∥1 + β
+
+2 ∥A3⃗w −⃗g∥ 22
+
+where the matrices A1, A2, and A3 are the same as those in Eqs. (12) - (14) . The vector of the obstacle function is defined as follows: ⃗ψ := |Ω|
+
+mΩ
+
+
+
+ψ(⃗x (Ω) 1 )
+
+...
+
+ψ(⃗x (Ω)  
+
+> mΩ
+
+)
+
+ ∈ RmΩ . (19) The unconstrained optimization problem which involves the ℓ1-norm is non-smooth and convex. We solve the corresponding optimization problem by the ADMM method. Specifically, we introduce a slack variable ⃗v =⃗ ψ − A2⃗w. This results in a constrained optimization problem: 
+
+
+
+min ⃗w,⃗ v̂ Jobstacle ,μ,β (⃗w,⃗ v)̂
+
+Jobstacle ,μ,β (⃗w,⃗ v) = 12⃗w ⊤A1⃗w + μ∥⃗v +∥1 + β 
+
+> 2
+
+∥A3⃗w −⃗g∥ 22
+
+s.t. ⃗ v −⃗ ψ + A2⃗w = 0 .
+
+(20) The corresponding augmented Lagrangian functional with a penalty parameter ρ > 0 and a scaled dual variable ⃗z is 8̂Lρ(⃗w,⃗ v,⃗ z) = 12⃗w ⊤A1⃗w + β
+
+2 ∥A3⃗w −⃗g∥ 22 + μ ∥⃗v +∥1 + ρ
+
+2 ∥⃗v −⃗ ψ + A2⃗w +⃗z∥ 22 − ρ
+
+2 ∥⃗z∥ 22. (21) The ADMM algorithm iteratively updates the primal variables ⃗w,⃗ v and the dual variable ⃗z as follows: ⃗w (i+1) := arg min ⃗w
+
+{ 12⃗w ⊤A1⃗w + β
+
+2 ∥A3⃗w −⃗g∥ 22 + ρ
+
+2 ∥⃗v (i) −⃗ ψ + A2⃗w +⃗z (i)∥22
+
+}
+
+, (22) ⃗v (i+1) := arg min ⃗v
+
+{
+
+μ∥⃗v +∥1 + ρ
+
+2 ∥⃗v −⃗ ψ + A2⃗w (i+1) +⃗z (i)∥22
+
+}
+
+, (23) ⃗z (i+1) := ⃗z (i) + (⃗v (i+1) −⃗ ψ + A2⃗w (i+1) ). (24) The solution ⃗w (i+1) to the ⃗w-sub-minimization problem satisfies the following: 
+
+(
+
+A1 + βA ⊤ 
+
+> 3
+
+A3 + ρA ⊤ 
+
+> 2
+
+A2
+
+)⃗w (i+1) = βA ⊤
+
+> 3
+
+⃗g + ρA ⊤
+
+> 2
+
+(⃗ψ −⃗v (i) −⃗z (i))
+
+.
+
+Since the total stiffness matrix is ill-conditioned in the ⃗w -update, we stabilize the symmetric positive-definite linear system by computing the TSVD solution with the parameter τ :⃗w (i+1)  
+
+> τ
+
+= A†
+
+> obstacle ,τ
+
+⃗ b(i)obstacle , (25) where Aobstacle := A1 + βA ⊤ 
+
+> 3
+
+A3 + ρA ⊤ 
+
+> 2
+
+A2 ∈ RN ×N and ⃗ b(i)obstacle := βA ⊤
+
+> 3
+
+⃗g + ρA ⊤ 
+
+> 2
+
+(⃗ψ −⃗v (i) −⃗z (i)) ∈ RN . The matrix A† 
+
+> obstacle ,τ
+
+is computed in the same way as the matrix A† 
+
+> elliptic ,τ
+
+in Eq. (17). Let ⃗ t(i) := ⃗ ψ − A2⃗w (i+1) −⃗z (i) ∈ RmΩ . For each component j = 1 , . . . , m Ω, the ⃗v-update is given by 
+
+v(i+1)  
+
+> j
+
+=
+
+
+
+t(i) 
+
+> j
+
+, t(i) 
+
+> j
+
+< 0,
+
+0, 0 ≤ t(i) 
+
+> j
+
+≤ μρ ,t(i) 
+
+> j
+
+− μρ , t(i) 
+
+> j
+
+> μρ .
+
+(26) The primal and dual residuals in the iteration (i + 1) are defined as follows: ⃗r (i+1) := ⃗v (i+1) −⃗ ψ + A2⃗w (i+1) ,⃗ s (i+1) := ρA ⊤ 
+
+> 2
+
+(⃗v (i+1) −⃗v (i)).
+
+Following the suggestion in [ 5], our algorithm terminates when both the primal and dual residuals, ⃗r (i+1) and ⃗s (i+1) , respectively, meet the relative tolerance thresholds εprimal , ε dual > 0:
+
+∥⃗r (i+1) ∥2
+
+max 
+
+(
+
+∥A2⃗w (i+1) ∥2, ∥⃗v (i+1) ∥2, ∥⃗ψ∥2
+
+) ≤ ϵprimal , (27) 
+
+∥⃗s (i+1) ∥2
+
+∥ρA ⊤
+
+> 2
+
+⃗z (i+1) ∥2
+
+≤ ϵdual . (28) The proposed algorithm for the obstacle problem is given in Algorithm 2. In Section 4, we employ numerical experiments for linear elliptic and obstacle-type boundary value problems to benchmark the accuracy of Algorithms 1-2. 9Algorithm 2: ADMM-stabilized RBF solver for the classical obstacle problem 
+
+Input: ϕ(·) (kernel function); {⃗c ℓ}Nℓ=1 ⊆ ΩT (sampled center nodes from the expanded domain); {⃗x (Ω)  
+
+> j
+
+}mΩ
+
+> j=1
+
+(interior nodes); {⃗x (∂Ω)  
+
+> n
+
+}m∂Ω 
+
+> n=1
+
+(boundary nodes); f (·), g (·) (source/boundary data); ψ(·) (obstacle data); 
+
+β > 0 (boundary penalty); μ > 0 (obstacle weight); ρ > 0 (ADMM penalty); τ > 0 (truncation tolerance); maxIter (maximum number of iterations); εpri , ε dual (tolerances for primal and dual residuals) 
+
+Output: Weights ⃗w τ ∈ RN ; approximation ˆuτ (⃗x) ∈ R d
+
+Assemble operators and vectors ;Compute A1, A 2, A 3 as stated in Eqs. (12), (13) and (14), respectively ; Form Aobs ← A1 + βA ⊤ 
+
+> 3
+
+A3 + ρA ⊤ 
+
+> 2
+
+A2;Form ⃗ f ,⃗g,⃗ ψ using Eqs. (15) and (19) ; 
+
+Initialize ⃗w (0) ,⃗v (0) ,⃗z (0) ;
+
+for i = 0 , . . . , maxIter do 
+
+// 1. ⃗ w-update (TSVD solve) ⃗b(i)obstacle ← βA ⊤
+
+> 3
+
+⃗g + ρA ⊤ 
+
+> 2
+
+(⃗ ψ −⃗v (i) −⃗z (i));⃗w (i+1)  
+
+> τ
+
+← A†
+
+> obstacle ,τ
+
+⃗ b(i)obstacle using Eq. (25); 
+
+// 2. ⃗ v-update (positive hard-shrinkage) ⃗t(i) ←⃗ ψ − A2⃗w (i+1) −⃗z (i);
+
+foreach j = 1 , . . . , m Ω do if t(i) 
+
+> j
+
+< 0 then 
+
+v(i+1)  
+
+> j
+
+← t(i)
+
+> j
+
+else if 0 ≤ t(i) 
+
+> j
+
+≤ μ/ρ then 
+
+v(i+1)  
+
+> j
+
+← 0
+
+else 
+
+v(i+1)  
+
+> j
+
+← t(i) 
+
+> j
+
+− μ/ρ 
+
+// 3. Dual update ⃗z (i+1) ←⃗z (i) +⃗v (i+1) −⃗ ψ + A2⃗w (i+1) ;
+
+// 4. Primal and dual residuals; stopping criteria ⃗r (i+1) ←⃗v (i+1) −⃗ ψ + A2⃗w (i+1) ;⃗s (i+1) ← ρA ⊤ 
+
+> 2
+
+(⃗v (i+1) −⃗v (i));
+
+if ∥⃗r (i+1) ∥2    
+
+> max {∥ A2⃗w(i+1) ∥2∥⃗v(i+1) ∥2∥⃗ψ∥2}
+
+≤ εpri ∧ ∥⃗s (i+1) ∥2 
+
+> ∥ρA ⊤
+> 2⃗z(i+1) ∥2
+
+≤ εdual then break return ⃗w (i+1)  
+
+> τ
+
+∈ RN , ˆuτ (⃗x) = 1
+
+√N
+
+> N
+
+∑
+
+> l=1
+
+w(i+1) (τ ),l ϕ(∥⃗x −⃗c l∥2);
+
+10 4 Numerical Experiments 
+
+In the following experiments, we assess the accuracy, stability, and efficiency of the RBF-based variational method in Eq. (6) across different elliptic partial differential equations, including Poisson and obstacle-type boundary value problems. The tests are carried out with non-homogeneous Dirichlet boundary conditions. The Gaussian kernel in Table 1 is employed with a shape parameter b > 0 in all experiments unless we compare performance across different kernels. We use dimensional scaling for the kernel shape: in the one-dimensional case, we take b = c N , while in two-dimensional experiments, we choose b = c √N , with c = c(T, τ ) selected based on [3]. The formula for the optimal value copt = c(T, τ ) is given by: 
+
+c(T, τ ) = min 
+
+{
+
+1, πT √log(1 + τ −2)
+
+}
+
+, (29) where T ≥ 1 and τ ∈ (0 , 1) are the domain expansion factor and the truncation threshold value, respectively. The multiplier c(T, τ ), as stated in Eq. (29) , governs the trade-off between approximation accuracy and numerical stability through the shape parameter of the RBFs. A larger c yields more localized basis functions, which generally improve conditioning but may reduce approximation accuracy. In contrast, a smaller c
+
+produces flatter and more overlapping basis functions, which can enhance approximation accuracy for smooth solutions but may also lead to ill-conditioning and greater sensitivity to truncation errors. Expression (29) was derived for the case of least-squares function approximation in one dimension. While it is not necessarily optimal in our case of variational PDE solvers, we use it as a guideline and investigate its effectiveness in our numerical experiments. Following the approach of [ 3] in 1D, the center points are not strictly restricted to Ω = [ b1, b 2], but are drawn uniformly from an expanded domain [qmid − T L half , q mid + T L half ] where 
+
+qmid = b1+b2 
+
+> 2
+
+is the midpoint of the domain, Lhalf = b2−b1 
+
+> 2
+
+is the half-length, and T ≥ 1 is the domain expansion factor, as stated in Eq. (29) . This oversampling procedure, which operates outside the physical domain, reduces boundary effects on approximation accuracy and improves numerical stability within the collocation system. We compare the proposed RBF-based variational solver with finite-difference ADMM, neural network and Galerkin methods in the linear elliptic boundary value problems. For free-boundary value problems, we compare the proposed RBF-based variational method, finite-difference solvers with ADMM, proximal-gradient descent (PGD), and neural networks. For the finite-difference benchmark, we use the method of ADMM 1 in [ 20 ] to solve the variational form of the Poisson problem under the same Dirichlet boundary conditions. In the two-dimensional setting, we compare with finite-difference and solve the optimization problems with PGD 2 as in [ 4 ]. For the neural-network benchmark, we use physics-informed neural networks (PINNs) 3 from [ 16 , 17 , 15 ], in which the network parameters are trained by minimizing the corresponding variational loss from Section 3. In one-dimensional experiments, we set the fully-connected neural network to consist of one hidden layer with hyperbolic tangent activation function using N neurons, followed by a linear output layer. In two-dimensional experiments, we consider two architectures: the same one-hidden-layer as in the one-dimensional case, and a deeper network with three connected layers which have N neurons each, again using tanh activations. In the Galerkin method, we solve the weak form of the boundary value problems using finite-element discretization; a common open-source implementation is 
+
+FEniCSx 4 in [ 7 ]. We use N as the mesh resolution in the Galerkin method. For reproducibility, we report the main implementation parameters for each method. In the neural network, we use the same parameter settings as in [ 16 ] with a learning rate of 10 −2, the Adam optimizer, and a hyperbolic tangent activation function. For the finite-difference and Galerkin methods, the stopping criterion is chosen so that the relative error is below a prescribed tolerance. For each problem, we sample m = ζ × N collocation points, including         
+
+> 1The implementation of Finite-difference (ADMM) is at https://github.com/jwcalder/MinimalSurfaces
+> 2The implementation of MGProx can be accessed at https://github.com/lumeilevel/MGProx
+> 3The package of PINNs is accessed at https://github.com/maziarraissi/PINNs
+> 4The package of FEniCSx is implemented at https://github.com/METHODS-Group/ProximalGalerkin
+
+11 mΩ interior points and m∂Ω boundary points, where ζ is an oversampling parameter, and N is the number of RBF centers. In the one-dimensional setting, the boundary consists solely of two endpoints b1 and b2. Thus, the number of interior points is mΩ = m − 2. In the two-dimensional setting, we uniformly randomly sample √ζ N points on each side of the boundary domain ∂Ω, yielding m∂Ω = 4 √ζ N . For interior collocation points, we uniformly randomly sample mΩ = ζ N − 4√ζ N points. For the comparison between methods, we compute the relative ℓ2 error, 
+
+E(N ) := ∥ˆuN − uexact ∥2
+
+∥uexact ∥2
+
+, (30) where ˆuN is the numerical approximation of the optimization problems (see Eq. (18) ) and the 2-norms are computed by sums over the collocation points. Empirically, we also calculate the local estimation of the convergence order pi and their average order ˆp:
+
+p := log 
+
+( E(N/ 2) 
+
+E(N )
+
+)
+
+. (31) Those experiments quantify the order of accuracy of our method for Poisson and free-boundary value problems. In all experiments, we set hyper-parameters according to Table 2. 
+
+Table 2: Parameters for the RBF-algorithm solver in numerical experiments 
+
+Parameter Symbol Value/Formula 
+
+Number of basis functions N problem-dependent 
+
+Oversampling factor ζ 2 (1D); 4 (2D) Total number of all collocation points 
+
+m ζ × N
+
+Half-length of interval [b1, b 2] Lhalf Lhalf = b2 − b1
+
+2
+
+Midpoint of the interval [b1, b 2] qmid qmid = b1 + b2
+
+2
+
+Domain expansion factor T Centers are sampled in 1D from 
+
+[qmid − T L half , q mid + T L half 
+
+]
+
+Truncation threshold value τ 10 −15 
+
+Shape-factor multiplier c min 
+
+{
+
+1, πT √2 log(1 + τ −2)
+
+}
+
+, as in [3] Kernel shape parameter b cN (1D); c√N (2D) Obstacle penalty weight μ problem-dependent 
+
+Boundary-condition penalty term β problem-dependent 
+
+ADMM penalty parameter ρ problem-dependent 
+
+Maximum number of iterations in ADMM 
+
+maxIter 50 ,000 
+
+## 4.1 Elliptic Boundary Value Problem 
+
+In this subsection, we consider a class of elliptic boundary value problems defined on a bounded closed domain Ω ⊂ R. The boundary value problem is the following Poisson equation subject to inhomogeneous 12 Dirichlet boundary conditions: 
+
+−∆u = f (x), ∀x ∈ Ω = (0 , 1) 
+
+u(0) = a1,u(1) = a2.
+
+(32) We use the following problem to test the variational form of the Poisson equation. The solution of the Poisson boundary value problem is: 
+
+{
+
+u(x) = sin( πx ) − (a1 − a2)x + a1, x ∈ Ω = (0 , 1) 
+
+u(0) = a1, u (1) = a2, (33) where the external forcing term f (x) = −π2 sin (πx ), and the boundary values are set at a1 = −1.0 and 
+
+a2 = − 32 .Our method uses an RBF representation according to Eq. (6) regularized by truncated SVD at the cutoff 
+
+τ , together with a variational penalty parameter β on the Dirichlet boundary conditions. In Fig. 2, the top-left panel shows accurate agreement between the approximation and the solution in Eq. (33) with relative 
+
+ℓ2 error 7.419 × 10 −11 where N = 4096 . At the boundary, we penalize Dirichlet conditions via parameter 
+
+β = 3 × 10 5. The pointwise error remains uniformly small according to the right panel in Fig. 2. In particular, 
+
+|uexact (x) − ˆuτ (x)| oscillates between 10 −9 and 10 −12 at the interior collocation points, dipping to around 
+
+10 −14 in the boundary regions. Fig. 3 illustrates the comparative performance of different numerical methods for the Poisson equation, including the proposed RBF method, as well as neural-network, Galerkin, and finite difference methods. For the benchmark tests in Figs. 2–3, the compared methods are run with the following hyperparameter settings. The proposed RBF method uses Gaussian basis functions with ζ = 2 , T = 8 , τ = 10 −15 , and 
+
+β = 3 × 10 5. The neural-network baseline uses one hidden layer with tanh activation and a linear output layer, with width chosen so that the number of trainable parameters is comparable to N . The Galerkin method uses the standard weak formulation with the same nominal number of basis functions, and the finite-difference method is computed on a uniform mesh with comparable resolution. All stopping criteria are kept fixed across runs. Panel Fig. 3(a) demonstrates that the RBF method achieves a rapid decrease in relative ℓ2 error as the number of basis functions N increases, exhibiting fast convergence. The Galerkin and finite-difference methods display the expected second-order accuracy, while the neural network (1 hidden layer) converges slowly and stagnates at higher resolutions. Panel Fig. 3(b) confirms the trends by showing the estimated local convergence order p. The RBF method attains close to 2.7 order on average, surpassing the second-order rates of the Galerkin and finite-difference schemes. 13 Figure 2: Numerical approximation with RBF for Poisson equation −∆u = f (x).The relative error, E(N ) = 7 .419 × 10 −11 . The resolution parameters are (N, m ) = (4096 , 8192) . Center points are sampled uniformly with ζ = 2 , T = 8 and settings are 
+
+τ = 10 −15 , β = 3 × 10 5.       
+
+> (a) Convergence: relative ℓ2error vs. N(b) Local estimated convergence order p.
+
+Figure 3: Poisson PDE −∆u = f (x): accuracy and convergence order. In this experiment, we set the following hyperparameters for the Poisson problem: T = 8 , β =3 × 10 5, τ = 10 −15 
+
+## 4.2 Obstacle-Type Boundary Value Problem 
+
+In the experiments for obstacle-type boundary value problems, we seek a minimum of Eq. (5) to solve the boundary value problem in Eq. (4) . The hyper-parameters in the variational form 5 are set according to Table 2. The pair parameters (μ, ρ ) in Eq. (21) are tuned according to [20]. We vary the N number of basis functions to assess accuracy, tracking the relative ℓ2 error, and monitor 14 ADMM convergence through the relative primal and dual residuals in Eqs. (27) - (28) , respectively. Generally, we set the tolerances as ϵtol . = ϵprimal = ϵdual , depending on the desired accuracy for the experiment. Finally, we record the peak memory usage and computational time in seconds to characterize the scalability. 
+
+4.2.1 One-Dimensional Obstacle Problem 
+
+We solve the one-dimensional obstacle problem using an ADMM-based penalized formulation according to Section 3.2 with piecewise-defined obstacles ψ1 (one bump) and ψ2 (two bumps) given by: 
+
+ψ1(x) = 
+
+
+
+100 x2, x ∈ [0 , 0.25] ,
+
+100 x(1 − x) − 12 .5, x ∈ (0 .25 , 0.5] ,ψ1(1 − x), x ∈ (0 .5, 1] ,
+
+(34) and 
+
+ψ2(x) = 
+
+
+
+10 sin(2 πx ), x ∈ [0 , 0.25] ,
+
+5 cos (π(4 x − 1) ) + 5 , x ∈ (0 .25 , 0.5] ,ψ2(1 − x), x ∈ (0 .5, 1] .
+
+(35) For each obstacle problem, the exact solutions are given as follows: 
+
+u1,exact (x) = 
+
+
+
+(100 − 50 √2) x, x ∈ [0 , 12√2 ],
+
+100 x(1 − x) − 12 .5, x ∈ ( 12√2 , 0.5] ,u1,exact (1 − x), x ∈ (0 .5, 1] ,
+
+(36) and 
+
+u2,exact (x) = 
+
+
+
+10 sin(2 πx ), x ∈ [0 , 0.25] ,
+
+10 , x ∈ (0 .25 , 0.5] ,u2,exact (1 − x), x ∈ (0 .5, 1] .
+
+(37) We test our ADMM solver on the unit domain [0 , 1] for obstacles (34) and (35) . For each obstacle problem, we let β = 10 6 in the one bump and β = 10 8 in the two bumps problem. The discussion for selecting the boundary penalty parameter is in Appendix C.1. Across all panels, the error decreases sharply as β
+
+increases. In one-bump problem, when β is beyond 10 6 the error plateaus due to numerical stiffness and loss of conditioning. For the two-bump problem, the error plateaus up to β ≥ 10 8. We decide to choose β = 10 6
+
+for the one-bump problem and β = 10 8 for the two-bump problem. Section 4.3.1 will justify the choice of domain expansion factor T for each obstacle problem. Specifically, we choose T = 2 for the one-bump obstacle problem while T = 3 is chosen for the two-bump problem. In ADMM, we let the parameters μ = 300 , ρ = 45 
+
+for 1D one-bump obstacle problem, while μ = 2 .5 × 10 4, ρ = 250 in the two-bump problem. Figs. 4- 5 present the RBF approximations of the 1D obstacle problems with a specific choice of hyperparameters. 15 Figure 4: RBF-Approximation of the 1-D obstacle problem with asmooth single-bump obstacle function ψ(x) on the domain Ω = [0 , 1] with                     
+
+> (N, m ) = (2048 ,4096) and parameters (μ, ρ ) = (300 ,45) .(a) Exact solution u(x),approximation ˆu(x), and obstacle function ψ(x).(b) Absolute error |ˆu−u|on the log-scale. (c) ADMM convergence demonstrates rapid decay of relative primal and dual residuals with tolerance ϵtol. = 10 −6. The method converges in 7 234 iterations. (d) Relative ℓ2error is reaches 1.904 ×10 −12 .
+
+Figs. 6- 7 present comparisons of different methods and estimates of the convergence order. We see that the Gaussian RBF method demonstrates fast convergence, with the relative ℓ2 error reaching machine-precision as 
+
+N increases for both problems. In contrast, finite-difference (ADMM) performs consistently but flattens out for large N . Finite-difference (PGD) shows much slower or stagnant convergence, typically limited to error plateaus between 10 −4 and 10 −6. Meanwhile, NN-based methods exhibit mild fluctuations and low accuracy due to the difficulty in capturing contact regions in free-boundary problems. Fig. 7 quantifies the corresponding local convergence orders p. The panels confirm the accuracy of the RBF method. Finite-difference methods maintain the expected second-order behavior. The NN-based methods display poor convergence. 16 Figure 5: Result of the 1-D obstacle problem with a piecewise two-bump ψ(x)
+
+over the domain Ω = [0 , 1] using (N, m ) = (1024 , 2048) and hyper-parameters 
+
+(μ, ρ ) = (2 .5 × 10 4, 250) . (a) Exact solution u(x), RBF-approximation ˆu(x), and obstacle function ψ(x). (b) Log-scale plot of the absolute error |ˆu − u|. (c) ADMM convergence showing steady decay of relative primal and dual residuals over 17 796 iterations with tolerance ϵtol. = 1 × 10 −6. (d) Relative ℓ2 error reaches 6.654 × 10 −10 .
+
+4.2.2 Two-Dimensional Dome Obstacle Problem 
+
+In this experiment, we test the performance of our proposed method using the dome obstacle problem from [20 , 24 ]. The interior domain is Ω = (0 , 1) 2. First, we let the obstacle be a single dome on the unit square centered at ( 12 , 12 ) as follows: 
+
+ψ(x, y ) = 
+
+
+
+1 − r(x, y )2
+
+r2
+
+> c
+
+, for r(x, y ) ≤ rc,
+
+0, for r(x, y ) > r c,
+
+(38) 17 (a) T = 2 .0, ζ = 2 , τ = 10 −15 , β = 10 6 (b) T = 3 .0, ζ = 2 , τ = 10 −15 , β = 10 8
+
+Figure 6: Convergence for 1D obstacle problem for both problems: relative ℓ2 error vs. N .         
+
+> (a) T= 2 .0, ζ = 2 , τ = 10 −15 (b) T= 3 .0, ζ = 2 , τ = 10 −15
+
+Figure 7: Similar to Figure 6. We estimate the local convergence order p for each N
+
+and the corresponding average order ˆp for different solution methods. 
+
+where the inner radius is rc := 12 , and r(x, y ) :=
+
+√
+
+(x − 12 )2 + ( y − 12 )2. The dome obstacle function ψ(x, y )
+
+is shown on the left in Fig. 8. 18 The linear obstacle problem admits the following radially-symmetrical analytical solution: 
+
+uexact (x, y ) = 
+
+
+
+1 − r(x,y )2
+
+> r2
+> c
+
+, r(x, y ) ≤ r∗
+
+1 − r2
+
+> ∗
+> r2
+> c
+
+(
+
+1 + 2 log 
+
+( r(x,y )
+
+> r∗
+
+) ) 
+
+, r(x, y ) > r ∗, (39) where the contact radius r∗ ≈ 0.260197 is determined by solving the following equation: 
+
+r2
+
+> ∗
+
+r2
+
+> c
+
+(
+
+1 + 2 log 
+
+( 1
+
+r∗
+
+) )
+
+= 1 , where 0 < r ∗ < r c (40) For the boundary conditions, we set g(x, y ) = uexact (x, y ) for any (x, y ) ∈ ∂Ω. We sample m random points from the grid (x, y ). As illustrated in Fig. 8, we use N = 400 total number of basis functions, which corresponds to m = 1 , 600 collocation points over the domain Ω since ζ = 4 . Significantly, we use the linear kernel scaling via b = c √N , where c = c(T, τ ) is determined as in Table 2. The choice of kernel shape parameter therefore keeps the length proportional to the fill distance hΩ in Assumption 3 as the number of basis function N increases.           
+
+> (a) The obstacles ψ(x, y )(b) Collocation points
+> Figure 8: (a): Obstacle function ψ(x, y )on the domain Ω= [0 ,1] 2. (b). Collocation points used by the variational method: green dots denote interior points and red dots are boundaries points.
+
+As shown in Fig. 9, the RBF-ADMM from Section 3 reproduces the solution with high fidelity after 4, 016 
+
+iterations. The relative ℓ2 error is 4.681 × 10 −11 confirming the recovery of the exact solution uexact (x, y ) in Eq. (39) . Both the relative primal and dual residuals meet the tolerance ϵtol . = 10 −6 showing convergence of the ADMM. The absolute point-wise error stays below 10 −6 in the interior and near the boundary. In this problem, we choose T = 3 , which will be justified in Section 4.3.1. The boundary penalty weight is set at β = 10 6, which is also discussed later in Appendix C.1. Fig. 10 shows that the variational RBF method performs substantially better than finite-difference and neural-network methods, achieving fast convergence and low computational errors. 19 (a) Approximation ˆu(x, y ) obtained with ADMM optimization using hyper-parameters μ = 10 /h 2, ρ = 20 .3, and β = 10 6.
+
+(b) Exact solution uexact (x, y ).
+
+(c) Relative primal and dual residuals showing convergence to the tolerance ϵtol = 10 −6 in 4,016 iterations. 
+
+(d) Pointwise error |ˆu − u|.
+
+Figure 9: Meshfree RBF approximation with ADMM solver for a radially symmetric obstacle problem on Ω = [0 , 1] 2 with N = 400 basis functions and 
+
+m = 1 , 600 . The top-left panel shows the approximation ˆu(x, y ) obtained by ADMM optimization using the hyper-parameters μ = 10 /h 2, ρ = 20 .3, and β = 10 6. The top-right panel shows the exact solution uexact (x, y ). The bottom-left panel shows the relative primal and dual residuals, indicating convergence to the tolerance ϵtol = 10 −6 in 4,016 iterations. The bottom-right panel shows the pointwise error |ˆu − u|; the relative 
+
+ℓ2 error between the approximation and the analytical solution is E(N ) = 4 .681 ×10 −11 .
+
+20 (a) Convergence: relative ℓ2 error vs. N (b) Local estimated convergence order p      
+
+> Figure 10: Convergence comparison for the dome obstacle problem: (a) Relative
+> ℓ2error versus the number of basis functions Nacross different methods. (b) Local estimated convergence order pfor the corresponding methods.
+
+## 4.3 Sensitivity Analysis of Expansion Domain Factor and Radial Basis Functions 
+
+In this section, we investigate the sensitivity of the proposed RBF method with respect to some key parameter choices: the expansion domain factor T and the choice of radial basis function ϕ in Table 1. Both parameters have a direct influence on the numerical stability and approximation quality of the method. The expansion factor T determines how far the RBF centers are sampled beyond the physical domain, and hence controls the trade-off between reducing boundary effects and preserving local resolution near the domain of interest. The kernel function, on the other hand, determines the smoothness, support, and approximation behavior. Therefore, a systematic comparison of these parameters is necessary to identify robust configurations for the Poisson and obstacle problems considered in this work. For other parameters including penalty weight β and truncation threshold value τ , we justify choices in Appendix C. In particular, for the 1D Poisson equation we use the penalty weight for boundary condition β = 3 × 10 5. For the 1D obstacle problems with one or two bumps, we choose β = 10 6, 10 8, respectively. Lastly, in the 2D dome obstacle problem we let β = 10 6. For all experiments, we choose the truncation threshold value at τ = 10 −15 .
+
+4.3.1 Comparison of Domain Expansion Factor T
+
+Figure 11 suggests that the preferred value of T depends on the underlying problem. For the 1D Poisson problem, we use T = 8 , since it gives a more stable error decay than the smaller expansion factors and remains among the best-performing choices over the tested range of N . For the 1D one-bump and two-bump obstacle problems, we use T = 2 , 3 respectively, because this value captures the main improvement from domain expansion while maintaining good approximation quality for the localized obstacle structure. Increasing 
+
+T further does not produce a uniformly better behavior in these two examples. For the 2D dome obstacle problem, we use T = 3 , which gives one of the most stable error profiles among the tested values and provides 21 (a) 1D Poisson problem, β = 3 × 10 5. (b) 1D one-bump obstacle problem, β = 10 6.       
+
+> (c) 1D two-bump obstacle problem, β= 10 8.(d) 2D dome obstacle problem, β= 10 6.
+
+Figure 11: Comparison of the domain expansion factor T . Relative ℓ2 error versus N for several choices of the expansion factor T across different test problems. In all experiments, we calculate c = c(T, τ ) using the formula provided in Table 2. In (a), the 1D Poisson problem is shown with ζ = 2 , τ = 10 −15 , β = 3 × 10 5. In (b) and (c), the 1D obstacle problems are shown with ζ = 2 , τ = 10 −15 , and β is chosen 10 6 and 
+
+10 8, respectively. In (d), the 2D dome obstacle problem is shown with ζ = 4 , τ = 10 −15 
+
+and β = 10 6.
+
+a good compromise between reducing boundary effects and preserving effective resolution near the physical domain. 
+
+4.3.2 Comparison of Kernel Functions ϕ
+
+The kernel comparison in Figure 12 justifies the use of the Gaussian radial basis function in our experiments. Among all kernels in Table 1, the Gaussian kernel delivers among the most robust error decay and the best overall approximation accuracy across both the Poisson and obstacle problems. The Gaussian kernel is infinitely differentiable and globally supported, which makes it particularly effective for representing smooth 22 (a) 1D Poisson problem, β = 10 6 (b) 1D one-bump obstacle problem, β = 10 6       
+
+> (c) 1D two-bump obstacle problem, β= 10 8(d) 2D dome obstacle problem, β= 10 6
+
+Figure 12: Comparison of kernel functions. Relative ℓ2 error versus N for the radial basis functions listed in Table 1. In (a), the 1D Poisson problem is shown with 
+
+ζ = 2 , T = 8 , and τ = 10 −15 . In (b) and (c), the 1D obstacle problems are shown with 
+
+T = 2 .0 and 3.0, ζ = 2 , and τ = 10 −15 , using β = 10 6 and β = 10 8, respectively. In (d), the 2D dome obstacle problem is shown with T = 3 , τ = 10 −15 , β = 10 6, and ζ = 4 .
+
+solutions and for capturing global features of the variational solution space. In contrast, the compactly supported Wendland kernels are less smooth and more localized, so although they may offer computational advantages in other contexts, they are less competitive here in terms of approximation accuracy. Consequently, the Gaussian kernel is justified as the default kernel in this work. 
+
+# 5 Conclusion 
+
+We have presented a mesh-free variational framework to solve the elliptic boundary value problem and obstacle-type variational problems using radial basis function (RBF) network approximation according to Eq. (6) . To address ill-conditioning inherent in global RBF discretizations, we incorporated truncated singular value decomposition (TSVD) as a stabilization mechanism in the least-squares solver. We extend the methodology to solve classical obstacle problems according to Eq. (4) by introducing a 23 variational formulation with ℓ1-penalty on the contact constraint. The resulting non-smooth optimization problem is efficiently solved using the alternating direction method of multipliers (ADMM), as described in Section 3.2. In our methodology of Section 3, we enlarge the effective basis support through the expansion factor 
+
+T . The shape parameters is chosen using linear scaling b = c(T, τ ) N in one dimension and b = c(T, τ ) √N in two dimensions, which leads to stable convergence and high accuracy. Extensive numerical experiments in Section 4 confirm that our RBF solution method achieves fast convergence for elliptic and obstacle problems. The results offer pragmatic guidance for selecting the (N, T, τ ) parameters to balance accuracy, condition number, and computational stability in mesh-free variational solvers. Future research directions include: 
+
+• Generalizing the framework to high-dimensional problems including adaptive center distributions. 
+
+• Investigating alternative penalty formulations (e.g. Huber or augmented Lagrangian methods) in order to improve conditioning. 
+
+• Developing a systematic theoretical characterization of the trade-offs between hyper-parameters (N, T, τ ),in terms of accuracy and conditioning, by defining a relation like Eq. (29) specifically tailored to our variational RBF method in multiple dimensions. 
+
+• Extending the framework to other nonlinear PDEs and time-dependent variational problems. 
+
+Data and Code Availability All coding scripts used to produce the numerical experiments are openly available at https://github.com/phuongdongle/Variational-Formulation-RBFNets.git .
+
+# References 
+
+[1] Ben Adcock and Daan Huybrechs. Frames and numerical approximation. SIAM Review , 61(3):443–473, 2019. [2] Ben Adcock and Daan Huybrechs. Frames and numerical approximation ii: Generalized sampling. 
+
+Journal of Fourier Analysis and Applications , 26(6):87, 2020. [3] Ben Adcock, Daan Huybrechs, and Cécile Piret. Stable and accurate least squares radial basis function approximations on bounded domains. SIAM Journal on Numerical Analysis , 62(6):2698–2718, 2024. [4] Andersen Ang, Hans De Sterck, and Stephen Vavasis. MGProx: A nonsmooth multigrid proximal gradient method with adaptive restriction for strongly convex optimization. SIAM Journal on Optimization ,34(3):2788–2820, August 2024. [5] Stephen Boyd, Neal Parikh, Eric Chu, Borja Peleato, and Jonathan Eckstein. Distributed optimization and statistical learning via the alternating direction method of multipliers. Foundations and Trends in Machine learning , 3(1):1–122, 2011. [6] Martin Buhmann. Radial Basis Functions: Theory and Implementations . Cambridge University Press, 2003. [7] Jørgen S. Dokken, Patrick E. Farrell, Brendan Keith, Ioannis P.A. Papadopoulos, and Thomas M. Surowiec. The latent variable proximal point algorithm for variational problems with constraints, 2025. [8] Gregory Eric Fasshauer. Meshfree Approximation Methods with MATLAB . World Scientific, 2007. [9] Avner Friedman. Variational Principles and Free-Boundary Problems . Wiley, 1982. 24 [10] Roland Glowinski. Numerical Methods for Nonlinear Variational Problems . Springer-Verlag, 1984. [11] Charles Micchelli. Interpolation of scattered data: distance matrices and conditionally positive definite functions. In Approximation theory and spline functions , pages 143–145. Springer, 1984. [12] Francis J Narcowich, Joseph D Ward, and Holger Wendland. Sobolev error estimates and a Bernstein inequality for scattered data interpolation via radial basis functions. Constructive Approximation ,24(2):175–186, 2006. [13] Jooyoung Park and Irwin W Sandberg. Universal approximation using radial-basis-function networks. 
+
+Neural computation , 3(2):246–257, 1991. [14] Michael James David Powell. Radial basis functions for multivariable interpolation: a review. Algorithms for approximation , pages 143–167, 1987. [15] Maziar Raissi. Deep hidden physics models: Deep learning of nonlinear partial differential equations. 
+
+Journal of Machine Learning Research , 19(25):1–24, 2018. [16] Maziar Raissi, Paris Perdikaris, and George Em Karniadakis. Physics informed deep learning (part i): Data-driven solutions of nonlinear partial differential equations. arXiv preprint arXiv:1711.10561 , 2017. [17] Maziar Raissi, Paris Perdikaris, and George Em Karniadakis. Physics informed deep learning (part ii): Data-driven discovery of nonlinear partial differential equations, 2017. [18] Xavier Ros-Oton. Obstacle problems and free boundaries: an overview. SeMA Journal , 75(3):399–419, 2018. [19] Robert Schaback. Error estimates and condition numbers for radial basis function interpolation. Advances in Computational Mathematics , 3(3):251–264, 1995. [20] Giang Tran, Hayden Schaeffer, William M Feldman, and Stanley Osher. An Lˆ1 penalty method for general obstacle problems. SIAM Journal on Applied Mathematics , 75(4):1424–1444, 2015. [21] Holger Wendland. Scattered Data Approximation . Cambridge University Press, 2005. [22] Bing Yu and Weinan E. The Deep Ritz method: a deep learning-based numerical algorithm for solving variational problems. Communications in Mathematics and Statistics , 6(1):1–12, 2018. [23] Xiaoqun Zhang, Martin Burger, and Stanley Osher. A unified primal-dual algorithm framework based on Bregman iteration. Journal of Scientific Computing , 46:20–46, 2011. [24] Dominique Zosso, Braxton Osting, Mandy Xia, and Stanley J Osher. An efficient primal-dual method for the obstacle problem. Journal of Scientific Computing , 73:416–437, 2017. 25 A Table of Notations 
+
+## A.1 General Mathematical Notation 
+
+Symbol Description 
+
+Ω Open bounded domain in Rd
+
+∂Ω Boundary of the domain ΩΩ Closure of Ω, i.e., Ω ∪ ∂Ω[b1, b 2] ⊆ R Closed domain in R
+
+ΩT Expanded domain with expansion factor T ≥ 1⃗x ∈ R d Point in Euclidean space 
+
+u(⃗x) Candidate or exact solution function 
+
+f (⃗x) Source term in PDE 
+
+g(⃗x) Boundary data function 
+
+∇u Gradient of the function u
+
+∆u Laplacian of u, i.e., ∇ · ∇ u
+
+Table 3: General notation for domain, solution properties, and differential operators. 
+
+26 A.2 Problem-Specific Notation 
+
+Symbol Description 
+
+J (u) Variational functional associated with the PDE 
+
+β Penalty parameter for boundary condition enforcement 
+
+μ Penalty parameter for obstacle constraints 
+
+ψ(⃗x) Obstacle function 
+
+(ψ − u)+ Contact gap for obstacle problem: max(0 , ψ − u)
+
+ϕ(r) Radial basis function with shape parameter b⃗ c i Radial basis function center points 
+
+hΩ The maximum distance from any point in Ω to its nearest center ⃗c j
+
+qΩ Half the minimal pairwise spacing of centers 
+
+Lhalf Half-length of the closed domain [b1, b 2], i.e., Lhalf = b2−b1
+
+> 2
+
+qmid Midpoint of the closed domain [b1, b 2], i.e., qmid = b1+b2
+
+> 2
+
+ˆu(⃗x) Radial basis function approximation to u(x)
+
+τ Threshold for the singular values in the truncated SVD 
+
+Iτ Index set of discarded singular values Iτ := {i : σi ≤ σ1 τ }
+
+k Cardinality of the discarded index set k = |I τ |
+
+κ Absolute condition number, satisfying κ ≤ min {1/σ min (Iτ ), 1/τ }
+
+ρ Augmented Lagrangian penalty parameter (ADMM) 
+
+maxIter Maximum number of iterations (ADMM) ⃗v ∈ R N Auxiliary variable in optimization (e.g., for constraints) ⃗z ∈ R N Projection variable in operator splitting methods  
+
+> Table 4: Notation related to variational formulations, RBF approximation, and constraints.
+
+# B Derivation of Optimization Problem 
+
+We outline the steps of deriving the minimizations in Section 3 in the following. 
+
+## B.1 Linear Elliptic Boundary Value Problem 
+
+We recall the weak-form variational functionals that correspond to the Poisson and reaction-diffusion PDEs, see Eq. (3) . Let m be the total number of collocation points for domain Ω including mΩ interior and m∂Ω
+
+boundary points. We take a set of N uniformly spaced centers for the basis kernels ϕi for all 1 ≤ i ≤ N . By Eq. (6), we have the following: 27 ∇ˆu(⃗x) = 1
+
+√N
+
+> N
+
+∑
+
+> i=1
+
+wi∇ϕ(∥⃗x −⃗c i∥2) ∈ Rd.
+
+Defining the center matrix C as 
+
+C := [⃗ c 1 |⃗ c 2 | · · · |⃗ c N −1 |⃗ c N
+
+] ∈ Rd×N ,
+
+we further define 
+
+Φ( ⃗x, C ) := 
+
+
+
+ϕ(∥⃗x −⃗c 1∥2)
+
+...
+
+ϕ(∥⃗x −⃗c N ∥2)
+
+ ∈ RN , ∇Φ( ⃗x, C ) := 
+
+
+
+∇ϕ⊤(∥⃗x −⃗c 1∥2)
+
+...
+
+∇ϕ⊤(∥⃗x −⃗c N ∥2)
+
+ ∈ RN ×d.
+
+We denote the matrix of sampled points. This works for any d ≥ 1 as follows: 
+
+XmΩ =
+
+(⃗x (Ω) 1
+
+)⊤
+
+...
+
+(⃗x (Ω) 
+
+> mΩ
+
+)⊤
+
+ ∈ RmΩ×d.
+
+Defining ϕi(⃗x) = ϕ(∥⃗x −⃗c i∥2), we also use the notation. 
+
+Φ( XmΩ , C ) := 
+
+
+
+ϕ1(⃗x (Ω) 1 ) . . . ϕN (⃗x (Ω) 1 )
+
+ϕ1(⃗x (Ω) 2 ) . . . ϕN (⃗x (Ω) 2 )
+
+... ...
+
+ϕ1(⃗x (Ω)  
+
+> mΩ
+
+) . . . ϕN (⃗x (Ω)  
+
+> mΩ
+
+)
+
+ ∈ RmΩ×N .
+
+For d = 1 , we also use the notation 
+
+∇Φ( XmΩ , C ) := 
+
+
+
+ϕ′
+
+> 1
+
+(⃗x (Ω) 1 ) . . . ϕ′ 
+
+> N
+
+(⃗x (Ω) 1 )
+
+ϕ′
+
+> 1
+
+(⃗x (Ω) 2 ) . . . ϕ′ 
+
+> N
+
+(⃗x (Ω) 2 )
+
+... ...
+
+ϕ′
+
+> 1
+
+(⃗x (Ω)  
+
+> mΩ
+
+) . . . ϕ′ 
+
+> N
+
+(⃗x (Ω)  
+
+> mΩ
+
+)
+
+ ∈ RmΩ×N .
+
+This yields that: 
+
+∥∇ ˆu(⃗x)∥ 22 = 1
+
+N
+
+∑
+
+> i,l
+
+wiwl∇ϕ⊤(∥⃗x−⃗c i∥2) ∇ϕ(∥⃗x−⃗c l∥2) = 1
+
+N⃗ w ⊤∇Φ( ⃗x, C ) ∇Φ ⊤(⃗x, C )⃗w, where 1 ≤ i, ℓ ≤ N. 
+
+(41) We deduce that for 1 ≤ i, ℓ ≤ N :28 ∫
+
+> Ω
+
+12 ∥∇ ˆu(⃗x)∥ 22 dx ≈ |Ω|
+
+2 mΩ
+
+> mΩ
+
+∑
+
+> j=1
+
+∥∇ ˆu(⃗x (Ω)  
+
+> j
+
+)∥22
+
+≈ |Ω|
+
+2N m Ω
+
+> mΩ
+
+∑
+
+> j=1
+
+∑
+
+> i,l
+
+wiwl∇ϕ⊤(∥⃗x (Ω)  
+
+> j
+
+−⃗c i∥2) ∇ϕ(∥⃗x (Ω)  
+
+> j
+
+−⃗c l∥2)
+
+≈ |Ω|
+
+2 N m Ω⃗w ⊤
+
+
+
+> mΩ
+
+∑
+
+> j=1
+
+∇Φ( ⃗x (Ω)  
+
+> j
+
+, C )∇Φ⊤(⃗x (Ω)  
+
+> j
+
+, C )
+
+⃗w
+
+≈ 12⃗w ⊤A(poisson) 1⃗ w, 
+
+(42) where 
+
+A(poisson) 1 = |Ω|
+
+N m Ω
+
+
+
+> mΩ
+
+∑
+
+> j=1
+
+∇Φ( ⃗x (Ω)  
+
+> j
+
+, C )∇Φ⊤(⃗x (Ω)  
+
+> j
+
+, C )
+
+ . (43) Note that, for d = 1 , we can rewrite the matrix A1 as follows: 
+
+A(poisson) 1 = |Ω|
+
+N m Ω
+
+(∇Φ( XmΩ , C )) ⊤ ∇Φ( XmΩ , C ).
+
+In the following steps, we derive the load matrices and vectors for interior and boundary collocation points. We have 
+
+∫
+
+> Ω
+
+f ˆu dx ≈ |Ω|
+
+mΩ
+
+∑
+
+> j
+
+f (⃗x (Ω)  
+
+> j
+
+) ˆ u(⃗x (Ω)  
+
+> j
+
+) ≈ |Ω|√N m Ω⃗w ⊤
+
+> mΩ
+
+∑
+
+> j=1
+
+f (⃗x (Ω)  
+
+> j
+
+)Φ( ⃗x (Ω)  
+
+> j
+
+, C ) = [ f (⃗x (Ω) 1 ), ..., f (⃗x (Ω)  
+
+> mΩ
+
+)] T A2⃗w =⃗ f ⊤A2⃗w, 
+
+where 
+
+A2 = |Ω|√N m Ω
+
+
+
+Φ( ⃗x (Ω) 1 , C )⊤
+
+...
+
+Φ( ⃗x (Ω)  
+
+> mΩ
+
+, C )⊤
+
+ = |Ω|√N m Ω
+
+Φ( XmΩ , C ) ∈ RmΩ×N and ⃗ f =
+
+
+
+f (⃗x (Ω) 1 )
+
+...
+
+f (⃗x (Ω)  
+
+> mΩ
+
+)
+
+ ∈ RmΩ . (44) For d = 1 , we get that: 
+
+A2 = |Ω|√N m Ω
+
+Φ( XmΩ , C ) ∈ RmΩ×N (45) 29 Finally, the enforce of boundary condition yields that 
+
+β
+
+2
+
+∫
+
+> ∂Ω
+
+(ˆ u − g)2 dx ≈ β |∂Ω|
+
+2 m∂Ω
+
+> m∂Ω
+
+∑
+
+> l=1
+
+(ˆ u(⃗x (∂Ω)  
+
+> l
+
+) − g(⃗x (∂Ω)  
+
+> l
+
+)) 2
+
+≈ β |∂Ω|
+
+2 m∂Ω
+
+> m∂Ω
+
+∑
+
+> l=1
+
+( 1
+
+√N⃗ w ⊤Φ( ⃗x (∂Ω)  
+
+> l
+
+, C ) − g(⃗x (∂Ω)  
+
+> l
+
+)
+
+)2
+
+≈ β |∂Ω|
+
+2 m∂Ω
+
+∥∥∥∥∥∥∥∥
+
+> 1√N
+
+⃗w ⊤Φ( ⃗x (∂Ω) 1 , C ) − g(⃗x (∂Ω) 1 )
+
+...
+
+> 1√N
+
+⃗w ⊤Φ( ⃗x (∂Ω)  
+
+> m∂Ω
+
+, C ) − g(⃗x (∂Ω)  
+
+> m∂Ω
+
+)
+
+∥∥∥∥∥∥∥∥
+
+> 22
+
+≈ β |∂Ω|
+
+2 m∂Ω
+
+∥∥∥∥∥∥∥∥
+
+> 1√N
+
+
+
+Φ( ⃗x (∂Ω) 1 , C )⊤
+
+...
+
+Φ( ⃗x (∂Ω)  
+
+> m∂Ω
+
+, C )⊤
+
+⃗w −
+
+
+
+g(⃗x (∂Ω) 1 )
+
+...
+
+g(⃗x (∂Ω)  
+
+> m∂Ω
+
+)
+
+∥∥∥∥∥∥∥∥
+
+> 22
+
+≈ β
+
+2
+
+∥∥A3⃗w −⃗r 3
+
+∥∥22,
+
+(46) where 
+
+A3 =
+
+√
+
+|∂Ω|
+
+N m ∂Ω
+
+
+
+Φ( ⃗x (∂Ω) 1 , C )⊤
+
+...
+
+Φ( ⃗x (∂Ω)  
+
+> m∂Ω
+
+, C )⊤
+
+ =
+
+√
+
+|∂Ω|
+
+N m ∂Ω
+
+Φ ( Xm∂Ω , C ) ∈ Rm∂Ω×N and ⃗ g =
+
+√
+
+|∂Ω|
+
+m∂Ω
+
+
+
+g(⃗x (∂Ω) 1 )
+
+...
+
+g(⃗x (∂Ω)  
+
+> m∂Ω
+
+)
+
+ ∈ Rm∂Ω .
+
+(47) For reaction-diffusion, the terms are similar, except for stiffness matrix, which is given by 
+
+A1 = |Ω|
+
+N m Ω
+
+> mΩ
+
+∑
+
+> j=1
+
+(
+
+∇Φ( ⃗x (Ω)  
+
+> j
+
+, C ) ∇Φ⊤(⃗x (Ω)  
+
+> j
+
+, C ) + Φ ⊤(⃗x (Ω)  
+
+> j
+
+, C ) Φ( ⃗x (Ω)  
+
+> j
+
+, C )
+
+)
+
+∈ RN ×N . (48) For the Poisson and reaction-diffusion equations, we combine those terms, which yields the discrete optimization problem 
+
+min ⃗w∈R N
+
+{ 12⃗w ⊤A1⃗w −⃗ f ⊤A2⃗w + β
+
+2 ∥A3⃗w −⃗g∥ 22
+
+}
+
+To solve this problem, we take the derivative with respect to ⃗w,
+
+∇̂ J = A1⃗w − A ⊤
+
+> 2
+
+⃗ f + βA ⊤ 
+
+> 3
+
+A3⃗w − βA ⊤
+
+> 3
+
+⃗g, 
+
+and set ∇̂ J = 0 :
+
+(
+
+A1 + βA ⊤ 
+
+> 3
+
+A3)⃗w =
+
+(
+
+βA ⊤
+
+> 3
+
+⃗g + A ⊤
+
+> 2
+
+⃗ f
+
+)
+
+.
+
+## B.2 Obstacle-Type Boundary Value Problem 
+
+In the classical obstacle problem, it remains to consider the ℓ1-norm penalty in Eq. (5): 
+
+μ
+
+∫
+
+> Ω
+
+(ψ − ˆu)+ dx ≈ μ|Ω|
+
+mΩ
+
+∑
+
+> j
+
+max( ψ(⃗x (Ω)  
+
+> j
+
+) − ˆu(⃗x (Ω)  
+
+> j
+
+), 0) ≈ μ|Ω|
+
+mΩ
+
+∑
+
+> j
+
+max( ⃗ψj − (A2⃗w) j , 0) = μ∥(⃗ ψ − A2⃗w) +∥1
+
+30 where (·)+ = max( ·, 0) .This yields 
+
+A2 = |Ω|
+
+mΩ
+
+
+
+Φ⊤(⃗x (Ω) 1 , C )
+
+...
+
+Φ⊤(⃗x (Ω)  
+
+> mΩ
+
+, C )
+
+ ∈ RmΩ×N ,⃗ ψ = |Ω|
+
+mΩ
+
+
+
+ψ(⃗x (Ω) 1 )
+
+...
+
+ψ(⃗x (Ω)  
+
+> mΩ
+
+)
+
+ ∈ RmΩ .
+
+Therefore, the optimization problem is 
+
+min ⃗w∈R N
+
+{ 12⃗w ⊤A1⃗w + β
+
+2 ∥A3⃗w −⃗g∥ 22 + μ∥(⃗ ψ − A2⃗w) +∥1
+
+}
+
+.
+
+We introduce the slack variable ⃗v =⃗ ψ − A2⃗w , and consider the augmented Lagrangian functional with a scaling penalty parameter ρ > 0
+
+Lρ(⃗w,⃗ v,⃗ z) = 12⃗w ⊤A1⃗w + β
+
+2 ∥A3⃗w −⃗g∥ 22 + μ∥(⃗v) +∥1 + ρ
+
+2 ∥⃗v −⃗ ψ + A2⃗w +⃗z∥ 22 − ρ
+
+2 ∥⃗z∥ 22.
+
+In the ⃗w-minimization problem, we have ⃗w (i+1) = min ⃗w
+
+12⃗w ⊤A1⃗w + β
+
+2 ∥A3⃗w −⃗g∥ 22 + ρ
+
+2 ∥⃗v (i) −⃗ ψ + A2⃗w +⃗z (i)∥22.
+
+This is a convex quadratic with closed-form solution: 
+
+(A1 + βA ⊤ 
+
+> 3
+
+A3 + ρA ⊤ 
+
+> 2
+
+A2)⃗w (i+1) = βA ⊤
+
+> 3
+
+⃗g + ρA ⊤ 
+
+> 2
+
+(⃗ ψ −⃗v (i) −⃗z (i)).
+
+In the ⃗v-minimization problem, we let ⃗t(i) := ⃗ ψ − A2⃗w (i+1) −⃗z (i).
+
+Then ⃗v (i+1) = min ⃗v μ∥(⃗v) +∥1 + ρ
+
+2 ∥⃗v −⃗ t(i)∥22.
+
+This decouples over coordinates. For each component j:
+
+v(i+1)  
+
+> j
+
+=
+
+{
+
+t(i) 
+
+> j
+
+, t(i) 
+
+> j
+
+≤ 0,
+
+max( t(i) 
+
+> j
+
+− μρ , 0) , t(i) 
+
+> j
+
+> 0, = min 
+
+{
+
+t(i) 
+
+> j
+
+,
+
+(
+
+t(i) 
+
+> j
+
+− μρ
+
+)
+
+> +
+
+}
+
+.
+
+We use a proximal operator for the positive-part ℓ1-norm which shrinks positive entries and leaves negative entries untouched. Finally, the dual variable is updated as follows: ⃗z (i+1) =⃗z (i) + ( ⃗v (i+1) −⃗ ψ + A2⃗w (i+1) ).
+
+31 C Experiments on Parameter Settings 
+
+This appendix collects supplementary numerical experiments used to examine the sensitivity of the proposed method with respect to several key hyperparameters. In particular, we study the influence of the boundary penalty parameter β, the truncation threshold τ used in the stabilized linear algebra procedure, and the parameter c appearing in the scaling of the shape parameter. These experiments are intended to support the parameter choices adopted in the main text and to provide additional empirical evidence on the robustness and stability of the method. More specifically, Appendix C.1 investigates the role of the boundary penalty parameter β in balancing accurate boundary enforcement and overall accuracy across different boundary value problems. Appendix C.2 provides numerical justification for the choice of the constant c = c(T, τ ), which governs the scaling of the shape parameter and plays an important role in the overall accuracy of the approximation. Finally, Appendix C.3 studies the effect of the truncation threshold τ on stability and approximation accuracy when truncated singular value decomposition is employed. Unless otherwise stated, all other numerical settings remain the same as those used in the corresponding experiments in the main text so that the effect of each parameter can be isolated clearly. 
+
+## C.1 Experiments on boundary penalty parameter β
+
+We examine the effect of the boundary penalty parameter β on the accuracy of the proposed variational Gaussian RBF method. Since β controls the strength of boundary-condition enforcement, its value must balance boundary fidelity and overall accuracy. Figure 13 shows the relative ℓ2 error versus β for the 1D Poisson problem with N = 256 , 512 , 1024 , and 
+
+2048 , using fixed T = 8 .0, c = c(T, τ ) = 0 .033 , and τ = 10 −15 . For all values of N , the error decreases rapidly as β increases from small values, indicating that weak penalties lead to insufficient boundary enforcement. Once β is sufficiently large, the error reaches a plateau, showing that further increases in β have little effect. Larger N consistently yields smaller errors. Overall, the Poisson results indicate that the method is robust with respect to β. Therefore, in this experiment, we decide to choose β = 3 × 10 5, which is enough for convergence. In Figure 14 for the dome obstacle problem, β = 10 6 also falls in the range where the error is already stable for T = 1 .5, and remains within a reliable regime for T = 3 . These results support the use of β = 10 6 as a practical and robust choice in the experiments. Figure 15 reports the corresponding results for the obstacle problem, including both one-bump and two-bump cases, for several values of the expansion factor T , with τ = 10 −15 fixed and c = c(T, τ ). As in the Poisson case, small β leads to large errors, while increasing β significantly improves the approximation. However, the obstacle problem exhibits greater sensitivity to β, particularly for smaller T or smaller N .In several cases, the error decreases sharply over an intermediate range of β, then either stabilizes or slightly deteriorates when β becomes excessively large. This behavior suggests that overly strong boundary penalization may imbalance the variational problem in more challenging obstacle configurations. Hence, for the one-bump obstacle problem we let β = 10 6 while β = 10 8 in the two-bump problem. These experiments show that β should be chosen large enough to enforce the boundary condition effectively, but not so large that it degrades accuracy. Across the examples considered here, the most effective choices lie in an intermediate-to-large range of β, with the optimal regime depending on the problem type, the expansion factor T , and the number of centers N .
+
+## C.2 Experiments on optimal value c = c(T, τ )
+
+We next examine the effect of the proportionality constant c in the shape-parameter scaling, with τ = 10 −15 
+
+fixed and c varying across a range of values for each expansion factor T . The results in Figures 16–19 show 32 that the accuracy is sensitive to the choice of c, especially for larger N . In general, values of c that are too large lead to loss of monotonicity in convergence as N increases, whereas values that are small provide monotonous convergence, but may not always give the lowest error. For the 1D Poisson problem in Figure 16, the error decreases steadily with N for a range of moderate values of c, while overly large values such as c = 0 .2 or c = 0 .3 lose monotonicity, particularly for larger expansion factors T . The value copt (T, τ ) consistently lies near the transition between monotonous decay and instability. A similar trend is observed for the one-bump and two-bump obstacle problems in Figures 17 and 18: the proposed choice copt (T, τ ) either gives the best performance or remains very close to the best-performing choice among all tested values, while overly large c frequently leads to stagnation or sharp deterioration. The same behavior is also seen in the two-dimensional dome obstacle problem in Figure 19. Across all tested values of T , the choice copt (T, τ ) yields monotonous decay and avoids the instability observed for larger values of c. These results support the use of c = c(T, τ ) as a practical parameter-selection rule: c is sufficiently small to preserve monotonicity, yet large enough to maintain high approximation accuracy across different problems, dimensions, and expansion factors. 
+
+## C.3 Experiments on truncation threshold value τ
+
+We next investigate the effect of the truncation threshold τ used in the TSVD stabilization. Figures 20–23 compare several values of τ , where for each pair (T, τ ) the proportionality constant is selected by the rule 
+
+c = c(T, τ ) of Eq. (29) . Overall, the results show that the truncation threshold has a strong influence on the large-N regime. If τ is too large, then too many small singular components are removed, which leads to premature stagnation and a noticeably higher error floor. By contrast, smaller thresholds retain more spectral information and usually produce more sustained error decay as N increases. For the 1D Poisson problem in Figure 20, τ = 10 −12 and τ = 10 −15 give the most accurate results across the tested values of T , while τ = 10 −3 performs poorly and τ = 10 −9 is typically less accurate in the large-N
+
+regime. A similar trend is observed in the one-bump and two-bump obstacle problems in Figures 21 and 22, although the sensitivity to τ depends on the expansion factor T . In particular, smaller values of τ generally lead to lower final errors, whereas larger values may cause early plateauing. The same behavior is also visible in the dome obstacle problem in Figure 23, where smaller truncation thresholds produce lower error floors and more stable convergence. Based on these experiments, we use τ = 10 −15 in the main experiments. Although τ = 10 −12 is sometimes comparable and can be slightly better in isolated cases, τ = 10 −15 is the most consistently reliable choice across the full set of test problems. It avoids the premature truncation associated with larger thresholds and provides stable, high-accuracy performance in all examples considered here. 33 Figure 13: Effect of the penalty parameter β for the 1D Poisson problem. 
+
+Relative ℓ2 error versus β for N = 256 , 512 , 1024 , and 2048 , with fixed T = 8 .0,
+
+c = c(T, τ ) = 0 .033 , and τ = 10 −15 . The error decreases as β increases and stabilizes for sufficiently large β, while larger N yields higher accuracy.            
+
+> (a) Settings: T= 1 .5, ζ = 4 , τ = 10 −15 (b) Settings: T= 3 , ζ = 4 , τ = 10 −15
+
+Figure 14: Relative ℓ2 error vs. boundary penalty weight β for the dome obstacle. For T = 1 .5 (a), errors plateau once β ≳ 10 3 and improve with N . For T = 3 (b), overly large β degrades accuracy; moderate values of β between 10 4 and 10 6 is stable. 
+
+34 D Reaction-Diffusion Boundary Value Problem 
+
+In this section, we apply Algorithm 1 to reaction-diffusion boundary value problems. We recall the general strong formulation for reaction-diffusion as follows: 
+
+{
+
+−∆u + u = f (⃗x), ∀⃗x ∈ Ω,u(⃗x) = g(⃗x), ∀⃗x ∈ ∂Ω. (49) The corresponding modified penalty method functional for the reaction-diffusion boundary value problem in Eq. (49) yields as follows: 
+
+Jβ,r.d. (u) = 12
+
+∫
+
+> Ω
+
+(
+
+∥∇ u∥22 + u2)
+
+d⃗ x −
+
+∫
+
+> Ω
+
+f u d⃗ x + β
+
+2
+
+∫
+
+> ∂Ω
+
+(u − g)2 d⃗ s. (50) For the next section D.1, we consider the discretized variational functional. 
+
+## D.1 Discretized Functional for Reaction-Diffusion Boundary Value Problem 
+
+In Section 3, we selected m collocation points from the closed domain Ω which includes mΩ interior points and m∂Ω boundary points. Using the RBF approximation in Eq. (6) , we convert the functional in Eq. (50) into a discretized functional. The minimization problem for the reaction-diffusion problem is given by 
+
+min   
+
+> u∈W1,2
+
+Jβ, r.d.(u) where Jβ, r.d.(u) = 12
+
+∫
+
+> Ω
+
+(∥∇ u∥22 + u2) d⃗ x −
+
+∫
+
+> Ω
+
+f u d⃗ x + β
+
+2
+
+∫
+
+> ∂Ω
+
+(u − g)2 d⃗ s. 
+
+The discrete form of Eq. (50) is ̂
+
+Jβ, r.d.(⃗x) = |Ω|
+
+mΩ
+
+> mΩ
+
+∑
+
+> j=1
+
+( 12
+
+(∥∇ ˆu(⃗x (Ω)  
+
+> j
+
+)∥22 + ˆ u2(⃗x (Ω)  
+
+> j
+
+)) − f (⃗x (Ω)  
+
+> j
+
+)ˆ u(⃗x (Ω)  
+
+> j
+
+)
+
+)
+
++ β |∂Ω|
+
+2 m∂Ω
+
+> m∂Ω
+
+∑
+
+> n=1
+
+(
+
+ˆu(⃗x (∂Ω)  
+
+> n
+
+) − g(⃗x (∂Ω)  
+
+> n
+
+)
+
+)2
+
+.
+
+(51) More specifically, we solve ⃗w r.d. = min ⃗w∈R N̂ Jβ, r.d. (⃗w), (52) ̂
+
+Jβ, r.d. (⃗w) = 12⃗w ⊤A(r .d.)1⃗ w −⃗ f ⊤A2⃗w + β
+
+2 ∥A3⃗w −⃗g∥ 22. (53) The stiffness matrix in Eq. (53), A(r .d.)1 ∈ RN ×N is given by 
+
+(A(r .d.)1 )i,ℓ = |Ω|
+
+mΩ N
+
+∑
+
+> j
+
+∇ϕ⊤(∥⃗x (Ω)  
+
+> j
+
+−⃗c i∥2) ∇ϕ(∥⃗x (Ω)  
+
+> j
+
+−⃗c ℓ∥2) + ϕ(∥⃗x (Ω)  
+
+> j
+
+−⃗c i∥2) ϕ⊤(∥⃗x (Ω)  
+
+> j
+
+−⃗c ℓ∥2, (54) where 1 ≤ i, ℓ ≤ N . This constitutes the only difference between the minimization problems in Eqs. (11) and (53) is the stiffness matrices according to Eqs. (12) and (54) ; the other terms for the source function and boundary data are the same. 
+
+## D.2 Numerical Experiments for Reaction-Diffusion Boundary Value Problem 
+
+In this section, we consider the following reaction-diffusion problem: 
+
+{
+
+−∆u(x) + u(x) = f (x), ∀x ∈ Ω = (0 , L ),u(0) = u(L) = 0 ,
+
+35 (a) T = 2 .0, τ = 10 −15 , c = 0 .134 (b) T = 4 .0, τ = 10 −15 , c = 0 .067          
+
+> (c) T= 1 .5, τ = 10 −15 , c = 0 .178 (d) T= 3 .0, τ = 10 −15 , c = 0 .134
+
+Figure 15: Relative ℓ2 error versus penalty parameter β for the obstacle problem using Gaussian RBF with truncated SVD stabilization. Results are shown for varying numbers of centers N and different expansion factors T , with fixed tolerance τ = 10 −15 
+
+and shape parameter c chosen from the formula c(τ, T ). The plots highlight the effect of the penalty parameter β for boundary conditions. 
+
+36 Figure 16: 1D Poisson problem: Relative ℓ2 error versus the number of basis functions N for fixed expansion factor T , with oversampling ratio ζ = 2 and truncation threshold τ = 10 −15 . Each panel compares several values of the proportionality constant 
+
+c in the linear shape-parameter scaling, including the selected value copt (T, τ ). For moderate values of T , the error decreases steadily with N for a range of suitable 
+
+c-values, while overly large c leads to a loss of monotonicity in convergence. 
+
+37 Figure 17: Relative ℓ2 error versus the number of basis functions N for the one-bump obstacle problem, shown for fixed expansion factors T ∈ { 2, 3, 4, 6} in each panel. The oversampling ratio is fixed at ζ = 2 , the TSVD truncation threshold is τ = 10 −15 , and each curve corresponds to a different value of the proportionality constant c in the linear shape-parameter scaling, including the selected value copt (T, τ ). The results show that the choice of c strongly affects monotonicity of convergence and asymptotic accuracy: moderate values of c, in particular copt (T, τ ) or nearby choices, yield sustained error decay as N increases, whereas overly large values may stagnate or become unstable. 
+
+38 Figure 18: Relative ℓ2 error versus the number of basis functions N for the two-bump obstacle problem, with fixed expansion factor T in each panel. The oversampling ratio is ζ = 2 , the TSVD truncation threshold is fixed at τ = 10 −15 , and the curves compare different values of the proportionality constant c in the linear shape-parameter scaling, including the selected choice copt (T, τ ). As in the one-bump case, the approximation quality is sensitive to c: suitable moderate values produce monotonous convergence and low final errors, while excessively large c can lead to stagnation or marked loss of accuracy, especially for larger T .
+
+39 Figure 19: Relative ℓ2 error vs. number of basis functions N for the Dome obstacle with domain expansion T ∈ { 1.5, 2, 3, 4}. Each panel compares shape parameters c,including copt (T, τ ); accordingly, copt yields monotonous convergence for relative error to around 10 −10 , whereas overly large c (e.g., 0.3) becomes unstable for large N .
+
+40 Figure 20: Relative ℓ2 error versus the number of basis functions N for the 1D Poisson problem at fixed expansion factor T , with oversampling ratio ζ = 2 . In each panel, we vary the truncation threshold τ ∈ { 10 −3, 10 −9, 10 −12 , 10 −15 }, and for each τ the proportionality constant c is chosen according to the rule c = c(T, τ ). The results show that the truncation threshold has a pronounced effect on the large-N behavior: coarse truncation, such as τ = 10 −3, leads to poor accuracy and early stagnation, whereas smaller thresholds yield stable error decay and substantially lower error floors. Overall, 
+
+τ = 10 −12 and τ = 10 −15 provide the most accurate and robust performance across the tested values of T .
+
+41 Figure 21: Relative ℓ2 error versus the number of basis functions N for the one-bump obstacle problem, shown for fixed expansion factors T ∈ { 2, 3, 4, 6}, with oversampling ratio ζ = 2 . In each panel, the truncation threshold τ is varied, and the proportionality constant in the linear shape-parameter scaling is selected as c = c(T, τ ). For all values of 
+
+T , the approximation improves substantially as N increases once τ is chosen sufficiently small. In contrast, larger truncation thresholds may produce premature stagnation or a higher error floor. The results indicate that the method is most reliable for smaller values of τ , especially in the large-N regime. 
+
+42 Figure 22: Relative ℓ2 error versus the number of basis functions N for the two-bump obstacle problem, with fixed expansion factor T in each panel, oversampling ratio 
+
+ζ = 2 , and shape-parameter constant chosen by c = c(T, τ ). The figure compares several truncation thresholds τ . As in the one-bump case, smaller truncation thresholds generally lead to better asymptotic accuracy, whereas larger values of τ may cause earlier stagnation or reduced stability. The sensitivity to τ becomes more visible for larger T , where aggressive truncation discards too much spectral information and limits the attainable accuracy. 
+
+43 Figure 23: Relative ℓ2 error versus the number of basis functions N for the two-dimensional dome obstacle problem, shown for several expansion factors T . In each panel, we vary the truncation threshold τ , while the shape parameter is selected through the rule c = c(T, τ ). The results show that smaller truncation thresholds produce lower error floors and more sustained decay as N increases, while larger thresholds lead to earlier saturation. Across all tested values of T , the choices τ = 10 −12 and τ = 10 −15 
+
+yield the most accurate overall performance, with the difference between thresholds becoming more pronounced for larger expansion factors. 
+
+44 where L := 5 is the length of the domain, and ∂Ω = {0, L } denotes the boundary points. In this experiment, with 
+
+f (x) = A sin( πx ), ∀x ∈ (0 , L ),
+
+the solution is given by 
+
+uexact (x) = A
+
+1 + π2 sin( πx ), ∀x ∈ [0 , L ],
+
+where A := 50 controls the driving force of the governing equation. We evaluate the accuracy, stability, and convergence behavior of our method. We compare the finite-difference method with a central second order scheme, a Galerkin method, the RBF-variational mesh-free method approximation of Eq. (18) and Algorithm 1, and a two-layer shallow neural network with N neurons. Because the governing equation is an inhomogeneous reaction-diffusion equation according to Eq. (49) , the presence of both diffusion and reaction terms introduces numerical challenges compared to the linear elliptic experiment in Section 4.1. In Fig. 24, we verify the TSVD solver with RBF representation using a resolution of (N, m ) = (2000 , 4000) .With a relative ℓ2 error of 7.935 × 10 −9, the RBF approximation is well-aligned with the analytical solution. The log-absolute error plot confirms the accuracy, with errors remaining uniformly small across the domain. Similarly, in Fig. 25 we study the convergence of the RBF method. It consistently achieves low relative ℓ2
+
+errors compared to Galerkin, finite-difference, and neural network baselines. The estimated convergence order stabilizes around two for the RBF method, in agreement with the convergence rate of Galerkin, while other methods display larger fluctuations. Fig. 26, panel (a) compares the kernels in Table 1. It indicates that Gaussian, inverse quadratic, and multiquadric RBFs achieve the best accuracy, while compactly supported functions converge slowly. In panel (b), the effect of the domain expansion factor T reveals that a moderate choice T = 2 provides good accuracy, whereas smaller or larger T values may deteriorate accuracy. Additionally, the choice of the penalty parameter weight β = 3 × 10 5 is justified as shown in panels (c)-(d) of Fig. 29. According to Fig. 27, for fixed expansion factors T the error behavior versus N depends strongly on the induced shape parameter b = cN . Overly large T suppresses the benefits of increasing N , so the choice of a moderate value for T maintains a balance between resolution and accuracy. In Fig. 28, we vary the threshold τ . Small thresholds ( τ = 10 −15 ) allow larger b and yield lower errors at moderate T . However, larger thresholds ( τ = 10 −9) truncate early and flatten convergence. 45 Figure 24: Numerical RBF approximation of −∆u + u = f vs. analytical solution. The relative error is E(N ) = 7 .697 × 10 −9. Setup: N = 2048 , m = 4096 , ζ = 2 ,
+
+T = 2 , τ = 10 −15 , c = 0 .134 .
+
+46 (a) Convergence: relative ℓ2 error vs. N . (b) Estimation of convergence order pi.
+
+Figure 25: Convergence for Reaction-Diffusion −∆u + u = f : accuracy and conver-gence order. 
+
+(a) Convergence vs. N across RBF kernels. (b) Convergence vs. N for varying T and c(T, τ = 10 −15 ).
+
+Figure 26: Relative ℓ2 error vs. N for Reaction–Diffusion: (a) Comparison across basis kernels using T = 2 .0, τ = 10 −15 . (b). Effect of expansion factor T .
+
+47 Figure 27: Reaction-diffusion problem. Relative ℓ2 error vs. N for varying expansion factor T . Setup: τ = 10 −15 , ζ = 2 .
+
+48 Figure 28: This figure is similar to Fig. 27. Relative ℓ2 error vs. N basis functions: we vary different threshold values τ and for each expansion factor T we have the corresponding c = c(T, τ ).
+
+49 (a) T = 1 .5, τ = 10 −15 , c = 0 .178 (b) T = 2 .0, τ = 1 × 10 −15 , c = 0 .134 .
+
+Figure 29: β penalty parameter for boundary condition for Reaction-Diffusion PDE −∆u + u = f . (a-b) Relative ℓ2 error vs. β for different values of N
+
+at T = 1 .5, 2.0.
+
+50
