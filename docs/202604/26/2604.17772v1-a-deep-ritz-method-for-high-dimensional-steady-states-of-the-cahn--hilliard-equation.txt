@@ -1,0 +1,702 @@
+Title: A Deep Ritz Method for High-Dimensional Steady States of the Cahn--Hilliard Equation
+
+URL Source: https://arxiv.org/pdf/2604.17772v1
+
+Published Time: Tue, 21 Apr 2026 02:55:05 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# A Deep Ritz Method for High-Dimensional Steady States of the Cahn–Hilliard Equation 
+
+Yi Liu a, Shuting Gu ￿a 
+
+> aSchool of Artificial Intelligence, Shenzhen Technology University, Shenzhen 518118, P.R. China
+
+Abstract The Cahn–Hilliard equation is a fundamental model for describing phase separation phenomena in binary mixtures. Traditional numerical methods, such as finite difference and finite element methods, often in-cur substantial computational cost, particularly when computing steady-state solutions in high-dimensional settings. To address this challenge, we propose a deep learning-based framework, namely the Deep Ritz method, for computing steady states of the Cahn–Hilliard equation under periodic boundary conditions. An enhanced augmented Lagrangian formulation is incorporated to strictly enforce the mass conservation constraint, while separable Fourier feature mappings are employed to naturally encode periodicity and en-hance the representation of nontrivial solution structures. The proposed method exhibits a notable dual capability: it not only achieves fast convergence to steady states but also effectively identifies multiple non-trivial solutions corresponding to different local minimizers of the energy functional. Extensive numerical experiments in one-, two-, and three-dimensional cases demonstrate that the method can successfully cap-ture a rich variety of phase separation patterns, including droplet-type, lamellar, and tubular structures, highlighting its effectiveness and robustness in exploring complex high-dimensional energy landscapes. Keywords: Cahn-Hilliard equation, Deep Ritz Method, enhanced augmented Lagrangian method, Fourier feature mappings. 1. Introduction The Cahn–Hilliard (CH) equation is a fundamental partial differential equation for modeling phase sepa-ration processes in binary mixtures, polymer blends, and multiphase systems [1]. It describes the evolution of a conserved order parameter driven by the minimization of a free energy functional. Computing steady-state solutions of the CH equation is of particular importance, as they correspond to equilibrium configurations of the underlying physical system. Traditional numerical methods, such as the finite difference and finite element methods, have been widely used to solve the CH equation. However, these approaches typically rely on mesh-based discretizations, and their computational cost grows rapidly with the spatial dimension d, suf-fering from the well-known curse of dimensionality [2]. This limitation makes high-dimensional steady-state computations particularly challenging. In recent years, deep learning-based methods have emerged as a promising alternative to solve high-dimensional partial differential equations [3, 4, 5, 6]. These methods leverage the expressive power of neural networks for high-dimensional function approximation and have demonstrated significant potential in mitigating the curse of dimensionality. This is supported by the universal approximation theorem [7]. Moreover, it has been shown in [8] that, with appropriate choices of activation functions, a fully connected feedforward neural network with width 36 d(2 d + 1) and depth 11 is capable of approximating any continuous function on a hypercube of dimensions d to arbitrary accuracy.  
+
+> ∗Corresponding author. Email: gushuting@sztu.edu.cn Preprint submitted to Journal of Computational Physics April 21, 2026
+> arXiv:2604.17772v1 [math.NA] 20 Apr 2026
+
+In general, deep learning-based methods can be broadly classified into two categories: direct approaches derived from PDE formulations and stochastic approaches originating from probabilistic models. In the first category, deep neural networks (DNNs) are employed to solve PDEs directly. For instance, physics-informed neural networks (PINNs) were introduced in [9, 5], where the loss function incorporates observational data as well as initial and boundary conditions to approximate PDE solutions. The deep Galerkin method (DGM) was proposed in [10] to solve high-dimensional free-boundary parabolic PDEs. In addition, the Deep Ritz method [11] was developed for variational problems arising from PDEs. The weak adversarial network (WAN) approach [12] leverages weak formulations to handle general high-dimensional PDEs defined on complex domains. Furthermore, a deep feedforward network, called PDE-Net [13], was proposed to learn and predict the dynamics of complex systems. Its extension, PDE-Net 2.0 [14], further enhances flexibility and expressive power by simultaneously learning differential operators and nonlinear response functions of the underlying PDE models. In the second category, DNNs are employed to solve PDEs via probabilistic representations. The deep BSDE method was proposed for a class of nonlinear PDEs based on forward–backward stochastic differential equations (FBSDEs) [3, 4, 15]. Its variants have been further developed in [16, 17, 18], extending this framework through pathwise comparisons of stochastic processes. This methodology has also been applied to stochastic control problems [19]. Building upon the BSDE representation of PDEs, the backward deep learning (DBDP) algorithm [20] and the multistep deep backward dynamic programming (MDBDP) scheme [21] were proposed to analyze approximation errors within the framework of neural network approximation theory. The MDBDP, in particular, provides an error analysis for the deep splitting scheme applied to semilinear PDEs [22]. In addition to BSDE-based approaches, another promising direction is the martingale formulation inspired by Varadhan’s martingale problem. This perspective offers a new avenue for tackling high-dimensional PDEs and stochastic control problems [23]. In this context, the martingale-based deep neural network (DeepMartNet) [23] has been developed to approximate solutions to boundary value problems and eigenvalue problems for elliptic PDEs. Despite their success, several challenges remain when applying deep learning methods to phase-field models such as the CH equation. In particular, the accurate enforcement of physical constraints, such as mass conservation, and the treatment of periodic boundary conditions are nontrivial. Moreover, identifying multiple nontrivial steady states corresponding to different local minimizers of the energy functional remains largely unexplored. In this work, we develop a deep learning-based framework for computing steady states of the CH equation in high-dimensional settings. The proposed method is built upon the Deep Ritz formulation [11] and incorporates an augmented Lagrangian approach to strictly enforce mass conservation. To handle periodic boundary conditions, we introduce separable Fourier feature mappings [24, 25], which naturally encode periodicity and enhance the representation of high-frequency solution structures. The main contributions of this work include the following aspects: (1) a Deep Ritz-based method is proposed for computing steady states of the CH equation in high-dimensional domains, alleviating the curse of dimensionality. (2) an augmented Lagrangian formulation is incorporated to effectively enforce mass conservation within the neural network framework. (3) the Fourier feature mapping technique is introduced to naturally handle periodic boundary conditions and improve the approximation of complex solution patterns. This proposed method is capable of identifying multiple nontrivial steady states associated with different local minimizers of the Ginzburg-Landau free energy functional. We test extensive numerical experiments in one-, two-, and three-dimensional settings, which demonstrate the accuracy, efficiency, and robustness of the method. The remainder of the paper is organized as follows. In Section 2, we briefly review the Deep Ritz method. Section 3 presents the augmented Lagrangian formulation, the neural network architecture, the Fourier feature mapping technique and the associated algorithm. Numerical results on one-, two-, and three-dimensional CH equations are reported in Section 4, followed by concluding remarks, extensions and future research directions in Section 5. 22. Review of the Deep Ritz Method The Deep Ritz Method (DRM), introduced in [11], is a neural-network-based approach for solving vari-ational problems or elliptic PDEs. In DRM, trial functions are parameterized by deep neural networks, and the associated energy functional is minimized directly. To illustrate, consider the classical Poisson problem: 
+
+
+
+−∆u = f, in Ω,
+
+u = 0, on ∂Ω. (1) The solution of (1) can be equivalently formulated as the minimizer of the variational problem 
+
+min  
+
+> u∈H
+
+I(u),
+
+with 
+
+I(u) =
+
+∫
+
+> Ω
+
+12
+
+∣∣∣∇u(x)∣∣∣2 − f (x) u(x)dx,
+
+where H denotes the space of admissible trial functions. In DRM, a deep neural network uθ(x) : = u(x; θ) with parameters θ is employed to approximate the unknown solution u(x). Boundary conditions are typically enforced via a penalty term, yielding the following loss function: 
+
+L(θ) =
+
+∫
+
+> Ω
+
+( 12
+
+∣∣∣∇uθ(x; θ)∣∣∣2 − f (x) uθ(x; θ)
+
+)
+
+dx + ν
+
+∫
+
+> ∂Ω
+
+∣∣∣uθ(x; θ)∣∣∣2 dS (2) where ν is a sufficiently large penalty parameter. The original PDE problem is then reduced to the following optimization problem: 
+
+min  
+
+> θ
+
+L(θ), (3) which is typically solved numerically using mini-batch stochastic gradient descent (SGD). The key advantages of DRM include its mesh-free formulation, compatibility with stochastic mini-batch training, and potential scalability to moderately high dimensions. Subsequent theoretical analysis have provided generalization bounds for DRM, demonstrating that, under appropriate assumptions, the approx-imation error does not necessarily grow with the spatial dimension d [26]. 3. Problem Setup and Main Method In this work, we focus on the steady-state solutions of the Cahn–Hilliard equation [27] under periodic boundary conditions, 
+
+∂tϕ = ∆ δϕ F(ϕ) = −ε2∆2ϕ + ∆ (ϕ3 − ϕ), (4) which corresponds to the H−1-gradient flow of the Ginzburg–Landau free-energy functional, 
+
+F(ϕ) =
+
+∫
+
+> Ω
+
+( ε2
+
+2 |∇ ϕ|2 + 14 (ϕ2 − 1) 2
+
+)
+
+dx,
+
+where ε > 0 is a mobility parameter and ϕ(x) is an order parameter representing the concentration of one component in a binary alloy. Most existing approaches locate the steady states of the CH equation by directly solving the time-dependent PDE (4) using traditional numerical methods. However, such approaches are often computation-ally prohibitive due to the curse of dimensionality. In this work, we instead consider the problem from a variational perspective, seeking minimizers of the Ginzburg–Landau free energy in the H−1 metric. Since mass is conserved in the H−1 framework, we employ an enhanced augmented Lagrangian method to explicitly enforce this constraint while searching for steady-state solutions. 33.1. Enhanced Augmented Lagrangian Method In this work, we solve the constrained variational problem using a deep learning approach. Specifically, the order parameter ϕ(x) is parameterized by a deep neural network uθ(x) with parameters θ, i.e., 
+
+ϕ(x) ≈ uθ(x).
+
+To enforce the mass conservation constraint within the deep learning framework, we adopt an enhanced augmented Lagrangian (AL) method. This approach employs a nested (outer-inner) loop structure to simultaneously optimize the free energy and enforce the mass constraint. The corresponding loss functional is defined as 
+
+LAL (θ) =
+
+∫
+
+> Ω
+
+( ε2
+
+2 |∇ uθ|2 + 14 (u2 
+
+> θ
+
+− 1) 2
+
+)
+
+dx
+
+︸ ︷︷ ︸
+
+> energy term
+
++ λ (¯uθ − m0
+
+) + μ
+
+2
+
+(¯uθ − m0
+
+)2
+
+︸ ︷︷ ︸
+
+> augmented Lagrange term
+
+:= Li + Lm, (5) where λ and μ are positive parameters associated with the Lagrange multiplier and penalty term, respectively, and m0 denotes the initial mass, i.e., ∫
+
+> Ω
+
+ϕ(x)dx = m0.
+
+¯uθ is estimated via stochastic sampling (e.g., Sobol quasi-Monte Carlo points): 
+
+¯uθ =
+
+∫
+
+> Ω
+
+uθ dx ≈ 1
+
+N
+
+> N
+
+∑
+
+> i=1
+
+uθ(xi). (6) A natural approach to enforce periodic boundary conditions is to incorporate them as an additional term in the loss function. For example, in one dimension with Ω = [a, b], the boundary loss is defined as 
+
+Lb(θ) = ∣∣∣uθ(a) − uθ(b)∣∣∣2. (7) The total loss is then given by 
+
+Ltotal (θ) = LAL (θ) + αLb(θ) = Li + Lm + αLb,
+
+where α > 0 is a weighting coefficient. The neural network parameters θ are updated by minimizing Ltotal (θ),and the resulting minimizer corresponds to the steady-state solution of the CH equation. Remark 3.1. The simple penalty-based approach for enforcing periodic boundary conditions is generally only capable of locating the trivial solution. For non-trivial solutions, this method often fails due to the spectral bias of standard neural networks. To overcome this limitation, we employ the Fourier Feature Mapping technique to handle periodic boundary conditions, as detailed in Subsection 3.3. 3.2. Global Residual Deep Neural Network To solve the variational minimization problem within the deep learning framework, we adopt a global residual network architecture, referred to as the Global Residual Deep Neural Network (GlobalResNet), to enhance both stability and accuracy. The order parameter ϕ(x) is parameterized by a neural network uθ(x).In this architecture, the network output is expressed as the sum of a global linear mapping and a nonlinear transformation learned through residual blocks (as illustrated in Figure 1). Specifically, for an input x ∈ Rd,the network output is defined as 
+
+uθ(x) = β1 w>x + β2 + Nθ(x), (8) where β1, β 2 ∈ R are trainable scalar parameters, w is a learnable weight vector, and Nθ(x) represents the nonlinear component constructed by stacked residual blocks. In this work, the activation function is chosen as a ReLU-type nonlinearity, namely max {x1.5, 0}.4The global residual structure provides two key advantages. First, it mitigates the tendency of the network to converge to trivial or nearly constant solutions, a common issue in physics-informed neural network training. Second, it accelerates convergence by learning the target function as a perturbation of a simple baseline (the linear mapping), rather than from scratch. Numerical experiments indicate that the proposed GlobalResNet achieves improved accuracy and generalization compared to standard feedforward networks or local residual architectures. Remark 3.2. A common challenge in training deep neural networks for variational problems is the tendency to converge to trivial or nearly constant solutions, particularly when the optimization landscape contains flat regions. One key factor in avoiding such behavior is the choice of weight initialization. In this work, we adopt the Kaiming initialization scheme [28], where the weights are initialized according to 
+
+Wi j ∼ N 
+
+(
+
+0, 2
+
+nin 
+
+)
+
+,
+
+with nin denoting the number of input neurons. This initialization preserves the variance of activations across layers when using ReLU-type nonlinearities, thereby mitigating vanishing or exploding signal issues. From a practical perspective, Kaiming initialization enhances the expressive capacity of the network during the early stages of training, allowing it to explore richer solution landscapes and avoid collapse to trivial constant solutions. As a result, it facilitates the discovery of nontrivial steady-state solutions while maintaining training stability and convergence efficiency. 
+
+> Figure 1: Schematic illustration of the GlobalResNet architecture. The model combines a global linear mapping with a nonlinear residual network composed of stacked residual blocks, enabling efficient learning of nontrivial solution structures.
+
+3.3. Fourier Feature Mapping Coordinate-based neural networks (also known as coordinate MLPs) have been widely used to approx-imate solutions of partial differential equations. However, such models exhibit a well-known limitation, namely the spectral bias, whereby low-frequency components are learned preferentially while high-frequency or sharply varying features (e.g., narrow interfacial layers) are difficult to capture [29]. To alleviate this issue, we employ the Fourier Feature Mapping (FFM) technique, which lifts the input coordinates into a higher-dimensional feature space before feeding them into the neural network. Specifically, the mapping γ(x) is defined as 
+
+γ(x) : x ∈ Rd 7 →
+
+[cos (2π Bx )
+
+sin (2π Bx )]
+
+∈ R2m, (9) 5where B ∈ Rm×d is a frequency matrix whose rows correspond to frequency vectors. This transformation enriches the function space accessible to the network and significantly improves its ability to represent high-frequency components. Moreover, by appropriately choosing integer-valued frequencies, the mapping can enforce exact periodicity along specified coordinate directions. A commonly used variant is the Random Fourier Feature (RFF) mapping, where the entries of B are sampled from a Gaussian distribution, i.e., bi j ∼ N (0 , s2). The parameters m and s control the number and magnitude of the frequencies, respectively, thereby determining the representational capacity of the mapping. While RFF provides a flexible and effective way to mitigate spectral bias [29, 30], the sampled frequencies are generally non-integer and thus do not guarantee exact periodicity at the domain boundaries. For problems defined on periodic domains, it is advantageous to employ integer-frequency Fourier bases. For example, the classical Fourier series expansion in one dimension, 
+
+ϕ(x) ≈ a0 +
+
+> fm
+
+∑
+
+> n=1
+
+[an cos (2πnx /Lx
+
+) + bn sin (2πnx /Lx
+
+)] ,
+
+can be viewed as a special case of Fourier feature mapping with integer frequencies. Here, Lx denotes the period along the x-direction and fm is the maximum frequency. For a d-dimensional periodic domain Ω = ∏dj=1[0 , L j], a natural extension is the Cartesian Fourier feature construction. Given a maximum frequency fm, the full frequency set is defined as the tensor product 
+
+K f = {− fm, . . . , fm}d ⊂ Zd.
+
+The frequency matrix B ∈ Zm×d is formed by stacking all frequency vectors nk = {nk j } ∈ K f , i.e., B =
+
+[n1; n2; · · · ; nm], resulting in 
+
+m = (2 fm + 1) d.
+
+For non-unit domains, each frequency component is normalized by the corresponding period, i.e., nk j 7 →
+
+nk j /L j, j = 1, · · · , d, k = 1, · · · , m. This construction ensures exact periodicity along each coordinate direction. However, the Cartesian construction suffers from an exponential growth in the number of modes with respect to the dimension d, leading to significant computational and memory costs. In addition, many high-frequency mixed modes may contribute little to the representation of the solution, especially for problems with moderate smoothness. To address this issue, we adopt a more efficient alternative, namely the separable Fourier feature con-struction. Instead of using the full tensor product, only axis-aligned frequency modes are retained. The corresponding frequency set is defined as 
+
+Ksep  
+
+> f
+
+= {0} ∪ 
+
+> d
+
+⋃
+
+> j=1
+
+{(0 , . . . , 0, n j, 0, . . . , 0) : n j ∈ {− fm, . . . , fm} \ { 0}} .
+
+The total number of modes in this case is 
+
+msep = 1 + d · (2 fm),
+
+which scales linearly with the dimension d. The corresponding frequency matrix B is constructed from vectors in Ksep  
+
+> f
+
+.The separable Fourier feature mapping preserves exact periodicity while significantly reducing the number of features. As a result, it alleviates the curse of dimensionality inherent in the full Cartesian construction, providing an efficient and scalable representation for high-dimensional problems. Remark 3.3. The separable Fourier feature construction omits mixed-direction modes involving multiple nonzero frequency components (e.g., (n1, n2) with n1 , 0 and n2 , 0), and therefore cannot directly represent such cross-frequency interactions. However, these mixed modes can be implicitly recovered through nonlinear interactions within the network. 6For instance, consider 
+
+a(x) = cos(2 πn1 x), b(y) = cos(2 πn2y).
+
+By the trigonometric identity, 
+
+a(x) b(y) = cos(2 πn1 x) cos(2 πn2y) = 12
+
+[cos (2π(n1 x + n2y)) + cos (2π(n1 x − n2y))] ,
+
+which contains mixed-frequency components corresponding to the Cartesian modes (n1, n2) and (n1, −n2).Motivated by this observation, for periodic PDEs with fine-scale or high-frequency structures, we adopt a hybrid feature representation that combines: (i) separable integer-frequency sine/cosine features along each coordinate direction, which ensure exact periodic boundary conditions; and (ii) Random Fourier Features (RFF) with prescribed size m and scale s, which enhance high-frequency expressivity. This integrated construction preserves exact periodicity while providing richer spectral coverage and improved approximation capability. This design strikes a balance between computational efficiency and expressive power in high-dimensional settings. Remark 3.4. Fourier feature mappings introduce frequency-dependent scaling factors in the derivatives, which may amplify gradient magnitudes. However, this effect does not impact the optimization direction, and the feature values remain bounded. In practice, the method remains stable and converges to physically meaningful solutions, while benefiting from improved representation of high-frequency structures. 3.4. Algorithmic Framework With the incorporation of the Fourier feature mapping, periodic boundary conditions are satisfied in-trinsically through the input representation. As a result, no additional boundary penalty term is required, and the total loss function reduces to the augmented Lagrangian functional defined in (5). Specifically, the total loss is given by 
+
+Ltotal (θ) =
+
+∫
+
+> Ω
+
+( ε2
+
+2 |∇ uθ|2 + 14 (u2 
+
+> θ
+
+− 1) 2
+
+)
+
+dx + λ (¯ uθ − m0) + μ
+
+2 (¯ uθ − m0)2 , (10) where m0 denotes the prescribed mass, and λ and μ are the Lagrange multiplier and penalty parameter, respectively, as defined in (5). To solve the constrained minimization problem, we employ a nested optimization framework consisting of inner iterations and outer cycles, as summarized in Algorithm 1. In the inner iteration, the network parameters θ are updated by minimizing the total loss Ltotal , while keeping the Lagrange multiplier λ and the penalty parameter μ fixed. In each outer cycle, the Lagrange multiplier λ and the penalty coefficient μ are updated according to: 
+
+λ(k+1) = λ(k) + μ(k)(¯uθ − m0
+
+), μ(k+1) = min (ρ μ (k), μ max 
+
+),
+
+where ρ > 1 denotes the growth rate of the penalty parameter, and μmax is a prescribed upper bound. Here, 
+
+¯uθ, the mean value of the network output, is used to update the Lagrange multiplier. To enhance stability and convergence in practice, the Lagrange multiplier λ is initialized as zero in the early outer iterations, allowing the penalty term μ to dominate the enforcement of the mass constraint; As the training proceeds, λ gradually becomes active and refine the mean value ¯uθ toward the prescribed mass 
+
+m0. This nested optimization strategy provides an efficient and stable mechanism for enforcing constraints while maintaining fast convergence in the training process. Remark 3.5. To further improve numerical accuracy, we adopt a hybrid optimization strategy. The Adam optimizer is employed in the early stage to rapidly capture the coarse structure of the solution, while the L-BFGS optimizer is used in the later stage to refine the solution and achieve improved convergence with lower residuals. 7Algorithm 1: Deep Ritz Method with Augmented Lagrangian and Fourier Feature Mapping for the Cahn-Hilliard Equation Input: Computational domain Ω, target mass m0, maximum frequency fm, outer and inner iterations K, T , initial penalty parameter μ0, growth rate ρ
+
+Output: Trained Neural Network uθ
+
+// Step 1: Initialization  
+
+> 1
+
+Construct Fourier feature mapping Φ(x) with maximum frequency fm 
+
+> 2
+
+Initialize the neural network uθ using a GlobalResNet architecture with Kaiming Initialization  
+
+> 3
+
+Set Lagrange multiplier λ ← 0 and penalty parameter μ ← μ0
+
+// Step 2: Augmented Lagrangian Optimization  
+
+> 4
+
+for k = 1, 2, . . . , K do  
+
+> 5
+
+for t = 1, 2, . . . , T do  
+
+> 6
+
+Sample interior points xi ∈ Ω and compute Φ(xi) 
+
+> 7
+
+Evaluate the Ritz energy functional: 
+
+J(uθ) =
+
+∫
+
+> Ω
+
+( ε2
+
+2 |∇ uθ|2 + 14 (u2 
+
+> θ
+
+− 1) 2
+
+)
+
+dx 
+
+> 8
+
+Compute the mass constraint: 
+
+c(θ) = 1
+
+N
+
+> N
+
+∑
+
+> i=1
+
+uθ(xi) − m0 
+
+> 9
+
+Update θ by minimizing the augmented Lagrangian loss in (10): 
+
+Ltotal (θ) = J(uθ) + λc(θ) + μ
+
+2 c(θ)2
+
+using the Adam optimizer  
+
+> 10
+
+end // Step 3: Multiplier and Penalty Update  
+
+> 11
+
+Update the Lagrange multiplier: λ ← λ + μ c(θ) 
+
+> 12
+
+Update the penalty parameter: μ ← min( ρ μ, μ max ) 
+
+> 13
+
+end // Step 4: Solution Refinement  
+
+> 14
+
+Refine the solution by applying the L-BFGS optimizer to further minimize L(θ) 
+
+> 15
+
+return uθ
+
+4. Numerical Experiments In this section, we evaluate the performance of the proposed method for computing steady-state solutions of the Cahn–Hilliard equation in one-, two-, and three-dimensional settings. The neural network adopts a residual architecture with a depth of six layers, each containing 100 neurons. In all the subsequent numerical results, the activation function is chosen as max {x1.5, 0}, and the Adam optimizer is employed during training unless otherwise specified. To quantitatively assess convergence, an appropriate evaluation metric is required. A commonly used indicator is the L2 norm of the variational derivative (or force), denoted by ‖δϕ F‖L2 . In principle, this quantity vanishes as the solution approaches a steady state. However, in the present setting, this indicator becomes unreliable. The incorporation of Fourier Feature Mappings enhances the representation of high-frequency components, while the Cahn–Hilliard equation involves higher-order spatial derivatives. As a result, high-8frequency modes are significantly amplified, and higher-order derivative terms (e.g., ϕxxx in one dimension) become highly sensitive. This often leads to oscillatory and unstable behavior in the force metric, which may obscure the true convergence of the solution. To overcome this limitation, we instead adopt the difference between two successive iterates as the convergence measure: 
+
+Error =
+
+(∫ 
+
+> Ω
+
+∣∣∣ϕn+1 − ϕn∣∣∣2 dx
+
+)1/2
+
+. (11) This metric avoids the use of high-order derivatives and is therefore significantly more stable under Fourier feature representations. Consequently, it provides a more robust and reliable indicator for assessing con-vergence during training. Moreover, this quantity naturally approaches zero as the solution converges to a stationary state, making it consistent with the underlying variational structure. All subsequent numerical results are evaluated using this error metric. 4.1. One-dimensional case We first consider the one-dimensional problem: 
+
+F(ϕ) =
+
+∫
+
+> Ω
+
+[ ε2
+
+2 |∇ ϕ|2 + 14 (ϕ2 − 1) 2
+
+]
+
+dx , x ∈ Ω,
+
+where Ω = [0 , 1] with the periodic boundary condition. The parameter is set to ε = 0.04 , and the prescribed mass is m = 0.6.4.1.1. Trivial solution We first demonstrate that the proposed framework is capable of recovering the trivial steady-state so-lution. In this case, the constant solution can be obtained without employing Fourier feature mappings. Specifically, let {xi}Ni=1 ⊂ Ω denote the interior collocation points. The total loss consists of the following components: • Energy loss: 
+
+Li = 1
+
+N
+
+> N
+
+∑
+
+> i=1
+
+( ε2
+
+2 |∇ uθ(xi)|2 + 14
+
+(u2 
+
+> θ
+
+(xi) − 1)2
+
+)
+
+. (12) • Mass constraint loss: 
+
+Lm = λ(¯uθ − m0
+
+) + μ
+
+2
+
+(¯uθ − m0
+
+)2. (13) • Boundary loss: 
+
+Lb = ∣∣∣uθ(0) − uθ(1) ∣∣∣.
+
+The total loss is defined as 
+
+Ltotal = Li + Lm + αLb,
+
+where the parameters are chosen as λ = 0, μ = 1000 , α = 1, with the initial augmented Lagrangian parameters 
+
+μ0 = 6, ρ = 1.2, and μmax = 10 . The number of collocation points is N = 101 . The network is trained for 500 epochs with a learning rate of η = 10 −4. The mean value ¯uθ is approximated using Sobol quasi-Monte Carlo sampling as described in (6). Figure 2 shows the trivial steady-state solution u ≡ 0.6 satisfying both the mass constraint and periodic boundary condition under random initialization using Kaiming initialization. Figure 3 presents the evolution of the total loss, boundary loss, and mass constraint loss during training. It can be observed that the total loss converges to approximately 0.1024 , which is consistent with the free energy of the steady-state solution. 9(a) steady state       
+
+> Figure 2: Trivial steady-state solution u≡0.6under random initialization.
+> (a) total loss (b) boundary loss (c) mass constraint loss
+> Figure 3: Evolution of the total loss, boundary loss, and mass constraint loss during training for the trivial solution.
+
+4.1.2. Non-trivial solutions In the previous subsection 4.1.1, the periodic boundary condition is enforced by directly imposing u(0) =
+
+u(1) , which leads to the trivial constant solution. However, such a formulation is insufficient for capturing high-frequency features and non-trivial steady states. To overcome this limitation, we incorporate Random Fourier Feature (RFF) mappings to enrich the representation capability of the neural network. Since standard RFF does not inherently preserve periodicity, we adopt a simple preprocessing step by mapping the input coordinate as x 7 → mod( x, 1) . As a result, the transformed features sin(2 πBx) and 
+
+cos(2 πBx) satisfy the periodic boundary condition u(0) = u(1) . In the implementation, the Fourier feature parameters are chosen as m = 128 , s = 3.0, and Lx = 1. The outer iteration number is set to 5 and the inner iteration number to 100. The learning rate is η = 10 −4.In this setting, the total loss reduces to 
+
+Ltotal = Li + Lm,
+
+where Li and Lm are defined the same as in (12) and (13), respectively, in the previous subsection. The non-trivial steady-state solution is computed in this formulation, shown as in Figure 4(b), starting from the random initialization shown in Figure 4(a). The corresponding free energy of the steady state is approximately 0.0743 , which is lower than that of the trivial solution. Figures 5(a) and (b) show the evolution of the energy loss and mass constraint loss, respectively. The total number of epochs corresponds to the product of the inner and outer iteration numbers. The total computational time is approximately 
+
+13 .59 seconds, demonstrating the efficiency of the proposed method. To further assess the accuracy, we plot the error defined in (11) as a function of the training epoch, as shown in Figure 5(c). It should be noted that to refine the solution, the L-BFGS optimization method is employed in the later stage of the algorithm, aiming to achieve a more significant reduction in the final force values. The error exhibits a clear decay trend, indicating convergence to a steady state. These results demonstrate that the incorporation of Fourier feature mappings effectively overcomes the spectral bias of neural networks and enables the accurate computation of non-trivial steady states. 10 (a) random initializion (b) steady state   
+
+> Figure 4: (a) Random initialization of the neural network. (b) Non-trivial steady-state solution of the CH equation enabled by Fourier feature mappings.
+> (a) energy loss (b) mass constraint loss (c) error decay
+> Figure 5: Evolution of (a) energy loss, (b) mass constraint loss, and (c) error, demonstrating stable convergence to a non-trivial steady state.
+
+4.2. Two-dimensional case We next consider the two-dimensional case. The energy functional is given by 
+
+F(ϕ) =
+
+∫
+
+> Ω
+
+[ ε2
+
+2 |∇ ϕ|2 + 14 (ϕ2 − 1) 2
+
+]
+
+dx, x ∈ Ω, (14) where Ω = [0 , 1] × [0 , 1] and ε = 0.01 . The prescribed mass is m0 = 0.02 . Periodic boundary conditions are imposed in both spatial directions: 
+
+ϕ(0 , y) = ϕ(1 , y), y ∈ [0 , 1] , ϕ(x, 0) = ϕ(x, 1) , x ∈ [0 , 1] .
+
+As in the one-dimensional case, both trivial and non-trivial steady-state solutions may exist. 4.2.1. Trivial solution We first consider the trivial solution. The periodic boundary conditions are enforced directly, following the same strategy as in the one-dimensional case. The total loss function consists of three components: • Energy loss: 
+
+Li = 1
+
+N2
+
+> N
+
+∑
+
+> i=1
+> N
+
+∑
+
+> j=1
+
+( ε2
+
+2 |∇ uθ(xi, y j)|2 + 14
+
+(u2 
+
+> θ
+
+(xi, y j) − 1)2
+
+)
+
+.
+
+• Mass constraint loss: 
+
+Lm = λ(¯uθ − m0
+
+) + μ
+
+2
+
+(¯uθ − m0
+
+)2.
+
+11 • Boundary loss: 
+
+Lb = 1
+
+N
+
+> N
+
+∑
+
+> i=1
+
+(uθ(xi, 0) − uθ(xi, 1) )2 + 1
+
+N
+
+> N
+
+∑
+
+> j=1
+
+(uθ(0 , y j) − uθ(1 , y j))2.
+
+The total loss is defined as 
+
+Ltotal = Li + Lm + αLb,
+
+where the parameters are chosen as λ = 0, μ = 20 , μ0 = 1, ρ = 1.2, μmax = 2, and α = 10 .We use N = 202 uniformly distributed collocation points in each spatial direction. The outer and inner iteration numbers are set to 5 and 100, respectively, and the learning rate is η = 10 −3.Starting from a random initialization, the network converges to the constant steady-state solution u ≡
+
+0.02 , which satisfies both the mass constraint and periodic boundary conditions. Figure 6 illustrates the evolution of the total loss, boundary loss, and mass constraint loss during training, all of which exhibit stable decay behavior. However, as in the one-dimensional case, this formulation tends to favor trivial constant solutions and fail to capture more complex non-trivial patterns.   
+
+> (a) total loss (b) boundary loss (c) mass constraint loss
+> Figure 6: Evolution of the total loss, boundary loss, and mass constraint loss during training.
+
+4.2.2. Non-trivial solutions To compute non-trivial steady-state solutions in the two-dimensional case, we employ Fourier feature mappings to enhance the expressive capability of the neural network. In the one-dimensional case, non-trivial solutions are obtained using standard random Fourier features (RFF), which provide flexible bandwidth control and improved representation of high-frequency structures. However, in higher-dimensional settings, to better preserve periodicity and separability along each coordinate direction, we instead adopt classical Fourier feature mappings based on integer-frequency Fourier series. Specifically, the maximum frequency is chosen as fm = 3, with domain lengths Lx = Ly = 1. Under this construction, periodic boundary conditions are naturally satisfied, and the total loss function reduces to 
+
+Ltotal = Li + Lm,
+
+where Li and Lm are defined as in Subsection 4.2.1. The outer and inner iteration numbers are set to 10 and 100, respectively, and the learning rate is η = 10 −3.In the following, we present several representative numerical examples of non-trivial steady states. For all cases, the method converges within approximately 60 seconds, demonstrating its computational efficiency. Case 1. Figure 7(b) shows a representative non-trivial steady-state solution obtained from the random ini-tialization displayed in Figure 7(a). The solution exhibits a typical phase-separated configuration, consisting of a region where ϕ ≈ − 1 embedded within a surrounding region where ϕ ≈ 1, with the two phases connected by a thin and smooth interfacial layer. This behavior is consistent with the expected phase separation dy-namics of the Cahn–Hilliard equation. The corresponding free energy of the steady state is approximately 
+
+0.0235 , which is significantly lower than that of the trivial solution, indicating that the method successfully captures energetically favorable non-trivial configurations. 12 Figures 8(a) and (b) illustrate the evolution of the energy loss and mass constraint loss, respectively. The energy loss decreases and converges to a stable value, and the mass constraint loss decreases with an average magnitude on the order of 10 −7. Figure 8(c) presents the decay of the error defined in (11), further confirming the convergence and accuracy of the computed solution. These results demonstrate that the proposed method is capable of efficiently capturing complex non-trivial steady states in higher-dimensional settings.     
+
+> (a) random initialization (b) steady state
+> Figure 7: 2D, Case 1: (a) Random initialization of the neural network. (b) Droplet-type non-trivial steady-state solution of the two-dimensional Cahn–Hilliard equation enabled by Fourier feature mappings.
+> (a) energy loss (b) mass constraint loss (c) error decay
+> Figure 8: Evolution of (a) energy loss, (b) mass constraint loss and (c) error during training for the droplet-type non-trivial solution.
+
+Case 2. Figure 9(b) presents another non-trivial steady-state solution obtained from the random initializa-tion shown in Figure 9(a). Similar to Case 1, the solution exhibits a phase-separated structure characterized by a droplet-like morphology. However, in contrast to Case 1, the roles of the two phases are reversed: the inner region and the surrounding phase exchange their signs, resulting in an inverted droplet configuration. The corresponding free energy of this steady state is approximately 0.0237 , which is close to that of Case 1, indicating that these two configurations represent energetically comparable local minima. Figures 10(a) and (b) show the evolution of the energy loss and mass constraint loss, respectively, both exhibiting stable convergence. The error decay, shown in Figure 10(c), further confirms the accuracy and convergence of the solution. 13 (a) random initializion (b) steady state   
+
+> Figure 9: 2D, Case 2: (a) Random initialization of the neural network. (b) Inverted droplet-type steady-state solution enabled by Fourier feature mappings, where the two phases are exchanged compared to Case 1.
+> (a) energy loss (b) mass constraint loss (c) error decay
+> Figure 10: Evolution of (a) energy loss, (b) mass constraint loss, and (c) error during training for the inverted droplet-type solution.
+
+Case 3. Under a different random initialization (Figure 11(a)), the method converges to a qualitatively dis-tinct non-trivial steady state, shown in Figure 11(b). Unlike the droplet-type structures observed in Cases 1 and 2, this solution exhibits a lamellar (striped) phase separation pattern, characterized by alternating layers of the two phases across the domain. Such lamellar structures are commonly observed in phase separation processes and correspond to a different class of local energy minimizers. The corresponding free energy is approximately 0.0187 , which is lower than that of the droplet-type solutions, suggesting that this configuration is energetically more favorable under the given parameters. Figures 12(a) and (b) illustrate the decay of the energy loss and mass constraint loss, respectively, both showing stable convergence behavior. The error curve in Figure 12(c) further verifies the accuracy of the computed solution. 14 (a) random initializion (b) steady state    
+
+> Figure 11: 2D, Case 3: (a) Random initialization of the neural network. (b) Lamellar (striped) steady-state solution enabled by Fourier feature mappings, exhibiting alternating layered phase separation.
+> (a) energy loss (b) mass constraint loss (c) error decay
+> Figure 12: Evolution of (a) energy loss, (b) mass constraint loss, and (c) error during training for the lamellar steady-state solution.
+
+4.3. Three-dimensional case We next consider the three-dimensional Cahn–Hilliard problem. The energy functional remains the same as in (14), with the computational domain Ω = [0 , 1] 3, parameter ε = 0.01 , and prescribed mass m0 = 0.02 .The periodic boundary conditions are given by 
+
+ϕ(0 , y, z) = ϕ(1 , y, z), (y, z) ∈ [0 , 1] 2,ϕ(x, 0, z) = ϕ(x, 1, z), (x, z) ∈ [0 , 1] 2,ϕ(x, y, 0) = ϕ(x, y, 1) , (x, y) ∈ [0 , 1] 2.
+
+As in the one- and two-dimensional cases, a trivial constant solution u ≡ 0.02 exists. In this subsection, we focus on computing non-trivial steady-state solutions using the separable Fourier feature mapping technique. With the incorporation of Fourier features, the periodic boundary conditions are naturally satisfied. Therefore, the total loss functional consists only of the energy term and the mass constraint term: 
+
+Ltotal = Li + Lm,
+
+where • Energy loss: 
+
+Li = 1
+
+N
+
+> N
+
+∑
+
+> i=1
+
+( ε2
+
+2 |∇ uθ(xi)|2 + 14
+
+(u2 
+
+> θ
+
+(xi) − 1)2
+
+)
+
+,
+
+15 • Mass constraint loss: 
+
+Lm = λ(¯uθ − m0
+
+) + μ
+
+2
+
+(¯uθ − m0
+
+)2.
+
+Due to the rapid growth in the number of grid points in three dimensions, uniform discretization becomes computationally prohibitive. To address this issue, we employ Sobol low-discrepancy sequences to generate collocation points, which provide high-quality space-filling sampling with relatively small sample sizes. In our experiments, we use N = 100 ,000 sampling points. For the separable Fourier feature mapping, the maximum frequency is set to fm = 3, with domain lengths 
+
+Lx = Ly = Lz = 1. The augmented Lagrangian parameters are chosen as μ0 = 1, ρ = 1.2, and μmax = 2. The optimization is performed with 10 outer iterations and 100 inner iterations, and the learning rate is set to 
+
+η = 5 × 10 −4.Starting from different random initializations, the proposed method is able to converge to multiple distinct non-trivial steady states in three dimensions (see the following figures), demonstrating its capability to capture complex phase separation structures in high-dimensional settings. Case 1. Figure 13(a) shows the random initialization using Kaiming initialization, while Figure 13(b) presents the interfacial layer of the corresponding steady-state solution. The associated volume rendering steady-state is shown in Figure 13(c), which reveals the three-dimensional morphology of the interface. The solution exhibits a clear phase separation structure, ϕ = 1 (yellow part) and ϕ = −1
+
+(dark part). This configuration can be viewed as a three-dimensional extension of the droplet-type structure observed in the two-dimensional case (Figure 9(b)), as confirmed by its cross-sections at x = 0 or y = 0.Figures 14(a) and (b) show the evolution of the energy loss and mass constraint loss, respectively. The steady-state energy is approximately 0.0219 . A mild increase in the energy loss around epoch 1000 is observed, which is attributed to the transition from the Adam optimizer to L-BFGS for fine-tuning. The error curve in Figure 14(c) confirms stable convergence.    
+
+> (a) random initializion (b) steady state(contour) (c) steady state(volume)
+> Figure 13: 3D, Case 1: (a) Random initialization generated by Kaiming initialization. (b) The interfacial layer of the droplet-type steady-state solution of the three-dimensional CH equation. (c) Volume rendering illustrating the three-dimensional morphology of the phase-separated structure.
+
+16 (a) energy loss (b) mass constraint loss (c) error decay 
+
+> Figure 14: 3D, Case 1: Evolution of (a) energy loss, (b) mass constraint loss, and (c) error during training for the droplet-type steady-state solution.
+
+Case 2. Figure 15(a) shows another random initialization, and Figure 15(b) displays the interfacial layer of the resulting steady state. Similar to Case 1, the solution forms a droplet-like phase-separated structure; however, the roles of the two phases are reversed, resulting in an inverted configuration. The corresponding volume rendering (Figure 15(c)) shows a geometry nearly identical to that of Case 1, except for the sign inversion of the phases. Cross-sectional views on x = 0, y = 0 or z = 0 again match the corresponding two-dimensional pattern. The steady-state energy is approximately 0.0219 , indicating that the two configurations correspond to energetically comparable local minimizers. The decay of the energy loss and mass constraint loss is shown in Figures 16(a) and (b), while the error evolution in Figure 16(c) further confirms convergence.     
+
+> (a) random initialization (b) steady state(contour) (c) steady state(volume)
+> Figure 15: 3D, Case 2: (a) Random initialization. (b) Computed inverted droplet-type steady-state solution, where the two phases are exchanged compared to Case 1. (c) Volume rendering showing a geometry similar to Case 1 with reversed phase values.
+
+17 (a) energy loss (b) mass constraint loss (c) error decay 
+
+> Figure 16: 3D, Case 2: Evolution of (a) energy loss, (b) mass constraint loss, and (c) error during training for the inverted droplet-type solution.
+
+Case 3. Figures 17(a) and (b) show the initialization and the computed steady state, respectively. In contrast to the droplet-type structures in Cases 1 and 2, this solution can be interpreted as a three-dimensional extension of the lamellar phase observed in the two-dimensional case. The solution exhibits a layered phase separation structure, where the two phases organize into alternating regions across the domain, which is characterized by coherent layered interfaces. This interpretation is further supported by the cross-sectional slices (e.g., at x = 0 or y = 0), which reveal clear stripe-like patterns consistent with the lamellar solutions observed in two dimensions (Figure 11b). The steady-state energy is approximately 0.0187 , which is lower than that of the droplet-type solutions, suggesting a more energetically favorable configuration. Figures 18(a) and (b) show the decay of the en-ergy loss and mass constraint loss, respectively, while the error curve in Figure 18(c) demonstrates stable convergence.  
+
+> (a) random initializion (b) steady state(volume)
+> Figure 17: 3D, Case 3: (a) Random initialization. (b) Lamellar ( layered) steady-state solution, representing a three-dimensional extension of the stripe phase in two dimensions.
+
+18 (a) energy loss (b) mass constraint loss (c) error decay 
+
+> Figure 18: 3D, Case 3: Evolution of (a) energy loss, (b) mass constraint loss, and (c) error during training for the lamellar steady-state solution.
+
+Case 4. Figures 19(a) and (b) illustrate the random initialization and the corresponding steady-state so-lution, respectively. The same steady state is further visualized in Figure 19(c) and (d) using different opacity settings, which provide a clearer view of the underlying three-dimensional structure. The solution exhibits a cylindrical (or tubular) morphology, where one phase ( ϕ ≈ 1) is embedded within the surrounding phase ( ϕ ≈ − 1). Cross-sectional profiles reveal distinct lower-dimensional characteristics: the slice at z = 0
+
+corresponds to a droplet-type structure in two dimensions (see Figure 9b), while slices taken at x = x0 or 
+
+y = y0 display lamellar (striped) patterns or nearly homogeneous states, depending on the location. These observations highlight the anisotropic and spatially heterogeneous nature of the solution structure. The steady-state energy is approximately 0.0238 . Figures 20(a) and (b) show the evolution of the energy loss and mass constraint loss, respectively, while Figure 20(c) presents the error decay, which confirms the convergence of the algorithm. The computational time required to reach convergence for these three-dimensional cases is approximately 95 seconds, demonstrating the efficiency of the proposed method. These results demonstrate that the proposed framework is capable of capturing a rich variety of three-dimensional phase separation patterns, including droplet-type, lamellar, and tubular structures, highlighting its effectiveness and its strong ability in exploring complex high-dimensional energy landscapes.    
+
+> (a) (b) (c) (d)
+> Figure 19: 3D, Case 4: (a) Random initialization. (b)–(d) the same tubular (cylindrical) steady-state solution with different opacity settings for better observation of the structure.
+
+19 (a) energy loss (b) mass constraint loss (c) error decay   
+
+> Figure 20: 3D, Case 4: Evolution of (a) energy loss, (b) mass constraint loss, and (c) error during training for the tubular steady-state solution.
+
+5. Conclusion In this work, we propose a deep learning-based framework, namely the Deep Ritz method, for computing steady-state solutions of the Cahn–Hilliard equation under periodic boundary conditions. The method effectively alleviates the curse of dimensionality encountered in traditional numerical approaches, particularly in high-dimensional settings. To enforce the mass conservation constraint, we incorporate an enhanced augmented Lagrangian formulation, which ensures both accuracy and stability during training. In addition, the random/separable Fourier feature mapping is employed to naturally satisfy periodic boundary conditions, while significantly improving the expressive capability of the neural network for capturing oscillatory and nontrivial solution structures. Extensive numerical experiments in one-, two-, and three-dimensional cases demonstrate that the pro-posed method is capable of efficiently identifying multiple steady states, including both trivial and non-trivial solutions. In particular, a rich variety of phase-separated structures—such as droplet-type, lamellar, and tubular patterns—are successfully captured. These results highlight the robustness and effectiveness of the proposed framework in exploring complex high-dimensional energy landscapes and locating diverse local minimizers of the underlying energy functional. Compared with conventional grid-based methods, the pro-posed approach offers notable advantages in terms of flexibility, scalability, and computational efficiency, especially for high-dimensional problems. Moreover, the method does not rely on carefully designed initial guesses and is able to discover multiple solution branches through different random initializations. The proposed framework can be further extended to a broader class of phase-field models for steady-state computation. In addition, it provides a promising foundation for locating transition states by combining with saddle point search algorithms, which will be investigated in our future work. Acknowledgments Shuting GU acknowledges the support of NSFC 12571465 and Guangdong Basic and Applied Basic Research Foundation 2026A1515012326. References       
+
+> [1] J. W. Cahn, J. E. Hilliard, Free energy of a nonuniform system. i. interfacial free energy, The Journal of Chemical Physics 28 (1958) 258–267. [2] C. M. Elliott, S. Zheng, On the cahn–hilliard equation, Archive for Rational Mechanics and Analysis 96 (1989) 339–357. [3] J. Han, A. Jentzen, et al., Deep learning-based numerical methods for high-dimensional parabolic partial differential equations and backward stochastic differential equations, Communications in mathematics and statistics 5 (2017) 349– 380. [4] J. Han, A. Jentzen, W. E, Solving high-dimensional partial differential equations using deep learning, Proceedings of the National Academy of Sciences 115 (2018) 8505–8510.
+
+20 [5] M. Raissi, P. Perdikaris, G. E. Karniadakis, Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations, Journal of Computational Physics 378 (2019) 686–707. [6] C. Beck, W. E, A. Jentzen, Machine learning approximation algorithms for high-dimensional fully nonlinear partial differential equations and second-order backward stochastic differential equations, Journal of Nonlinear Science 29 (2019) 1563–1619. [7] K. Hornik, Approximation capabilities of multilayer feedforward networks, Neural networks 4 (1991) 251–257. [8] S. Zhang, Z. Shen, H. Yang, Deep network approximation: Achieving arbitrary accuracy with fixed number of neurons, Journal of Machine Learning Research 23 (2022) 1–60. [9] M. Raissi, P. Perdikaris, G. E. Karniadakis, Physics informed deep learning (part i): Data-driven solutions of nonlinear partial differential equations, arXiv preprint arXiv:1711.10561 (2017). [10] J. Sirignano, K. Spiliopoulos, Dgm: A deep learning algorithm for solving partial differential equations, Journal of computational physics 375 (2018) 1339–1364. [11] W. E, B. Yu, The deep ritz method: A deep learning-based numerical algorithm for solving variational problems, Com-munications in Mathematics and Statistics 6 (2018) 1–12. [12] Y. Zang, G. Bao, X. Ye, H. Zhou, Weak adversarial networks for high-dimensional partial differential equations, Journal of Computational Physics 411 (2020) 109409. [13] Z. Long, Y. Lu, X. Ma, B. Dong, PDE-net: Learning PDEs from data, in: J. Dy, A. Krause (Eds.), Proceedings of the 35th International Conference on Machine Learning, volume 80 of Proceedings of Machine Learning Research, PMLR, 2018, pp. 3208–3216. URL: https://proceedings.mlr.press/v80/long18a.html. [14] Z. Long, Y. Lu, B. Dong, Pde-net 2.0: Learning pdes from data with a numeric-symbolic hybrid deep network, Journal of Computational Physics 399 (2019) 108925. [15] J. Han, A. Jentzen, et al., A brief review of the deep bsde method for solving high-dimensional partial differential equations, arXiv preprint arXiv:2505.17032 (2025). [16] M. Raissi, Forward–backward stochastic neural networks: deep learning of high-dimensional partial differential equations, in: Peter Carr Gedenkschrift: Research Advances in Mathematical Finance, World Scientific, 2024, pp. 637–655. [17] W. Zhang, W. Cai, Fbsde based neural network algorithms for high-dimensional quasilinear parabolic pdes, Journal of Computational Physics 470 (2022) 111557. [18] S. Ji, S. Peng, Y. Peng, X. Zhang, Three algorithms for solving high-dimensional fully coupled fbsdes through deep learning, IEEE Intelligent Systems 35 (2020) 71–84. [19] J. Han, et al., Deep learning approximation for stochastic control problems, arXiv preprint arXiv:1611.07422 (2016). [20] C. Huré, H. Pham, X. Warin, Deep backward schemes for high-dimensional nonlinear pdes, Mathematics of Computation 89 (2020) 1547–1579. [21] M. Germain, H. Pham, X. Warin, Approximation error analysis of some deep backward schemes for nonlinear pdes, SIAM Journal on Scientific Computing 44 (2022) A28–A56. [22] C. Beck, S. Becker, P. Cheridito, A. Jentzen, A. Neufeld, Deep splitting method for parabolic pdes, SIAM Journal on Scientific Computing 43 (2021) A3135–A3154. [23] W. Cai, Deepmartnet–a martingale based deep neural network learning algorithm for eigenvalue/bvp problems and optimal stochastic controls, arXiv preprint arXiv:2307.11942 (2023). [24] M. Tancik, P. Srinivasan, B. Mildenhall, S. Fridovich-Keil, N. Raghavan, U. Singhal, R. Ramamoorthi, J. Barron, R. Ng, Fourier features let networks learn high frequency functions in low dimensional domains, Advances in neural information processing systems 33 (2020) 7537–7547. [25] N. Rahaman, A. Baratin, D. Arpit, F. Draxler, M. Lin, F. Hamprecht, Y. Bengio, A. Courville, On the spectral bias of neural networks, in: International conference on machine learning, PMLR, 2019, pp. 5301–5310. [26] Y. Lu, J. Lu, M. Wang, A priori generalization analysis of the deep ritz method for solving high dimensional elliptic partial differential equations, in: Proceedings of Thirty Fourth Conference on Learning Theory, volume 134 of Proceedings of Machine Learning Research, 2021, pp. 3196–3241. [27] P. M. Chaikin, T. C. Lubensky, Principles of condensed matter physics, Cambridge University Press, 2000. [28] K. He, X. Zhang, S. Ren, J. Sun, Delving deep into rectifiers: Surpassing human-level performance on ima-genet classification, in: Proceedings of the IEEE International Conference on Computer Vision (ICCV), 2015, pp. 1026–1034. URL: https://openaccess.thecvf.com/content_iccv_2015/html/He_Delving_Deep_into_ICCV_2015_ paper.html. doi:10.1109/ICCV.2015.123. [29] M. Tancik, P. P. Srinivasan, B. Mildenhall, S. Fridovich-Keil, N. Raghavan, U. Singhal, R. Ramamoorthi, J. T. Barron, R. Ng, Fourier features let networks learn high frequency functions in low dimensional domains, in: Advances in Neural Information Processing Systems (NeurIPS), 2020. URL: https://arxiv.org/abs/2006.10739. [30] A. Rahimi, B. Recht, Random features for large-scale kernel machines, Advances in Neural Information Processing Systems (NeurIPS) (2007) 1177–1184. 
+
+21
