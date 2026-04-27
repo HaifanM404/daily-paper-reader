@@ -1,0 +1,1263 @@
+Title: Four-dimensional QCD equation of state from a quasi-parton model with physics-informed neural networks
+
+URL Source: https://arxiv.org/pdf/2604.22352v1
+
+Published Time: Mon, 27 Apr 2026 00:38:37 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+## Four-dimensional QCD equation of state from a quasi-parton model with physics-informed neural networks 
+
+Fu-Peng Li, 1, 2, 3, 4 Long-Gang Pang, 1, 2, ∗ and Guang-You Qin 1, 2, †
+
+> 1
+
+Key Laboratory of Quark and Lepton Physics (MOE) & Institute of Particle Physics, Central China Normal University, Wuhan 430079, China 
+
+> 2
+
+Artificial Intelligence and Computational Physics Research Center, Central China Normal University, Wuhan 430079, China 
+
+> 3
+
+Key Laboratory of Nuclear Physics and Ion-beam Application (MOE) & Institute of Modern Physics, Fudan University, Shanghai 200433, China 
+
+> 4
+
+Shanghai Research Center for Theoretical Nuclear Physics, NSFC and Fudan University, Shanghai 200438, China 
+
+(Dated: April 27, 2026) The equation of state (EoS) of strongly interacting matter at finite temperature and chemical potentials (baryon, charge, and strangeness) is a crucial input for hydrodynamic simulations of relativistic heavy-ion collisions. We construct a four-dimensional EoS using a deep-learning-assisted quasi-particle model (DLQPM) within a physics-informed neural network (PINN) framework, in which the masses of light quarks, strange quarks, and gluons are parameterized as functions of temperature and chemical potentials ( T, μ B , μ Q, μ S ). The model is constrained by lattice QCD data at vanishing chemical potentials and provides a thermodynamically consistent extrapolation to finite μB,Q,S . The DLQPM accurately reproduces the lattice-calculated cumulants χB,Q,S i,j,k at 
+
+μB,Q,S = 0, and its predicted EoS at various chemical potentials agrees well with results from the generalized T ′-expansion method in lattice QCD. Furthermore, the calculated baryon-strangeness correlation CBS is consistent, within uncertainties, with preliminary STAR data. This work offers a reliable EoS for exploring the QCD phase structure in the beam energy scan region. 
+
+I. INTRODUCTION 
+
+A four-dimensional quantum chromodynamics equa-tion of state (4D QCD EoS) is essential for investi-gating the properties of QCD matter under extreme conditions[1–15]. The EoS not only enhances our under-standing of QCD thermodynamics across varying chem-ical potentials but also provides crucial input for rela-tivistic hydrodynamic simulations. Recent progress in lattice QCD (LQCD) has yielded precise determinations of the QCD EoS at zero baryon chemical potential ( μB =0), along with extensive susceptibility data (χB,Q,S i,j,k )under the same conditions[16–21]. Building on these LQCD results, researchers have employed various expan-sion techniques—such as Taylor expansion and the T ′-expansion—to extend the EoS into the four-dimensional parameter space, where the T ′-expansion reorganizes the chemical-potential dependence into an effective temper-ature shift along lines of approximately constant density, thereby improving convergence and extending the reli-able reach to larger chemical potential [22–26]. In con-trast to these conventional approaches, our work intro-duces a 4D deep-learning quasi-parton model (DLQPM) to explore the complete 4D QCD EoS. Effective models based on quasiparticle theory of-fer a practical and physically transparent frame-work for describing QCD matter by encoding strong-  
+
+> ∗lgpang@ccnu.edu.cn
+> †guangyou.qin@ccnu.edu.cn
+
+interaction effects into temperature- and chemical-potential-dependent quasiparticle properties. Among these, quasiparticle models employing the hard-thermal-loop (HTL) parametrization have been widely used to compute transport properties of the quark-gluon plasma (QGP), such as the squared speed of sound ( c2
+
+> s
+
+), bulk viscosity ( ζ), shear viscosity ( η), and heavy-quark diffu-sion coefficients ( Ds) [27–38]. However, relying on spe-cific parametrization ans¨ atze inevitably introduces prior biases and simultaneously restricts the model’s represen-tational flexibility, making such approaches insufficient for describing quasiparticle systems in a four-dimensional thermodynamic parameter space. To address these lim-itations, we propose a 4D DLQPM. In the DLQPM, deep neural networks (DNNs) are used to represent ef-fective quasiparticle masses, while automatic differenti-ation techniques are applied to consistently derive the EoS within a statistical thermodynamic framework [39– 44]. This machine-learning approach, in which neural networks represent unknown functions and physical laws are incorporated directly as constraints during training, is known as physics-informed neural networks (PINNs) [45, 46]. PINNs have been widely applied to solving nu-merous inverse problems in nuclear physics [47 ? –52]. The RHIC-STAR experiment has recently released preliminary results on measurements of the baryon-strangeness correlation coefficient CBS at various beam energies. The CBS characterizes the relationship between fluctuations in baryon number and strangeness, thereby providing a crucial diagnostic observable for discriminat-ing among various phases of strongly interacting matter [53–62]. Theoretically, the CBS can be calculated in the 
+
+> arXiv:2604.22352v1 [nucl-th] 24 Apr 2026
+
+2following[53, 54]: 
+
+CBS = −3 ⟨BS ⟩⟨S2⟩ = −3χBS  
+
+> 11
+
+/χ SS  
+
+> 2
+
+. (1) In experiment or simulation, the CBS can be measured by the final state hadrons following: 
+
+CBS ≈ 3 ⟨Λ⟩ + ⟨Λ⟩ + ... + 3 ⟨Ω−⟩ + 3 ⟨Ω+⟩⟨K0⟩ + ⟨K0⟩ + ... + 9 ⟨Ω−⟩ + 9 ⟨Ω+⟩ . (2) This framework enables both LQCD and transport models to perform quantitative calculations of the baryon–strangeness correlation CBS . LQCD describes the preliminary STAR measurements for central colli-sions reasonably well at beam energies above 39 GeV. At lower energies, however, noticeable discrepancies be-tween LQCD predictions and experimental data emerge [60], in contrast to the trends obtained with the hadronic transport model UrQMD [55]. These deviations at low beam energies may arise from several sources, including the limited convergence of Taylor expansions at large μB
+
+in LQCD, ambiguities in relating experimental observ-ables to theoretical conserved-charge cumulants, and pos-sible non-equilibrium effects, medium modifications, or critical fluctuations that become increasingly relevant in low-energy collisions. Given that the experimental mea-surements are still preliminary, these comparisons should be interpreted with due caution. The remainder of this paper is organized as follows. In Sec. II, we present the DLQPM, including the DNN architecture, input data, and the construction of the loss function. The numerical results, including the equation of state and the baryon–strangeness correlation CBS , are discussed in Sec. III. Finally, conclusions and perspec-tives are given in Sec. IV.  
+
+> II. METHOD
+
+PINNs employ DNNs to approximate unknown func-tions while incorporating physical constraints during training. This approach has been widely applied in nu-clear physics. The DLQPM is a specific implementa-tion of PINNs. As illustrated in Fig. 1, the model de-scribes quasi-parton masses as functions of temperature (T ), baryon chemical potential ( μB ), charge chemical po-tential ( μQ), and strangeness chemical potential ( μS ). Three distinct mass models are used to represent the quasi-parton masses. Each ResNet consists of 8 hid-den layers, with 32 neurons per layer [63]. These mass model outputs are then used to compute the total parti-tion function ln Z(T, μ B , μ Q, μ S ) [44]: ln Z(T, μ B , μ Q, μ S ) = ln Zg (T, μ B , μ Q, μ S )+ X
+
+> i
+
+ln Zq(¯ q)i (T, μ B , μ Q, μ S ), (3) where i denotes the quark flavor. We adopt the assump-tion that quark and antiquark masses are identical. The explicit form of the partition function ln Z(T, μ B , μ Q, μ S )can be expressed through the ideal gas statistical formu-lation: ln Zg (T, μ B , μ Q, μ S ) = − dg V
+
+2π2
+
+Z ∞
+
+> 0
+
+p2dp ln 
+
+
+
+1 − exp 
+
+
+
+− 1
+
+T
+
+q
+
+p2 + m2
+
+> g
+
+ 
+
+,
+
+ln Zq(¯ q)i (T, μ B , μ Q, μ S ) = + dq(¯ q)i V
+
+2π2
+
+Z ∞
+
+> 0
+
+p2dp ln 
+
+
+
+1 + exp 
+
+
+
+− 1
+
+T
+
+q 
+
+p2 + m2 
+
+> q(¯ q)i
+
+± μq(¯ q)i
+
+ 
+
+, (4) 
+
+dg and dq(¯ q)i denote the degeneracies of the gluon and the quarks (antiquarks). In this calculation, dg = 2 × 8 = 16 and dq(¯ q)i = 2 × 3 = 6. The quark chemical potentials are given by[18]: 
+
+μu = 13 μB + 23 μQ, (5) 
+
+μd = 13 μB − 13 μQ, (6) 
+
+μs = 13 μB − 13 μQ − μS . (7) Equation (4) involves one-dimensional momentum in-tegrals over the semi-infinite domain p ∈ [0 , ∞). To facilitate backpropagation through this component of the DNN, we implement a 50-point Gauss-quadrature method for numerical integration. For the sake of brevity, the explicit dependence of thermodynamic quantities on (T, μ B , μ Q, μ S ) will be omitted in the following expres-sions. Then, the corresponding thermodynamic quantities, such as pressure p, energy density ε, entropy density s,particle number density nX (where X represents B, Q or 
+
+S) and trace anomaly ∆, are obtained using automatic differentiation techniques, with the specific calculation 3T 𝒎 𝒈 
+
+> 𝒎 𝒔
+> 𝒎 #/%
+
+ℒ 𝜃 !, 𝜃 ", 𝜃 # = |𝑠 $%% − 𝑠 &'($ | + | |∆!"" +∆#$%!  
+
+> ,
+
+| + |𝜒 ",$,%,&''     
+
+> (,),*−𝜒 ",$,%,+,-&
+> (,),*|
+
++|𝑛 -,/,0| + | + ℒ.-
+
+ln 𝑍   
+
+> 𝝏 ln 𝒁
+> 𝝏𝑽
+> 𝝏ln 𝒁
+> 𝝏𝑻
+
+# 𝒔 
+
+output 
+
+input 
+
+Mass Model 
+
+(𝜃 !)
+
+Mass Model 
+
+(𝜃 ")
+
+Mass Model 
+
+(𝜃 #)
+
+𝝁 𝑩  
+
+> 𝝏 𝒊𝒋𝒌 ln 𝒁
+> 𝝏 𝝁 𝑩 ,𝑸 ,𝑺
+> 𝒊 𝒋𝒌
+
+# ∆
+
+𝝌 𝒊 ,𝒋 ,𝒌 
+
+𝑩 ,𝑸 ,𝑺 
+
+𝒏 𝑩 ,𝑸 ,𝑺 
+
+𝝁 𝑸 
+
+𝝁 𝑺 
+
+FIG. 1. (Color online) The input layer comprises four dimensions, specifically T , μB , μQ and μS . The three mass models present u/d , s and gluon, respectively. Each mass model is characterized by a neural network with identical architecture, where the corresponding network parameters are denoted as θ1, θ2 and θ3. The output will undergo numerical integration to compute the partition function, ln Z, followed by automatic differentiation to derive the corresponding thermodynamic quantities. 
+
+formulas as follows: 
+
+p = T
+
+ ∂ ln Z∂V 
+
+ 
+
+> T,μ B,μ Q,μ S
+
+, (8) 
+
+s =
+
+ ∂p ∂T 
+
+ 
+
+> μB,μ Q,μ S
+
+, (9) 
+
+nB =
+
+ ∂p ∂μ B
+
+
+
+> T,μ Q,μ S
+
+, (10) 
+
+nQ =
+
+ ∂p ∂μ Q
+
+ 
+
+> T,μ B,μ S
+
+, (11) 
+
+nS =
+
+ ∂p ∂μ S
+
+ 
+
+> T,μ B,μ Q
+
+, (12) 
+
+ε = T s − p +
+
+> B,Q,S
+
+X
+
+> X
+
+μX nX , (13) ∆ = ε − 3PT 4 . (14) In this study, we incorporate the most recent gen-eralized susceptibilities χB,Q,S i,j,k derived from LQCD calculations[26] to guarantee that our quasi-parton masses accurately reflect the properties of QCD matter across the μQ and μS dimensions. The χB,Q,S i,j,k is given by: 
+
+χB,Q,S i,j,k = ∂p/T 4
+
+∂ ˆμiB ∂ ˆμjQ∂ ˆμkS ˆμB =ˆ μQ=ˆ μS =0 
+
+,
+
+ˆμB = μB /T, ˆμQ = μQ/T, ˆμS = μS /T, (15) the loss function consists of five distinct components: 
+
+L(θ1, θ 2, θ 3) = |sDNN − sLQCD | + ∆DNN − ∆LQCD 
+
+T
+
+(16) + χB,Q,S i,j,k, DNN − χB,Q,S i,j,k, LQCD + nX, DNN μX =0 
+
++ LMC 
+
+The θ1, θ2 and θ3 are parameters in the three mass model. The nX is the particle number density, which should be zero when μB = μQ = μS = 0. Additionally, the mass constraint term LM C is derived from the HTL, as demon-strated in [64, 65]: 
+
+LMC = L1 + L2,
+
+= Rg/q − 32 + ms − mu/d 
+
+ms − mu/d 
+
+− 1 ,Rg/q = Mg,T > 2.5Tcut 
+
+Mq,T > 2.5Tcut 
+
+=
+
+s
+
+32
+
+ NC
+
+3 + Nf
+
+6
+
+
+
+, (17) where Tcut =0.150 GeV, ms and mu/d are current mass. Finally, the loss function is optimized based on the gra-dient descent algorithm, which effectively determines the optimal parameter configuration ( θ1, θ2 and θ3) in the mass model. The training data are sourced from lattice simulations [26]. We uniformly selected 70 temperature points within the range of 0.05 to 0.4 GeV at μB = 0. Subsequently, the trained model is tested at finite μB [26]. We do not perform a full uncertainty propagation in this work be-cause the lattice data employ continuum estimates with 4correlated systematic errors whose full covariance matrix is not publicly available. Independent sampling of the input data might induce anomalous behavior in higher-order χB,Q,S i,j,k , as their correlations are essential for main-taining thermodynamic consistency. A rigorous Bayesian or ensemble uncertainty analysis will be pursued in future work. 
+
+III. RESULTS AND DISCUSSION 3 7 10 20 30 100          
+
+> √sNN [GeV]
+> 0.5
+> 1
+> 2
+> 3
+> 4
+> CBS
+> DLQPM@0-5%
+> HRG
+> QM-HRG@0-5%
+> LQCD@0-5%
+> Ideal QGP
+> STAR preliminary
+> @0-5%
+> 0100 200 300 400
+> B[GeV]
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> 1.4
+> DLQPM@0-5%
+> DLQPM@60-80%
+> Ideal QGP
+> STAR preliminary
+> @70-80%
+> 7.7
+> 11.5
+> 19.6
+> 27.0
+> 39.0
+> 62.4
+> 200.0
+> √sNN [GeV]
+
+FIG. 2. (Color online) The baryon-strangeness correlation coefficient CBS is presented as functions of √sN N and μB for different centrality classes. The left panel displays CBS as a function of √sN N for 0-5% centrality, with comparisons to the LQCD calculations, HRG model, QM-HRG model and preliminary STAR results [21, 55, 60]. The red data points correspond to STAR experimental measurements, the yellow band denotes LQCD results, the black dotted line represents HRG model outcomes, and the dashed line indicates QM-HRG model predictions. The color bands show the results from DLQPM. The right panel presents CBS as a function of baryon chemical potential ( μB ) for two centrality classes: 0-5% (most central) and 60-80% (peripheral, shown in blue and pink). 
+
+Fig 2 shows the baryon–strangeness correlation coeffi-cient CBS as a function of the beam energy √sN N , com-pared with lattice QCD (LQCD), the hadron resonance gas (HRG) model, the quark-model–inspired HRG (QM-HRG) model, and preliminary STAR data [21, 55, 60]. The QM-HRG model incorporates additional hadronic states predicted by the quark model [58]. As shown in the left panel, all theoretical calculations exhibit a monotonic decrease of CBS with increasing √sN N . The DLQPM re-sults are in good agreement with the preliminary STAR data in the energy range √sN N = 7.7–100 GeV for 0–5% centrality. Calculations at √sN N = 3 GeV are not shown, as the corresponding freeze-out parameters (Tch , μ B , μ Q, μ S ) are available only for beam energies above 7.7 GeV [66]. Overall, the DLQPM predictions are consistent with LQCD results, although some slight discrepancies exist at lower beam energies. Within un-certainties, our calculations are compatible with the pre-liminary STAR measurements. The right panel of fig. 2 presents CBS as a function of the baryon chemical potential μB for peripheral colli-sions. Since the freeze-out parameters ( Tch , μ B , μ Q, μ S )are available only for the 60–80% centrality class, the DLQPM results are evaluated in this centrality range and compared with preliminary STAR data for 70–80% cen-trality. The DLQPM calculations reproduce the overall trend observed in the experimental data but yield val-ues that are approximately 10% higher, particularly at low μB . The model also exhibits a negligible dependence on collision centrality. This deviation may be partly at-tributed to the use of freeze-out parameters extracted from statistical thermal models, which assume local ther-mal equilibrium—an assumption that may be less justi-fied in peripheral collisions. Nevertheless, these results highlight the sensitivity of CBS to the underlying equa-tion of state. Future measurements of CBS over a broad range of √sN N and collision centralities will provide valu-able constraints for refining the DLQPM and improving the precision of the reconstructed four-dimensional QCD EoS. Fig. 3 presents p/T 4, ε/T 4 and s/T 3 as functions of 
+
+T at various μ/T ranging from 0 to 3.5, with compar-ison to T ′-expansion calculations [26]. The chemical potential μ is defined as μ =
+
+q
+
+μ2 
+
+> B
+
++ μ2 
+
+> Q
+
++ μ2 
+
+> S
+
+, under the constraint that μB /√2= μQ = μS . The DLQPM-calculated QCD EoS agrees with the T ′-expansion results in both temperature-dependent behavior and numerical values, particularly above 0.1 GeV. Below this tempera-ture threshold, the DLQPM yields slightly higher values compared to the T ′-expansion method. This deviation is most pronounced at the lowest temperatures shown and should be kept in mind when applying the EoS in the hadronic regime. Fig. 4 displays the DLQPM results for p/T 4, ϵ/T 4, and 
+
+s/T 3 across the two-dimensional planes of ( T , μB ), ( T ,
+
+μS ), and ( T , μQ). The figure shows that as the chemical-potential-to-temperature ratio increases, the EoS gradu-ally diverges from the μ = 0 baseline; this trend is most pronounced on the ( T , μS ) and ( T , μQ) planes. Because the DLQPM is currently constrained only by lattice data at μB = 0, the extrapolation to the low-temperature, high-density region carries larger systematic uncertain-ties. In future work, we will utilize available experimental data, including centrality-dependent CBS measurements, to better constrain the EoS in this regime. 
+
+IV. SUMMARY AND OUTLOOK 
+
+In this study, we systematically investigate the 4D QCD EoS by incorporating temperature- and chemical potential-dependent quasi-parton masses—specifically, for baryon ( μB ), electric charge ( μQ), and strangeness (μS ) chemical potentials—within a thermodynamic 50.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9  
+
+> p/T 4
+> DLQPM, = 0
+> = 0.5T
+> = 1.0T
+> = 1.5T
+> = 2.0T
+> = 2.5T
+> = 3.0T
+> = 3.5T
+> T'expansion
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0
+
+5
+
+10 
+
+15 
+
+20 
+
+25 
+
+> /T 4
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0
+
+5
+
+10 
+
+15 
+
+20 
+
+> s/T 3
+
+FIG. 3. (Color online) The pressure p/T 4, energy density ε/T 4 and entropy density s/T 3 as functions of T . The solid lines represent the computational results of our model, while the bands denote the calculation results from T ′-expansion[26], with different colors corresponding to distinct values of μ/T .
+
+FIG. 4. (Color online) The p/T 4, ϵ/T 4 and s/T 3 across the T - μB , T - μS and T - μQ planes. 6framework. Our results demonstrate that the 4D DLQPM accurately reproduces the QCD EoS from LQCD at μB = 0, as well as the susceptibilities χB,Q,S i,j,k 
+
+at vanishing chemical potentials μX = 0, where X =
+
+B, Q, S . Furthermore, the EoS derived under various chemical potential conditions using the DLQPM shows excellent agreement with results obtained via the T ′-expansion method. Additionally, we compute the baryon-strangeness cor-relation coefficient CBS as a function of the center-of-mass energy per nucleon pair √sN N and compare our results with the latest experimental data, LQCD predic-tions, the QM-HRG model, and the UrQMD model. Our analysis reveals that the DLQPM yields good agreement with the preliminary STAR data in central collisions. Discrepancies observed in peripheral collisions suggest limitations in the current model, possibly due to non-equilibrium effects not fully captured by the DLQPM or to the use of freeze-out parameters extracted from equi-librium statistical models. Looking ahead, we plan to enhance the model’s representational capacity by integrating experimental data—particularly centrality-dependent CBS measure-ments and EoS constraints near the QCD critical point—as optimization targets. We also intend to de-velop the DLQPM into an accessible software package to support hydrodynamic simulations by providing direct access to the 4D QCD EoS and transport coefficients such as the shear viscosity η and bulk viscosity ξ. Moreover, future work will apply the DLQPM to systematically ex-plore the properties of QCD matter under strong mag-netic fields [67, 68]. These developments are expected to significantly improve the reliability and adaptability of the framework for studying QCD thermodynamics and transport properties.  
+
+> V. ACKNOWLEDGMENTS
+
+The authors thank Akihiko Monnai for providing the NEoS data. This work was supported by the National Natural Science Foundation of China (NSFC) under Grant Nos. 12075098, 12435009, 12225503 and in part by the China Postdoctoral Science Foundation under Grant No. 2025M783370. Financial support was also provided by the self-determined research funds of Cen-tral China Normal University (CCNU) from the colleges’ basic research and operation of the Ministry of Educa-tion (MOE). We gratefully acknowledge the extensive computing resources provided by the Nuclear Comput-ing Center of Central China Normal University. For further information about the data and code used in this study, please contact the authors via email. 
+
+> DECLARATION OF GENERATIVE AI AND AI-ASSISTED TECHNOLOGIES IN THE WRITING PROCESS
+
+During the preparation of this work the author(s) used DeepSeek in order to polish the language. After using this tool/service, the author(s) reviewed and edited the content as needed and take(s) full responsibility for the content of the publication.                                                                                          
+
+> [1] C. Shen, Z. Qiu, H. Song, J. Bernhard, S. Bass, and U. Heinz, Comput. Phys. Commun. 199 ,61 (2016), arXiv:1409.8164 [nucl-th]. [2] L. Pang, Q. Wang, and X.-N. Wang, Phys. Rev. C 86 ,024911 (2012), arXiv:1205.5019 [nucl-th]. [3] L.-G. Pang, H. Petersen, and X.-N. Wang, Phys. Rev. C
+> 97 , 064918 (2018), arXiv:1802.04449 [nucl-th]. [4] J. E. Bernhard, J. S. Moreland, and S. A. Bass, Nature Phys. 15 , 1113 (2019). [5] P. Achenbach et al. , Nucl. Phys. A 1047 , 122874 (2024), arXiv:2303.02579 [hep-ph]. [6] L.-G. Pang, K. Zhou, N. Su, H. Petersen, H. St¨ ocker, and X.-N. Wang, Nature Commun. 9,210 (2018), arXiv:1612.04262 [hep-ph]. [7] P. Braun-Munzinger, V. Koch, T. Sch¨ afer, and J. Stachel, Phys. Rept. 621 , 76 (2016), arXiv:1510.00442 [nucl-th]. [8] H. Elfner and B. M¨ uller, J. Phys. G 50 , 103001 (2023), arXiv:2210.12056 [nucl-th]. [9] A. Monnai, B. Schenke, and C. Shen, Phys. Rev. C 100 ,024907 (2019), arXiv:1902.05095 [nucl-th]. [10] A. Monnai, B. Schenke, and C. Shen, Int. J. Mod. Phys. A36 , 2130007 (2021), arXiv:2101.11591 [nucl-th]. [11] G. S. Denicol, C. Gale, S. Jeon, A. Monnai, B. Schenke, and C. Shen, Phys. Rev. C98 ,034916 (2018), arXiv:1804.10557 [nucl-th]. [12] A. Sorensen et al. , Prog. Part. Nucl. Phys. 134 , 104080 (2024), arXiv:2301.13253 [nucl-th]. [13] X. An et al. ,Nucl. Phys. A1017 ,122343 (2022), arXiv:2108.13867 [nucl-th]. [14] R. Kumar et al. (MUSES), Living Rev. Rel. 27 , 3 (2024), arXiv:2303.17021 [nucl-th]. [15] X.-Y. Wu, G.-Y. Qin, L.-G. Pang, and X.-N. Wang, Phys. Rev. C 105 , 034909 (2022), arXiv:2107.04949 [hep-ph]. [16] S. Borsanyi, Z. Fodor, C. Hoelbling, S. D. Katz, S. Krieg, and K. K. Szabo, Phys. Lett. B 730 , 99 (2014), arXiv:1309.5258 [hep-lat]. [17] A. Bazavov et al. (HotQCD), Phys. Lett. B 795 , 15 (2019), arXiv:1812.08235 [hep-lat]. [18] A. Bazavov et al. (HotQCD), Phys. Rev. D 86 , 034509 (2012), arXiv:1203.0784 [hep-lat]. [19] A. Bazavov et al. (HotQCD), Phys. Rev. D 90 , 094503 (2014), arXiv:1407.6387 [hep-lat]. [20] D. Bollweg, J. Goswami, O. Kaczmarek, F. Karsch, S. Mukherjee, P. Petreczky, C. Schmidt, and P. Scior (HotQCD), Phys. Rev. D 105 , 074511 (2022),
+
+7
+
+arXiv:2202.09184 [hep-lat]. [21] D. Bollweg, J. Goswami, O. Kaczmarek, F. Karsch, S. Mukherjee, P. Petreczky, C. Schmidt, and P. Scior (HotQCD), Phys. Rev. D 104 (2021), 10.1103/Phys-RevD.104.074512, arXiv:2107.10011 [hep-lat]. [22] S. Mondal, S. Mukherjee, and P. Hegde, Phys. Rev. Lett. 
+
+128 , 022001 (2022), arXiv:2106.03165 [hep-lat]. [23] S. Bors´ anyi, Z. Fodor, J. N. Guenther, R. Kara, S. D. Katz, P. Parotto, A. P´ asztor, C. Ratti, and K. K. Szab´ o, Phys. Rev. Lett. 126 , 232001 (2021), arXiv:2102.06660 [hep-lat]. [24] S. Borsanyi, J. N. Guenther, R. Kara, Z. Fodor, P. Parotto, A. Pasztor, C. Ratti, and K. K. Szabo, Phys. Rev. D 105 , 114504 (2022), arXiv:2202.05574 [hep-lat]. [25] A. Monnai, G. Pihan, B. Schenke, and C. Shen, Phys. Rev. C 110 , 044905 (2024), arXiv:2406.11610 [nucl-th]. [26] A. Abuali, S. Bors´ anyi, Z. Fodor, J. Jahan, M. Ka-hangirwe, P. Parotto, A. P´ asztor, C. Ratti, H. Shah, and S. A. Trabulsi, Phys. Rev. D 112 , 054502 (2025), arXiv:2504.01881 [hep-lat]. [27] O. Soloveva, A. Palermo, and E. Bratkovskaya, Phys. Rev. C 110 , 034908 (2024), arXiv:2311.15984 [hep-ph]. [28] Z. Kang, J. Zhu, and J. Guo, Phys. Rev. D 107 , 076005 (2023), arXiv:2211.09442 [hep-ph]. [29] A. Peshier, B. Kampfer, O. P. Pavlenko, and G. Soff, Phys. Rev. D 54 , 2399 (1996). [30] M. Alqahtani, M. Nopoush, and M. Strickland, Phys. Rev. C 92 , 054910 (2015), arXiv:1509.02913 [hep-ph]. [31] F.-L. Liu, W.-J. Xing, X.-Y. Wu, G.-Y. Qin, S. Cao, and X.-N. Wang, Eur. Phys. J. C 82 , 350 (2022), arXiv:2107.11713 [hep-ph]. [32] O. Soloveva, J. Aichelin, and E. Bratkovskaya, Phys. Rev. D 105 , 054011 (2022), arXiv:2108.08561 [hep-ph]. [33] S. Plumari, W. M. Alberico, V. Greco, and C. Ratti, Phys. Rev. D 84 , 094004 (2011), arXiv:1103.5611 [hep-ph]. [34] F.-P. Li, H.-L. L¨ u, L.-G. Pang, and G.-Y. Qin, Phys. Lett. B 844 , 138088 (2023), arXiv:2211.07994 [hep-ph]. [35] F.-P. Li, L.-G. Pang, and G.-Y. Qin, Phys. Lett. B 868 ,139692 (2025), arXiv:2501.10012 [nucl-th]. [36] V. Mykhaylova and C. Sasaki, Phys. Rev. D 103 , 014007 (2021), arXiv:2007.06846 [hep-ph]. [37] P. Romatschke, Phys. Rev. D 85 , 065012 (2012), arXiv:1108.5561 [gr-qc]. [38] V. Mykhaylova, Transport Properties of Hot QCD Matter in the Quasiparticle Approach , Ph.D. thesis. [39] N. Thuerey, P. Holl, M. Mueller, P. Schnell, F. Trost, and K. Um, Physics-based Deep Learning (WWW, 2021). [40] A. Paszke, S. Gross, F. Massa, A. Lerer, J. Bradbury, G. Chanan, T. Killeen, Z. Lin, N. Gimelshein, L. Antiga, A. Desmaison, A. Kopf, E. Yang, Z. DeVito, M. Rai-son, A. Tejani, S. Chilamkurthy, B. Steiner, L. Fang, J. Bai, and S. Chintala, in Advances in Neural Informa-tion Processing Systems , Vol. 32, edited by H. Wallach, H. Larochelle, A. Beygelzimer, F. d 'Alch´ e-Buc, E. Fox, and R. Garnett (Curran Associates, Inc., 2019). [41] A. G. Baydin, B. A. Pearlmutter, A. A. Radul, and J. M. Siskind, Journal of Machine Learning Research 18 ,1 (2018). [42] K. Hornik, M. B. Stinchcombe, and H. L. White, Neural Networks 2, 359 (1989). [43] R. Mattuck, Osborne McGraw-Hill (1976). [44] J. I. Kapusta and C. Gale, Finite-temperature field theory: Principles and applications , Cambridge Mono-graphs on Mathematical Physics (Cambridge University Press, 2011). [45] P. P. M. Raissi and G. Karniadakis, Journal of Compu-tational Physics 378 , 686 (2019). [46] M. Raissi, P. Perdikaris, and G. E. Karniadakis, Journal of Computational Physics 378 , 686 (2019). [47] L. Wang, J. Subatomic Part. Cosmol. 3, 100024 (2025), arXiv:2501.00374 [nucl-th]. [48] S. Soma, L. Wang, S. Shi, H. St¨ ocker, and K. Zhou, EPJ Web Conf. 276 , 06007 (2023). [49] L.-G. Pang, Int. J. Mod. Phys. E 33 , 2430009 (2024). [50] S. Shi, K. Zhou, J. Zhao, S. Mukherjee, and P. Zhuang, Phys. Rev. D 105 , 014017, arXiv:2105.07862 [hep-ph]. [51] K. Zhou, L. Wang, L.-G. Pang, and S. Shi, Prog. Part. Nucl. Phys. 135 , 104084 (2024), arXiv:2303.15136 [hep-ph]. [52] G. Aarts, K. Fukushima, T. Hatsuda, A. Ipp, S. Shi, L. Wang, and K. Zhou, Nature Reviews Physics 7, 1 (2025). [53] V. Koch, A. Majumder, and J. Randrup, Phys. Rev. Lett. 95 , 182301 (2005), arXiv:nucl-th/0505052. [54] V. Koch, A. Majumder, and J. Randrup, Nucl. Phys. A 
+
+774 , 841 (2006). [55] H. Feng (for the STAR Collaboration), “Baryon-Strangeness Correlations in Au+Au Collisions at RHIC-STAR, XXXI International Conference on Ultra-relativistic Nucleus-Nucleus Collisions, Frankfurt, Apr.6-12, 2025,” . [56] X. Luo and N. Xu, Nucl. Sci. Tech. 28 , 112 (2017), arXiv:1701.02105 [nucl-ex]. [57] M. Cheng et al. , Phys. Rev. D 79 , 074505 (2009), arXiv:0811.1006 [hep-lat]. [58] A. Bazavov et al. , Phys. Rev. Lett. 113 , 072001 (2014), arXiv:1404.6511 [hep-lat]. [59] A. Bazavov et al. , Phys. Rev. Lett. 111 , 082301 (2013), arXiv:1304.7220 [hep-lat]. [60] D. Bollweg, H. T. Ding, J. Goswami, F. Karsch, S. Mukherjee, P. Petreczky, and C. Schmidt, Phys. Rev. D 110 , 054519 (2024), arXiv:2407.09335 [hep-lat]. [61] V. Koch, “Hadronic Fluctuations and Correlations,” in 
+
+Relativistic Heavy Ion Physics , edited by R. Stock (2010) pp. 626–652, arXiv:0810.2520 [nucl-th]. [62] V. Koch and V. Vovchenko, (2025), arXiv:2512.04288 [nucl-th]. [63] P. Ramachandran, B. Zoph, and Q. V. Le, “Searching for activation functions,” (2017), arXiv:1710.05941 [cs.NE]. [64] N. Haque and M. G. Mustafa, Prog. Part. Nucl. Phys. 
+
+140 , 104136 (2025), arXiv:2404.08734 [hep-ph]. [65] P. Levai and U. W. Heinz, Phys. Rev. C 57 , 1879 (1998), arXiv:hep-ph/9710463. [66] L. Adamczyk et al. (STAR), Phys. Rev. C 96 , 044904 (2017), arXiv:1701.07065 [nucl-ex]. [67] H. T. Ding, S. T. Li, Q. Shi, and X. D. Wang, Eur. Phys. J. A 57 , 202 (2021), arXiv:2104.06843 [hep-lat]. [68] A. Kumar, H.-T. Ding, J.-B. Gu, and S.-T. Li, PoS 
+
+LATTICE2024 , 175 (2025), arXiv:2502.03152 [hep-lat]. 
+
+Appendix A: The training results 
+
+Fig. 5 illustrates the temperature dependence of both the trace anomaly ∆ and the entropy density s/T 3 at 
+
+μB = 0. The results indicate that the DLQPM can ac-8curately reproduce the QCD EoS. As temperature in-creases, the trace anomaly ∆ first rises to a maximum value before decreasing, whereas the scaled entropy den-sity s/T 3 shows a continuous monotonic increase with temperature. 0.1 0.2 0.3 0.4    
+
+> T[GeV]
+> 0
+> 1
+> 2
+> 3
+> 4
+> DLQPM
+> LQCD
+> 0.1 0.2 0.3 0.4
+> T[GeV]
+> 0
+> 5
+> 10
+> 15
+> s/T 3
+
+FIG. 5. (Color online) The trace anomaly ∆ and entropy density s/T 3 as a function of temperature. The red dashed curve represents LQCD calculations[19, 26], while the black solid curve corresponds to results obtained from the DLQPM. 
+
+Here, we conducted a comparative analysis of the re-sults for χB,Q,S i,j,k . The Figs. 6 and 7 present the tempera-ture dependence of χB,Q,S i,j,k in comparison with LQCD data and the previous DLQPM (2D DLQPM) results [35]. The current DLQPM calculations demonstrate re-markable consistency with LQCD predictions. Unlike the 2D DLQPM which accounted solely for T and μB depen-dencies, the present implementation integrates additional physical constraints, thereby achieving enhanced repre-sentation in 4D space. Fig. 8 shows the specific heat CV and speed of sound 
+
+c2 
+
+> s
+
+as functions of temperature T for different chemical potential configurations. Fig. 9 shows the pressure p/T 4 across the two-dimensional planes of ( T , μB ), ( T , μS ), and ( T , μQ), compared with NEoS results. Differences appear mainly in the region of larger chemical potential, which is ex-pected because the DLQPM is currently constrained only by data at μB = 0. 90.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> B2
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+0.6 
+
+> Q2
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+0.8 
+
+> S2
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.000 
+
+0.005 
+
+0.010 
+
+0.015 
+
+0.020 
+
+0.025 
+
+> BQ 11
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+-0.30 
+
+-0.25 
+
+-0.20 
+
+-0.15 
+
+-0.10 
+
+-0.05 
+
+0.00 
+
+> BS 11
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> QS 11
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+-0.6 
+
+-0.4 
+
+-0.2 
+
+0.0 
+
+0.2 
+
+0.4 
+
+0.6 
+
+> B4
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+0.40 
+
+> Q4
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.0 
+
+0.1 
+
+0.2 
+
+0.3 
+
+0.4 
+
+0.5 
+
+0.6 
+
+0.7 
+
+> S4
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+FIG. 6. (Color online) The temperature-dependent susceptibilities χB,Q,S i,j,k are compared with LQCD results and 2D DLQPM calculations [26, 35]. The comparison includes three distinct calculations: (1) LQCD results shown as orange band, (2) 4D DLQPM calculations represented by a red dashed line, and (3) 2D DLQPM calculations indicated by a cyan dotted line. 10 0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+0.04 
+
+> BQ 22
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.02 
+
+0.04 
+
+0.06 
+
+0.08 
+
+0.10 
+
+> BS 22
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.02 
+
+0.04 
+
+0.06 
+
+0.08 
+
+0.10 
+
+0.12 
+
+> QS 22
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+-0.020 
+
+-0.015 
+
+-0.010 
+
+-0.005 
+
+0.000 
+
+0.005 
+
+0.010 
+
+0.015 
+
+0.020 
+
+> BQ 31
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+-0.08 
+
+-0.06 
+
+-0.04 
+
+-0.02 
+
+0.00 
+
+0.02 
+
+0.04 
+
+> BS 31
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+0.04 
+
+0.05 
+
+0.06 
+
+0.07 
+
+> QS 31
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.01 
+
+0.02 
+
+0.03 
+
+0.04 
+
+> BQ 13
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+-0.20 
+
+-0.15 
+
+-0.10 
+
+-0.05 
+
+0.00 
+
+> BS 13
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+> QS 13
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+-0.06 
+
+-0.05 
+
+-0.04 
+
+-0.03 
+
+-0.02 
+
+-0.01 
+
+0.00 
+
+> BQS 112
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+-0.030 
+
+-0.025 
+
+-0.020 
+
+-0.015 
+
+-0.010 
+
+-0.005 
+
+0.000 
+
+> BQS 121
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+0.1 0.2 0.3 0.4 
+
+T[GeV] 
+
+0.000 
+
+0.005 
+
+0.010 
+
+0.015 
+
+0.020 
+
+0.025 
+
+0.030 
+
+0.035 
+
+> BQS 211
+
+LQCD 
+
+4D DLQPM 
+
+2D DLQPM 
+
+FIG. 7. (Color online) Same as in fig. 6. 11 0.0 0.2 0.4 0.6 0.8 
+
+B (GeV) 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> T (GeV)
+
+# Cv/T 3 ( Q = S = 0) 
+
+> B
+
+/T = 3.5 
+
+0.0 0.2 0.4 0.6 0.8 
+
+B (GeV) 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> T (GeV)
+
+# c2s ( B = Q = 0) 
+
+> B
+
+/T = 3.5 
+
+0
+
+20 
+
+40 
+
+60 
+
+80 
+
+100 
+
+0.00 
+
+0.06 
+
+0.12 
+
+0.18 
+
+0.24 
+
+0.30 0.000 0.025 0.050 0.075 0.100 
+
+Q (GeV) 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> T (GeV)
+
+# Cv/T 3 ( B = S = 0) 
+
+> Q
+
+/T = 1 
+
+0.000 0.025 0.050 0.075 0.100 
+
+Q (GeV) 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> T (GeV)
+
+# c2s ( Q = 0) 
+
+> Q
+
+/T = 1 
+
+0
+
+10 
+
+20 
+
+30 
+
+40 
+
+50 
+
+0.00 
+
+0.06 
+
+0.12 
+
+0.18 
+
+0.24 
+
+0.30 0.0 0.1 0.2 0.3 
+
+S (GeV) 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> T (GeV)
+
+# Cv/T 3 ( Q = S = 0) 
+
+> S
+
+/T = 3.5 
+
+0.0 0.1 0.2 0.3 
+
+S (GeV) 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+> T (GeV)
+
+# c2s ( S = 0) 
+
+> S
+
+/T = 3.5 
+
+0
+
+12 
+
+24 
+
+36 
+
+48 
+
+60 
+
+0.00 
+
+0.06 
+
+0.12 
+
+0.18 
+
+0.24 
+
+0.30                  
+
+> FIG. 8. (Color online) The specific heat CV(left panels) and squared speed of sound c2
+> s(right panels) as functions of temperature
+> Tfor different chemical potential configurations. Top panels: μQ=μS= 0; Middle panels: μB=μS= 0; Bottom panels:
+> μB=μQ= 0.
+
+12 
+
+FIG. 9. (Color online) The pressure p/T 4 across the two-dimensional planes of ( T , μB ), ( T , μS ), and ( T , μQ) compares with NEoS results [25].
