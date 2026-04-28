@@ -1,0 +1,372 @@
+Title: Predictivity and Utility of Neural Surrogates of Multiscale PDEs
+
+URL Source: https://arxiv.org/pdf/2604.20061v1
+
+Published Time: Thu, 23 Apr 2026 00:19:03 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Theme Article: Controversies and Perspectives in AI/ML 
+
+# Predictivity and Utility of Neural Surrogates of Multiscale PDEs 
+
+Karthik Duraisamy, University of Michigan 
+
+Abstract—Scientific machine learning is increasingly being spoken of as universal emulators for classical numerical solvers for multi-scale partial differential equations, but most apparent successes can be explained by facts that also define their limits. Many successful benchmarks live on low-dimensional solution manifolds where any competent reduced model will interpolate well. More fundamentally, neural surrogates systematically under-resolve high-frequency content due to spectral bias, and coarse-graining compounds this problem through irreversible information loss. In many multi-scale problems, no architecture or training procedure can fully recover what the coarse representation discards. Two simple examples are used to characterize spectral bias, coarse-graining and error accumulation. We discuss why medium-range weather prediction on reanalysis data sits in a favorable sweet spot and why this will not generalize to genuinely chaotic multi-scale scenarios. We identify domains where neural surrogates offer genuine value, propose further research on neural-classical hybrids, and call for better reporting standards. 
+
+# Scientific machine learning (SciML) has pro-duced a fast-growing zoo of neural surro-gates for multiscale partial differential equations (PDEs), often accompanied with maximalist claims such as “replace the solver” or “1000 × speedups.” Many successes reflect one of two situations: The first situation is interpolation on a benign mani-fold . When the parameter-to-solution map is smooth and the solution set has low intrinsic dimension: rapidly de-caying Kolmogorov n-width [ 16], any competent approx-imation method will succeed. Polynomial surrogates, projection-based Reduced Order Models (ROMs), or neural networks all achieve similar accuracy on such problems. The key diagnostic is whether classical reduced-order methods with comparable offline cost achieve similar accuracy [ 6]; if so, the benchmark tests interpolation, not the capacity to handle multiscale physics. The second situation is confusing attractor sampling with prediction . Showing that a surrogate reproduces mean profiles or energy spectra on a chaotic attractor demonstrates that it has learned to sample the invariant measure [ 17]. This is useful for estimating long-time averages but categorically different from forecasting: 
+
+XXXX-XXX © 2026 IEEE Digital Object Identifier 10.1109/XXX.0000.0000000 
+
+the model may have no skill at predicting which region of the attractor the system will visit next. The distinction between learning dynamics and learning statistics is well-understood in dynamical systems but often glossed over in SciML benchmarks. An important issue cuts across both of the aforemen-tioned situations: neural networks impose an implicit 
+
+low-pass prior on what they learn, a phenomenon known as spectral bias . Rahaman et al. [ 7] showed that networks trained by gradient descent fit low-frequency components first, a phenomenon now un-derstood through the Neural Tangent Kernel (NTK) [ 8]. In essence, the kernel eigenvalues associated with high-frequency Fourier modes decay polynomially, so that gradient-based training resolves low-frequency structure orders of magnitude faster than fine-scale content. Wider networks shift the spectrum but generally preserve the decay rate; more data cannot create gradient signal for modes where the eigenvalue is effectively zero. Architectural choices make this explicit: Fourier neural operators truncate to kmax modes by design [ 5], and even “super-resolution” variants cannot recover information never represented. For PDEs, spectral bias is not an aesthetic defect as in image processing: high-k content encodes bound-ary layers, sharp fronts, and fluctuations that control derivative-dependent quantities of interest: e.g. fluxes,    
+
+> Month Published by the IEEE Computer Society Computing in Science & Engineering
+
+1
+
+> arXiv:2604.20061v1 [math-ph] 21 Apr 2026
+
+PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES 
+
+stresses, dissipation rates. A surrogate can achieve excellent L2 error while systematically misrepresenting the physics that matters. This explains persistent reports of PINNs failing on “slightly harder” problems and neural operators degrading under autoregressive rollout [18]. Coarse-graining introduces a deeper problem: irre-versible information loss . A network trained with mean-squared error converges to the conditional expectation ˆu(uc ) = E[u | uc ] [ 9], i.e. the average over all fine states consistent with the coarse input. This is simply the optimal solution to Mean Squared Error (/MSE) minimization . The resulting prediction is over-smoothed by construction, and no architecture or training proce-dure can recover information the coarse representation discards. We note that many of these challenges (e.g. closure modeling, projection-induced information loss, and in-stability under long-horizon rollout) are well established in the classical ROM literature, and comments above apply equally to any coarse representation, neural or otherwise. The distinction is that classical intrusive ROMs retain explicit access to the governing equations 
+
+in discrete form , whereas neural surrogates trade this structural access for flexibility and non-intrusiveness; the hybrid strategies discussed later in this paper can be viewed as attempts to recover some of these structural guarantees by periodically re-coupling the surrogate with a physics-based solver. These observations reframe how we should evalu-ate neural PDE surrogates. Related issues have been raised by others as well (e.g. [ 6], [ 28 ]). In this work, we provide some partial answers and focus on : What is being predicted: trajectories, statistics, or merely interpolated parameter responses? On what horizon, measured in relevant physical time scales? And do the metrics probe the scales that control the quantities of interest, or do they hide spectral deficiencies behind smooth headline numbers? 
+
+This paper illustrates with simple examples, some in-teracting issues that limit predictive capabilities of neural surrogates for multiscale PDEs: spectral bias , coarse-graining information loss , and autoregressive error accumulation . We also identify problem classes where neural surrogates offer genuine value and discuss hybrid neural–classical strategies as a path forward. We distinguish two evaluation criteria: predictivity (ac-curacy on physically relevant quantities of interest under extrapolation) and utility (end-to-end cost advantage over classical methods), arguing that conflating the two has led to overoptimistic assessments. 
+
+Predictivity and Utility We try to separate two ques-tions that are often conflated. Predictivity asks whether a surrogate remains accurate under the extrapolations that matter for the scientific task: longer horizons, distri-bution shift, and/or resolution refinement, as measured on physically relevant Quantities of Interest (QoI), often derivative- or phase-sensitive). Utility asks whether the surrogate reduces end-to-end time-to-QoI relative to optimized solvers and classical reduced models once training cost, inference cost, and amortization over the intended query count are included. A method can be useful without being truly predictive (e.g., accurate long-time statistics with trajectory errors), and it can be predictive without being useful (e.g., accurate but not competitive end-to-end from a cost consideration stand-point). Also, these distinctions vary from task to task. In design optimization, end-to-end cost is extremely important. In short term weather prediction, only the inferencing cost is relevant. This paper exposes some of these issues in a simple setting (codes available at https://github.com/CaslabUM/NeuralSurrogates ), and provides some perspectives on how to move forward. 
+
+# A frequency-response lens on PDE surrogates 
+
+The interplay between spectral bias and PDE structure is best understood by examining how three frequency-dependent quantities interact. This section introduces a unifying lens by connecting the PDE’s own spectral content, the operator’s frequency response, and the learning dynamics of the network. This lens will be used to diagnose when and why neural surrogates succeed or fail. For PDE surrogates, predictive ability becomes explanatory only when combined with the PDE’s own frequency response and with the metric/QoI being reported. Three “spectra” interact: (i) Solution spectrum 
+
+| ˆu(k)|: what scales the PDE actually contains (and which scales are energetically significant); (ii) Operator spectra σL(k): how the PDE maps forcing/initial data to solution components in Fourier space; and (iii) ML spectra λk (NTK eigenvalues / architectural response): how quickly training reduces error in each mode. For a linear constant-coefficient PDE Lu = f
+
+on a periodic domain, the Fourier transform gives 
+
+σL(k) ˆ u(k) = ˆ f (k), where k is wavenumber, and hence ˆu(k) = ˆf (k)
+
+σL(k) . (1) If |σL(k)| grows with |k| (elliptic/parabolic smoothing), then high-k content in u is naturally small, and a low-pass learner can still be useful for low-order QoIs. If |σL(k)| does not grow (transport/waves/Helmholtz at high frequency) or if nonlinear dynamics continu-ously regenerate fine scales (turbulence), then under-
+
+2 Controversies and Perspectives on AI/ML in Science & Engineering Month 2026 PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES 
+
+resolving high |k| directly biases quantities controlled by gradients, dissipation, or phase. The loss/metric introduces another frequency weighting. For a linear PDE residual loss on a periodic domain, 
+
+∥L uθ − f ∥2 
+
+> L2
+
+= X
+
+> k
+
+|σL(k)|2 | ˆuθ (k) − ˆu(k)|2, (2) whereas derivative-sensitive QoIs correspond to scaled weights. Thus “small MSE” or “small residual” can coincide with large errors in the wavenumber bands that dominate dissipation or stability. This is the pre-cise bridge from the NTK analysis below (frequency-dependent convergence rates) to the PDE deficits discussed later (multiscale stiffness and long-horizon failure). 
+
+# Spectral Bias: The Neural Tangent Kernel Perspective 
+
+Having introduced the frequency-response framework, we now formalize the source of spectral bias. This section develops the theory and demonstrates it on a controlled numerical example. The NTK framework [8] provides a rigorous foundation for understanding spectral bias: the kernel’s eigenvalues decay polynomi-ally with frequency, so that high-wavenumber modes are learned orders of magnitude more slowly than low-wavenumber modes. The implication for predictivity is direct: surrogates may appear accurate on L2 metrics while systematically under-resolving the scales that govern derivatives, dissipation, and phase. Consider a neural network f : Rd × Rp → R that maps input x ∈ Rd to output f (x; θ), parameterized by weights θ ∈ Rp . We train on data {(xi , yi )}ni=1 by minimizing the mean squared error: 
+
+L(θ) = 12n
+
+> n
+
+X
+
+> i=1
+
+(f (xi ; θ) − yi )2 . (3) The NTK is the positive semi-definite kernel K :
+
+Rd × Rd → R defined by: 
+
+K (x, x′) = ∇θ f (x; θ), ∇θ f (x′; θ) =
+
+> p
+
+X
+
+> i=1
+
+∂f (x; θ)
+
+∂θ i
+
+∂f (x′; θ)
+
+∂θ i
+
+.(4) The key insight [ 8] is that, for networks trained with gradient descent, the NTK eigenvalues λk associated with Fourier mode k decay polynomially: 
+
+λk ∼ k−α, α ≈ 2 for smooth activations. (5) If the NTK eigenvalues scale like λk ∼ k−α, then reaching a fixed relative accuracy at frequency k
+
+requires training time tk = O(kα). Equivalently, for a   
+
+> FIGURE 1. Neural Tangent Kernel eigenvalue analysis. Fourier eigenvalues ˜ λkversus wavenumber
+
+fixed training budget t there is an implicit “resolved cutoff” 
+
+kmax (t, ϵ) ≈
+
+
+
+ηt/ ln(1 /ϵ )
+
+1/α 
+
+, (6) beyond which modes remain largely unlearned [ 27]. For the empirically observed α ≈ 2, kmax grows only like √t: each extra decade of resolvable wavenumbers costs roughly 100 × more iterations. To illustrate this concept, we construct a target with 
+
+equal amplitudes across all frequency components: 
+
+f (x) = sin(2 πx) + sin(6 πx) + sin(14 πx) + sin(30 πx). (7) Each Fourier component ( k = 1, 3, 7, 15) has am-plitude exactly 1.0. We compute the NTK for a 4-layer neural network with 128 hidden units and tanh activations. For a grid of N = 256 points on [0, 1], we approximate Fourier eigenvalues { ˜λk } via Rayleigh quotients. Figure 1 shows the key result: the Fourier eigenvalues decay as ˜λk ∼ k−2.01 , essentially exactly 
+
+k−2 as predicted by theory for smooth activations. The agreement between computed ratios and the k−2
+
+prediction is striking, with relative errors below 2%. Figure 2 shows the learning dynamics. Figure 2 compares the observed convergence times with the theoretical prediction based on NTK eigenval-ues. The theory predicts convergence time ∝ 1/λ k .The agreement is reasonable, confirming that the NTK framework captures the essential mechanism. Despite having identical amplitude in the target, the k = 15 mode requires 158 × more training iterations than the 
+
+k = 1 mode. For operator learning, spectral bias compounds through input encoding, operator approximation, and   
+
+> Month 2026 Controversies and Perspectives on AI/ML in Science & Engineering
+
+3PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES    
+
+> FIGURE 2. Learning dynamics with equal-amplitude target. (a) Target function (all amplitudes = 1.0) and final NN approximation. (b) Per-wavenumber convergence: despite equal target amplitudes, high wavenumbers converge much slower. (c) Comparison of theoretical predictions ( ∝1/λ k) with observed convergence times.
+
+output decoding. The Fourier Neural Operator’s explicit truncation to kmax modes makes this ceiling explicit. Proponents argue that spectral bias can be overcome with larger models and more data. This is partially true but fundamentally limited: 
+
+Width scaling : Wider networks do not change the NTK eigenvalue decay rate [30 ]: they shift the spectrum but preserve λk ∝ k−α.
+
+Data scaling : More training data helps accuracy at resolved scales but cannot create signal for modes where the NTK eigenvalue is effectively zero [27]. 
+
+The inertial range barrier : For turbulence with 
+
+kmax /kmin ∼ 10 4, the implied ∼ 10 8× separation in learning time across scales means no practical training budget achieves uniform accuracy. A substantial body of work has sought to mitigate spectral bias through input encodings such as random Fourier features [ 10 ] and sinusoidal representations, adaptive activation functions, multi-scale architectures, and frequency-progressive training curricula, all of which can flatten the effective NTK spectrum and accelerate high-frequency convergence on problems where the relevant wavenumber range is known a priori .These techniques can help in fixed-spectrum settings (e.g., static reconstruction, single-PDE benchmarks). For broadband, dynamically evolving spectra, no fixed encoding or curriculum can anticipate the frequencies that will matter at future times, and the cost of uniformly resolving all scales still grows polynomially with the spectral bandwidth. Thus, mitigations can help, but they do not eliminate the competition between finite training budgets and resolution demands of genuinely multi-scale PDEs. 
+
+# What is being optimized? 
+
+The previous section showed that gradient-based training inherently favors low frequencies. A common intuition is that enforcing the PDE loss Luθ ≈ f
+
+should “force” high-frequency accuracy. In practice, the situation is subtler because the training objective induces frequency-dependent conditioning that can amplify the mismatch between what the PDE demands and what the network learns easily. For linear L, the residual loss ∥L uθ − f ∥22 weights Fourier modes as 
+
+∥L uθ − f ∥22 =
+
+Z
+
+|σL(k)|2 | buθ (k) − bu(k)|2 dk .Thus, the PDE operator reweights the solution error by |σL(k)|2. This can be beneficial (some operators penalize high-k error more), but it can also make the optimization stiff across scales: if certain frequencies are heavily weighted by the physics, but those same frequencies correspond to directions that gradient-based training learns slowly in the model class, training can plateau with a deceptively small residual and a large band-limited solution error. A physics informed neural network [ 1] (PINN) posits 
+
+uθ (x, t) and minimizes 
+
+L(θ) = ∥N μ(uθ )∥2 
+
+> Ωc
+
++ ∥B μ(uθ )∥2 
+
+> ∂Ωc
+
++ ∥uθ − y∥2 
+
+> Γ
+
+, (8) where Ωc are collocation points, and Γ denotes sen-sor/data points. For multiscale PDEs, the residual contains derivatives that amplify high frequencies. If 
+
+u(x) = P 
+
+> k∈Zd
+
+ˆuk eik ·x on a periodic domain, then 
+
+∇(u − bu) 2 
+
+> L2
+
+= X
+
+> k
+
+∥k∥2 | ˆuk − buk |2, (9) A growing literature documents that such stiffness and multiscale structure can cause naive PINN training to 
+
+4 Controversies and Perspectives on AI/ML in Science & Engineering Month 2026 PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES 
+
+stall or converge to qualitatively wrong solutions, even on problems that are “only slightly” more complex than canonical toy examples so small errors at large |k|
+
+are disproportionately important for derivative-based physics. A “low-frequency-correct” PINN can have acceptable L2 error yet high errors in quantities of inter-est. This perspective also motivates frequency-aware preconditioning (e.g., loss reweighting or multiresolution curricula) as principled responses to spectral mismatch. Operator learning aims to approximate a map 
+
+G : a 7 → u, (10) where a could be a coefficient field, forcing, geometry encoding, etc. Neural operators [ 5] discretize a and output u on a grid. Most current successes can be interpreted as learning an efficient representation of 
+
+G on a distribution where M is low-dimensional and smooth. Crucially, for chaotic systems, the map u0 7 →
+
+u(T ) becomes heavily non-Lipschitz as T grows. Thus operator learning for long rollouts is not likely to result in good trajectory predictions, and even statistics may not be well-predicted if the impact of high wavenumber dynamics is significant. 
+
+# When are Errors Manageable: The Sweet Spot Problems 
+
+The preceding sections may give the impression that spectral bias renders neural surrogates universally unreliable. That is not the case. There exist important problem classes where spectral bias is either benign or actively aligned with the physics. Recognizing these “sweet spots” is essential for deploying surrogates where they offer genuine utility. This section identifies three such classes and then dissects why medium-range weather prediction on reanalysis data sits in a particularly favorable regime. 
+
+Steady-State/Elliptic Problems. For −∆u = f , so-lutions gain two derivatives of regularity: | ˆuk | ≲
+
+|k|−(s+2+ d/2) vs. |ˆfk | ≲ |k|−(s+d/2) . The spectral bias 
+
+aligns with natural spectral decay—high-frequency content is already small. 
+
+Diffusion-Dominated Problems. For ut = ν∆u, high-frequency modes decay as ˆuk (t) = ˆuk (0) e−ν|k|2 t . Phys-ical damping complements spectral bias; the “true” solution becomes progressively smoother. 
+
+Short-Time Predictions with Smooth Data. Nonlinear energy transfer to high wavenumbers takes time. For smooth initial data, solutions remain smooth on [0, T ∗]before fine-scale structure develops. 
+
+## The ERA5: Anatomy of a Sweet Spot 
+
+Given the complexity of the underlying physics, the success of neural weather prediction on ERA5 re-analysis [ 13 ] deserves careful dissection: a) At 25 km resolution, the atmosphere is a smooth, filtered representation [ 24 ] with effective low Re ∼ 10 3–10 4
+
+(matched to the resolution), not the true Re ∼ 10 12 ;b) 1-10 day forecasts correspond to O(1) planetary-wave turnovers, evaluated before high-frequency errors propagate upward via baroclinic error growth; c) RMSE weights large-scale patterns; a forecast missing all mesoscale structure scores excellently. Also note that ERA5 is itself spectrally biased (data assimilation trusts large scales). Training and evaluating on ERA5 creates a favorable match. 
+
+The Lyapunov Time Perspective. It is helpful to translate the usual “lead time in days” into nondi-mensional units that are physically meaningful for atmospheric predictability [ 25]. For atmospheric models, leading Lyapunov exponents are λ1 ∼ 0.2–0.4 day −1,giving error-doubling times T2 ∼ 2–3 days [ 12]. A 10-day forecast spans ∼ 3–5 doubling times beyond which any small-scale error saturates. The celebrated metrics evaluate exactly the window where low-frequency skill dominates and before spectral bias consequences manifest. Another unusual aspect of ERA5 is that a large amount of high quality structured, data is available for the very system/geometry that is the target. This is unusual in almost any problem in science or engineering. The author is careful not to dismiss weather fore-casting as an easy or solved problem: This is indeed, an example of an extremely successful application of neural surrogates with significant real-world impact. In the present context, ERA5-based weather predic-tion scores high on both utility (orders-of-magnitude inference speedup over numerical weather prediction) and predictivity (skillful forecasts on the metrics and horizons that matter operationally). Understanding why 
+
+this sweet spot exists, e.g. filtered data, favorable Lyapunov horizons, large-scale-dominated metrics, is essential to assess whether similar success will transfer to other domains. Further work is required to achieve super-resolved forecasts and in predicting origins and trajectory of extreme weather events, both of which are active research areas. 
+
+# Challenges in Chaotic Multi-Scale Dynamics 
+
+We now turn from the favorable cases to the genuinely hard ones. As a prototypical multi-scale problem, turbu-lent flows exhibit fundamentally different spectral char-  
+
+> Month 2026 Controversies and Perspectives on AI/ML in Science & Engineering
+
+5PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES 
+
+acteristics. The energy spectrum follows Kolmogorov scaling E(k) ∼ ε2/3k−5/3 in the inertial range, with scale separation kη /kf ∼ Re 3/4. In many engineering and science problems, this is ∼ 10 6.Unlike diffusion-dominated flows, turbulence contin-uously regenerates high-frequency content through nonlinear interactions. Any mechanism that removes energy at scale k disrupts the cascade equilibrium; the flow generates new fine scales that the biased approximation again fails to capture. The deepest issue is not approximation error but 
+
+irreversible information loss . Coarse graining defines an observation uc = Pu where P projects onto resolved modes. If ker( P)̸ = {0}, multiple fine states share the same coarse representation: 
+
+Pu 1 = Pu 2 but u1̸ = u2. (11) A deterministic model trained with MSE converges to the conditional mean :ˆu(uc ) = E[u | uc ], (12) which is the “over-smoothed” field that averages over unresolved high-frequency variability. This is not a training failure—it is the optimal MSE solution given the information available. The Mori-Zwanzig formalism [ 19 ] makes this precise: the exact reduced dynamics contains memory kernels and stochastic forcing that encode the influence of unresolved scales. A deterministic neural surrogate trained on coarse data is fundamentally unable to recover this structure as it learns the wrong physics, not just an imprecise approximation. Wang et al. [ 9 ] propose bypassing closure models entirely using physics-informed neural operators (PINO) that operate in function space at fine resolution. Their approach trains PINO first on coarse-grid solver data, then fine-tunes with a small amount of fully-resolved simulation data and physics-based losses on the fine grid. Because neural operators are discretization-free, they are not constrained to the coarse grid that makes closure modeling ill-posed. The insight is data efficiency: learning-based closure models require enough data that the dataset itself suffices to estimate statistics directly. But predictivity in different problems remains an issue. 
+
+## The Accumulation Problem 
+
+Error accumulation is the primary mechanism by which spectral bias degrades predictivity over time. Consider a neural time-stepper un+1 = Nθ (un) with per-step error 
+
+ϵn+1 = Nθ (un) − N ∗(un). Due to spectral bias, ˆϵk is systematically larger for high |k|. In chaotic systems with positive Lyapunov exponents λ1 > 0, errors grow as ∥ϵtotal ∥ ∼ eλ1 N∆t ∥ϵ∥. Therefore, for any PDE with positive Lyapunov exponent and broadband spectrum, one can expect a finite T ∗ such that trajectory error exceeds any threshold, regardless of training. As an illustration, we show a 1D Kuramoto– Sivashinsky (KS) equation using a Fourier neural operator (FNO) surrogate. Dataset and architectural details are the same as the baseline case in Lippe et al. [ 18 ]. We train a one-step surrogate ˆut+1 = Gθ (ut )on KS trajectories, then evaluate it in autoregressive 
+
+rollouts. Even when one-step error is small, rollout error grows quickly in chaotic or multiscale regimes as seen in Figure 3. This case study highlights an important caveat: even if the network fits low/mid k extremely well, the high-k modes may never be driven to the physically correct level if (i) they are weakly constrained by data (true spectrum already below noise) and/or (ii) the effective kernel has tiny eigenvalues in those directions. For operator learning, a second complication is roll-out: inputs shift from true states ut (training distribution) to predicted states ˆut . Thus, even if NTK arguments explain which modes are learned quickly in the su-pervised one-step setting, they do not automatically guarantee stability under distribution shift. The observed frequency-selective mismatch (large ∆(k, t) at high k)provides a concrete mechanism for rollout degradation. Let EB (t) = P 
+
+> k∈B
+
+|bu(k, t)|2 denote the total spatial Fourier energy in a band B. We define a band-energy relative error 
+
+εB (t) = |EB,pred (t) − EB,true (t)|
+
+EB,true (t) + ϵ . (13) Table 1 reports the mean of εB (t) over the rollout window, and its value at the final time. Two robust patterns emerge across trajectories: (i) low/mid bands remain relatively controlled, while (ii) dissipation-range bands exhibit huge relative mismatch due to the surrogate maintaining a nonzero high-k floor. Figure 3 also shows the true/predicted/error heatmaps for a testing trajectory as well as the spatial profile u(x) (true vs. predicted) and the spatial power spectrum. A common explanation for the observed divergence is that it is an inevitable consequence of chaos: specif-ically, that in a chaotic regime, pointwise trajectory comparisons are intrinsically ill-posed and therefore uninformative. While this caveat is important, our experiments indicate that it does not fully account for the discrepancies we observe. Across all tested architectures and training configurations, the growth rate of the prediction error consistently exceeded the rate implied by the system’s leading Lyapunov exponent, 
+
+6 Controversies and Perspectives on AI/ML in Science & Engineering Month 2026 PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES                                                                          
+
+> TABLE 1. Rollout band-energy error εB(t) for three test trajectories for FNO. We report mean over time and final-time value. Bands: low k∈[1, 5], mid k∈[6, 15], hi1 k∈[16, 31], hi2 k∈[32, 47], hi3 k∈[48, 63], hi4 k∈[64, 95], hi5 k k∈[96, 128]. Traj metric low mid hi1 hi2 hi3 hi4/hi5 0mean 2.03e-01 6.56e-02 3.80e-01 1.28e+00 8.27e+03 1.45e+08 / 8.58e+07 0final 4.06e-01 7.18e-01 4.48e+00 3.47e+00 3.27e+04 4.94e+08 / 1.81e+08 1mean 5.29e-01 1.02e-01 4.15e-01 1.23e+00 8.37e+03 1.23e+08 / 1.07e+08 1final 5.01e+00 3.72e-01 5.24e-01 6.33e-01 3.25e+03 3.12e+07 / 6.03e+07 2mean 2.51e-01 2.78e-01 1.07e+00 3.98e-01 2.48e+03 3.83e+07 / 1.90e+08 2final 7.38e-01 4.41e-01 1.18e-01 5.97e-01 7.12e+02 9.95e+06 / 2.32e+08
+
+typically by a factor of a few. This systematic excess suggests that the dominant source of error amplification is not merely the intrinsic sensitivity of the underlying dynamics, but also model- and/or discretization-induced mechanisms that accelerate error growth beyond the baseline set by the true flow map’s local instability. In addition to trajectory-level diagnostics, assess-ment of predictive skill using a set of physically meaningful quantities of interest such as total and gradient energy ( E(t) = ⟨u(t, ·)2⟩x , G(t) = ⟨(∂x u(t, ·)) 2⟩x
+
+further confirmed that spurious high-k floor manifests in statistics. Some of these effects can be mitigated by using Fourier Feature Networks to modify the input encoding to boost high-frequency eigenvalues. This works for static function approximation but requires prior knowledge of relevant frequencies. For broadband, dynamically evolving spectra, fixed encoding will not be appropriate. 
+
+## Challenge problem: Combustors 
+
+The KS equation, while instructive, is a relatively mild multi-scale system. We now consider a far more de-manding application to illustrate how spectral bias and coarse-graining interact in a setting of direct engineering relevance. Combustors for propulsion and energy generation represent examples of a challenging multi-scale prob-lem as they combine [ 2 ] compressible turbulence, chemical kinetics, and acoustics. From the standpoint of predictivity, combustors represent a worst case: the quantities of engineering interest (stability boundaries, mode transitions, reignition) depend on precisely the scales that spectral bias suppresses. Consider the example of Rotating detonation engines (RDE) [ 14 ], [15 ] as an extreme case: the fastest relevant physics (chemical induction) occurs at τchem ∼ O (10 –100) ns, setting the Lyapunov timescale for detonation insta-bilities. The wave period is ∼ 250 μs and practical operating windows span O(1 – 10) ms. This yields ∼ 10 4–10 5 Lyapunov times per operating interval, compared to 3–5 for 10-day weather forecasts. The timescale ratio τdet /τ chem ∼ O (10 3–10 4) implies that small-scale errors saturate almost instantaneously on the wave timescale. Unlike ERA5, where data assimilation filters the problematic small scales, the stiff chemistry cannot 
+
+be filtered without destroying the detonation physics. Neural surrogates trained on coarse observables (e.g., pressure traces) inherit none of the reaction-zone dynamics that govern mode transitions, re-ignition, and failure, precisely the phenomena of predictive 
+
+engineering interest. If the goal is reconstruction of previously observed quasi-periodic flow features, data-driven inference of linear and quadratic operators [ 26 ]may be sufficient. 
+
+Why Small Errors Become Large Failures. In combustors, high-k fluctuations modulate mixing, flame wrinkling, and the effective time delay between heat release and acoustics. Because thermoacoustic stability depends on phase, bias-induced delays of 10 −4–10 −3
+
+s can be qualitatively decisive when Tac ∼ 10 −3
+
+s. A model matching low-frequency pressure traces can still predict wrong growth rates, wrong saturation amplitudes, or wrong stability classifications: physically different outcomes from numerically similar training errors. 
+
+# Generative Models for Spectral Enhancement 
+
+Given the fundamental information loss identified in the previous section, a natural question is whether probabilistic methods can recover what deterministic surrogates cannot. A growing body of work integrates generative models with neural operators to address spectral deficiencies. Oommen et al. [ 11 ] train diffusion models conditioned on neural operator outputs to sam-ple high-frequency content, demonstrating improved energy spectra on Kolmogorov flow, high-Reynolds jet LES, and experimental Schlieren data. The approach stabilizes autoregressive rollouts by periodically cor-recting the spectral content that deterministic operators suppress. Jiang et al. [ 21 ] extend this to 3D turbulence   
+
+> Month 2026 Controversies and Perspectives on AI/ML in Science & Engineering
+
+7PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES  
+
+> FIGURE 3. Rollout mean squred error L2( t) for three test trajectories, Rollout heatmaps, profile and spectra (traj 0).
+
+with a combined neural operator-diffusion architecture. These methods achieve improvements in distributional fidelity and the generated fields exhibit match target energy spectra across a broader wavenumber range. However, a conceptual distinction must be main-tained. Diffusion models sample from a learned con-ditional distribution p(ufine |ucoarse ); each sample is sta-tistically consistent with the conditioning input but not uniquely determined by it. For applications requiring ensemble statistics or uncertainty quantification, this may be a good framework. For trajectory prediction in chaotic systems, the generated fine scales might be statistically plausible but not dynamically coupled to the specific initial condition’s history. Bhola and Duraisamy [ 22 ] formulate flow match-ing in infinite-dimensional function space to learn a probabilistic transport from low-fidelity approximations to high-fidelity solutions via residual corrections. By parameterizing the flow vector field as a sum of linear and nonlinear operators and operating directly in function space, the approach achieves resolution-invariant inference while explicitly acknowledging the probabilistic nature of the correction. Generative models do not recover the “true” fine-scale field (which is non-unique given coarse observations), but offer a framework for principled sampling from a distribution of fields consistent with the available information. The distinction between learning a deterministic map and learning a conditional distribution is not a limitation to be overcome but a reflection of the underlying information-
+
+8 Controversies and Perspectives on AI/ML in Science & Engineering Month 2026 PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES 
+
+theoretic structure of the problem. 
+
+# Hybrid Methods: Resetting the Error Cascade 
+
+While generative models address the representational 
+
+gap, hybrid neural–classical methods tackle the accu-mulation problem directly. The core idea is pragmatic: use the surrogate where it is fast and accurate (large-scale, short-horizon dynamics) and return to the full solver to regenerate the high-frequency content that spectral bias suppresses. This strategy offers gains in utility (net speedup) while bounding the predictivity loss that pure surrogate rollout incurs. Errors introduced by spectral bias or coarse-graining compound under autoregressive rollout until they cor-rupt even the well-resolved scales. A natural mitigation is to periodically reset the surrogate by returning to a full-order solver, preventing error accumulation from reaching catastrophic levels. Consider alternating between a neural surrogate 
+
+Nθ and a full-order solver F: the surrogate advances K
+
+steps before M corrective steps with the full solver. The key insight is that the PDE solver does not merely correct errors, it regenerates the high-frequency content that spectral bias systematically suppresses. This re-couples the resolved and unresolved scales, restoring dynamical consistency that pure surrogate rollout destroys. Instead of exponential error growth 
+
+∥ϵ(t)∥ ∼ eλ1 t over the full trajectory, errors grow only over each surrogate window and are then quenched before the next window begins. This strategy has origins in both reduced-order modeling and data assimilation. This has been demon-strated [ 2] in the context of projection-based ROMs for chaotic multiscale problems can maintain accuracy over long horizons by adaptively resampling the projection basis using short full-order solves when the ROM trajectory drifts outside the training manifold. The full-order samples serve a dual purpose: they correct the current state and enrich the reduced basis for future predictions. The same principle applies to neural surrogates—periodic full-order solves act as both error correction and implicit retraining signal, keeping the learned dynamics tethered to physical reality. In operational weather forecasting, models are periodically corrected by observations through analysis cycles. Techniques from the assimilation literature: nudging, ensemble spread monitoring, adjoint-based error estimation, can inform when to trigger corrections. A practical heuristic is to monitor the PDE residual 
+
+∥L uθ − f ∥ or band-limited energy in dissipation-range wavenumbers; anomalous growth in either signals that the surrogate has drifted off-manifold and correction is needed. Recent work explores related ideas. Kochkov et al. [4] showed that learned corrections applied to coarse-grid simulations can match fine-grid accuracy for 2D turbulence, though corrections are applied at every step rather than interleaved. List et al. [ 23 ] use differentiable solvers to train neural networks that correct coarse-grid PDE solves, blurring the line between solver and surrogate. These approaches share the recognition that neural networks and classical solvers have complemen-tary strengths: surrogates provide speed on smooth, large-scale dynamics while solvers provide the high-frequency regeneration and stability guarantees that surrogates lack. The cost-benefit calculation is straightforward. If the surrogate costs CN per step and the full solver costs 
+
+CF ≫ CN , then hybrid time-marching achieves net speedup whenever the surrogate window K exceeds the correction window M by a factor depending on the cost ratio. For typical claimed speedups of CN /CF ∼ 10 −3,even modest surrogate windows yield substantial sav-ings. The binding constraint is not cost but predictability :
+
+K must be chosen so that surrogate error remains acceptable, which depends on the Lyapunov time and spectral bias severity, not on training loss. A surrogate with excellent one-step error but severe spectral bias may support only small K , negating the cost advantage. Several open questions remain. Should switching be fixed-period or adaptive based on error indicators? Can the full solver correct only high-k modes while the surrogate handles low-k evolution, achieving scale-selective hybridization? Should surrogate parameters be updated online using full-order corrections as fresh training data? Other hybridization strategies are possible, such as replacing only the most expensive component of a multiphysics simulation with a neural surrogate. He et al. [ 20 ] demonstrate this for ice-sheet dynamics: the Stokes equations governing ice velocity (the dominant computational cost) is replaced by a DeepONet, while the mass conservation equation for ice thickness evolu-tion remains a standard finite element discretization (FEM). This physics-partitioned approach succeeds because the surrogate is asked to learn a static 
+
+operator (thickness and friction to velocity) rather than a dynamical map. The mass conservation equation, which controls the temporal evolution and where errors would compound, remains exactly satisfied by the FEM. The general question of under what conditions can hybrid schemes provably bound long-time error is open. In general, defining a research program that takes neural surrogates seriously as components of hybrid solvers   
+
+> Month 2026 Controversies and Perspectives on AI/ML in Science & Engineering
+
+9PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES 
+
+rather than as wholesale replacements could be an active direction. It has to be mentioned that hybrid approaches may require various levels of intrusive interaction with complex solvers (e.g. [ 2], [ 32 ]) and introduce complex development challenges and will not be as portable and flexible as neural surrogates or other non-intrusive approaches (e.g. [ 26]). This will be an important consideration in practical settings. 
+
+# Conclusions 
+
+Neural surrogates for multiscale PDEs can be powerful if we separate predictivity (what is forecastable on the relevant horizon and QoIs) from utility (whether the method beats optimized classical baselines at fixed QoI tolerance, including amortization). If the solution set lies on a low-dimensional, smooth manifold, many reduced models (neural or classical) will perform well. In many multi-scale problems, however, gradient-based training induces a low-pass learning dynamics (e.g., via NTK eigenvalue decay), so errors concentrate in the bands that control derivatives, dissipation, and phase. Small L2 error can therefore coexist with large errors in physically decisive QoIs. A deterministic surrogate trained with MSE converges to a conditional mean, an over-smoothed field that may correspond to no true trajectory. What is identifiable is the conditional distribu-tion p (ufine | ucoarse ), motivating probabilistic (generative) corrections and uncertainty-aware evaluation rather than deterministic rollouts. For chaotic systems, long-horizon trajectory predic-tion is typically ill-posed beyond a few Lyapunov times, and almost always, the error growth in neural surrogates is even more significant than Lyapunov growth. Success is more likely when the target is (i) statistics/invariant measures or (ii) hybrid schemes that periodically re-anchor the surrogate with a solver or observations to prevent error cascades from corrupting resolved scales. The strongest empirical critique of scientific ML re-porting is that many papers compare against weak base-lines, use mismatched hardware, or ignore amortization [6]. For PDE surrogates, fair comparison should be accompanied by: (1) problem characterization (intrinsic dimension/ n-width proxy, scale separation, and where possible a Lyapunov-time estimate); (2) test horizon in physical units (e.g., eddy turnovers/Lyapunov times); (3) scale-aware metrics (band-limited errors, H1/H2
+
+norms, and flux/dissipation-relevant quantities); and (4) end-to-end cost curves versus optimized solver and ROM baselines with hardware parity. Despite the somewhat critical tone of this paper, the author acknowledges that many domains exist where neural surrogates already offer value. Recognizing these domains is as important as understanding the limitations: 
+
+1. Smooth, low-dimensional parameter-to-QoI maps. 
+
+Steady aerodynamics [ 31 ] and design-space explo-ration where the solution manifold has small Kol-mogorov width. Here neural surrogates compete on amortized cost, not capability, but the cost advantage can be substantial for many-query applications. (High utility; predictivity is straightforward because the mani-fold is benign.) 
+
+2. Learning invariant measures of chaotic systems. 
+
+When the target is stationary statistics (PDFs, spectra, structure functions) rather than trajectories, neural operators [ 9] can sample the attractor efficiently. It is noted that such capabilities have been demonstrated only in a limited set of examples. In systems with highly complex dynamics and limited availability of high-quality training data, current approaches may still face significant challenges. (High utility when many-sample ensemble averages are needed.) 
+
+3. Subgrid modeling within resolved-scale frame-works. Neural networks as closure models within aphysics-based solver can accelerate coarse-grained simulations [ 29 ], provided the closure is not asked to reconstruct unresolved information, only to parameter-ize its statistical effect. (Utility-driven: the solver retains predictivity while the surrogate reduces cost.) 
+
+4. Correction networks on residuals. Learning δu =
+
+ufine − ucoarse is often better-posed than learning u
+
+directly, because the correction has smaller dynamic range and less scale separation [ 22 ]. More general classes multi-fidelity approaches will also be relevant here. (Improves both predictivity and utility by reducing the approximation burden.) 
+
+5. Inverse problems and data assimilation. Here the “blurring” of deterministic surrogates can be acceptable because the goal is to find parameters or initial con-ditions consistent with observations, not to predict a unique trajectory. (High utility; the relaxed predictivity requirement aligns well with surrogate strengths.) The path forward in more general tasks involving chaotic multi-scale dynamics may be to treat neural surrogates as components of hybrid, uncertainty-aware solvers, and certainly not as solver replacements. 
+
+# Acknowledgment 
+
+This work was supported by the Center for Prediction, Reasoning, and Intelligence for Multiphysics Exploration (C-PRIME), a PSAAP-IV project funded by the Depart-ment of Energy, grant number DE-NA0004264 (program manager: David Etim). 
+
+10 Controversies and Perspectives on AI/ML in Science & Engineering Month 2026 PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES 
+
+# REFERENCES 
+
+1. M. Raissi, P. Perdikaris, and G. E. Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Jour-nal of Computational Physics , 378:686–707, 2019. 2. C. Huang and K. Duraisamy. Predictive reduced order modeling of chaotic multi-scale problems using adap-tively sampled projections. Journal of Computational Physics , 491:112356, 2023. 3. K. Um, R. Brand, Y. Fei, P. Holl, and N. Thuerey. Solver-in-the-loop: Learning from differentiable physics to interact with iterative PDE-solvers. In 
+
+Advances in Neural Information Processing Systems (NeurIPS) , 2020. 4. D. Kochkov, J. A. Smith, A. Alieva, Q. Wang, M. P. Brenner, and S. Hoyer. Machine learning–accelerated computational fluid dynamics. Proceedings of the Na-tional Academy of Sciences , 118(21):e2101784118, 2021. 5. Z. Li, N. Kovachki, K. Azizzadenesheli, B. Liu, K. Bhat-tacharya, A. M. Stuart, and A. Anandkumar. Fourier neural operator for parametric partial differential equations. In International Conference on Learning Representations (ICLR) , 2021. 6. N. McGreivy and A. Hakim. Weak baselines and reporting biases lead to overoptimism in machine learning for fluid-related partial differential equations. 
+
+Nature Machine Intelligence , 6:1256–1269, 2024. 7. N. Rahaman, A. Baratin, D. Arpit, F. Draxler, M. Lin, F. A. Hamprecht, Y. Bengio, and A. Courville. On the spectral bias of neural networks. In Proceedings of the 36th International Conference on Machine Learning (ICML) , PMLR 97:5301–5310, 2019. 8. A. Jacot, F. Gabriel, and C. Hongler, “Neural tangent kernel: Convergence and generalization in neural net-works,” in Advances in Neural Information Processing Systems (NeurIPS) , 2018. 9. C. Wang, J. Berner, Z. Li, D. Zhou, J. Wang, H. J. Bae, and A. Anandkumar. Coarse graining with neural operators for simulating chaotic systems. arXiv preprint arXiv:2408.05177 , 2024. 10. M. Tancik, P. Srinivasan, B. Mildenhall, S. Fridovich-Keil, N. Raghavan, U. Singhal, R. Ramamoorthi, J. Barron, and R. Ng, “Fourier features let networks learn high frequency functions in low dimensional do-mains,” in Advances in Neural Information Processing Systems (NeurIPS) , 2020. 11. V. Oommen, A. Bora, Z. Zhang, and G. E. Karniadakis, “Integrating neural operators with diffusion models im-proves spectral representation in turbulence modeling,” 
+
+arXiv preprint arXiv:2409.08477 , 2024. 12. C. Snyder and T. M. Hamill, “Leading Lyapunov vec-tors of a turbulent baroclinic jet in a quasigeostrophic model,” Journal of the Atmospheric Sciences 60(4), 683–688 (2003). 13. H. Hersbach, B. Bell, P. Berrisford, et al. , “The ERA5 global reanalysis,” Quarterly Journal of the Royal Meteorological Society 146, 1999–2049 (2020). 14. V. Raman, S. Prakash, and M. Gamba. Nonidealities in rotating detonation engines. Annual Review of Fluid Mechanics , 55(1):639–674, 2023. 15. J. W. Bennewitz, J. R. Burr, and C. F. Lietz. Character-istic timescales for rotating detonation rocket engines. In AIAA Propulsion and Energy 2021 Forum , AIAA Paper 2021-3671, 2021. 16. A. Pinkus. n-Widths in Approximation Theory .Springer-Verlag, Berlin, 1985. 17. A. J. Linot and M. D. Graham. Stabilized neural ordi-nary differential equations for long-time forecasting of dynamical systems. Journal of Computational Physics ,474:111838, 2023. 18. P. Lippe, B. Veeling, P. Perdikaris, R. Turner, and J. Brandstetter. PDE-Refiner: Achieving accurate long rollouts with neural PDE solvers. In Advances in Neural Information Processing Systems (NeurIPS) ,2024. 19. A. J. Chorin, O. H. Hald, and R. Kupferman. Optimal prediction and the Mori-Zwanzig representation of irreversible processes. Proceedings of the National Academy of Sciences , 97(7):2968–2973, 2000. . 20. Q. He, M. Perego, A. A. Howard, G. E. Karniadakis, and P. Stinis. A hybrid deep neural operator/finite element method for ice-sheet modeling. Journal of Computational Physics , 492:112428, 2023. 21. Y. Jiang, Y. Liu, and Z. Wang. Integrating Fourier neural operator with diffusion model for autoregressive predictions of three-dimensional turbulence. arXiv preprint arXiv:2512.12628 , 2024. 22. S. Bhola and K. Duraisamy. Flow matching operators for residual-augmented probabilistic learning of partial differential equations. arXiv preprint arXiv:2512.12749 ,2024. 23. B. List, L.-W. Chen, and N. Thuerey. Learned turbulence modelling with differentiable fluid solvers. 
+
+Nature Machine Intelligence , 6:1–12, 2024. 24. P. Bolgiani, C. Calvo-Sancho, J. Díaz-Fernández, L. Quitián-Hernández, M. Sastre, D. Santos-Muñoz, L. M. Farfán, S. Fernández-González, and M. L. Martín. Wind kinetic energy climatology and effective resolution for the ERA5 reanalysis. Climate Dynamics , 59:737–752, 2022. 25. S. Vannitsem. Predictability of large-scale atmo-spheric motions: Lyapunov exponents and error dy-namics. Chaos , 27(3):032101, 2017.   
+
+> Month 2026 Controversies and Perspectives on AI/ML in Science & Engineering
+
+11 PREDICTIVITY AND UTILITY OF NEURAL PDE SURROGATES 
+
+26. I.-G. Farca¸ s, R. P. Gundevia, R. Munipalli, and K. E. Willcox. Distributed computing for physics-based data-driven reduced modeling at scale: Application to a rotating detonation rocket engine. Computer Physics Communications , 313:109619, 2025. 27. B. Ronen, D. Jacobs, Y. Kasten, and S. Kritchman, The convergence rate of neural networks for learned functions of different frequencies. Advances in Neural Information Processing Systems , 2019. 28. S. Brunton, and J.-N. Kutz, Promising directions of machine learning for partial differential equations. 
+
+Nature Computational Science , 4:483–494. 29. K. Bhattacharya, N. Kovachki, A. Rajan, A. M. Stuart, and M. Trautner. Learning Homogenization for Elliptic Operators. SIAM Journal on Numerical Analysis, 
+
+2024. 30. A. Bietti, and J. Mairal, J. On the inductive bias of neural tangent kernels. Advances in Neural Information Processing Systems, 2019. 31. B. Alkin, M. Bleeker, R. Kurle, T. Kronlachner, R. Sonnleitner, M. Dorfer, and J. Brandstetter AB-UPT: Scaling neural CFD surrogates for high-fidelity automotive aerodynamics simulations via anchored-branched universal physics transformers. arXiv preprint arXiv:2502.09692 , 2025. 32. C. Wentland, F. Rizzi, J.-L. Barnett, and Irina K. Tezaur. "The role of interface boundary conditions and sampling strategies for Schwarz-based coupling of projection-based reduced order models." Journal of Computational and Applied Mathematics 465 (2025): 116584. 
+
+12 Controversies and Perspectives on AI/ML in Science & Engineering Month 2026

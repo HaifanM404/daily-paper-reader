@@ -1,0 +1,715 @@
+Title: Attraction, Repulsion, and Friction: Introducing DMF, a Friction-Augmented Drifting Model
+
+URL Source: https://arxiv.org/pdf/2604.18194v1
+
+Published Time: Tue, 21 Apr 2026 02:53:06 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# Attraction, Repulsion, and Friction: Introducing DMF, a Friction-Augmented Drifting Model 
+
+Arkadii Kazanskii Tatiana Petrova Konstantin Bagrianskii Aleksandr Puzikov Radu State SEDAN, SnT, University of Luxembourg 
+
+{arkadii.kazanskii, tatiana.petrova }@uni.lu 
+
+Abstract 
+
+Drifting Models [3] train a one-step generator by evolving samples under a kernel-based drift field, avoiding ODE integration at inference. The original analysis leaves two questions open. The drift-field iteration admits a locally repulsive regime in a two-particle surrogate, and vanishing of the drift ( Vp,q ≡ 0) is not known to force the learned distribution q to match the target p. We derive a contraction threshold for the surrogate and show that a linearly-scheduled friction coefficient gives a finite-horizon bound on the error trajectory. Under a Gaussian kernel we prove that the drift-field equilibrium is identifiable: vanishing of Vp,q on any open set forces q = p, closing the converse of Proposition 3.1 of Deng et al. [3]. Our friction-augmented model, DMF ( Drifting Model with Friction ), matches or exceeds Optimal Flow Matching on FFHQ adult → child domain translation at 16 × lower training compute. 
+
+Keywords: generative modeling; flow matching; drifting model; dissipation. 
+
+# 1 Introduction 
+
+Recent work on generative modelling has reduced sampling to progressively fewer forward passes. The move from diffusion to flow matching was followed by methods that aim at straight trajecto-ries and single-step generation, including Rectified Flow (RF) [11], OT-CFM [17], and Optimal Flow Matching (OFM) [7]. OFM recovers provably straight, transport-optimal trajectories, at the cost of a strongly convex inner optimisation per training step. Drifting Models (DMs) of Deng et al. [3] dispense with ODE integration altogether: a generator 
+
+fθ is trained by pushing its samples under a kernel-based drift field Vp,q = V + 
+
+> p
+
+− V − 
+
+> q
+
+, where V +
+
+> p
+
+attracts samples to data and V − 
+
+> q
+
+pushes them apart within the current batch. DMs attain single-step quality competitive with OFM at a fraction of the training cost, but the original analysis leaves two questions open. First, a simple two-particle surrogate of the iteration admits a locally repulsive regime — at small inter-sample distance the repulsion can dominate the attraction to the target, and the original paper does not rule this out. Second, the equilibrium condition 
+
+Vp,q ≡ 0 is only shown to be necessary for q = p; the converse – Proposition 3.1 of Deng et al. [3] – is an open question. This paper addresses both. Our analysis of the unnormalised two-particle surrogate (a delib-erate simplification of the normalised field (1)) yields a closed-form contraction threshold and motivates DMF, a variant of DM in which the drift is scaled by 1 − γ(i) for a monotone schedule 
+
+γ(i) ∈ [0 , 1] with γ(0) = 0 and γ(T − 1) = 1. Proposition 1 bounds the finite-horizon error tra-jectory of DMF in the surrogate in terms of the positive part of the instability margin. Under a Gaussian kernel we prove that the equilibrium of the unscaled drift is identifiable: vanishing of 1
+
+> arXiv:2604.18194v1 [cs.LG] 20 Apr 2026
+
+Vp,q on any open subset of Rd forces q = p (theorem 1). Empirically, DMF matches or exceeds OFM on FFHQ adult → child domain translation at roughly 16 × lower training compute. The combination does not yet constitute a quantitative convergence theorem; section 5 returns to this point. 
+
+Contributions. (i) A closed-form per-step contraction threshold for an unnormalised two-particle surrogate of the DM drift field (section 3.1). (ii) DMF , a friction-augmented variant of DM obtained by scaling the drift by 1 −γ(i) under a monotone increasing schedule; Proposition 1 bounds its finite-horizon error trajectory in the surrogate (section 3.2). (iii) An identifiability theorem (Theorem 1) for the unscaled Gaussian-kernel drift: Vp,q ≡ 0 on any open subset of 
+
+Rd implies p = q, closing the converse direction of Proposition 3.1 of Deng et al. [3]. (iv) An empirical study on the FFHQ adult → child domain translation task on which DMF matches or exceeds OFM at roughly 16 × lower training compute (section 4). 
+
+# 2 Related Work 
+
+Flow matching and straight-trajectory generators. Flow matching [1, 10] learns a time-dependent velocity field whose flow transports a source distribution to the data distribution. The learned trajectories are typically curved, so inference requires multi-step ODE integration. Rectified Flow [11] straightens trajectories by iterative reflow; OT-CFM [17] conditions the target velocity on optimal transport couplings and recovers straight paths in a single training pass. These methods retain an ODE formulation and hence require either numerical integration at inference or an auxiliary training procedure to eliminate it. 
+
+Optimal transport parametrisations. A related line couples generative modelling with OT [8, 9]. Optimal Flow Matching [7], which we take as our principal baseline, parametrises the velocity field as the gradient of an Input Convex Neural Network [2, 12] so that the minimiser of the flow-matching objective coincides with the Brenier map for the quadratic cost. A strongly convex inner optimisation is solved per sample at each training step. 
+
+Drifting Models. Deng et al. [3] proposed Drifting Models, in which a one-shot generator 
+
+fθ is trained by evolving its samples under a drift field Vp,q = V + 
+
+> p
+
+− V − 
+
+> q
+
+. Attraction to the target distribution p and repulsion from the current generator distribution q are expressed as kernel-weighted expectations. DMs attain competitive single-step generation quality without ODE simulation at inference, but their Proposition 3.1 establishes only one direction of the equivalence: q = p implies Vp,q ≡ 0, while the converse – necessary for an identification guarantee – is left open. Dynamic stability of the training iteration is also not analysed. The present work addresses both. 
+
+Dissipation in stochastic samplers. Dissipation terms enter Langevin-based samplers [18] and score-based SDE models [16] as an intrinsic part of the generative dynamics. Our use of dissipation is analogous in spirit but acts on the ODE-free drift-field iteration of DM rather than on an SDE. 
+
+ALAE as a latent backbone. For domain translation on FFHQ at 1024 ×1024 we follow the protocol of Kornilov et al. [7] and operate in the W latent space of StyleALAE [13]. 23 Methodology 
+
+3.1 Revisiting the Drifting Field Dynamics 
+
+We recall the DM construction. Let p be the target data distribution and q the distribution of samples produced by the current generator. The drift field used at training is 
+
+Vp,q (x) = V + 
+
+> p
+
+(x) − V − 
+
+> q
+
+(x), (1) with attraction term V + 
+
+> p
+
+pulling samples towards p and repulsion term V − 
+
+> q
+
+pushing samples apart in the current batch: 
+
+V + 
+
+> p
+
+(x) = 1
+
+Zp
+
+Ey+∼p
+
+k(x, y +) ( y+ − x), (2) 
+
+V − 
+
+> q
+
+(x) = 1
+
+Zq
+
+Ey−∼q
+
+k(x, y −) ( y− − x), (3) with normalisers Zp(x) = Ey+ [k(x, y +)], Zq(x) = Ey− [k(x, y −)] and the Laplace kernel 
+
+k(x, y ) = exp 
+
+
+
+− ∥x − y∥
+
+τ
+
+
+
+, (4) parametrised by a bandwidth τ > 0. In theorem 1 we analyse the analogue of this construction under a Gaussian kernel; see also remark 4. 
+
+A local unnormalised surrogate. To exhibit the attraction–repulsion trade-off in a tractable form we analyse a local unnormalised surrogate of (1), obtained by retaining the kernel-weighted numerator of (2)–(3) and dropping the denominators Zp, Z q. The surrogate is a simplification of (1): the normalised dynamics carries an extra dependence on Zp/Z q which requires a larger-batch or continuous-density treatment that we do not attempt here. What the surrogate does capture is the local competition between attraction and repulsion that drives the instability, and it supports the schedule-dependent bound of proposition 1 below. Consider a training step at which samples are within bandwidth of their nearest targets ( ∥xi −
+
+y+∥ ≤ τ ) and localise attention to one target y+ and two generated particles xi
+
+> 1
+
+, xi 
+
+> 2
+
+placed symmetrically across it at distance a:
+
+y+ = 0 , xi 
+
+> 1
+
+= + a, xi 
+
+> 2
+
+= −a. (5) The unnormalised surrogate drift acting on x1 sums the raw kernel-weighted attraction and repulsion contributions, 
+
+bV (x1) = k(xi
+
+> 1
+
+, y +)( y+ − xi
+
+> 1
+
+) − k(xi
+
+> 1
+
+, x i
+
+> 2
+
+)( xi 
+
+> 2
+
+− xi
+
+> 1
+
+) = −kt a + 2 kd a, (6) with 
+
+kt = k(xi
+
+> 1
+
+, y +) = e−a/τ (kernel to target) , (7) 
+
+kd = k(xi
+
+> 1
+
+, x i
+
+> 2
+
+) = e−2a/τ = k2 
+
+> t
+
+(kernel between particles) . (8) The corresponding update is 
+
+xi+1 1 = xi 
+
+> 1
+
++ bV (xi
+
+> 1
+
+) = a (1 − kt + 2 kd). (9) Contraction towards y+, |xi+1 1 | < |xi
+
+> 1
+
+|, holds precisely when 
+
+kd < kt
+
+2 ⇐⇒ kt < 12 ⇐⇒ a > τ ln 2 . (10) 3For a < τ ln 2 the (surrogate) repulsion from x2 overpowers the attraction to y+ and the error 
+
+εi = xi
+
+1 − y+ obeys 
+
+εi+1 = λ(ai) εi, λ(a) = 1 − kt(a) + 2 kd(a), (11) with λ(a) > 1 iff a < τ ln 2. In this regime the trajectory is locally pushed away from the target; the full nonlinear surrogate iteration has a non-zero fixed point at a = τ ln 2 (where λ = 1), to which trajectories on both sides asymptote (see fig. 1). The surrogate therefore captures a locally divergent, globally bounded dynamics; we refer to the regime a < τ ln 2 as locally repulsive and reserve “divergent” for the linearised behaviour near the target. 0 5 10 15 20 25                                          
+
+> step i
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> |xi
+> 1| a=ln 2
+> (a) a0<a, no friction
+> 0510 15 20 25
+> step i
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> |xi
+> 1| a=ln 2
+> (b) a0>a, no friction
+> 0510 15 20 25
+> step i
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> |xi
+> 1| a
+> (c) a0<a: effect of friction
+> no friction
+> linear (i) = i/( T1)
+> 0.00 0.25 0.50 0.75 1.00 1.25
+> a
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> 1.4
+> f(a) =  a (1  kt + 2 kd)
+> a=ln 2
+> (d) phase portrait and cobweb
+> f(a)
+> y=a
+> fixed points
+> a0
+
+Figure 1: Two-particle surrogate dynamics with τ = 1. (a) Unstable regime ( a0 < a ∗) without friction: the error grows towards the stable fixed point a∗ = τ ln 2. (b) Stable regime ( a0 > a ∗)without friction: the error decays towards a∗. (c) Unstable a0 with and without the linear schedule γ(i) = i/ (T − 1): friction halts the trajectory below a∗ as γ → 1. (d) Phase portrait of f (a) = a (1 − kt + 2 kd) and the identity y = a; the two intersections are the fixed points of remark 1. The green cobweb starting from a0 = 0 .08 visibly converges to a∗.
+
+Remark 1 (Fixed-point structure of the surrogate) . The scalar iteration ai+1 = f (ai) with 
+
+f (a) = a (1 − kt(a) + 2 kd(a)), kt(a) = e−a/τ , kd(a) = kt(a)2, has two fixed points. The trivial one, a = 0, is locally expansive: f ′(0) = 2. The non-trivial one, a∗ = τ ln 2 (solving kt = 2 kd,equivalently kt = 12 ), is locally contracting: 
+
+f ′(a∗) = 1 − ln 2 2 ≈ 0.653 .
+
+Monotone trapping follows from the factorisation 
+
+f (a) − a = a e −a/τ  2e−a/τ − 1,
+
+whose sign is positive on (0 , a ∗) and negative on ( a∗, ∞); moreover f maps each of these intervals into itself, as can be seen from f (a∗) = a∗ and the continuity of f . Hence every trajectory from 
+
+a0 > 0 is monotone and converges to a∗; neither the target y+ = 0 nor the threshold a∗ are themselves crossed. Figure 1 (a), (b), (d) illustrate this on both sides of a∗.In the full many-particle training dynamics, with a neural-network parametrisation of V and stochastic batches, distances may alternate between the locally repulsive and locally attractive regimes across steps. Such alternation is outside the scope of the scalar surrogate (11), whose monotone behaviour is described above; the surrogate captures only the local mechanism. 
+
+3.2 Dissipation as a Stabilising Mechanism 
+
+The locally repulsive regime of (11) is analogous to an underdamped mechanical oscillator, in which a restoring force alone is insufficient for convergence and a dissipative term is required. Motivated by this analogy, we introduce a scalar friction coefficient γ ∈ [0 , 1] and apply it to the DM drift at training: 
+
+Vγ (x) = (1 − γ) V (x), (12) 4where V is the drift field of (1) (including the normalisers). In the surrogate of section 3.1, the same scaling applied to bV yields the per-step update 
+
+xi+1 1 = a λ γ (a), λγ (a) = 1 − (1 − γ) kt(a) − 2kd(a). (13) All statements of this subsection concern the surrogate dynamics; the correspondence with the full normalised dynamics is empirical and is discussed in section 5. 
+
+Per-step growth factor. Let ˜ η(a) := 2 kd(a) − kt(a) denote the signed instability margin of the linearised surrogate dynamics (11): ˜ η(a) > 0 in the locally repulsive regime a < τ ln 2 and ˜η(a) ≤ 0 otherwise. Equation (13) is equivalent to εi+1 = (1 + (1 − γ)˜ η(ai)) εi; for any fixed γ
+
+the deviation |λγ − 1| is (1 − γ)|˜η(ai)|, so at γ = 12 the repulsive growth rate is halved relative to the frictionless case. 
+
+A finite-horizon cumulative bound. Let ˜ ηi := ˜ η(ai) and write η+ 
+
+> i
+
+:= max(˜ ηi, 0) for its positive part. 
+
+Assumption 1 (Uniform upper bound on the positive margin) . There exists ηmax ≥ 0 such that η+ 
+
+> i
+
+≤ ηmax for every step i ∈ { 0, . . . , T − 1}. In the surrogate of section 3.1 one has kd = k2
+
+> t
+
+with kt ∈ (0 , 1], so ˜ η(a) = 2 k2 
+
+> t
+
+− kt ≤ 1 (with the bound attained as kt → 1); hence ηmax ≤ 1unconditionally. The assumption is made at this level of generality to accommodate alternative surrogates (e.g. more particles) in which the range of ˜ η differs. 
+
+Proposition 1 (Finite-horizon cumulative bound) . Let T ≥ 2 and let γ : {0, . . . , T −1} → [0 , 1] 
+
+be a non-decreasing schedule with γ(0) = 0 and γ(T − 1) = 1 . Suppose that assumption 1 holds and that the multiplier is non-negative, i.e. 1 + (1 − γ(i)) ˜ ηi ≥ 0 for every i ∈ { 0, . . . , T − 1} — a condition automatically satisfied in the two-particle surrogate of section 3.1, where ˜ηi ∈ [−1/8, 1] .Then the error εi = xi 
+
+> 1
+
+− y+ of the surrogate update (13) satisfies 
+
+|εT | ≤ | ε0| 
+
+> T−1
+
+Y
+
+> i=0
+
+ 1 + (1 − γ(i)) ηmax 
+
+ ≤ | ε0| exp 
+
+
+
+ηmax  
+
+> T−1
+
+X
+
+> i=0
+
+(1 − γ(i)) 
+
+
+
+. (14) 
+
+For the linear schedule γ(i) = i/ (T −1) one has PT −1 
+
+> i=0
+
+(1 −γ(i)) = T / 2 and the bound specialises to |εT | ≤ | ε0| eηmax T / 2.Proof. The update (13) reads εi+1 = (1 + (1 − γ(i))˜ ηi) εi. The positivity hypothesis gives 
+
+|εi+1 | =  1 + (1 − γ(i))˜ ηi |εi| ≤  1 + (1 − γ(i)) η+
+
+> i
+
+ |εi| ≤  1 + (1 − γ(i)) ηmax 
+
+ |εi|,
+
+where the first inequality uses ˜ ηi ≤ η+ 
+
+> i
+
+and (1 − γ(i)) ≥ 0, and the second uses assumption 1. Telescoping yields the first bound of (14). The second bound follows from ln(1 + x) ≤ x for 
+
+x ≥ 0 and summation of the logarithms. The linear-schedule specialisation is a direct arithmetic simplification. 
+
+Remark 2 (Finite- vs infinite-horizon boundedness) . Proposition 1 is a finite-horizon bound: it controls |εT | at a fixed training horizon T . The bound grows exponentially in T , so uniform boundedness as T → ∞ does not follow from the statement above; it would require a schedule with P∞
+
+> i=0
+
+(1 − γ(i)) < ∞, which is not satisfied by the linear schedule. In practice, training is run at a fixed T and the nonlinear surrogate iteration is bounded globally by the non-zero fixed point a = τ ln 2; the bound above describes the early-time growth within this globally bounded envelope. 5Remark 3 (Friction as drift-amplitude annealing) . Equation (12) is operationally equivalent to a drift-amplitude annealing schedule applied to V ; the term friction is used here by analogy with a damped oscillator rather than as a strict mechanical descriptor. The contribution of this subsection is not the annealing itself but its coupling to the instability margin of section 3.1: the schedule is selected to bound the quantity that the surrogate dynamics causes to grow, not as a generic learning-rate heuristic. A velocity-damping variant that corresponds more literally to mechanical friction is analysed in section B. Proposition 1 does not expand the per-step stability region of (10). It bounds the cumulative divergence over T steps and forces the per-step update magnitude to zero as γ → 1. The empirical consequences of this mechanism are examined in section 4. A velocity-damping variant that scales the velocity rather than the drift force is analysed in section B; it does not enlarge the unstable regime and yields a strictly looser cumulative bound. 
+
+3.3 Identifiability of the DM Equilibrium 
+
+Proposition 1 bounds the training trajectory but does not identify the distribution that it approaches. The same gap was noted by Deng et al. [3] in their Proposition 3.1: the equilibrium condition Vp,q ≡ 0 is necessary but not, in general, sufficient for q = p. We close the gap under a Gaussian kernel. 
+
+Theorem 1 (Identifiability at equilibrium, Gaussian kernel) . Let p, q be Borel probability measures on Rd, and let Vp,q be the drift field of (1) computed with the Gaussian kernel 
+
+kτ (x, y ) = exp( −∥ x − y∥2/(2 τ 2)) , τ > 0. If there exists a non-empty open set U ⊂ Rd on which Vp,q (x) = 0 for every x ∈ U , then p = q as probability measures. 
+
+The proof is given in full in section A. It uses four ingredients specific to the Gaussian kernel: (i) the log-gradient identity Vμ(x) = τ 2∇x log Zμ(x) with Zμ = μ∗ψτ , which holds for the Gaussian and fails for the Laplace kernel; (ii) real-analyticity of Zμ, obtained by holomorphic extension and Fubini; (iii) the identity theorem for real-analytic functions, which propagates the zero set of Vp,q from U to all of Rd; (iv) Fourier inversion using that ˆψτ > 0. 
+
+Corollary 1 (Closing the converse of Deng et al., Proposition 3.1) . Let p be the target distri-bution and q any Borel probability measure on Rd. If the unscaled Gaussian-kernel drift Vp,q 
+
+of (1) vanishes on any non-empty open subset of Rd, then q = p.
+
+Corollary 1 restates theorem 1 in equilibrium form. The statement is about the unscaled drift 
+
+Vp,q , not about the friction-augmented Vγ = (1 − γ)V : at γ = 1 the latter vanishes trivially for every q, so the corollary does not by itself characterise the fixed points of DMF. This point is revisited in section 5. Taken together, these two results isolate complementary mechanisms rather than combining into a convergence theorem: proposition 1 gives a finite-horizon bound for the unnormalised surrogate, while theorem 1 identifies the unique zero of the unscaled Gaussian drift at the pop-ulation level. No quantitative rate of approach is established, and the experiments of section 4 use the Laplace kernel of Deng et al. [3], for which step (i) of the proof fails; an analogous identifiability statement for that kernel remains open (remark 4). 
+
+3.4 Practical Implementation 
+
+Friction schedule. We use γ as a hyperparameter that increases monotonically over training. The two-particle analysis of section 3.1 underestimates the actual instability for two reasons. First, each generated sample interacts with many repulsors rather than one. Second, the drift is approximated by a neural network, so inter-particle distances are perturbed at each step. Under these conditions, a schedule that starts near γ = 0 (favouring exploratory shifts towards 6the target) and reaches γ = 1 at the end of training (damping residual divergence via (14)) is a natural choice. In our experiments the linear schedule 
+
+γ(i) = iT − 1 , i ∈ { 0, . . . , T − 1}, (15) satisfies γ(0) = 0 and γ(T − 1) = 1 exactly, as required by proposition 1, and performed best among the variants we considered. 
+
+# 4 Experiments 
+
+4.1 Toy Examples 
+
+To validate the theoretical analysis, we construct a 2D toy problem where the target distribution is a Gaussian mixture 
+
+p1 =
+
+> 2
+
+X
+
+> k=1
+
+wk N (μk, Σk), (16) with components 
+
+μ1 = (0 , 0) , Σ1 = diag(1 , 1) , (17) 
+
+μ2 = (3 , 2) , Σ2 = Σ1, (18) and equal mixture weights w1 = w2 = 0 .5. The source distribution is a standard normal 
+
+p0 = N (0, I). We report the 2-dimensional Fr´ echet distance (FD; lower is better) between generated and target samples in table 1: DMF attains the lowest FD among the three methods, with OFM a close second and the frictionless DM substantially worse. Table 1: Quantitative comparison on the 2D Gaussian → Gaussian-mixture toy task. Lower is better. Training hyperparameters are detailed in the supplementary. Method 2D Fr´ echet distance ↓
+
+OFM [7] 0.0029 DM [3] 0.0726 DMF ( γ = 0 → 1, ours ) 0.0026 
+
+4.2 Domain Translation 
+
+We follow the protocol of Kornilov et al. [7], mapping samples between two attribute-conditioned subsets of the W latent space of the Adversarial Latent Autoencoder (ALAE) of Pidhorskyi et al. [13], trained on the Flickr-Faces-HQ dataset (FFHQ) of Karras et al. [6] at 1024 ×1024. Sample quality is evaluated by the Fr´ echet Inception Distance (FID) of Heusel et al. [4] and the CLIP Maximum Mean Discrepancy (CMMD) of Jayasumana et al. [5]. 
+
+Training setup. All three methods operate on the same ALAE latent features with the same optimiser settings. Quantitative results are reported in table 2; qualitative examples for six subjects are shown in fig. 2. DMF matches or exceeds OFM on both FID and CMMD while using roughly 16 × less training compute; qualitatively, the DMF column preserves identity features better than the frictionless DM. 7Table 2: Quantitative comparison on the FFHQ adult → child domain translation task. Best results are bolded. FID ↓ CMMD ↓ Training time, min OFM [7] 10.6282 0.0131 240 DM [3] 11.9357 0.0238 15 
+
+DMF ( γ = 0 → 1, ours ) 10.5810 0.0073 15 
+
+# 5 Discussion 
+
+Mechanism in the surrogate. By remark 1, the frictionless iteration has a non-trivial stable fixed point at a∗ = τ ln 2: every trajectory from a0 > 0 is attracted to this force-balance radius rather than to the target at y+ = 0 (fig. 1). The friction schedule γ(i) → 1 shrinks the per-step update to zero and halts the iteration at a state aT < a ∗ before it relaxes to the fixed point (fig. 1c). DMF therefore avoids the surrogate’s pathological attractor by not completing the approach to it. 
+
+Extrapolation to DMF training. Empirically, DMF improves over DM on FID (table 2). Two mechanisms are consistent with this improvement. At the sample level, the surrogate suggests that friction prevents local force-balance configurations of the form isolated by the two-particle analysis. At the NN-parameter level, the schedule γ(i) → 1 acts as an effective learning-rate annealing on the drift update, allowing the parameters to settle. Disentangling these contributions and establishing a rigorous link between the surrogate and the full batch-training outcome is left to future work. 
+
+What the two results give, and what they do not. The cumulative bound of proposi-tion 1 is a finite-horizon statement on the surrogate dynamics of DMF; it does not expand the per-step contraction region of the frictionless iteration, nor does it imply uniform boundedness as T → ∞ . The identifiability result (theorem 1) concerns the zeros of the unscaled Gaussian drift Vp,q rather than the schedule-dependent Vγ = (1 − γ)V used in DMF; at γ(T − 1) = 1 the latter vanishes trivially for every q, so the combination of the two results is not a convergence theorem for DMF. A quantitative rate of approach to that distribution is left to future work. 
+
+Limitations. The two-particle surrogate of section 3.1 is a deliberate simplification; the full dynamics involve many particles, a neural approximation of the drift, and the normalisers Zp, Z q
+
+that the surrogate drops. The identifiability theorem is specific to the Gaussian kernel — the analogous result for the Laplace kernel of our implementation is open (remark 4). 
+
+Future work. Four directions are natural. First, extending theorem 1 to the Laplace kernel, either by an analytic-continuation argument via cumulant-generating functions or by recovering a log-gradient-type identity for a different smoothed density. Second, a quantitative convergence rate to the equilibrium, closing the gap between the current bounded-trajectory statement and distributional convergence. Third, learned or data-dependent schedules γ(i, x ). Fourth, scaling studies beyond FFHQ, including class-conditional generation on ImageNet. 
+
+Broader impact. DMF inherits the capabilities and risks of any high-fidelity face generator. Because the experimental setting is unpaired translation between age groups, standard misuse risks apply (non-consensual edits, identity manipulation). We do not release trained checkpoints; our released code is intended only for methodological reproduction on public benchmarks. 8Figure 2: FFHQ adult → child domain translation. Columns, left to right: original adult image, DM, DMF ( γ(i) = i/ (T − 1)), OFM. 9Appendix 
+
+# A Proof of Theorem 1 (Identifiability under Gaussian kernel) 
+
+We restate theorem 1 for convenience and prove it in full. 
+
+Theorem 2 (Restatement of theorem 1) . Let p, q be Borel probability measures on Rd, d ≥ 1.Define the Gaussian kernel ψτ (z) = exp( −∥ z∥2/(2 τ 2)) for τ > 0, and, for any μ ∈ P (Rd), the kernel density estimator 
+
+Zμ(x) := 
+
+Z
+
+> Rd
+
+ψτ (x − y) dμ (y),
+
+and the drift 
+
+Vμ(x) := 1
+
+Zμ(x)
+
+Z
+
+> Rd
+
+ψτ (x − y)( y − x) dμ (y).
+
+Write Vp,q := Vp − Vq. If there exists a non-empty open set U ⊂ Rd on which Vp,q (x) = 0 for every x ∈ U , then p = q.Proof. We proceed in four steps. 
+
+Step 1 (Well-posedness). Since 0 < ψ τ ≤ 1 and μ is a probability measure, Zμ(x) is a finite positive real number for every x ∈ Rd and every μ ∈ P (Rd). In particular Zp, Z q > 0 pointwise on Rd.
+
+Step 2 (Log-gradient identity). The map x 7 → ψτ (x − y) is C∞ for every y ∈ Rd, and 
+
+∇xψτ (x − y) = − x − yτ 2 ψτ (x − y) = y − xτ 2 ψτ (x − y).
+
+The Gaussian factor bounds the integrand uniformly: the scalar map r 7 → r e −r2/(2 τ 2) attains its maximum τ / √e on [0 , ∞), so for every y ∈ Rd,
+
+∇xψτ (x − y) = |x − y|
+
+τ 2 ψτ (x − y) ≤ 1
+
+τ √e .
+
+This bound is independent of y and x, hence integrable against any probability measure μ;dominated convergence justifies differentiation under the integral sign without any moment assumption on μ. Hence 
+
+∇xZμ(x) = 
+
+Z
+
+> Rd
+
+y − xτ 2 ψτ (x − y) dμ (y) = Zμ(x) Vμ(x)
+
+τ 2 . (19) Dividing by Zμ(x) > 0 gives the identity 
+
+Vμ(x) = τ 2 ∇x log Zμ(x), x ∈ Rd. (20) 
+
+Step 3 (Real-analytic extension). We show that Zμ extends to an entire function on Cd,so that its restriction to Rd is real-analytic. For z ∈ Cd define 
+
+Zμ(z) := 
+
+Z
+
+> Rd
+
+exp 
+
+
+
+− 12τ 2
+
+> d
+
+X
+
+> j=1
+
+(zj − yj )2
+
+dμ (y),
+
+10 where the inner sum is the complex bilinear form, not ∥z − y∥2. Write z = x + iξ with x, ξ ∈ Rd.Then dX
+
+> j=1
+
+(zj − yj )2 = ∥x − y∥2 − ∥ ξ∥2 + 2 i ξ ·(x − y),
+
+so that the modulus of the integrand equals ψτ (x − y) exp( ∥ξ∥2/(2 τ 2)). On any compact set 
+
+K ⊂ Cd we have sup z∈K ∥ξ∥ ≤ RK for some RK < ∞, and ψτ (x − y) ≤ 1; hence the integrand is uniformly bounded by exp( R2 
+
+> K
+
+/(2 τ 2)) and the integral converges absolutely and uniformly on K. Since the integrand is holomorphic in z for each fixed y and is uniformly integrable on compact subsets of Cd, Morera’s theorem combined with Fubini implies that z 7 → Zμ(z) is holomorphic on Cd. Its restriction to Rd is therefore real-analytic; so is log Zμ (since Zμ > 0) and so is log Zp − log Zq.
+
+Step 4 (Propagation and Fourier inversion). By (20) and hypothesis, ∇x log( Zp/Z q)( x) = 
+
+Vp,q (x)/τ 2 = 0 for every x ∈ U . The function log Zp − log Zq is real-analytic (Step 3), so every partial derivative of it is real-analytic. By the identity theorem for real-analytic functions on the connected domain Rd, a real-analytic function that vanishes on the non-empty open set U vanishes everywhere. Applying this to each component of ∇ log( Zp/Z q), we conclude 
+
+∇x log( Zp(x)/Z q(x)) = 0 for every x ∈ Rd, hence there exists a constant c ∈ R with 
+
+Zp(x) = ec Zq(x), x ∈ Rd.
+
+Integrating: by Fubini, 
+
+Z
+
+> Rd
+
+Zμ(x) dx =
+
+Z
+
+> Rd
+
+Z
+
+> Rd
+
+ψτ (x − y) dμ (y) dx =
+
+Z
+
+> Rd
+
+ψτ (z) dz = (2 πτ 2)d/ 2,
+
+so R Zp = R Zq = (2 πτ 2)d/ 2, forcing ec = 1. Therefore Zp ≡ Zq, i.e. p ∗ ψτ = q ∗ ψτ pointwise. Both sides are non-negative, bounded, and integrable: Zp, Z q ≤ 1 pointwise and R Zμ dx =(2 πτ 2)d/ 2 (Fubini), so Zp, Z q ∈ L1(Rd) ∩ L∞(Rd). The L1 Fourier transform is therefore well-defined; the convolution theorem for the Fourier transform of a finite measure with an L1
+
+function gives ˆp(ω) ˆψτ (ω) = ˆq(ω) ˆψτ (ω), ω ∈ Rd.
+
+The Gaussian’s Fourier transform ˆψτ (ω) = (2 πτ 2)d/ 2 exp( −τ 2∥ω∥2/2) is strictly positive every-where, so we may divide: ˆp(ω) = ˆ q(ω) on Rd. By the uniqueness theorem for characteristic functions of probability measures (L´ evy’s theorem), p = q.
+
+Remark 4 (Laplace kernel) . The publicly released DM implementation and our code both use the Laplace kernel ψLτ (z) = exp( −∥ z∥/τ ). Two steps of the proof above fail for this kernel. First, the log-gradient identity (19) depends on ∇z ψτ (z) ∝ z ψ τ (z), which holds for the Gaussian but not for the Laplace kernel, whose gradient ∇z ψLτ (z) = −(z/τ ∥z∥)ψLτ (z) carries a non-polynomial factor 1 /∥z∥. Second, ψLτ is not real-analytic at z = 0; consequently Zμ = μ ∗ ψLτ need not be real-analytic (take μ = δ0 to see that Zδ0 = ψLτ itself is not real-analytic at x = 0), so the identity-theorem argument of Step 3 does not apply either. What does extend is Fourier injectivity : the Laplace kernel’s Fourier transform ˆψLτ (ω) ∝ (1 + τ 2∥ω∥2)−(d+1) /2 is strictly positive on Rd, so 
+
+p ∗ ψLτ = q ∗ ψLτ implies p = q. Any route that establishes p ∗ ψLτ = q ∗ ψLτ from Vp,q ≡ 0 in the Laplace case therefore suffices; we leave a rigorous treatment (e.g. via analytic continuation of cumulant-generating functions of compactly supported p, q ) as future work. For DM/DMF implementations, switching the kernel from Laplace to Gaussian is a three-line change and brings the population-level drift-equilibrium analysis into alignment with the kernel used in training; it does not, by itself, extend theorem 1 to finite-batch neural optimisation. 11 B Second-order DMF: stability and cumulative bound 
+
+The main text uses the first-order friction update of (12), which scales the drift force . This appendix analyses a velocity-damping alternative that scales the velocity directly, equivalent to a heavy-ball iteration with time-varying momentum coefficient 1 − γ(i) (definition 1 below). We show that the variant does not enlarge the unstable regime η ≥ 0, and its cumulative bound is strictly looser than proposition 1 by a factor of exp(( ηmax + 1) T / 2). The first-order form is retained throughout the main text; the analysis below is included for completeness and as a starting point for a momentum-based variant. 
+
+Definition 1 (Second-order DMF) . Given a friction schedule γ : {0, . . . , T − 1} → [0 , 1] and an initial velocity v0 = 0, the second-order DMF update is 
+
+vi+1 = (1 − γ(i)) vi + V (xi), xi+1 = xi + vi+1 . (21) 
+
+B.1 Heavy-ball equivalence 
+
+Proposition 2 (Heavy-ball form) . For the second-order DMF update (21) with v0 = 0 , the position iterates satisfy, for every i ≥ 1,
+
+xi+1 = xi + V (xi) + (1 − γ(i))  xi − xi−1.
+
+Proof. From the update, vi = xi − xi−1 for i ≥ 1. Substituting into vi+1 = (1 − γ(i)) vi + V (xi)gives xi+1 − xi = (1 − γ(i))( xi − xi−1) + V (xi), which rearranges to the stated identity. Proposition 2 identifies the second-order DMF update with the classical Polyak heavy-ball method [14] applied to the drift field V with a time-varying momentum coefficient β(i) := 1 − γ(i). 
+
+B.2 Per-step spectral stability in the linearised two-particle regime 
+
+We linearise as in section 3.1: near the target y+ = 0, the drift on the particle x1 takes the form V (x) = η x with η = 2 kd − kt ∈ R (positive in the unstable regime, non-positive in the stable regime). For a fixed momentum coefficient β ∈ [0 , 1] the augmented state si := ( xi, v i)⊤
+
+satisfies si+1 = M (β) si with 
+
+M (β) = 
+
+1 + η βη β
+
+
+
+.
+
+Proposition 3 (Spectrum of M (β)) . det M (β) = β, tr M (β) = 1+ η +β, and the characteristic polynomial is 
+
+χβ (λ) = λ2 − (1 + η + β)λ + β. 
+
+The discrete spectral radius satisfies ρ(M (β)) < 1 if and only if the following three conditions jointly hold: 
+
+(i) |det M (β)| = β < 1,
+
+(ii) 1 + tr M (β) + det M (β) = 2 + η + 2 β > 0,
+
+(iii) 1 − tr M (β) + det M (β) = −η > 0.
+
+For η ≥ 0 no β ∈ [0 , 1) makes M (β) stable; the second-order update therefore does not enlarge the per-step stability region of the first-order update. 
+
+12 Proof. The determinant computation is direct: (1 + η)β − ηβ = β. The trace and characteristic polynomial are then immediate. Conditions (i)-(iii) are the Jury/Schur-Cohn criterion for a real quadratic polynomial to have both roots strictly inside the unit disc [15, §4.3]. For η ≥ 0, condition (iii) fails, so at least one eigenvalue of M (β) lies on or outside the unit circle. 
+
+Remark 5. For η > 0 the spectral radius of M (β) exceeds 1 for every fixed β ∈ [0 , 1). Adding Polyak momentum does not stabilise the first-order linear system in the unstable regime. 
+
+B.3 Cumulative bound under a monotone friction schedule 
+
+Since per-step stability is unchanged by the addition of momentum, any benefit of the second-order update must come from the non-stationary schedule. 
+
+Proposition 4 (Cumulative bound for the second-order iteration) . Assume the per-step margin 
+
+ηi = 2 kd(ai) − kt(ai) is non-negative for every i ∈ { 0, . . . , T − 1} (locally repulsive regime) and satisfies ηi ≤ ηmax for some ηmax ≥ 0. Under the linear schedule γ(i) = i/ (T − 1) , the second-order surrogate trajectory starting from (x0, 0) satisfies 
+
+max  |xT |, |vT | ≤ | x0| exp  ηmax T + T / 2 = |x0| exp  (2 ηmax + 1) T / 2.
+
+Proof. Write β(i) = 1 − γ(i) = 1 − i/ (T − 1) and Mi := M (β(i)) with η = ηi. Under ηi ≥ 0, every entry of Mi is non-negative and 
+
+∥Mi∥∞ = max  (1 + ηi) + β(i), η i + β(i) = 1 + ηi + β(i) ≤ 1 + ηmax + β(i).
+
+By sub-multiplicativity and induction (with v0 = 0, so ∥s0∥∞ = |x0|), 
+
+∥sT ∥∞ ≤ 
+
+> T−1
+
+Y
+
+> i=0
+
+ 1 + ηmax + β(i) |x0|.
+
+Taking logarithms and using ln(1 + x) ≤ x for x ≥ 0:  
+
+> T−1
+
+X
+
+> i=0
+
+ln  1 + ηmax + β(i) ≤ ηmax T + 
+
+> T−1
+
+X
+
+> i=0
+
+
+
+1 − iT −1
+
+
+
+= ηmax T + T / 2,
+
+which gives ∥sT ∥∞ ≤ | x0| exp( ηmax T + T / 2) and rearranges to the stated form. 
+
+Remark 6. Proposition 4 is stated under ηi ≥ 0. In the two-particle surrogate the per-step margin ηi = 2 kd(ai) − kt(ai) additionally satisfies ηi ≥ − 1/8, so the mixed regime (locally repulsive and locally attractive steps interleaving) is bounded by the same argument with ηi
+
+replaced by |ηi| ≤ max( ηmax , 1/8) inside ∥Mi∥∞. The resulting bound replaces ηmax in the exponent by max( ηmax , 1/8) and is therefore only a constant worse than proposition 4 for ηmax ≥
+
+1/8. 
+
+Remark 7 (Comparison with first-order) . Proposition 1 gave |εT | ≤ | ε0| exp( ηmax T / 2) for the first-order DMF; proposition 4 gives max( |xT |, |vT |) ≤ | x0| exp( ηmax T + T / 2) for the second-order variant. The second-order exponent exceeds the first-order exponent by ηmax T / 2 + T / 2 = (ηmax + 1) T / 2: half a T from momentum accumulation and an additional ηmax T / 2 because momentum amplifies the instability over time. The bounded-trajectory guarantee of the second-order update is therefore strictly weaker in this non-stationary analysis. Empirically, this upper-bound looseness need not reflect actual dynamics: momentum can provide variance reduction on stochastic gradient estimates. The analysis above establishes that the second-order update is well-defined, that it reduces to the baseline DM step as γ → 1, and that its trajectory remains bounded under the same assumption as the first-order variant. 13 Remark 8 (Late-training behaviour) . As γ → 1, β → 0, and the second-order update vi+1 =
+
+V (xi), xi+1 = xi + vi+1 = xi + V (xi) coincides with the first-order update at γ = 0, i.e. with the 
+
+baseline DM step. This is in contrast to first-order DMF, where γ → 1 freezes the trajectory. The two variants therefore implement different late-training regularisations: first-order DMF anneals the step magnitude to zero, while second-order DMF anneals the momentum to zero. A hybrid variant vi+1 = β(i)vi + (1 − γ(i)) V (xi) that combines both mechanisms recovers freezing at γ → 1 and is an obvious direction for further study. 
+
+# References 
+
+[1] Michael S. Albergo and Eric Vanden-Eijnden. Building normalizing flows with stochastic interpolants. In International Conference on Learning Representations (ICLR) , 2023. [2] Brandon Amos, Lei Xu, and J. Zico Kolter. Input convex neural networks. In International Conference on Machine Learning (ICML) , 2017. [3] Mingyang Deng, He Li, Tianhong Li, Yilun Du, and Kaiming He. Generative modeling via drifting. arXiv preprint arXiv:2602.04770 , February 2026. [4] Martin Heusel, Hubert Ramsauer, Thomas Unterthiner, Bernhard Nessler, and Sepp Hochreiter. GANs trained by a two time-scale update rule converge to a local Nash equi-librium. In Advances in Neural Information Processing Systems (NeurIPS) , 2017. [5] Sadeep Jayasumana, Srikumar Ramalingam, Andreas Veit, Daniel Glasner, Ayan Chakrabarti, and Sanjiv Kumar. Rethinking FID: Towards a better evaluation metric for image generation. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. [6] Tero Karras, Samuli Laine, and Timo Aila. A style-based generator architecture for gen-erative adversarial networks. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2019. [7] Nikita Kornilov, Petr Mokrov, Alexander Gasnikov, and Alexander Korotin. Optimal flow matching: Learning straight trajectories in just one step. In Advances in Neural Information Processing Systems (NeurIPS) , 2024. [8] Alexander Korotin, Lingxiao Li, Aude Genevay, Justin M. Solomon, Alexander Filippov, and Evgeny Burnaev. Do neural optimal transport solvers work? A continuous Wasserstein-2 benchmark. In Advances in Neural Information Processing Systems (NeurIPS) , 2021. [9] Alexander Korotin, Daniil Selikhanovych, and Evgeny Burnaev. Neural optimal transport. In International Conference on Learning Representations (ICLR) , 2023. [10] Yaron Lipman, Ricky T. Q. Chen, Heli Ben-Hamu, Maximilian Nickel, and Matthew Le. Flow matching for generative modeling. In International Conference on Learning Repre-sentations (ICLR) , 2023. [11] Xingchao Liu, Chengyue Gong, and Qiang Liu. Flow straight and fast: Learning to generate and transfer data with rectified flow. In International Conference on Learning Representa-tions (ICLR) , 2023. [12] Ashok Makkuva, Amirhossein Taghvaei, Sewoong Oh, and Jason Lee. Optimal transport mapping via input convex neural networks. In International Conference on Machine Learn-ing (ICML) , 2020. [13] Stanislav Pidhorskyi, Donald A. Adjeroh, and Gianfranco Doretto. Adversarial latent 14 autoencoders. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. [14] Boris T. Polyak. Some methods of speeding up the convergence of iteration methods. USSR Computational Mathematics and Mathematical Physics , 4(5):1–17, 1964. [15] Saber N. Elaydi. An Introduction to Difference Equations . Springer, 3rd edition, 2005. [16] Yang Song, Jascha Sohl-Dickstein, Diederik P. Kingma, Abhishek Kumar, Stefano Ermon, and Ben Poole. Score-based generative modeling through stochastic differential equations. In International Conference on Learning Representations (ICLR) , 2021. [17] Alexander Tong, Kilian Fatras, Nikolay Malkin, Guillaume Huguet, Yanlei Zhang, Jarrid Rector-Brooks, Guy Wolf, and Yoshua Bengio. Improving and generalizing flow-based generative models with minibatch optimal transport. Transactions on Machine Learning Research (TMLR) , 2024. [18] Max Welling and Yee Whye Teh. Bayesian learning via stochastic gradient Langevin dy-namics. In International Conference on Machine Learning (ICML) , 2011. 15
