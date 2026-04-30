@@ -1,0 +1,1069 @@
+Title: 2604.21063v1.pdf
+
+URL Source: https://arxiv.org/pdf/2604.21063v1
+
+Published Time: Fri, 24 Apr 2026 00:10:16 GMT
+
+Number of Pages: 43
+
+Markdown Content:
+1
+
+# Automated Extraction of Pharmacokinetic Parameters from 
+
+# Structured XML Scientific Articles: Enhancing Data Accessibility at 
+
+# Scale 
+
+Remya Ampadi Ramachandran 1,2,3 , Lisa A. Tell 4 , Sidharth Rai 1 , Nuwan Millagaha Gedara 1,Hossein Sholehrasa 1,2,5 , Jim E. Riviere 1,2 , Majid Jaberi-Douraki 1,2,3, *  
+
+> 1
+
+1DATA Consortium, www.1DATA.life, Kansas State University Olathe, Olathe, KS, USA.  
+
+> 2
+
+Food Animal Residue Avoidance and Databank Program (FARAD), Kansas State University Olathe, Olathe, KS, USA.  
+
+> 3
+
+Department of Mathematics, Kansas State University, Manhattan, KS, United States  
+
+> 4
+
+FARAD, Department of Medicine and Epidemiology, School of Veterinary Medicine, University of California-Davis, Davis, CA  
+
+> 5
+
+Department of Computer Science, Kansas State University, Manhattan, KS, United States 
+
+* Corresponding Author: jaberi@k-state.edu 2
+
+# Abstract 
+
+In the field of pharmacology and drug development, there is a notable absence of centralized, 
+
+comprehensive, and up-to-date repositories of pharmacokinetic (PK) data. This poses a significant 
+
+challenge for research and development (R&D) as it can be a time-consuming and challenging 
+
+task to collect all the required quantitative PK parameters from diverse scientific publications. This 
+
+quantitative PK information is predominantly organized in tabular format, mostly available as 
+
+XML, HTML, or PDF files within various online repositories and scientific publications, including 
+
+supplementary materials. This makes tables one of the crucial components and information 
+
+elements of scientific or regulatory documents as they are commonly utilized to present 
+
+quantitative information. Extracting data from tables is typically a labor-intensive process, and 
+
+alternative automated machine learning models may struggle to accurately detect and extract the 
+
+relevant data due to the complex nature and diverse layouts of tabular data. The difficulty of 
+
+information extraction and reading order detection is largely dependent on the structural 
+
+complexity of the tables. Efforts to understand tables should prioritize capturing the content of 
+
+table cells in a manner that aligns with how a human reader naturally comprehends the information. 
+
+The Food Animal Residue Avoidance data bank (FARAD) team has been manually extracting 
+
+tabular data and other information from literature and regulatory agencies for over 40 years. 
+
+However, there is now an urgent need to automate this process due to the large volume of 
+
+publications released daily. The accuracy of this task has become increasingly challenging, as 
+
+manual extraction is tedious and prone to errors, especially given the staffing shortages we are 
+
+currently facing. This necessitates the development of AI algorithms for table detection and 
+
+extraction that are able to precisely handle cells organized according to the table structure, as 
+
+indicated by column and/or row header information. The objective of this paper is to address the 
+
+knowledge gap by introducing a system that automates the extraction and formatting of data from 
+
+tables found in published documents, while also taking reading order detection into account. The 
+
+proposed system encompasses a comprehensive approach to table data extraction that systemically 
+
+addresses a wide range of both simple and complex layouts. Our results show that the extraction 
+
+system can effectively and efficiently collect PK data from tables in the XML format of scientific 
+
+literature. 3
+
+Keywords : Text and data mining, pharmacokinetics, automated algorithm, table extraction, 
+
+large-scale information mining 4
+
+# Introduction 
+
+The primary objective of pharmacology and drug development is to discover and optimize therapeutic compounds that exhibit favorable pharmacokinetic (PK) and pharmacodynamic (PD) properties. Both in human and veterinary medicine, there is a compelling emphasis on comprehending the PK properties of chemical substances and pharmaceutical drugs. The PK properties of a drug play a critical role in the drug discovery process, as a poorly designed study with an incorrect dosing threshold can significantly jeopardize the overall safety profile as well as the efficacy of a new drug and may lead to its termination during the clinical development phase [1,2]. The druggability of a compound largely hinges on its metabolism and PK properties. These aspects pose significant challenges in the field of pharmaceutical research and development (R&D) [3]. Additionally, there is a notable lack of centralized, comprehensive, and up-to-date repositories for PK data within the drug development pipeline. This absence makes it time-consuming and difficult to gather the necessary quantitative PK parameters from various scientific publications. For over 40 years, the Food Animal Residue Avoidance Databank (FARAD) team has manually extracted tabular data and other information from literature and regulatory agencies. However, with the increasing volume of daily publications, there is an urgent need to automate this process. Manual extraction has become increasingly challenging, as it is tedious and prone to errors, especially given the current staffing shortages we are facing. 
+
+Improving PK predictions of novel chemical entities or drugs can be achieved by leveraging knowledge and understandings gathered from previous studies conducted on other compounds. However, the process of searching for, curating, and standardizing the relevant PK information from scientific literature still presents a constraint in the development of robust algorithms aimed at enhancing the preclinical and clinical phases of drug development. Collecting and compiling all the essential quantitative PK parameters from scientific publications for R&D purposes is a challenging task. Furthermore, the quantitative PK data in scientific publications is commonly presented within tables, including supplementary data, which can often exhibit complexity and can be challenging to interpret accurately. This complexity further complicates the task of detecting and converting the information into a scientifically meaningful order. 
+
+These tables can be quite complex, to the extent that even human readers may struggle to fully comprehend and interpret their content. Therefore, the cognitive ability of the readers, their 5
+
+understanding of the material, and their knowledge acquisition may all be affected [4,5]. However, relying exclusively on manual data curation can impose limitations on our capacity to keep pace with the continuously expanding body of veterinary and biomedical literature. In the field of veterinary and biomedical research, the PubMed database witnesses an influx of more than 1 million papers every year, averaging approximately 2 papers every minute. As a result, the database has now amassed a repository of over 35 million published records including citations and abstracts, thereby complicating and delaying the process of discovering pertinent studies [6– 10]. In addition, the extraction of table data from scientific articles across various databases results in the creation of extensive file collections, making the data extraction process even more labor intensiveness, challenging, and exhausting [11]. 
+
+When it comes to literature mining, augmenting text mining workflows with table data extraction holds the potential to significantly improve performance by granting access to more structured or systematic datasets [12–16]. However, this field necessitates the development of innovative techniques such as dynamic and statistical text and data extraction. Natural language processing (NLP) and text mining offer various tools and methods for retrieving relevant information [17– 19]. In recent years, large language models (LLMs) have demonstrated the ability to efficiently and accurately extract data from published records and transform it into a structured format. These models have also shown the potential to address challenges faced in data extraction using NLP techniques. Various studies have confirmed that by leveraging NLP and LLMs, a robust repository of prior published data from scientific articles can be established [20–23]. However, the full capabilities of these LLMs in comprehending data from tables with diverse layouts, heterogeneous data, named entity recognition and classification, relationship identification and classification, and metric system identification and classification, still need further exploration [24,25]. Table size also plays a critical role. Larger tables make it difficult for LLMs to navigate back to previously viewed information, and the presence of multiple headers can further worsen usability challenges [24,25]. Extracting information from tables remains a challenge due to the lack of a systematic approach to handle diverse structures of tables found in literature. This can lead to reduced performance efficiency and difficulty in collecting relevant table information tailored to specific requirements. As part of the layout challenges, these workflows may also struggle to extract information from complex tables with spanning cells across rows, columns, or both. It is important to develop an algorithm capable of effectively managing merged rows and/or columns in data 6
+
+table, ensuring proper distribution, detecting the reading order, and accurately extracting information. However, creating such an algorithm is challenging due to the diverse array of table formats that exist. Automated systems encounter challenges when it comes to efficiently interpret this information [26–28]. Reading order detection is a crucial component of these techniques as it ensures that the data is interpreted in the same way as human readers comprehend it [29]. When it comes to extracting information from multi-dimensional tables, a step-by-step approach is necessary. This begins with identifying the table itself, followed by analyzing its function, structure, and meaning. Finally, the data can be extracted from each individual cell of the table using syntactic processing. This method has been shown to have a higher level of performance efficiency [17]. 
+
+Methodology 
+
+System overview 
+
+An overview of the table data extraction method presented in this study is shown in  Figure 1 . The process begins with a repository of articles in XML format gathered through our web crawler project [11]. Each article is then analyzed to extract tables, converted to desired layouts during the data collection phase. The data from these tables is curated into sentences, and each value is mapped to its corresponding PK parameters of interest. The results are then consolidated into a presentable format such as data frames or in CSV file. To elaborate further, main sources of data is the 1DATA article repository of XML versions of scientific literature published in the PK aspects of Anatomical Therapeutic Chemical (ATC) code QD, QJ, QH, QP [11]. Here, the ATC code QD corresponds to dermatologicals, QJ corresponds to anti-infectives for systemic use, QH corresponds to steroid anabolic growth promoters from systemic hormonal preparations excluding sex hormones and insulin, QP corresponds to antiparasitic products, insecticides, and repellents, and other drugs like ionophores [11,30]. This repository has files from different article providers such as Scopus, Springer, CrossRef through the corresponding API calls. The XML versions of scientific articles are mainly considered for this study. In the absence of XML articles, corresponding HTML files can be used when available. 
+
+The overall method consists of a combination of different processes including table detection, reading order detection, PK parameter identification, and PK data extraction. Once the table 7
+
+structure is identified by the proposed algorithm, then data recognition and extraction where the PK parameters were annotated based on the pharmacokinetics ontology is performed [31]. PK parameters, including drugs, AUCs, half-life, C max , T max , units, volume of distributions, clearances, matrices, and routes, are the key factors considered here. However, different names, including abbreviations and expansions, have been used to refer to parameters such as, CL = clearance, t1/2 = half-life, AUC = area under the concentration curve, and AUCR = AUC ratio as shown in Table 1 
+
+—This has caused them to undergo various iterations to conform to a standard pattern. In this way, quantitative measures such as dose, duration, and PK parameters were identified and extracted as a sequence of parameter name, unit, value . The XML table extraction methods described in this context are primarily concerned with four distinct table formats that are specifically related to PK analysis. To facilitate automated handling of these table layouts, the initial phase of the table extraction algorithm involves searching for table indices. 
+
+Table 1: Representative PK parameters and their alternatives used in the table data extraction module. 
+
+PK Parameters  Some Alternatives (case-insensitive) 
+
+Clearance  clearance|cl|cleared|cl/f|cl -f
+
+Area under the plasma concentration time curve  area under the curve|AUC| area under the 
+
+concentration curve 
+
+Time to peak drug concentration  Tmax|T max |T.?max)|(time.*Cmax)|(Time (of|to) Maximum concentration 
+
+Ratios of maximal plasma concentration  Cmax|C max |C max 
+
+Terminal half-life  Half-life|half life|t1/2)|t 1/2|T½ 8
+
+Figure 1: Overall workflow of table data extraction methodology from scientific articles of XML and HTML file types. 9
+
+Table Data Extraction 
+
+The first step in extracting PK parameters from tables involved identifying and extracting the 
+
+tabular forms from various XML file types of scientific articles, obtained from the 1DATA article 
+
+repository. The success of this process hinged on the selection of appropriate tags to locate and 
+
+retrieve the tables, which could differ depending on the article provider used (e.g., Scopus, 
+
+Springer, CrossRef APIs). For the XML files from Scopus database, the proposed algorithm 
+
+primarily focused on identifying tables designated with the tag element 'ce:table' . To construct a 
+
+tabular framework, information about the number of columns and rows in each table was extracted 
+
+using table elements such as ' tgroup ' and ' row ', respectively. By separating the table headers and 
+
+body using XML tags like ' thead ' and ' tbody ', the PK parameters in each table could be more easily 
+
+understood. A row-wise or column-wise sweep was conducted to extract the entry tag elements in 
+
+each cell and embed them into the output table framework. This same process was applied to files 
+
+from other article providers, with corresponding XML tag options for table detection. 
+
+The module for extracting table data automatically has a dedicated process for HTML files. While 
+
+the same method can be used for HTML files, it is treated as a separate module to avoid any 
+
+complications when dealing with multiple file types and tags at once. 
+
+Diversity of the Tables 
+
+The tables present in scientific articles frequently show a complex logical structure of 
+
+merged-column, merged-row, with spanning cells (as shown in Table 2 ), and each group may have 
+
+its own header. The table structure detection module is designed to recognize the internal structure 
+
+of a table, which is a key step in converting tables comprehensible by machines. In a situation like 
+
+this, such as when dealing with XML files, it is important to not only determine the number of 
+
+columns and rows using tgroup and row elements, but also accurately identify where merged-
+
+columns and merged-rows occur. This is achieved by selecting the appropriate tag elements, such 
+
+as namest and nameend for merged-columns, and morerows for merged-rows, within the table cell 
+
+entry elements. By utilizing these tags, the number of merged-columns and merged-rows can be 
+
+calculated, resulting in the creation of a comprehensive table structure ( Table 2a–b ). Likewise, 
+
+based on the number of merged cells identified in column-wise and row-wise traversal, proposed 
+
+algorithm splits spanning cells to replicate the desired cell content. Here, the spanning cells refers 
+
+to combining multiple cells into single larger cell, enabling a single cell to stretch across multiple 10 
+
+columns or rows [32,33]. In order to prevent any inconsistencies in string matching, XML tags for 
+
+special character styles like italics, bold, superscript, and subscript that are used in the table fields 
+
+are not considered. To avoid any errors in PK parameter recognition, we addressed the instances 
+
+of empty cells by inserting 'NaN' in place of them. 
+
+Table 2: a) An example of a complex table with spanning cells in column and row data fields, 
+
+and b) complete table structure generated by using the proposed algorithm. 
+
+a)  b)          
+
+> +-----------+---+---+---+
+> | A | B | C | D |
+> |+---+---+---+
+> ||E|
+> +---+---+---+---+---+---+
+> || c | c | c | c | c |
+> + I +---+---+---+---+---+
+> || c | c | c | c | c |
+> +---+---+---+---+---+---+
+> | J | c | c | c | ||
+> +---+---+---+---+---+---+
+> +---+---+---+---+---+---+
+> | A | A | A | B | C | D |
+> +---+---+---+---+---+---+
+> | A | A | A | E | E | E |
+> +---+---+---+---+---+---+
+> | I | c | c | c | c | c |
+> +---+---+---+---+---+---+
+> | I | c | c | c | c | c |
+> +---+---+---+---+---+---+
+> | J | c | c | c |NaN|NaN|
+> +---+---+---+---+---+---+
+
+Automated Reading Order Detection of Table Formats 
+
+As mentioned in the previous section, scientific articles that are accessible online present numerous table structures. By processing these tables independently, it is possible to extract information effectively. Moreover, a reliable data extraction algorithm should automatically identify these table formats without any loss of data. This module is implemented to determine specific table format and redirect it to the desired table data extraction algorithm. The selection of data parsing libraries for this study included evaluating third-party packages such as lxml [34], Beautiful Soup [35], and 
+
+PyQuery [36]. Given the future requirement to integrate both HTML and XML scientific articles for table data curation, the Beautiful Soup package was chosen for further use. Thus, the initial part of table pipeline is implemented using Beautiful Soup , a Python package for performing XML or HTML parsing [35]. With the parsed information, this module examines the table indices (both rows and columns) to identify the table format. Outcome will be flagged depending on the table format and triggers the desired table pipeline for content retrieval, as explained in the subsequent section. 
+
+For example, upon receiving an XML file for table extraction, the program will analyze the content of the file and identify the different table formats that are present. As representative examples, 11 
+
+articles including ‘10.1016/j.smallrumres.2018.01.001’ [37] , ‘ 10.1016/j.xphs.2017.03.032’ [38] ,and ‘10.1016/j.vetpar.2015.02.013’ [39], were considered where we have the common table structures ( Figure 2 ). 
+
+Figure 1 : Common table formats. These tables were obtained from the following XML documents: a) 10.1016/j.smallrumres.2018.01.001, b) 10.1016/j.xphs.2017.03.032, c) 10.1016/j.vetpar.2015.02.013, d) 10.1016/j.xphs.2017.03.032. 
+
+a)  b) 
+
+c) 
+
+d) 12 
+
+In this module, the program will check table indices, row and column headers, and the presence of spanning cells to confirm the table format, then control will be handed over to the table retrieval section based on the table format. For example, for the table formats presented in  Figure 2 a–d) ,different cases as detailed in the subsequent sections will be invoked. In this way, with 
+
+Beautiful Soup Python package and layout determination algorithm, table structure is decided to invoke the corresponding table data extraction module. An intermediate phase in this sequence involves handling of spanning cells to replicate the cell value based on the number of columns or rows present in the original table. This specific section holds significant importance as it can reproduce a table without merged-columns or merged-rows. By eliminating any cells that span across multiple rows or columns, it creates a more comprehensive and organized table. 
+
+PK Content Retrieval for Different Table Formats 
+
+Once the table structure has been established and a finalized data frame format has been created, the subsequent step is to extract necessary information from the fields or cells. Here, information is extracted by row-wise or column-wise traversal based on the table layout and generates a 
+
+parameter-value-unit combination for the selected PK parameters. The outcome of this algorithm is a reading order sentence format that helps in easy information extraction to the final .csv file format ( Figure 3 ). 
+
+Case 1: Common table format 
+
+This module functions by extracting table content by row-wise traversal while appending header row to each cell value. In this way, a sentence format is generated for each row of the table facilitating easier information extraction. An example of tables considered under this category is shown in  Figure 4 a and program extracted table is given in  Figure 4 b. This category is considered as one of the commonly used table formats where we have the PK parameter names listed as first column and information of column content or index is available in the first row of the table. Other important aspects of this module include identifying and extracting any drug name in the table title and appending at the end of extracted row data. 13 
+
+Case 2: Common table format - Transpose 
+
+Second category of tables also has very straight forward structure similar to Case 1, but its column appears to be transposed when compared to Case 1. In this case, to retrieve table information as a sentence, a column-wise reading option is activated and append the drug details at the end of it. 14 
+
+Scrape for Tables Figure 2: Flow chart representing the systematic workflow of table extraction algorithms from scraping the tables to extracting results in a .csv file format for research purposes. 15 
+
+If these conditions are not met, the table will instead be parsed column by column based on the table’s specific format. When dealing with these two scenarios, the first step is to locate the table's indices and title. From there, the table will be examined row by row, extracting the information as a string with spaces in between. 
+
+Case 3: Tables with merged column/spanning cells as header row 
+
+Tables having merged columns in the header row is a bit complicated as it can lead to information loss if not managed carefully ( Figure 5 a). This scenario is addressed by using a product function that replicates the merged header information to match with the original data columns ( Figure 5 b). It will generate a table having common structure ( Figure 5 c) which can be managed by row-wise traversal while appending the dosage and matrix information at the end of the sentence, followed by drug name from the table title. 
+
+Case 4: Tables with merged rows/spanning cells in the index column 
+
+Similar to case 3, algorithm to handle merged rows in the tables also uses a product function to replicate the missing information in the index column. Once the table structure is normalized, an algorithm that deals with column-wise table extraction is invoked to generate the sentence pattern. Here also, the dose information, matrices from the index column, and drug information from the table title will be appended at the end of each sentence. 
+
+For this, after identifying the table indices and title, merged cells are replicated based on the number columns available in the subsequent rows ( Figure 5 a-b ). Then a product function is enabled to parse the table, detect, and extract parameters in a sequence and generates the Outcome .
+
+Case 5: An advanced automated approach 
+
+In addition to managing cases on their own, a more sophisticated option has been created to extract table data from numerous XML files all at once and with complete automation. It gathers all the cases from case 1 to case 4 under a single scheme with the possibility of automatic table format determination and extraction of table data. To accomplish this task, the initial step is to iterate over table headers for drug, animal, matrix data, and PK parameters. For any single occurrence of these names, information corresponding to it is retrieved and stored in variables for subsequent usage. Once the table header is determined, the program will iterate over each cell, decide on the variable 16 
+
+category present, and then retrieve data and unit information, until the end of a row is reached. The same process is continued for all the rows present in the table and generates a meaningful sentence with a combination of PK parameter, value, unit, matrix, dose, route, and drug information. In another scenario, where multiple drugs, animals, or matrices are found in the table header, the initial data storage is restricted. Such information is handled when we iterate over each cell to retrieve table data to generate a meaningful sentence from each row. Another possibility with this method is the extraction of table data based on user needs. For example, if the PK data mining research is focused on clearance data, the PK parameters that are extracted from the tables include drug, dose, animal, route, and clearance values. Altogether, this method gives more flexibility to handle table data extraction irrespective of its outline. 
+
+# Results 
+
+Thousands of full-text scientific articles in XML file formats have been considered for table extraction in this study [11]. As discussed in the methodology section, XML parsing is performed using Beautiful Soup where it exclusively looks for available tables. Then for each table its layout is identified, and the desired table data extraction module is invoked. Results for the same articles   
+
+> ‘10.1016/j.smallrumres.2018.01.001’; ‘10.1016/j.vetpar.2015.02.013’
+
+discussed in the methodology section are detailed here . 
+
+> As a result, one of the tables from ‘ 10.1016/j.smallrumres.2018.01.001 ’is identified as common table format with the possibility of row-wise parsing. Parsed results for the selected table are shown in
+
+Figure 4 , having PK Parameter, unit, value, followed by header line and drug name present in the table title, for each row. An example of table identified using Beautiful Soup ’s findAll method for the XML file version is shown in  Figure 4 a. While extracting the table blank content has been replaced with ‘NaN’ for easy handling. Content retrieved here is in the same structured format, however, for data curation text and data mining studies unstructured data will be more helpful ( Figure 4 b). Considering this fact, further data extraction is planned with focus given on extracting the PK parameters and its interventions matching the identifiers that are set in the defined procedure. It will generate an outcome in an unstructured manner, following a row-wise curation criterion (Figure 4 c). For tables that have a transposed format, the curation path applied will be column-wise generating unstructured sentence case outcome. The result of table information extracted as a 17 
+
+sentence which has drug name MEL from the table title is appended at the end of each row data. 
+
+[Note: ║ indicates separation between table rows] .
+
+For the article ‘10.1016/j.vetpar.2015.02.013’, table formats available need to be considered under Case 3 scenario. Structured data outcome obtained for one of the tables present in this article is given below in  Figure 5 . Here the parsed string has PK parameter, unit, value, followed by its dosage value and unit, matrix value, from the header row, and drug name from the table title. 
+
+Figure 5 a shows the retrieved table using Beautiful Soup ’s findAll method for the article. Initial scenario replicates the spanning cells in the content-data row based on the number of columns, while the spanning cells in the header row is handled with the indexing option. Resulting tables that have structured data format is shown in  Figure 5 b–c . In order to convert it to an unstructured form, a product function is employed as discussed in the Case 3 method section. Data extraction here also focuses on PK parameters and its interventions matching the identifiers that are set in the defined procedure and generate an unstructured outcome ( Figure 5 d). Tables (Case 4) with a transposed structure of Case 3 are handled by considering the product from PK parameters in the table header row and matrices in the index column. 
+
+Every table within the XML file is processed in the same manner. It is transformed into a string format according to the specific table format and subsequently sent to the content retrieval module. Here all the information from the table is recorded in a .csv file with details such as PK parameters, units, values, followed by the entire string which is row-wise or column-wise parsed table content. An example of csv result file for the Scopus XML articles is given in Supplementary Material S1 .18 
+
+AUC h*ng/mL 26499 ± 4233 Parameter NaN Units NaN IV Mean SD. MEL ║ K10 1/h 0.12 ± 0.03 Parameter NaN Units NaN IV Mean SD. MEL ║ K12 1/h 0.64 ± 0.38 ║ K21 1/h 1.13 ± 0.71 Parameter NaN Units NaN IV Mean SD. MEL ║ K10_HL h 6.07 ± 1.18 Parameter NaN Units NaN IV 
+
+Mean SD. MEL ║Alpha 1/h 1.82 ± 1.09 Parameter NaN Units NaN IV Mean SD. MEL ║ Beta 1/h 0.07 ± 0.02 Parameter NaN U nits NaN IV Mean 
+
+SD. MEL ║ Alpha_HL h 0.53 ± 0.35 Parameter NaN Units NaN IV Mean SD. MEL ║ Beta_HL h 9.96 ± 2.51 Parameter NaN Units NaN IV Mean SD. MEL ║ A ng/mL 1223 ± 153.71 Parameter NaN Units NaN IV Mean SD. MEL ║ B ng/mL 1840 ± 357.69 Parameter NaN Units NaN IV Mean 
+
+SD. MEL ║ AUMC h*h*ng/mL 374373 ± 120223 Parameter NaN Units NaN IV Mean SD. MEL ║ MRT h 13.88 ± 3.36 Parameter NaN Units NaN IV Mean SD. MEL ║ CL mL/h/kg 19.38 ± 3.86 Parameter NaN Units NaN IV Mean SD. MEL ║ Vss mL/kg 262.37 ± 50.74 Paramete r NaN Units NaN 
+
+IV Mean SD. MEL ║ V1 mL/kg 165.76 ± 23.06 Parameter NaN Units NaN IV Mean SD. MEL ║ V2 mL/kg 96.61 ± 31.07 Parameter NaN Units NaN 
+
+IV Mean SD. MEL 
+
+Figure 3: Case 1: a) Table extracted from the following XML document: https://doi.org/10.1016/j.smallrumres.2018.01.001, b) program extracted table, c) Result of table information extracted as a sentence which has drug name MEL from the table title, 
+
+appended at the end of each row data. [Note: ║ indicates separation between table rows] Sentence format outcome with parameter, value, units. 
+
+a)  b)
+
+c)19 
+
+C max ng/ml 15.48 ± 6.64 0.5 mg/kg BW n = 5 _Plasma eprinomectin. ║ C max ng/ml 5.34 ± 2.23 0.5 mg/kg BW n = 5 _Milk eprinomectin. ║ C max ng/ml 38.10 ± 
+
+8.57 1 mg/kg BW n = 5 _Plasma eprinomectin. ║C max ng/ml 11.47 ± 2.23 1 mg/kg BW n = 5 _Milk eprinomectin. ║ T max d 0.50.5 mg/kg BW n = 5 
+
+_Plasma eprinomectin. ║ T max d 0.50.5 mg/kg BW n = 5 _Milk eprinomectin. ║T max d 0.51 mg/kg BW n = 5 _Plasma eprinomectin. ║ T max d 0.51 mg/kg BW n = 5 _Milk eprinomectin. ║ T 1/2 elim d 1.36 ± 0.38 0.5 mg/kg BW n = 5 _Plasma eprinomectin. ║ T 1/2 elim d 1.33 ± 0.37 0.5 mg/kg BW n = 5 _Milk eprinomectin. ║ T 1/2 elim d 0.95 ± 0.17 1 mg/kg BW n = 5 _Plasma eprinomectin. ║ T 1/2 elim d 0.99 ± 0.08 1 mg/kg BW n = 5 _Milk eprinomectin. ║ MRT d1.02 
+
+± 0.12 0.5 mg/kg BW n = 5 _Plasma eprinomectin. ║ MRT d0.97 ± 0.19 0.5 mg/kg BW n = 5 _Milk eprinomectin. ║ MRT d1.12 ± 0.15 1 mg/kg BW n = 5 _Plasma eprinomectin. ║ MRT d1.11 ± 0.14 1 mg/kg BW n = 5 _Milk eprinomectin. ║ AUC ng d/ml 17.62 ± 9.68 0.5 mg/kg BW n = 5 _Plasma eprinomectin. ║ AUC ng d/ml 
+
+6.56 ± 4.00 0.5 mg/kg BW n = 5 _Milk eprinomectin. ║ AUC ng d/ml 45.32 ± 13.90 1 mg/kg BW n = 5 _Plasma eprinomectin. ║ AUC ng d/ml 13.88 ± 1.77 1 mg/kg 
+
+BW n = 5 _Milk eprinomectin. ║ AUC milk to plasma ratio 0.36 ± 0.05 0.5 mg/kg BW n = 5 _Plasma eprinomectin. ║ AUC milk to plasma ratio 0.36 ± 0.05 0.5 
+
+mg/kg BW n = 5 _Milk eprinomectin. ║ AUC milk to plasma ratio 0.33 ± 0.08 1 mg/kg BW n = 5 _Plasma eprinomectin. ║ AUC milk to plasma ratio 0.33 ± 0.08 1 
+
+mg/kg BW n = 5 _Milk eprinomectin. ║ Dose fraction recovered in milk 0.43 ± 0.19 0.5 mg/kg BW n = 5 _Plasma eprinomectin. ║ Dose fraction recovered in milk 
+
+0.43 ± 0.19 0.5 mg/kg BW n = 5 _Milk eprinomectin. ║ Dose fraction recovered in milk 0.42 ± 0.06 1 mg/kg BW n = 5 _Plasma eprinomectin. ║ Dose fraction 
+
+recovered in milk 0.42 ± 0.06 1 mg/kg BW n = 5 _Milk eprinomectin. 
+
+Figure 4: Case 3: a) Table extracted from the XML document: https://doi.org/10.1016/j.vetpar.2015.02.013, b) – c) program extracted structured table, d) Sentence format outcome with parameter, value, units – Result of table information extracted as a sentence which has drug name eprinomectin from the table title, appended at the end of each row data. [Note: ║ indicates separation 
+
+between table rows] .
+
+a)  b)
+
+c)
+
+d) 20 
+
+Advanced approach: 
+
+A case study considered in the advanced method section is focused on clearance data with drug, dose, animal, route of administration, and clearance as the PK parameters of interest. Here, the table extraction algorithm parses through the XML file types and identifies the table layout. Then, the desired PK parameter, values, units are extracted, save the values in corresponding Python tempfile. Once the desired tables contents are extracted, a .csv file is produced with the given parameters of interest from all the XML tables which can be used for further analysis. 
+
+Results for the doi s (10.1016/j.ijpharm.2013.12.002 [40], 10.1016/j.xphs.2017.03.032 [38]) include drug, dosage, route of administration, animal, clearance and confirmed the algorithms compatibility to extract the drug and PK parameters of interest from the xml file content. For the table, shown below in  Figure 6 a (Table 2 of doi 10.1016/j.ijpharm.2013.12.002), the outcome includes tempfile to hold the selected parameters, values, followed by its units. It will then be transferred to a .csv file with each row detailing drug, dose, route of administration, animal, clearance. In this case, we have 5 rows for clearance data corresponding to five dosages. Data extracted from the selected table is shown in  Figure 6 c. For Table 3 of article with doi 
+
+10.1016/j.xphs.2017.03.032 ( Figure 6 b) with different table format is selected as a representative one. Clearance data extracted from the table is shown in  Figure 6 d.21 
+
+Drug Imidol, Dose 10.02 mg/kg, route po, animal rat, clearance 107.07±11.8 L/ h/ kg; Drug Imidol, Dose 30.25 mg/kg, route po, animal rat, clearance 108.1±.2 L/ h/ kg; Drug Imidol, Dose 7.55 mg/kg, route po, animal rat, clearance 101.9±24.81 L/ h/ kg; Drug Imidol, Dose 320.3 mg/kg, route po, animal rat, clearance 540.07±170.7 L/ h/ kg; Drug Imidol, Dose 10.02 mg/kg, route iv, animal rat, clearance 110.6±7.8 L/ h/ kg. 
+
+Drug Carboxylosartan, Dose 1 mg/kg, route IV, animal Dog1, clearance 16 mL/min/kg; Drug Carboxylosartan, Dose 1 mg/kg, route IV, animal Dog2, clearance 21 mL/min/kg. 
+
+Figure 5: Table extracted from the XML files for DOIs: a) /10.1016/j.ijpharm.2013.12.002, b) /10.1016/j.xphs.2017.03.032, c) – d) Clearance data outcome with other parameters of interest for the tables a), b) respectively. 
+
+a) 
+
+b) 
+
+c) 
+
+d) 22 
+
+# Discussion 
+
+Recognizing the structure of a table is important for machines to comprehend and extract relevant 
+
+data from it. While our algorithm provides a universal process to convert XML tables of varying 
+
+complexity, there are uncertainties related to the table layout and potential issues with the data 
+
+itself. The table header is particularly significant in comprehending the table's contents. When it 
+
+comes to XML table headers, they consist of multiple row tags that can contain header or table 
+
+data entry tags. The table body also includes both data and header tags. In a way, it increases the 
+
+complexity of conversion of table objects for further processing in programming languages which 
+
+may result in inconsistencies in the PK information due to the concurrent use of thead tags, or 
+
+entry tags, or a combination of both based on authors choice. Similarly, other table features such 
+
+as merged-column, merged-row, and spanning cells, also increase the complexity of tables. Even 
+
+though the proportion of span cells is usually low in a complicated table, they may contain more 
+
+semantic information when table headers are present in them. Therefore, recognizing complicated 
+
+table structures is an important part in the text and data mining of tables. The proposed algorithm 
+
+has the ability to identify intricate table arrangements, recognize table headers through header titles 
+
+or table data entry tags in merged-column, merged-row, or spanning cells, transform them into a 
+
+data frame, and eventually produce the necessary parameters and values. 
+
+In the realm of R&D, literature mining scientific articles is an essential tool for ensuring the 
+
+reproducibility of research information and facilitating comparison to other studies. While PDF 
+
+has long been the favored format for electronic scientific articles, XML and HTML file types are 
+
+growing in popularity due to their flexible information retrieval capabilities. This study aims to 
+
+develop a system for detecting and extracting tables from XML versions of scientific literature, 
+
+taking advantage of the structured organization and specific tags assigned to each file element, 
+
+including images, tables, and text content. The information taken from a table is transformed into 
+
+a sequence of words so that quantitative data, such as PK parameters, can be extracted and 
+
+reported. The proposed system involves various steps, including analyzing the table's layout to 
+
+detect the reading order, identifying, and extracting PK parameters, and storing the data with the 
+
+appropriate units provided in the table cells. Table 3 shows some of the table data extraction 
+
+methods present in literature. 23 
+
+Table 3: Literature review of existing table extraction methodologies. 
+
+Data  Source File Type  Description  Reference 
+
+Data tables  XML versions of 
+
+scientific articles 
+
+Table data extraction system: table extraction, data formatting, polymer name recognition, property specifier identification, and data extraction 
+
+Oka et al. 
+
+(2021)  [12] 
+
+Image-based 
+
+tables 
+
+PDF articles in 
+
+PubMed Central 
+
+Open Access 
+
+Subset 
+
+PubTabNet: image-based table recognition 
+
+using deep learning models 
+
+Zhong et al. 
+
+(2020)  [13] 
+
+Image-based 
+
+dataset 
+
+Web-based open-
+
+domain scientific 
+
+and business 
+
+documents 
+
+TableBank: automatic localization of table 
+
+regions based on bounding box 
+
+Li et al. 
+
+(2020)  [14] 
+
+Data tables  PDF and HTML documents 
+
+Automatic table data extraction method: data-
+
+mining method to automatically extract rapid 
+
+assay data from structured (table) data 
+
+Jaberi et al. 
+
+(2021)  [15] 
+
+LATEX table 
+
+snippets 
+
+arXiv PDF files  SciTSR: table structure recognition  Chi et al. 
+
+(2019)  [16] 
+
+Table images  Documents with 
+
+handwritten and 
+
+modern table 
+
+images 
+
+From the different table detection and 
+
+extraction methods discussed, NLPR_PAL 
+
+showed better performance in both detection 
+
+and extraction of table data. 
+
+Gao et al. 
+
+(2019)  [27] 
+
+Tables  open-access PDF 
+
+documents 
+
+A benchmarking tool to evaluate the 
+
+performance of table recognition and 
+
+extraction methods for neurological disorders 
+
+research 
+
+Adams et al. 
+
+(2022)  [28] 
+
+In addition, we have not only managed to acquire the data from the table, but we have also 
+
+organized it in a manner that holds significance with further studies. Through our semantic search 
+
+algorithm, the data is indexed and can be effortlessly located by researchers. This structured 
+
+pharmacokinetic data facilitates the reproduction and comparison of research with other studies. 
+
+Furthermore, we can apply this knowledge to predict drug-target interactions, as well as assist in 
+
+the development of potential drug-repurposing candidates. 
+
+Publications often are unsuccessful in offering important details when reporting PK data, which 
+
+makes it difficult to identify significant PK information and impossible to integrate and reuse the 
+
+data. For instance, when it comes to drugs, including dosage, strength, or route of administration, 24 
+
+in the corresponding table can be beneficial. This way, readers can easily find the information they 
+
+need without having to search through the entire text. There are additional instances where body 
+
+weights have not been documented, preventing the ability to convert to dosage per body weight 
+
+for the purpose of reproducibility. However, we extracted some of that information based on the 
+
+table title by appending it with table data described in the methodology. After conducting our 
+
+research, we propose a series of key recommendations for the dissemination of findings from 
+
+clinical studies results as a table in the field of pharmacokinetics: (i) clearly describe the data and 
+
+parameters: drug, dose, route of administration [41], and dosage forms [42], the more specific the 
+
+information, the better it can support future analysis; (ii) publish the actual concentration-time 
+
+values, in addition to derived or scaled parameters; (iii) provide details about the patient/individual 
+
+such as basic demographic and anthropometric information including age, species, bodyweight, 
+
+sex, and height. 
+
+Unstructured data is easy to access, but the most important PK data is often presented as tables in 
+
+scientific publications. As a result, it is essential to develop efficient methods and algorithms for 
+
+extracting table data from scientific literature. In this study, our aim is to enhance the reporting of 
+
+pharmacokinetic studies by making data representation and integration more accessible. This will 
+
+not only improve the reusability of pharmacokinetics information but also simplify the integration 
+
+of studies and computational models. Therefore, our data extraction methods will enable the 
+
+availability of data for improved pharmacokinetics research. This study has provided a data-mining 
+
+method for automatically extracting PK data from XML files which are common in the text domain 
+
+but with a specific target of table data extraction. 
+
+Compared to the rule-based DNN learning polymer data extraction model [12], our approach is 
+
+significant where the data extraction is not restricted to a limited number of drugs, polymers, or 
+
+articles. Our drug database contains millions of drugs curated to support advanced pharmacology 
+
+studies [43]. Other schemes reported in literature focus only on tables depicted as images 
+
+[13,14,27], which may not have a significant impact on the data collection. Also, when compared 
+
+to the PDF based table extraction schemes [15,16,28], our approach can easily be modified to 
+
+handle different file types and table formats. 25 
+
+Nevertheless, data are not always presented in the form of tables. Our current research is also 
+
+focused on developing a learned information extraction system to convert any text format of PK 
+
+data into structured data for further processing. PK drugs are used in modern animal agriculture, 
+
+including recommendations for safe withdrawal intervals of drugs and chemicals in 
+
+food-producing animals. This data can then be mined for use in animal agriculture. As part of the 
+
+data mining project, the aim is to create a comprehensive drug database that will assist FARAD in 
+
+its mission of improving animal health as well as promoting efficient and humane production 
+
+methods for livestock [43]. The proposed algorithm is an extension of the web crawling system 
+
+[11] and aims to enhance the FARAD PK database, which was previously a time-consuming and 
+
+tedious task. 
+
+Supplementary Material S2 displays certain table formats that achieved success and encountered 
+
+challenges with the proposed algorithm. Proposed table data extraction algorithm does not cover 
+
+tables depicted as images in scientific articles [44,45]. It is challenging to retrieve the compound or drug names when presented as numbers, for example in the Table 2 of article [46], table title is ‘Rat pharmacokinetic data for 8, 10 and 13’ and row data is Compound 8, 10, 13, were missing in the data identified and extracted by our table extraction algorithm. Another challenge that we need to tackle is the presence of PK data with both observed and predicted values. For example, in the Table 2 of article [47], the observed and predicted value of 68 compound’s PK parameters such as clearance, volume, bioavailability, and AUC, were not reported independently in the curated sentences. Examinations are being conducted to find ways to prevent the loss of significant data from these scenarios. 
+
+The present table data extraction study focuses on rule-based approaches for extracting PK parameters. Subsequent work has extended this framework by integrating both large language models (LLMs) and rule-based methods to improve PK parameter extraction without loss of information. These advancements are reported in our later publications [48–51], while this research remains ongoing, with future efforts directed toward comprehensive data extraction across relevant domains. 26 
+
+# Conclusion 
+
+This paper examines the automatic machine extraction of PK data from tables in XML versions of 
+
+scientific articles. In this system, we have learned about and solved important challenges in table 
+
+detection and extraction from XML file formats focusing on the pharmacokinetic domain. The 
+
+proposed system is an integration of five steps: table detection, table extraction, reading order 
+
+detection, PK data recognition with parameter specifier identification, and PK data extraction. 
+
+Moreover, our understanding of this information has enabled us to enhance the algorithms to obtain 
+
+a deeper understanding of the inherent reading sequence of the data, where the cells and headers 
+
+have a predetermined connection. In such situations, comprehending the order of the cell and 
+
+header features is crucial to transforming tables into meaningful knowledge. In summary, the 
+
+benefits of our system of automatically extracting and collecting PK parameters from tables 
+
+include the following: (i) accurately integrating and harmonizing pharmacokinetics information 
+
+from a wide range of studies and sources; (ii) applicable across a wide range of drugs or 
+
+compounds and gain insights into how well data is reported in various fields of the table; 
+
+(iii) decreasing the errors experienced by manual data collection; (iv) improved time and cost 
+
+effectiveness by limiting end-to-end manual intervention for data collection; (v) ability to handle 
+
+multiple documents simultaneously and efficiently; (vi) feasibility of real-time implementation of 
+
+tables extraction methods for dynamic XML sources; and (vii) ability to function for other file 
+
+formats such as HTML, JSON by identifying and updating specific table tags. 
+
+Acknowledgments 
+
+This work was supported by the USDA via the FARAD program and its support for the 1DATA 
+
+Consortium at Kansas State University. MJ-D also accepted funding from BioNexus KC for this 
+
+project. Neither USDA nor BioNexus KC had a direct role in this article. 
+
+Parts of this manuscript have been previously published in the proceedings of 23rd Biennial 
+
+Symposium of the American Academy of Veterinary Pharmacology and Therapeutics AAVPT 
+
+2025 [48] 
+
+[https://cdn.ymaws.com/www.aavpt.org/resource/resmgr/biennial_2025/proceedings_for_the_23 
+
+rd_aav.pdf , pages 42-47]. This submission represents a significantly revised and expanded version. 27 
+
+Conflict of Interest 
+
+The authors declare that the research was conducted in the absence of any commercial or financial 
+
+relationships that could be construed as a potential conflict of interest. 28 
+
+# References 
+
+1. Glassman PM, Muzykantov VR. Pharmacokinetic and pharmacodynamic properties of drug delivery systems. Journal of Pharmacology and Experimental Therapeutics. 2019;370(3):570– 80. 
+
+2. Gallo JM. Pharmacokinetic/pharmacodynamic-driven drug development. Mount Sinai Journal of Medicine: A Journal of Translational and Personalized Medicine. 2010;77(4):381–8. 
+
+3. Keller TH, Pichota A, Yin Z. A practical view of ‘druggability.’ Current Opinion in Chemical Biology. 2006 Aug 1;Next-generation therapeutics10(4):357–61. doi:10.1016/j.cbpa.2006.06.014 
+
+4. Wright P. Using tabulated information. Ergonomics. 1968;11(4):331–43. 
+
+5. Wright P, Fox K. Presenting information in tables. Applied Ergonomics. 1970;1(4):234–42. 
+
+6. Haroon A. PubMed (http://www. ncbi. nlm. nih. gov/PubMed). Lancet. 1998. 
+
+7. Landhuis E. Scientific literature: Information overload. Nature. 2016 Jul;535(7612):7612. doi:10.1038/nj7612-457a 
+
+8. PubMed [Internet]. [cited 2023 May 23]. About. Available from: https://pubmed.ncbi.nlm.nih.gov/about/ 
+
+9. Nawaz R, Thompson P, Ananiadou S. Negated bio-events: analysis and identification. BMC bioinformatics. 2013;14(1):1–21. 
+
+10. Hull D, Pettifer SR, Kell DB. Defrosting the Digital Library: Bibliographic Tools for the Next Generation Web. PLOS Computational Biology. 2008 Oct 31;4(10):e1000204. doi:10.1371/journal.pcbi.1000204 
+
+11. Ampadi Ramachandran R, Tell LA, Rai S, Millagaha Gedara NI, Xu X, Riviere JE, et al. An Automated Customizable Live Web Crawler for Curation of Comparative Pharmacokinetic Data: An Intelligent Compilation of Research-Based Comprehensive Article Repository. Pharmaceutics. 2023 May;15(5):5. doi:10.3390/pharmaceutics15051384 
+
+12. Oka H, Yoshizawa A, Shindo H, Matsumoto Y, Ishii M. Machine extraction of polymer data from tables using XML versions of scientific articles. Science and Technology of Advanced Materials: Methods. 2021;1(1):12–23. 
+
+13. Zhong X, ShafieiBavani E, Jimeno Yepes A. Image-based table recognition: data, model, and evaluation. In: European Conference on Computer Vision. Springer; 2020. p. 564–80. 
+
+14. Li M, Cui L, Huang S, Wei F, Zhou M, Li Z. Tablebank: Table benchmark for image-based table detection and recognition. In: Proceedings of The 12th language resources and evaluation conference.  2020. p. 1918–25. 29 
+
+15. Jaberi-Douraki M, Taghian Dinani S, Millagaha Gedara NI, Xu X, Richards E, Maunsell F, et al.  Large-Scale Data Mining of Rapid Residue Detection Assay Data From HTML and PDF Documents: Improving Data Access and Visualization for Veterinarians. Frontiers in veterinary science. 2021;8:674730. 
+
+16. Chi Z, Huang H, Xu HD, Yu H, Yin W, Mao XL. Complicated table structure recognition. arXiv preprint arXiv:190804729. 2019. 
+
+17. Milosevic N, Gregson C, Hernandez R, Nenadic G. A framework for information extraction from tables in biomedical literature. International Journal on Document Analysis and Recognition (IJDAR). 2019;22(1):55–78. 
+
+18. Vial F, Tedder A. Tapping the vast potential of the data deluge in small-scale food-animal production businesses: challenges to near real-time data analysis and interpretation. Frontiers in veterinary science. 2017;4:120. 
+
+19. Millagaha Gedara NI, Xu X, DeLong R, Aryal S, Jaberi-Douraki M. Global Trends in Cancer Nanotechnology: A Qualitative Scientific Mapping Using Content-Based and Bibliometric Features for Machine Learning Text Classification. Cancers. 2021 Sep 1;13(17):17. doi:10.3390/cancers13174417 
+
+20. Dagdelen J, Dunn A, Lee S, Walker N, Rosen AS, Ceder G, et al. Structured information extraction from scientific text with large language models. Nat Commun. 2024 Feb 15;15(1):1418. doi:10.1038/s41467-024-45563-x 
+
+21. Circi D, Khalighinejad G, Dhingra B, Brinson LC. Using Large Language Models for Data Extraction from Tables in Materials Literature. In. Emory University, Atlanta GA; 2024. Available from: https://southnlp.github.io/southnlp2024/papers/southnlp2024-poster-45.pdf 
+
+22. Gartlehner G, Kahwati L, Hilscher R, Thomas I, Kugley S, Crotty K, et al. Data extraction for evidence synthesis using a large language model: A proof-of-concept study. Research Synthesis Methods. 2024;15(4):576–89. doi:10.1002/jrsm.1710 
+
+23. Balsiger D, Dimmler HR, Egger-Horstmann S, Hanne T. Assessing Large Language Models Used for Extracting Table Information from Annual Financial Reports. Computers. 2024 Oct;13(10):10. doi:10.3390/computers13100257 
+
+24. Fang X, Xu W, Tan FA, Zhang J, Hu Z, Qi YJ, et al. Large language models (LLMs) on tabular data: Prediction, generation, and understanding-a survey [Internet]. 2024 [cited 2024 Oct 11]. Available from: https://www.amazon.science/publications/large-language-models-llms-on-tabular-data-prediction-generation-and-understanding-a-survey 
+
+25. Sui Y, Zhou M, Zhou M, Han S, Zhang D. Table Meets LLM: Can Large Language Models Understand Structured Table Data? A Benchmark and Empirical Study. In: Proceedings of the 17th ACM International Conference on Web Search and Data Mining [Internet]. Merida Mexico: ACM; 2024 [cited 2024 Oct 11]. p. 645–54. Available from: https://dl.acm.org/doi/10.1145/3616855.3635752 doi:10.1145/3616855.3635752 30 
+
+26. Göbel M, Hassan T, Oro E, Orsi G. ICDAR 2013 table competition. In: 2013 12th International Conference on Document Analysis and Recognition. IEEE; 2013. p. 1449–53. 
+
+27. Gao L, Huang Y, Déjean H, Meunier JL, Yan Q, Fang Y, et al. ICDAR 2019 competition on table detection and recognition (cTDaR). In: 2019 International Conference on Document Analysis and Recognition (ICDAR). IEEE; 2019. p. 1510–5. 
+
+28. Adams T, Namysl M, Kodamullil AT, Behnke S, Jacobs M. Benchmarking table recognition performance on biomedical literature on neurological disorders. Bioinformatics. 2022;38(6):1624–30. 
+
+29. Reading order detection on handwritten documents | SpringerLink [Internet]. [cited 2022 Oct 11]. Available from: https://link.springer.com/article/10.1007/s00521-022-06948-5 
+
+30. 1DATA [Internet]. [cited 2023 Mar 24]. Available from: https://1data.life/ 
+
+31. Wu HY, Karnik S, Subhadarshini A, Wang Z, Philips S, Han X, et al. An integrated pharmacokinetics ontology and corpus for text mining. BMC Bioinformatics. 2013 Feb 1;14(1):35. doi:10.1186/1471-2105-14-35 
+
+32. Nguyen NQ, Le AD, Lu AK, Mai XT, Tran TA. Formerge: Recover Spanning Cells in Complex Table Structure Using Transformer Network. In: Document Analysis and Recognition - ICDAR 2023: 17th International Conference, San José, CA, USA, August 21– 26, 2023, Proceedings, Part V [Internet]. Berlin, Heidelberg: Springer-Verlag; 2023 [cited 2025 Jan 3]. p. 522–34. Available from: https://doi.org/10.1007/978-3-031-41734-4_32 
+
+doi:10.1007/978-3-031-41734-4_32 
+
+33. Raja S, Mondal A, Jawahar CV. Table Structure Recognition Using Top-Down and Bottom-Up Cues. In: Vedaldi A, Bischof H, Brox T, Frahm JM, editors. Computer Vision – ECCV 2020. Cham: Springer International Publishing; 2020. p. 70–86. doi:10.1007/978-3-030-58604-1_5 
+
+34. lxml: Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API. [C, Cython, Python] [OS Independent]. [cited 2025 Jan 3]. Available from: https://lxml.de/ 
+
+35. Richardson L. Beautiful soup documentation. Dosegljivo: https://www crummy com/software/BeautifulSoup/bs4/doc/[Dostopano: 7 7 2018]. 2007. 
+
+36. pyquery: A jquery-like library for python [Python] [Internet]. [cited 2025 Jan 3]. Available from: https://github.com/gawel/pyquery 
+
+37. De Vito V, Łebkowska -Wieruszewsk B, Lavy E, Lisowski A, Owen H, Giorgi M. Pharmacokinetics of meloxicam in lactating goats (Capra hircus) and its quantification in milk after a single intravenous and intramuscular injection. Small Ruminant Research. 2018 Mar 1;160:38–43. doi:10.1016/j.smallrumres.2018.01.001 31 
+
+38. Nguyen HQ, Lin J, Kimoto E, Callegari E, Tse S, Obach RS. Prediction of Losartan-Active Carboxylic Acid Metabolite Exposure Following Losartan Administration Using Static and Physiologically Based Pharmacokinetic Models. Journal of Pharmaceutical Sciences. 2017 Sep 1;106(9):2758–70. doi:10.1016/j.xphs.2017.03.032 
+
+39. Badie C, Lespine A, Devos J, Sutra JF, Chartier C. Kinetics and anthelmintic efficacy of topical eprinomectin when given orally to goats. Veterinary Parasitology. 2015 Apr 15;209(1):56–61. doi:10.1016/j.vetpar.2015.02.013 
+
+40. Liu Z, Peng Y, Ma B, Bi K, Liu Y, Sun G, et al. A pharmacokinetic study on a novel anti-HBV agent imidol hydrochloride in rats. International Journal of Pharmaceutics. 2014 Jan 30;461(1):514–8. doi:10.1016/j.ijpharm.2013.12.002 
+
+41. Administration Route Abbreviations | FARAD [Internet]. [cited 2024 Feb 15]. Available from: http://www.farad.org/administration-route-abbreviations.html 
+
+42. Merck Veterinary Manual [Internet]. [cited 2024 Feb 15]. Routes of Administration and Dosage Forms of Drugs - Pharmacology. Available from: https://www.merckvetmanual.com/pharmacology/pharmacology-introduction/routes-of-administration-and-dosage-forms-of-drugs 
+
+43. Home | FARAD [Internet]. [cited 2023 Feb 2]. Available from: http://www.farad.org/ 
+
+44. Farhang-Sardroodi S, Croix MAL, Wilkie KP. Chemotherapy-induced cachexia and model-informed dosing to preserve lean mass in cancer treatment. PLOS Computational Biology. 2022 Mar 21;18(3):e1009505. doi:10.1371/journal.pcbi.1009505 
+
+45. Gao X, Qian XW, Zhu XH, Yu Y, Miao H, Meng JH, et al. Population Pharmacokinetics of High-Dose Methotrexate in Chinese Pediatric Patients With Acute Lymphoblastic Leukemia. Frontiers in Pharmacology [Internet]. 2021 [cited 2023 Sep 5];12. Available from: https://www.frontiersin.org/articles/10.3389/fphar.2021.701452 
+
+46. Naidu BN, Sorenson ME, Patel M, Ueda Y, Banville J, Beaulieu F, et al.  Synthesis and evaluation of C2-carbon-linked heterocyclic-5-hydroxy-6-oxo-dihydropyrimidine-4-carboxamides as HIV-1 integrase inhibitors. Bioorganic & Medicinal Chemistry Letters. 2015 Feb;25(3):717–20. doi:10.1016/j.bmcl.2014.11.060 
+
+47. Parrott N, Paquereau N, Coassolo P, Lavé T. An Evaluation of the Utility of Physiologically Based Models of Pharmacokinetics in Early Drug Discovery. Journal of Pharmaceutical Sciences. 2005 Oct 1;94(10):2327–43. doi:10.1002/jps.20419 
+
+48. Ampadi Ramachandran R, Sholehrasa H, Tell L, Caragea D, Jaberi-Douraki M. Enhancing Pharmacokinetic Data Extraction with LLMs and Rule-Based Methods: A Hybrid Approach Using Machine Learning and Regex. In: 23rd Biennial Symposium of the AAVPT [Internet]. Raleigh, NC; [cited 2025 Sep 2]. Available from: 
+
+https://cdn.ymaws.com/www.aavpt.org/resource/resmgr/biennial_2025/proceedings_for_the _23rd_aav.pdf 32 
+
+49. Sholehrasa H, Ghanaatian A, Caragea D, Tell LA, Riviere JE, Jaberi-Douraki M. AutoPK: Leveraging LLMs and a Hybrid Similarity Metric for Advanced Retrieval of Pharmacokinetic Data From Complex Tables and Documents. In: 2025 IEEE 37th International Conference on Tools with Artificial Intelligence (ICTAI) [Internet]. 2025 [cited 2026 Apr 22]. p. 338–46. Available from: https://ieeexplore.ieee.org/abstract/document/11272455 doi:10.1109/ICTAI66417.2025.00051 
+
+50. Jaberi-Douraki M, Sholehrasa H, Xu X, Ramachandran RA. HySim-LLM: Embedding-Weighted Fine-Tuning Bounds and Manifold Denoising for Domain-Adapted LLMs [Internet]. arXiv; 2025 [cited 2026 Apr 22]. Available from: http://arxiv.org/abs/2510.07796 doi:10.48550/arXiv.2510.07796 
+
+51. Sholehrasa H, Xu X, Caragea D, Riviere JE, Jaberi-Douraki M. Predictive Modeling and Explainable AI for Veterinary Safety Profiles, Residue Assessment, and Health Outcomes Using Real-World Data and Physicochemical Properties [Internet]. arXiv; 2025 [cited 2026 Apr 22]. Available from: http://arxiv.org/abs/2510.01520 doi:10.48550/arXiv.2510.01520 33 
+
+Table List 
+
+Table 1: Representative PK parameters and their alternatives used in the table data extraction 
+
+module. 
+
+Table 2: a) An example of a complex table with spanning cells in column and row data fields, and 
+
+b) complete table structure generated by using the proposed algorithm. 
+
+Table 3: Literature review of existing table extraction methodologies. 
+
+Figure List 
+
+Figure 1: Overall workflow of table data extraction methodology from scientific articles of XML 
+
+and HTML file types. 
+
+Figure 2: Common table formats. These tables were obtained from the following XML documents: 
+
+a) 10.1016/j.smallrumres.2018.01.001, b) 10.1016/j.xphs.2017.03.032, c) 
+
+10.1016/j.vetpar.2015.02.013, d) 10.1016/j.xphs.2017.03.032. 
+
+Figure 3: Flow chart representing the systematic workflow of table extraction algorithms from 
+
+scraping the tables to extracting results in a csv file format for research purposes. 
+
+Figure 4: Case 1: a) Table extracted from the following XML document: 
+
+https://doi.org/10.1016/j.smallrumres.2018.01.001, b) program extracted table, c) Result of table 
+
+information extracted as a sentence which has drug name MEL from the table title, appended at 
+
+the end of each row data. [Note: ║ indicates separation between table rows] Sentence format 
+
+outcome with parameter, value, units. 
+
+Figure 5: Case 3: a) Table extracted from the XML document: 
+
+https://doi.org/10.1016/j.vetpar.2015.02.013, b) – c) program extracted structured table, d) 
+
+Sentence format outcome with parameter, value, units – Result of table information extracted as a 
+
+sentence which has drug name eprinomectin from the table title, appended at the end of each row 
+
+data. [Note: ║ indicates separation between table rows]. 
+
+Figure 6: Table extracted from the XML files for DOIs: a) /10.1016/j.ijpharm.2013.12.002, b) 
+
+/10.1016/j.xphs.2017.03.032, c) – d) Clearance data outcome with other parameters of interest for 
+
+the tables a) – b) respectively. Automated Extraction of Pharmacokinetic Parameters from Structured XML Scientific 
+
+Articles: Enhancing Data Accessibility at Scale 
+
+Remya Ampadi Ramachandran 1,2,3 , Lisa A. Tell 4, Sid Sidharth 1,2,3 , Nuwan Millagaha Gedara 1,
+
+Hossein Sholehrasa 1,2,5 , Jim E. Riviere 1,2 , Majid Jaberi -Douraki 1,2,3,* 
+
+> 1
+
+1DATA Consortium, www.1DATA.life, Kansas State University Olathe, Olathe, KS, USA. 
+
+> 2
+
+Food Animal Residue Avoidance and Databank Program (FARAD), Kansas State University 
+
+Olathe, Olathe, KS, USA. 
+
+> 3
+
+Department of Mathematics, Kansas State University, Manhattan, KS, United States 
+
+> 4
+
+FARAD, Department of Medicine and Epidemiology, School of Veterinary Medicine, 
+
+University of California -Davis, Davis, CA 
+
+> 5
+
+Department of Computer Science, Kansas State University, Manhattan, KS, United States  
+
+> *
+
+Corresponding Author: jaberi@k -state.edu 
+
+Supplementary Material S2 Section A: In this section we have included certain table formats that were successful in terms of 
+
+PK data extraction with the implemented algorithm  [1–13 ].
+
+A)  10.1016/j.smallrumres.2018.01.001 
+
+B) 10.1016/j.vetpar.2015.02.013 C) 10.1016/j.ijpharm.2013.12.002 
+
+D) 10.1016/j.xphs.2017.03.032 
+
+E) 10.1016/j.ejca.2008.10.022 
+
+F) 10.1016/S0378 -5173(01)00654 -8G) 10.1016/S0928 -0987(96)00254 -0
+
+H) 10.1016/bs.pmch.2018.01.001 
+
+I) doi:10.1002/jps.10427 J) 10.1016/j.ijantimicag.2011.07.013 
+
+K) 10.1016/S0306 -3623(98)00013 -5
+
+L) 10.1016/j.actatropica.2008.05.013 M) 10.1016/j.jchromb.2021.122862 Section B : In this section we have included certain table formats that were successful but with 
+
+some challenges in terms of the extracted PK data with the implemented algorithm . In future 
+
+studies, we aim to tackle challenges that come under these scenarios  [2,7,9,11 ].
+
+➢ In this table, AUC ss values such as  1058.7 ng * h/ml, and 2861.7 ng * h/ml for the 
+
+drug Cediranib is considered as clearance values given the header row is Clearance 
+
+(l/h). 
+
+A) 10.1016/j.ejca.2008.10.022 
+
+➢ Some drug names shown as abbreviations in the table, like SuBP in this case was 
+
+missing in the curated dataset. 
+
+B) 10.1016/S0378 -5173(01)00654 -8➢ In this table, by considering the shaded regions as merged cells, our algorithm filled in the 
+
+values based on the previous cell. 
+
+C) 10.1016/S0928 -0987(96)00254 -0
+
+➢ Our algorithm is limited to capture compounds when expressed as numbers. 
+
+D) 10.1016/bs.pmch.2018.01.001 References 
+
+1. Liu Z, Peng Y, Ma B, Bi K, Liu Y, Sun G, et al. A pharmacokinetic study on a novel anti -
+
+HBV agent imidol hydrochloride in rats. International Journal of Pharmaceutics. 2014 Jan 
+
+30;461(1):514 –8. doi:10.1016/j.ijpharm.2013.12.002 
+
+2. Goss G, Shepherd FA, Laurie S, Gauthier I, Leighl N, Chen E, et al. A phase I and 
+
+pharmacokinetic study of daily oral cediranib, an inhibitor of vascular endothelial growth 
+
+factor tyrosine kinases, in combination with cisplatin and gemcitabine in patients with 
+
+advanced non -small cell lung cancer: A study of the National Cancer Institute of Canada 
+
+Clinical Trials Group. European Journal of Cancer. 2009 Mar 1;45(5):782 –8. 
+
+doi:10.1016/j.ejca.2008.10.022 
+
+3. Choi HI, Kim T, Lee SW, Woo Kim J, Ju Noh Y, Kim GY, et al. Bioanalysis of niclosamide 
+
+in plasma using liquid chromatography -tandem mass and application to pharmacokinetics in 
+
+rats and dogs. Journal of Chromatography B. 2021 Aug 1;1179:122862. 
+
+doi:10.1016 /j.jchromb.2021.122862 
+
+4. Yu SY, Bae SK, Kim EJ, Kim YG, Kim SO, Lee DH, et al. Dose -Independent 
+
+Pharmacokinetics of a New Reversible Proton Pump Inhibitor, KR -60436, after Intravenous 
+
+and Oral Administration to Rats: Gastrointestinal First -Pass Effect. Journal of 
+
+Pharmaceutical S ciences. 2003 Aug 1;92(8):1592 –603. doi:10.1002/jps.10427 
+
+5. Elsheikh HA, Intisar AMO, Eltayeb IB, Abdullah AS. Effect of Dehydration on the 
+
+Pharmacokinetics of Oxytetracycline Hydrochloride Administered Intravenously in Goats 
+
+(Capra hircus ). General Pharmacology: The Vascular System. 1998 Sep 1;31(3):455 –8. 
+
+doi:10.1016/S0306 -3623(98)00013 -5
+
+6. Badie C, Lespine A, Devos J, Sutra JF, Chartier C. Kinetics and anthelmintic efficacy of 
+
+topical eprinomectin when given orally to goats. Veterinary Parasitology. 2015 Apr 
+
+15;209(1):56 –61. doi:10.1016/j.vetpar.2015.02.013 
+
+7. Hoffman A, Stepensky D, Ezra A, Van Gelder JM, Golomb G. Mode of administration -
+
+dependent pharmacokinetics of bisphosphonates and bioavailability determination. 
+
+International Journal of Pharmaceutics. 2001 Jun 4;220(1):1 –11. doi:10.1016/S0378 -
+
+5173(01)0065 4-8
+
+8. De Vito V, Łebkowska -Wieruszewsk B, Lavy E, Lisowski A, Owen H, Giorgi M. 
+
+Pharmacokinetics of meloxicam in lactating goats (Capra hircus) and its quantification in 
+
+milk after a single intravenous and intramuscular injection. Small Ruminant Research. 2018 
+
+Mar 1;160:38 –43. doi:10.1016/j.smallrumres.2018.01.001 
+
+9. Imbimbo BP, Klietmann W, Broccali GP, Cesana M, Aarons L. Population pharmacokinetics 
+
+of rufloxacin in patients with acute exacerbations of chronic bronchitis. European Journal of 
+
+Pharmaceutical Sciences. 1997 Jan 1;5(1):37 –42. doi:10.1016/S0928 -0987(96)0 0254 -0
+
+10. Nguyen HQ, Lin J, Kimoto E, Callegari E, Tse S, Obach RS. Prediction of Losartan -Active 
+
+Carboxylic Acid Metabolite Exposure Following Losartan Administration Using Static and Physiologically Based Pharmacokinetic Models. Journal of Pharmaceutical Sciences. 2017 
+
+Sep 1;106(9):2758 –70. doi:10.1016/j.xphs.2017.03.032 
+
+11. Recent Progress in the Discovery and Development of Small -Molecule Modulators of CFTR. 
+
+In: Progress in Medicinal Chemistry [Internet]. Elsevier; 2018 [cited 2026 Apr 22]. p. 235 –
+
+76. Available from: 
+
+https://www.sciencedirect.com/science/chapter/bookseries/ pii/S0079646818300018 
+
+doi:10.1016/bs.pmch.2018.01.001 
+
+12. Hai TN, Hietala SF, Van Huong N, Ashton M. The influence of food on the pharmacokinetics 
+
+of piperaquine in healthy Vietnamese volunteers. Acta Tropica. 2008 Aug 1;107(2):145 –9. 
+
+doi:10.1016/j.actatropica.2008.05.013 
+
+13. Sinnollareddy M, Peake SL, Roberts MS, Lipman J, Roberts JA. Using pharmacokinetics 
+
+and pharmacodynamics to optimise dosing of antifungal agents in critically ill patients: a 
+
+systematic review. International Journal of Antimicrobial Agents. 2012 Jan 1;39( 1):1 –10. 
+
+doi:10.1016/j.ijantimicag.2011.07.013
