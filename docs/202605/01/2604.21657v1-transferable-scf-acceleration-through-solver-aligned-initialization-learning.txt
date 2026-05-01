@@ -1,0 +1,923 @@
+Title: Transferable SCF-Acceleration through Solver-Aligned Initialization Learning
+
+URL Source: https://arxiv.org/pdf/2604.21657v1
+
+Published Time: Fri, 24 Apr 2026 01:02:11 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# Transferable SCF-Acceleration through Solver-Aligned Initialization Learning 
+
+Eike S. Eberhard ∗ 1,2,3, Viktor Kotsev ∗ 1,2, Timm Güthle 1, Stephan Günnemann 1,2,3
+
+e.eberhard@tum.de 
+
+> 1
+
+Technical University of Munich (TUM) 2Munich Data Science Institute (MDSI) 
+
+> 3
+
+Munich Center for Machine Learning (MCML) 
+
+# Abstract 
+
+The cost of Kohn-Sham density functional theory (KS-DFT) calculations scales with the number of solver iterations, which depends on the quality of the initial guess. Machine learning methods that predict initial guesses from molecular geom-etry can reduce this cost, but matrix-prediction models fail when extrapolating to larger molecules, degrading rather than accelerating convergence [Liu et al., 2025]. We show that this failure is a supervision problem, not an extrapolation problem: models trained on ground-state targets fit those targets well out of distribution, yet produce initial guesses that slow convergence. Solver-Aligned Initialization Learning (SAIL) resolves this for both Hamiltonian and density matrix models by differentiating through the SCF solver end-to-end. We introduce the Effective Relative Iteration Count (ERIC), a correction to the commonly used RIC that accounts for hidden Fock-build overhead. On QM40, containing molecules up to 4 × larger than the training distribution, SAIL reduces ERIC by 37% (PBE), 33% (SCAN), and 27% (B3LYP), more than doubling the previous state-of-the-art reduction on B3LYP (10%). On QMugs molecules 10 × the training size, SAIL delivers a 1.25 × wall-time speedup at the hybrid level of theory, extending ML SCF acceleration to large drug-like molecules. 
+
+# 1 Introduction 
+
+Self-consistent field (SCF) solvers are the numerical backbone of Hartree-Fock (HF) [Hartree, 1928, Fock, 1930] and KS-DFT calculations [Hohenberg and Kohn, 1964, Kohn and Sham, 1965]. KS-DFT is the most widely used electronic structure method in computational chemistry [Szabo and Ostlund, 1996], reflected in the hundreds of thousands of publications [Haunschild et al., 2019] and the substantial HPC resources devoted to these calculations [Antypas et al., 2014, Zhao et al., 2023]. Any reliable method for speeding up SCF calculations increases resource efficiency and accelerates scientific discovery, both directly and through downstream applications such as machine-learned interatomic potentials (MLIPs), where the cost of generating large reference datasets remains a bottleneck [Kulichenko et al., 2024]. Moreover, unlike machine-learned surrogates that aim to replace DFT entirely, solver acceleration fully preserves accuracy, enabling practitioners to choose their level of theory and its known limitations , rather than those of a yet-to-be-characterized surrogate. In recent years, ML initialization methods have been proposed to accelerate SCF calculations [Koker et al., 2024, Yu et al., 2024, Febrer et al., 2025]. These methods produce initial guesses conditioned on the molecular point cloud and typically fall into one of three categories. We jointly refer to Hamiltonian and density matrix prediction as matrix-based methods , as both parameterize quadratic basis-set expansions with coefficient matrices X ∈ RB×B . The third category, the coefficient-based 
+
+> ∗
+
+Equal contribution Preprint.                   
+
+> arXiv:2604.21657v1 [cs.LG] 23 Apr 2026 10 20 30 40 50 60 70 80 90
+> Number of Heavy Atoms Nheavy
+> 0.7 0.8 0.9 1.0 2.0 3.0 4.0
+> Effective  Relative  Iteration  Count  QM9 QM40 QMugs
+> Speedup Slowdown
+> out-of-distribution (OOD)
+> Density PHamiltonian FBaseline SAIL (ours)
+
+Figure 1: Size extrapolation of SAIL on B3LYP/def2-SVP. Matrix-based models trained on QM9 and evaluated on QM9, QM40, and QMugs, covering molecules with up to 10 × more heavy atoms than any seen during training. The vertical axis is the Effective Relative Iteration Count (ERIC) relative to the traditional baseline (MINAO), with ERIC < 1 indicating speedup and 
+
+ERIC > 1 indicating slowdown. Baselines trained on ground-state targets degrade outside the training distribution, while SAIL maintains a ∼ 25% speedup across the full range. QMugs samples drug-like molecules while QM9 enumerates small organics, adding an additional chemical shift. ansatz, predicts the coefficients c ∈ RBaux of a linear auxiliary basis-set expansion. Liu et al. [2025] have shown that matrix-based approaches decelerate SCF calculations when extrapolating to larger molecules , a ground-breaking observation given that prior work on matrix-based methods suggested robust out-of-distribution (OOD) performance based on, in hindsight, insufficient extrapolation benchmarks. Hence, they proposed to adopt coefficient-based approaches [Song and Feng, 2024], which are limited to Generalized Gradient Approximation (GGA)-type functionals. Unfortunately, the GGA level of theory is insufficient for many practical applications, particularly in organic chemistry, which is dominated by range-separated hybrid functionals [Isert et al., 2021, Eastman et al., 2023, Madushanka et al., 2024, Levine et al., 2025]. In this work, we show that the currently prevailing approach of training initial-guess models by fitting ground-state quantities is suboptimal. We address this with Solver-Aligned Initialization Learning (SAIL) , which backpropagates through the SCF algorithm to the ML initial guess, training on solver dynamics rather than ground-state references. This procedure is label-free and requires only molecular geometries. We show that SAIL cures the size-extrapolation issues for matrix-based methods and find that ground-state loss terms degrade under SAIL even as actual SCF convergence improves, revealing a misalignment between ground-state supervision and initial-guess quality .
+
+# 2 Background 
+
+KS-DFT describes the quantum mechanical ground-state in terms of its electron density ρ∗ ∈ D Ne =
+
+{R3 → [0 , ∞)| R 
+
+> R3
+
+ρ(r) dr = Ne} and energy E∗ ∈ R to determine most chemical properties of interest. Molecular DFT codes expand ρ in a finite set {χμ}Bμ=1 of atom-centered basis functions 
+
+ρ(r) = 
+
+> B
+
+X
+
+> μν
+
+χμ(r) Pμν χν (r) , (1) where P ∈ RB×B is the density matrix. In this representation, the ground-state energy functional 
+
+E[ρ] : DNe → R reduces to a function E(P) : RB×B → R, and finding the ground state becomes an energy minimization problem within the space of valid density matrices [Lehtola et al., 2020]. SCF solvers approach this minimization problem iteratively. Each step computes the energy gradient 
+
+F = ∂E/∂ P, the so-called Fock matrix, and obtains an updated density P(t+1) by solving a generalized eigenvalue problem (Appendix A): 
+
+P(t+1) = SCF( P(t)) = ( MF→P ◦ M P→F) ( P(t)) . (2) 2P F
+
+> MP→F
+
+97 .8%    
+
+> MF→P
+> 2.2%
+> t→t+ 1
+
+Figure 2: SCF cycle wall-time analysis at the B3LYP/def2-SVP level of theory, with jk-density-fitting. Each iteration constructs the Fock ma-trix F(t) = MP→F(P(t)) and updates the den-sity P(t+1) = MF→P(F(t)), see Eq. (2) . The Fock build dominates at 97.8% of the iteration cost. Cost measured on a QM40 molecule with 30 heavy atoms using GPU4PySCF [Li et al., 2025a]. This map is applied until self-consistency is reached, meaning P∗ ≃ SCF( P∗).In practice, convergence accelerators such as DIIS augment this fixpoint iteration and drasti-cally alter its dynamics (Appendix A.1), but the quality of the initial guess P(0) remains critical. It determines both whether the solver converges 
+
+and how many iterations it requires [Lehtola, 2019]. The standard initialization in most DFT codes is based on the superposition of atomic densities (SAD) [Van Lenthe et al., 2006]. Since wall-time reduction is the ultimate goal, understanding how the computational costs of an SCF step are distributed is essential. The Fock build MP→F dominates the cost (Fig. 2). Its scaling depends on the choice of the exchange-correlation (XC) functional: O(B3)
+
+for semi-local functionals such as PBE and SCAN, and O(B4) for hybrid functionals like B3LYP [Perdew, 2001]. 
+
+Density fitting lowers the scaling of the electrostatic contribution to the Fock build from O(B4)
+
+to O(B3) by approximating the density (Eq. 1) as ρ(r) ≈ PBaux  
+
+> μ
+
+cμ χ(aux ) 
+
+> μ
+
+(r), where c ∈ RBaux 
+
+are the fitting coefficients and Baux ≪ B2 [Whitten, 1973, Vahtras et al., 1993]. Apart from enabling the O(B3) scaling of semi-local functionals, this expansion provides a natural interface between equivariant GNNs and the electron density. Since the auxiliary basis consists of equivariant functions centered on individual nuclei, the coefficients c are directly predictable from node-level representations [Song and Feng, 2024, Liu et al., 2025], unlike the density matrix representation, which couples basis functions across atom pairs. 
+
+# 3 Related Work 
+
+Hamiltonian prediction methods are trained to predict the converged Fock matrix 2 ˆF ≈ F∗ [Schütt et al., 2019, Yu et al., 2023, 2024, 2025b, Kim et al., 2025, 2026], which can then serve as an SCF initialization P(0) = MF→P( ˆF). Li et al. [2025b] target the scalability of Hamiltonian prediction to larger molecules and basis sets, introducing an alternative loss (WALoss). Models predicting 
+
+density matrices ˆP ≈ P∗ share the same architectural blueprint, only differing in the supervision target [Hazra et al., 2024, Febrer et al., 2025]. Liu et al. [2025] have shown that these matrix-based approaches fail to transfer to larger systems, leading to SCF deceleration when used as initial guesses, even when trained with WALoss. To bridge this generalization gap, they suggest predicting the coefficients c ∈ RBaux of a linear auxiliary basis expansion [Song and Feng, 2024] of the density ρ(r) = P 
+
+> μ
+
+cμχ(aux ) 
+
+> μ
+
+(r) , as a better learning target. They have demonstrated that this approach extrapolates well to larger molecules, achieving an RIC reduction of 33% and a wall-time speedup of 23% on PBE. However, the auxiliary expansion ansatz is limited to local functionals and cannot represent the density matrix required by hybrid functionals. For hybrid functionals, Liu et al. [2025] fall back to traditional (non-ML) density matrix initialization for the HF-exchange component, resulting in a speed-up of about 16% in their OOD evaluations on B3LYP. For exchange fractions close to unity (e.g., pure HF), the method is not applicable. Beyond ML approaches, traditional initial-guess strategies remain relevant baselines. In their sys-tematic assessment of initial guess strategies, Lehtola [2019] note that it is difficult to separate the effects of the initial guess from those of the SCF-dynamics on convergence characteristics. Instead, they proposed to use the projection Q of the initial guess orbitals onto the converged ground state 
+
+Q(P (0) , P ∗) = PBμν 
+
+ P(0) S P ∗S 
+
+> μν
+
+as a continuous metric. Among the traditional baselines, they found that superposition of atomic potentials (SAP), extended Hückel, and superposition of atomic 
+
+> 2In the context of finite basis sets calculations the Hamiltonian is commonly referred to as the Fock matrix
+
+3P(1) P(2) · · · P(T )            
+
+> L(1) L(2) L(T)
+> L=++· · · +Atomic Point Cloud GNN Tensor Readout
+> F(−1) ,c(−1) ,P(0)
+> P(0)
+
+Figure 3: Illustration of Solver-Aligned Initialization Learning (SAIL). ML initial-guess models use an SE (3) -equivariant message-passing GNN to map the point cloud of atoms (Z, R) to an initial tensor that parametrizes a basis-set expansion. If necessary, the output is converted to a density matrix, P(0) , which is used to initialize an SCF calculation. The SCF solver produces a sequence of density matrices P(0) , P(1) , . . . , P(T ), with per-iteration losses L(t) supervising the trajectory toward self-consistency. densities (SAD) performed best, with SAD being the default in most quantum chemistry codes. More recently, Yu et al. [2025a] evaluated basis-set projection and many-body expansion as non-ML initial guess strategies, achieving an average wall-time speedup of less than 3% for B3LYP. Zhang et al. [2024] exploit the self-consistency condition to train Hamiltonian models without DFT labels, penalizing the Frobenius residual of ˆF − M P→F(MF→P( ˆF)) and differentiating through the Roothaan-Hall Eq. (12) . This residual treats all matrix entries uniformly and penalizes unphysical directions that leave the density unchanged (Appendix A.2). SAIL instead supervises the solver trajectory , using an energy gradient loss term (Eq. 5), which directly measures distance to energy stationarity. Zhang and Chan [2022] avoid the initial-guess dependence via the implicit function theorem. We build on the fully differentiable SCF implementation of Gao et al. [2024] and back-propagate through the entire solver including the convergence accelerator (Appendix A.1). 
+
+# 4 Methods 
+
+To study the effect of SAIL on different prediction targets, we use the same backbone for all approaches. We adapt the NeuralSCF embedding [Song and Feng, 2024], constructing SE(3)-equivariant node features from atomic numbers Za and pairwise displacements rij , and feed them into an EquiformerV2 GNN [Liao et al., 2023] (hyperparameters in Appendix F). We combine this backbone with ansatz-dependent readout heads . For the coefficient-readout , we follow Song and Feng [2024] and group the auxiliary basis coefficients cν by the atomic number Zν
+
+of their parent atom and their associated angular momentum lν . The node-wise readout ˆfν is then elementwise rescaled as ˆcν = ˆfν σ(Zν ,l ν ) + μ(Zν ,l ν ), with mean μ and standard deviation σ computed per group from the training data. Appendix C.2 describes in detail how these predicted auxiliary coefficients are converted into an initial density P(0) . For matrix prediction , we adopt the QHNet module [Yu et al., 2023] and predict the target matrix X ∈ { F(−1) , P(0) } block-by-block. Each atom pair (i, j ) contributes a submatrix Xij ∈ RBZi ×BZj , built from a self-tensor product of node features (diagonal/node-prediction) or a filtered tensor product of both node features (off-diagonal/edge-prediction). Fock-prediction models additionally require the map P(0) = MF→P(F(−1) ) to obtain the initial density guess. The models are trained on surrogate ground-state losses. This is the standard single-stage baseline 
+
+and also serves as the pretraining stage for SAIL. We train the coefficient models by minimizing the 
+
+L2 density error 
+
+Lcoeff (ˆ c, c ∗) = 
+
+Z
+
+ρ∗(r) − ˆρ(r) 2 dr =
+
+> Baux
+
+X
+
+> μν
+
+∆cμ
+
+Z 
+
+χ(aux)  
+
+> μ
+
+(r) χ(aux)  
+
+> ν
+
+(r) dr
+
+
+
+∆cν , (3) where ∆cμ = ˆ cμ − c∗
+
+> μ
+
+. The B2 
+
+> aux
+
+integrals depend only on the molecular geometry and can be precomputed once per structure. The matrix-based models aim to minimize a mixed Frobenius– L1
+
+4loss on the prediction error ∆X = ˆX − X∗ of a matrix target X ∈ { P, F}LX = 12B
+
+sX
+
+> μν
+
+(∆ Xμν )2 + X
+
+> μν
+
+|∆Xμν |
+
+ . (4) After pretraining, we fine-tune all models by differentiating through T SCF cycles end-to-end (Fig. 3), which we call Solver-Aligned Initialization Learning (SAIL) . The SCF problem can be viewed as minimizing the total energy over the manifold of valid density matrices (Appendix A.2). At a converged solution, the energy is stationary and its gradient G(t) vanishes [Lehtola et al., 2020]. To reward initial guesses that accelerate convergence, we uniformly penalize the root-mean-square gradient along the trajectory 
+
+Ltot = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+L(t) 
+
+> ∇
+
+, L(t) 
+
+> ∇
+
+=
+
+r
+
+Eia 
+
+h
+
+G(t)
+
+> ia
+> 2
+
+i
+
+. (5) This provides a consistent training signal at every SCF step and directly optimizes the initial guess for fast convergence rather than proximity to ground-state targets. To measure the resulting acceleration , prior work heavily relies on the Relative Iteration Count (RIC) [Yu et al., 2024, Zhang et al., 2024, Febrer et al., 2025, Kim et al., 2026] RIC = #SCF iterations from learned initialization 
+
+#SCF iterations from P(0)
+
+> ref
+
+, (6) where P(0) 
+
+> ref
+
+is an established (non-ML) reference initialization. However, even when ignoring inference cost, RIC does not capture the relative wall-time speedup. For example, a ∆-learning approach for Hamiltonian prediction requires computing Fbase = MP→F(Pbase ), adding the learned residual F(−1) = Fbase + ∆ Flearned , and solving P(0) = MF→P(F(−1) ), a complete additional SCF cycle that does not arise for ∆-learning in density matrix space. For coefficient models, we discuss the Fock build procedure in Appendix C.2. Based on our SCF wall-time benchmarks in Figure 2, we propose the Effective Relative Iteration Count (ERIC) 
+
+ERIC = # total Fock builds required for SCF with ML-initialization 
+
+#Fock builds when starting from P(0)
+
+> ref
+
+, (7) which counts all Fock builds, including those hidden in the initialization. The correction is not negligible: A typical B3LYP calculation on QM9 converges in ≈10 cycles from PMINAO . A ∆-Hamiltonian model that reduces the solver to 6 iterations achieves a 40% RIC reduction, but the hidden Fock build yields an ERIC = 7 /10 , only 30%. This gap is comparable to the RIC differences between non-∆-learned and ∆-learned Hamiltonian models across the literature, including recent flow-matching approaches (Appendix E), suggesting that their apparent gain may largely stem from the uncounted Fock build. 
+
+# 5 Experiments 
+
+We evaluate SAIL on QM9 [Ramakrishnan et al., 2014], QM40 [Madushanka et al., 2024] and QMugs [Isert et al., 2021] for PBE, SCAN, and B3LYP, representing a GGA, a meta-GGA, and a hybrid functional [Perdew et al., 1996, Sun et al., 2015, Becke, 1993, Perdew, 2001]. We split QM9 by molecular size (train: ≤ 20 , val: 21 –22 , test: ≥ 23 atoms). To evaluate size extrapolation beyond QM9, we use QM40 and QMugs as far-out-of-distribution test sets. For a head-to-head comparison of the coefficient-based models proposed by Liu et al. [2025], we evaluate their performance when trained directly on semi-local and hybrid functionals using the proposed extensions by the authors. For additional evaluation details, see Appendix C. We compare to prior ML methods in Appendix E and to traditional functional-initialization baselines in Appendix D. Table 1 reports our far-out-of-distribution size-extrapolation results on QM40, together with key 
+
+design ablations . Since SAIL finetuning starts from the baseline parameters, we can directly compare surrogate losses before and after finetuning. The matrix-based baselines decelerate SCF convergence out of distribution (ERIC > 1), confirming the failure mode reported by Liu et al. [2025]. SAIL 
+
+5Table 1: SCF acceleration of baseline and SAIL (fine-tuned) models across input representations and functionals, evaluated on QM40 (out-of-distribution). Grey rows show ablation variants of the SCAN entry above them. Bold : best RIC/ERIC per functional across all input representations.                                                                                                                                         
+
+> Model Functional Ablation Surrogate Loss (↓)RIC (↓)ERIC (↓)base SAIL base SAIL base SAIL Coefficients cPBE 0.005 0.010 0.57 0.56 0.63 0.62
+> "Embedding 0.007 0.013 0.60 0.56 0.67 0.63
+> SCAN 0.016 10 .27 0.83 0.67 0.90 0.74
+> B3LYP 0.004 7.401 0.82 0.68 0.90 0.76
+> Density Mat. PPBE 0.320 1.108 1.04 0.63 1.04 0.63
+> SCAN 0.292 1.076 1.04 0.67 1.04 0.67
+> "Lcomm "1.100 "0.67 "0.67
+> "T=8 "1.074 "0.67 "0.67
+> "T=4 "1.148 "0.67 "0.67
+> "T=2 "0.982 "0.68 "0.68
+> "T=1 "1.163 "0.69 "0.69
+> "Non-∆0.286 0.845 1.10 0.72 1.10 0.72
+> "Single-stage −1.473 −0.75 −0.75
+> B3LYP 0.308 0.931 1.05 0.73 1.05 0.73
+> Fock FPBE 0.019 0.294 1.32 0.61 1.39 0.68
+> SCAN 0.024 0.292 1.28 0.69 1.35 0.77
+> "Non-∆0.253 8.155 1.94 0.74 1.94 0.74
+> B3LYP 0.032 0.413 1.57 0.67 1.65 0.75
+
+restores acceleration (ERIC < 1) for both matrix-based ansätze across all three functionals . The coefficient model separates into two categories. On PBE, it already extrapolates after ground-state training (ERIC 0.63 ), and SAIL yields only a marginal additional gain. On SCAN and B3LYP, extending the coefficient ansatz beyond GGA requires Fock-build substitutions (Appendix C.2), since the density alone does not determine the kinetic-energy density τ or the exchange matrix K. The learned density must then compensate for the resulting systematic errors rather than reproduce the ground state, degrading the baseline to ERIC 0.90 .
+
+The baselines’ failure is one of misalignment, not extrapolation. The surrogate losses in Table 1 stay small out of distribution, so the baselines do extrapolate, just not the right quantity. Matrix models overfit ground-state targets in directions that decelerate the solver, which is why SAIL improves ERIC while degrading the surrogate. The PBE coefficient model shows a weaker version of the same effect, suggesting that the restricted expressivity of the linear auxiliary expansion acts as an implicit regularization. On SCAN and B3LYP the coefficient ansatz is misspecified, making the ground-state coefficient target a poor learning objective. SAIL lets the model absorb the ansatz’s systematic Fock-build errors into an unphysical density distortion, driving the surrogate loss up by orders of magnitude but ERIC down. 
+
+Ablations. We ablate the density embedding of Song and Feng [2024], which conditions the equivariant node features on the MINAO density. Removing it degrades the base model (ERIC 
+
+0.63 → 0.67 ), but after SAIL finetuning, the gap nearly vanishes ( 0.62 vs. 0.63 ), suggesting the embedding is a useful inductive bias at training time but largely redundant once the model is adapted to the SCF loss, and therefore not worth the additional memory and compute overhead. As an alternative to the gradient loss L∇ (Eq. 5), we have tried a commutator-based loss 
+
+L(t)comm = 1
+
+B F(t) P(t) S − S P (t) F(t)
+
+> F
+
+, (8) which corresponds to the root-mean-square of the DIIS error matrix (Appendix A.1), a convergence measure routinely used in quantum chemistry solvers as the extrapolation residual [Pulay, 1980, 1982]. Both losses yield identical ERIC ( 0.67 ) on SCAN. Energy-based alternatives, such as the energy change between consecutive iterations or the energy difference to the final iterate, failed to produce any acceleration in our early experiments. We also investigate whether the full SCF trajectory is necessary for SAIL or whether truncated backpropagation through T ∈ { 1, 2, 4, 8} solver steps suffices. The results show surprising stability to truncation, and our evaluations on QM40 suggest that T = 4 SCF steps already suffice, allowing for a significant reduction in training time overhead. 610 20 30 
+
+Nheavy   
+
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> 1.0
+> 2.0
+> Effective RIC
+> PBE
+> 10 20 30
+
+Nheavy   
+
+> SCAN
+> 10 20 30
+
+Nheavy        
+
+> B3LYP
+> Density PHamiltonian FAuxiliary cBaseline SAIL (ours)
+
+Figure 4: Effective Relative Iteration Count (ERIC) for different XC-functionals (from left to right: local, semi-local, hybrid) on far out-of-distribution molecules, binned by their number of heavy atoms (up to 71 atoms, 37 heavy). All models are trained on QM9 molecules with at most 20 atoms, we only plot the QM9 test molecules with > 23 heavy atoms. The dashed vertical line marks the transition from the QM9 test set to the QM40 test set. For comparison to related work, see Table E. Dropping ∆-learning and predicting the target matrix absolutely rather than as a residual on top of MINAO degrades ERIC from 0.67 to 0.72 for density matrix prediction, while Fock prediction improves from 0.77 to 0.74 . Training from scratch without pretraining (single-stage) still outperforms the surrogate-trained baseline (ERIC 0.75 vs. 1.04 ), but pretraining provides a better starting point for finetuning, further improving the acceleration (ERIC 0.67 ). Across functionals, ∆-density matrix prediction emerges as a strong default for SCF acceleration .On PBE, it matches the coefficient approach (ERIC 0.63 vs. 0.62 ) while generalizing to all functional classes without modification. For SCAN and B3LYP, the coefficient baseline only reaches ERICs of 
+
+0.90 . SAIL recovers this to 0.74 and 0.76 , still behind ∆-density matrix ( 0.67 and 0.73 ). Although 
+
+∆-Fock prediction achieves the lowest RIC on B3LYP ( 0.67 ), its hidden Fock build yields an ERIC of 0.75 , slightly worse than the density matrix model at 0.73 .12 18 24 30 36 40 50 60 70 80 90 
+
+Nheavy          
+
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> 70
+> Time  [s]
+> 1.27x 1.34x 1.37x 1.29x 1.25x 1.22x 1.28x 1.26x 1.27x 1.23x 1.25x
+> Baseline Density P
+> Hamiltonian FP0acquisition
+> 40 50 60 70 80 90
+
+Nheavy 
+
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> Time  [s]
+> MINAO build Model forward
+> MP→F
+> MF→P
+
+Figure 5: Left: Wall-time speedup on B3LYP/def2-SVP. Total SCF wall-time on QM40 (left of dashed line) and QMugs, measured on GPU with GPU4PySCF. Each bar is decomposed into initial-guess acquisition (lighter color) and the subsequent SCF loop. Both SAIL-trained matrix-based models deliver consistent speedups across the full size range, with no degradation on molecules 10 ×
+
+larger than the training distribution. Numbers above the bars report the speedup of the density matrix model, which outperforms the Hamiltonian model at every size. Right: Initial-guess acquisition breakdown. Per-component cost of the initial-guess acquisition on QMugs. Both models use 
+
+∆-learning on top of MINAO, so the MINAO build is a fixed cost shared by both ansätze. The model forward pass adds only a small overhead, while the extra Fock build MP→F required by 
+
+∆-Hamiltonian learning dominates at large sizes, motivating ERIC. Additional evaluation details are provided in Appendix C.3. 7Figure 4 shows ERIC as a function of heavy-atom count on far-out-of-distribution molecules from QM40. Without SAIL, matrix-based models degrade with increasing molecule size, confirming the failure mode reported by Liu et al. [2025]. After SAIL finetuning, the ERIC remains flat across all three ansätzes and functionals, with no upward trend even at four times the training-distribution size (up to 9 heavy vs. up to 37 heavy). The coefficient-based model also benefits slightly from SAIL across all three functionals (Figure 4). For B3LYP, we extend our size extrapolation experiment to QMugs (Figure 1). SAIL maintains a mean ERIC of 0.78 (density matrix prediction) with no upward trend even for molecules 10 × larger than the training distribution .The B3LYP wall-time measurements for matrix-based methods (Figure 5) show that the ERIC reductions translate into comparable speedups, as expected from the Fock-build dominance at the hybrid level (Figure 2). The per-component breakdown shows that the model evaluation is cheap compared to the MINAO initial-guess cost. 
+
+# 6 Discussion 
+
+This work introduces Solver-Aligned Initialization Learning (SAIL) , which trains on solver dynamics rather than ground-state targets, and the Effective Relative Iteration Count (ERIC) , which corrects RIC for ansatz-dependent Fock-build overhead. We evaluate ML initial-guess architectures across three rungs of Jacob’s ladder, a GGA (PBE), a meta-GGA (SCAN), and a hybrid (B3LYP). On QM9/QM40, we independently confirm the size-extrapolation failure of conventionally trained matrix-based methods reported by Liu et al. [2025]. We show that this failure stems from a misalign-ment between ground-state supervision and solver dynamics . Models trained to minimize a loss with respect to the converged solution do not produce initial guesses that converge fast. SAIL cures the size-extrapolation failure for matrix methods , achieving near-identical ERICs on QM40 ( c:
+
+0.62 , P: 0.63 , F: 0.68 ) at the PBE/def2-SVP level of theory. SAIL-enabled methods are especially useful for more accurate mGGA and hybrid functionals . ∆-learning density matrix prediction is the strongest ansatz for SCF-acceleration across our evaluations. With SAIL, this approach reaches an ERIC of 0.67 on SCAN and 0.73 on B3LYP, a 33% and 
+
+27% iteration reduction over MINAO. The result is a robust 1.25 × wall-time speedup on B3LYP, extrapolating to QMugs drug-like molecules up to 10 × larger than any seen during training. 
+
+SAIL thus extends reliable ML SCF acceleration to large drug-like molecules at the hybrid level of theory, a regime relevant for organic chemistry applications [Isert et al., 2021, Eastman et al., 2023, Levine et al., 2025]. 
+
+Limitations. Like the baseline methods, SAIL requires a separate model for each basis-set and functional combination, though this cost is amortized over all subsequent calculations at that level of theory. We leave cross-basis and cross-functional transfer to future work. Our evaluation focuses on stable organic molecules (QM9 and QM40). Whether SAIL offers similar gains for periodic structures [Li et al., 2022, Gong et al., 2023, Tang et al., 2024] remains open. ERIC improves on RIC as a wall-time proxy but does not replace wall-time measurements. Wall-time depends on hardware, XC-functional, basis set, and implementation, and does not scale linearly with iteration count as different algorithms and molecule sizes shift the computational bottleneck [Liu et al., 2025]. Moreover, ML research code is rarely optimized to match production DFT codes, making absolute wall-time comparisons across methods unreliable. ERIC partially bridges this gap by providing a hardware- and implementation-independent proxy. We also note that SAIL finetuning increases total training time by a factor of ∼1.7× relative to the baseline, though this can be significantly reduced by truncating the number of SCF steps during training. 
+
+Future work. Since SAIL is label-free, data augmentation through chemical perturbations such as H↔F substitutions and random atom position perturbations comes at no additional labeling cost. Most prior work has focused on small basis sets, with the notable exception of Li et al. [2025b], who evaluate on def2-TZVP. Whether SAIL enables reliable acceleration for larger basis sets remains to be tested. Adapting SAIL to periodic systems and to alternative solvers, such as direct energy minimization and second-order SCF methods [Sun et al., 2017], is a direct extension of the framework presented here. Finally, initializing the GNN backbone from a pretrained force-field foundation model could be a path toward better generalization across chemical space at lower per-functional training cost. 8Acknowledgments 
+
+We thank Zhe Liu, Arghya Bhowmik, and Pol Febrer for insightful discussions regarding their respective methods, and Nicholas Gao for feedback on the final manuscript. 
+
+# References 
+
+K Antypas, B A Austin, T L Butler, R A Gerber, C L Whitney, N J Wright, W Yang, and Z Zhao. NERSC Workload Analysis on Hopper. Technical report, National Energy Research Scientific Computing (NERSC) Center, 2014. Axel D. Becke. Density-functional thermochemistry. III. The role of exact exchange. The Journal of Chemical Physics , 98(7):5648–5652, 1993. Peter Eastman, Pavan Kumar Behara, David L. Dotson, Raimondas Galvelis, John E. Herr, Josh T. Horton, Yuezhi Mao, John D. Chodera, Benjamin P. Pritchard, Yuanqing Wang, Gianni De Fabritiis, and Thomas E. Markland. SPICE, A Dataset of Drug-like Molecules and Peptides for Training Machine Learning Potentials. Scientific Data , 10(1):11, 2023. Pol Febrer, Peter Bjørn Jørgensen, Miguel Pruneda, Alberto García, Pablo Ordejón, and Arghya Bhowmik. Graph2Mat: Universal graph to matrix conversion for electron density prediction. 
+
+Machine Learning: Science and Technology , 6(2):025013, 2025. V. Fock. Näherungsmethode zur Lösung des quantenmechanischen Mehrkörperproblems. Zeitschrift für Physik , 61(1):126–148, 1930. Nicholas Gao, Eike Eberhard, and Stephan Günnemann. Learning Equivariant Non-Local Electron Density Functionals. In The Thirteenth International Conference on Learning Representations ,2024. Alberto García, Nick Papior, Arsalan Akhtar, Emilio Artacho, Volker Blum, Emanuele Bosoni, Pedro Brandimarte, Mads Brandbyge, J. I. Cerdá, Fabiano Corsetti, Ramón Cuadrado, Vladimir Dikan, Jaime Ferrer, Julian Gale, Pablo García-Fernández, V. M. García-Suárez, Sandra García, Georg Huhs, Sergio Illera, Richard Korytár, Peter Koval, Irina Lebedeva, Lin Lin, Pablo López-Tarifa, Sara G. Mayo, Stephan Mohr, Pablo Ordejón, Andrei Postnikov, Yann Pouillon, Miguel Pruneda, Roberto Robles, Daniel Sánchez-Portal, Jose M. Soler, Rafi Ullah, Victor Wen-zhe Yu, and Javier Junquera. Siesta: Recent developments and applications. The Journal of Chemical Physics , 152 (20):204108, 2020. Xiaoxun Gong, He Li, Nianlong Zou, Runzhang Xu, Wenhui Duan, and Yong Xu. General framework for E(3)-equivariant neural network representation of density functional theory Hamiltonian. Nature Communications , 14(1):2848, 2023. Tim Gould. A step toward density benchmarking—The energy-relevant “mean field error”. The Journal of Chemical Physics , 159(20):204111, 2023. D. R. Hartree. The Wave Mechanics of an Atom with a Non-Coulomb Central Field. Part I. Theory and Methods. Mathematical Proceedings of the Cambridge Philosophical Society , 24(1):89–110, 1928. Robin Haunschild, Andreas Barth, and Bernie French. A comprehensive analysis of the history of DFT based on the bibliometric method RPYS. Journal of Cheminformatics , 11(1):72, 2019. S. Hazra, U. Patil, and S. Sanvito. Predicting the One-Particle Density Matrix with Machine Learning. 
+
+Journal of Chemical Theory and Computation , 20(11):4569–4578, 2024. P. Hohenberg and W. Kohn. Inhomogeneous Electron Gas. Physical Review , 136(3B):B864–B871, 1964. Clemens Isert, Kenneth Atz, José Jiménez-Luna, and Gisbert Schneider. QMugs: Quantum Mechani-cal Properties of Drug-like Molecules, 2021. 9Seongsu Kim, Nayoung Kim, Dongwoo Kim, and Sungsoo Ahn. High-order Equivariant Flow Matching for Density Functional Theory Hamiltonian Prediction, 2025. Seongsu Kim, Chanhui Lee, Yoonho Kim, Seongjun Yun, Honghui Kim, Nayoung Kim, Changyoung Park, Sehui Han, Sungbin Lim, and Sungsoo Ahn. Machine Learning Hamiltonians are Accurate Energy-Force Predictors, 2026. W. Kohn and L. J. Sham. Self-Consistent Equations Including Exchange and Correlation Effects. 
+
+Physical Review , 140(4A):A1133–A1138, 1965. Teddy Koker, Keegan Quigley, Eric Taw, Kevin Tibbetts, and Lin Li. Higher-order equivariant neural networks for charge density prediction in materials. npj Computational Materials , 10(1):161, 2024. Maksim Kulichenko, Benjamin Nebgen, Nicholas Lubbers, Justin S. Smith, Kipton Barros, Alice E. A. Allen, Adela Habib, Emily Shinkle, Nikita Fedik, Ying Wai Li, Richard A. Messerly, and Sergei Tretiak. Data Generation for Machine Learning Interatomic Potentials and Beyond. Chemical Reviews , 124(24):13681–13714, 2024. Susi Lehtola. Assessment of Initial Guesses for Self-Consistent Field Calculations. Superposition of Atomic Potentials: Simple yet Efficient. Journal of Chemical Theory and Computation , 15(3): 1593–1604, 2019. Susi Lehtola, Frank Blockhuys, and Christian Van Alsenoy. An Overview of Self-Consistent Field Calculations Within Finite Basis Sets. Molecules , 25(5):1218, 2020. Daniel S. Levine, Muhammed Shuaibi, Evan Walter Clark Spotte-Smith, Michael G. Taylor, Muham-mad R. Hasyim, Kyle Michel, Ilyes Batatia, Gábor Csányi, Misko Dzamba, Peter Eastman, Nathan C. Frey, Xiang Fu, Vahe Gharakhanyan, Aditi S. Krishnapriyan, Joshua A. Rackers, Sanjeev Raja, Ammar Rizvi, Andrew S. Rosen, Zachary Ulissi, Santiago Vargas, C. Lawrence Zitnick, Samuel M. Blau, and Brandon M. Wood. The Open Molecules 2025 (OMol25) Dataset, Evaluations, and Models, 2025. He Li, Zun Wang, Nianlong Zou, Meng Ye, Runzhang Xu, Xiaoxun Gong, Wenhui Duan, and Yong Xu. Deep-learning density functional theory Hamiltonian for efficient ab initio electronic-structure calculation. Nature Computational Science , 2(6):367–377, 2022. Rui Li, Qiming Sun, Xing Zhang, and Garnet Kin-Lic Chan. Introducing GPU Acceleration into the Python-Based Simulations of Chemistry Framework. The Journal of Physical Chemistry A , 129 (5):1459–1468, 2025a. Yunyang Li, Zaishuo Xia, Lin Huang, Xinran Wei, Han Yang, Sam Harshe, Zun Wang, Chang Liu, Jia Zhang, Bin Shao, and Mark B. Gerstein. Enhancing the Scalability and Applicability of Kohn-Sham Hamiltonians for Molecular Systems, 2025b. Yi-Lun Liao, Brandon M. Wood, Abhishek Das, and Tess Smidt. EquiformerV2: Improved Equiv-ariant Transformer for Scaling to Higher-Degree Representations. In The Twelfth International Conference on Learning Representations , 2023. Zhe Liu, Yuyan Ni, Zhichen Pu, Qiming Sun, Siyuan Liu, and Wen Yan. Towards A Universally Transferable Acceleration Method for Density Functional Theory, 2025. Ayesh Madushanka, Renaldo T. Moura, and Elfi Kraka. QM40, Realistic Quantum Mechanical Dataset for Machine Learning in Molecular Science. Scientific Data , 11(1):1376, 2024. John P. Perdew. Jacob’s ladder of density functional approximations for the exchange-correlation energy. In AIP Conference Proceedings , volume 577, pages 1–20, Antwerp (Belgium), 2001. AIP. John P. Perdew and Lucian A. Constantin. Laplacian-level density functionals for the kinetic energy density and exchange-correlation energy. Physical Review B , 75(15):155109, 2007. John P. Perdew, Kieron Burke, and Matthias Ernzerhof. Generalized Gradient Approximation Made Simple. Physical Review Letters , 77(18):3865–3868, 1996. P. Pulay. Improved SCF convergence acceleration. Journal of Computational Chemistry , 3(4): 556–560, 1982. 10 Péter Pulay. Convergence acceleration of iterative sequences. the case of scf iteration. Chemical Physics Letters , 73(2):393–398, 1980. Raghunathan Ramakrishnan, Pavlo O. Dral, Matthias Rupp, and O. Anatole von Lilienfeld. Quantum chemistry structures and properties of 134 kilo molecules. Scientific Data , 1(1):140022, 2014. C. C. J. Roothaan. New Developments in Molecular Orbital Theory. Reviews of Modern Physics , 23 (2):69–89, 1951. K. T. Schütt, M. Gastegger, A. Tkatchenko, K.-R. Müller, and R. J. Maurer. Unifying machine learning and quantum chemistry with a deep neural network for molecular wavefunctions. Nature Communications , 10(1):5024, 2019. Feitong Song and Ji Feng. NeuralSCF: Neural network self-consistent fields for density functional theory, 2024. Jianwei Sun, Adrienn Ruzsinszky, and John P. Perdew. Strongly Constrained and Appropriately Normed Semilocal Density Functional. Physical Review Letters , 115(3):036402, 2015. Qiming Sun, Jun Yang, and Garnet Kin-Lic Chan. A general second order complete active space self-consistent-field solver for large-scale systems. Chemical Physics Letters , 683:291–299, 2017. Qiming Sun, Xing Zhang, Samragni Banerjee, Peng Bao, Marc Barbry, Nick S. Blunt, Nikolay A. Bogdanov, George H. Booth, Jia Chen, Zhi-Hao Cui, Janus J. Eriksen, Yang Gao, Sheng Guo, Jan Hermann, Matthew R. Hermes, Kevin Koh, Peter Koval, Susi Lehtola, Zhendong Li, Junzi Liu, Narbe Mardirossian, James D. McClain, Mario Motta, Bastien Mussard, Hung Q. Pham, Artem Pulkin, Wirawan Purwanto, Paul J. Robinson, Enrico Ronca, Elvira R. Sayfutyarova, Maximilian Scheurer, Henry F. Schurkus, James E. T. Smith, Chong Sun, Shi-Ning Sun, Shiv Upadhyay, Lucas K. Wagner, Xiao Wang, Alec White, James Daniel Whitfield, Mark J. Williamson, Sebastian Wouters, Jun Yang, Jason M. Yu, Tianyu Zhu, Timothy C. Berkelbach, Sandeep Sharma, Alexander Yu. Sokolov, and Garnet Kin-Lic Chan. Recent developments in the PySCF program package. The Journal of Chemical Physics , 153(2):024109, 2020. Attila Szabo and Neil S. Ostlund. Modern Quantum Chemistry: Introduction to Advanced Electronic Structure Theory . Dover Publications, 1996. ISBN 978-0-486-69186-2. Zechen Tang, He Li, Peize Lin, Xiaoxun Gong, Gan Jin, Lixin He, Hong Jiang, Xinguo Ren, Wenhui Duan, and Yong Xu. A deep equivariant neural network approach for efficient hybrid density functional calculations. Nature Communications , 15(1):8815, 2024. O. Vahtras, J. Almlöf, and M. W. Feyereisen. Integral approximations for LCAO-SCF calculations. 
+
+Chemical Physics Letters , 213(5):514–518, 1993. J. H. Van Lenthe, R. Zwaans, H. J. J. Van Dam, and M. F. Guest. Starting SCF calculations by superposition of atomic densities. Journal of Computational Chemistry , 27(8):926–932, 2006. Florian Weigend and Reinhart Ahlrichs. Balanced basis sets of split valence, triple zeta valence and quadruple zeta valence quality for H to Rn: Design and assessment of accuracy. Physical Chemistry Chemical Physics , 7(18):3297–3305, 2005. J. L. Whitten. Coulombic potential energy integrals and approximations. The Journal of Chemical Physics , 58(10):4496–4501, 1973. Fiona C. Y. Yu, Christopher Seidl, Elise Palethorpe, and Giuseppe M. J. Barca. Acceleration of Self-Consistent Field Calculations Using Basis Set Projection and Many-Body Expansion as Initial Guess Methods. Journal of Chemical Theory and Computation , 21(3):1230–1248, 2025a. Haiyang Yu, Zhao Xu, Xiaofeng Qian, Xiaoning Qian, and Shuiwang Ji. Efficient and Equivariant Graph Networks for Predicting Quantum Hamiltonian, 2023. Haiyang Yu, Meng Liu, Youzhi Luo, Alex Strasser, Xiaofeng Qian, Xiaoning Qian, and Shuiwang Ji. QH9: A Quantum Hamiltonian Prediction Benchmark for QM9 Molecules, 2024. Haiyang Yu, Yuchao Lin, Xuan Zhang, Xiaofeng Qian, and Shuiwang Ji. Efficient Prediction of SO(3)-Equivariant Hamiltonian Matrices via SO(2) Local Frames, 2025b. 11 He Zhang, Chang Liu, Zun Wang, Xinran Wei, Siyuan Liu, Nanning Zheng, Bin Shao, and Tie-Yan Liu. Self-Consistency Training for Density-Functional-Theory Hamiltonian Prediction, 2024. Xing Zhang and Garnet Kin-Lic Chan. Differentiable quantum chemistry with PySCF for molecules and materials at the mean-field level and beyond. The Journal of Chemical Physics , 157(20): 204801, 2022. Zhengji Zhao, Brian Austin, Stefan Maintz, and Martijn Marsman. VASP Performance on HPE Cray EX Based on NVIDIA A100 GPUs and AMD Milan CPUs. Technical report, Cray User Group, 2023. 12 A The Self-Consistent Field Cycle 
+
+For accessibility, this section is limited to the spin-restricted Kohn-Sham (RKS) framework. In practice, the electron density ρ is expanded in a finite basis set {χμ}Bμ=1 of atom-centered functions via a coefficient matrix C ∈ RB×B ,
+
+ρ(r) = 2 
+
+> B
+
+X
+
+> μν Ne/2
+
+X
+
+> i=1
+
+Cμi Cνi χμ(r) χν (r) = 
+
+> B
+
+X
+
+> μν
+
+Pμν χμ(r) χν (r) , (9) where Pμν = 2 PNocc  
+
+> i=1
+
+Cμi Cνi is the density matrix and the sum runs over the Nocc = Ne/2 lowest-energy occupied orbitals, with the remaining Nvirt = B − Nocc columns of C termed virtual orbitals. In its basis-set discretization, the ground-state energy becomes a function of the density matrix 
+
+E(P) = X
+
+> μν
+
+H(core)  
+
+> μν
+
+Pμν + 12
+
+X
+
+> μν
+
+Jμν (P)Pμν + Exc (P) , (10) where Hcore contains kinetic and nuclear attraction terms, J is the Coulomb matrix, and Exc is the exchange-correlation energy. The Fock matrix F ∈ RB×B is defined as the derivative of the energy w.r.t the density matrix 
+
+F(P) = ∂E ∂P = H(core) + J(P) + Vxc (P) . (11) At a minimum of E(P), the coefficients C satisfy the Roothaan–Hall equations, 
+
+(F(P) C)μi = εi (S C )μi , (12) a generalized eigenvalue problem, where εj are the so-called orbital energies [Roothaan, 1951]. While the overlap matrix Sμν = R χμ(r) χν (r) dr is constant with respect to C, the Fock matrix depends on C through P, making Eq. (12) nonlinear. The self-consistent field ansatz [Lehtola et al., 2020] linearizes Eq. (12) via the iterative solution approach 
+
+P(t) = P C(t)
+
+F(t) = F P(t) (13) 
+
+C(t+1) = gEVP  F(t), S ,
+
+where gEVP (·, ·) returns the eigenvectors of the generalized eigenvalue problem and t is the iteration index (Fig. 2). 
+
+A.1 Direct Inversion of the Iterative Subspace (DIIS) 
+
+The self-consistent field (SCF) method uses an iterative ansatz to solve Equation (12) . The so-called Direct Inversion of the Iterative Subspace (DIIS) formalism accelerates convergence by constructing an optimal linear combination of previous Fock matrices that minimizes a residual error [Pulay, 1980, 1982]. At SCF iteration t, we compute the residual R(t) ∈ RB×B (commutator error): 
+
+R(t) = F(t)P(t)S − SP (t)F(t) (14) where F is the Fock matrix, P is the density matrix, and S is the basis overlap matrix. In practice, one often transforms the residual into an orthonormal basis via ˜R(t) = X⊤R(t)X with X = S−1/2,which improves numerical stability. Using the DIIS method, we compute 
+
+F(t) 
+
+> DIIS
+
+=
+
+> t
+
+X
+
+> i=1
+
+a(i)F(i), (15) to construct the next Fock matrix for which the gEVP is solved. The coefficients a(t) minimize the residual norm subject to the constraint Pti=1 a(i) = 1 :
+
+min 
+
+> a∈Rt
+> t
+
+X
+
+> jk B
+
+X
+
+> μν
+
+a(j)a(k) R(j) 
+
+> μν
+
+R(k) 
+
+> μν
+
+. (16) 13 Using Lagrange multipliers, one can derive the Pulay equations [Pulay, 1980] 
+
+
+
+B11 · · · B1t −1
+
+... . . . ... ...
+
+Bt1 · · · Btt −1
+
+−1 · · · −1 0
+
+
+
+a(1) 
+
+...
+
+a(t)
+
+λ
+
+ =
+
+
+
+0
+
+...
+
+0
+
+−1
+
+ (17) where Bjk := P 
+
+> μν
+
+R(j) 
+
+> μν
+
+R(k) 
+
+> μν
+
+.
+
+A.2 Energy Gradient on the Density Matrix Manifold 
+
+The SCF fixed-point iteration (Eq. 18) is not the only approach to finding the ground-state density matrix. An alternative is direct minimization : treating E(P) as an objective function and optimizing it with gradient-based methods on the constraint set of valid density matrices [Lehtola et al., 2020]. This perspective motivates the loss function used in SAIL. The set of valid density matrices of rank Nocc = Ne/2 forms a smooth manifold (the Grassmannian). Its tangent space at any point is spanned by rotations that mix the Nocc occupied with the Nvirt =
+
+B − Nocc virtual columns of the coefficient matrix C(t) ∈ RB×B . Rotations within the occupied or virtual subspaces leave the density matrix unchanged and are therefore not degrees of freedom of the optimization. The energy gradient with respect to these occupied–virtual rotations is the Nocc × Nvirt 
+
+matrix 
+
+G(t) 
+
+> ia
+
+=
+
+
+
+Cocc ,(t)⊤ F(t) Cvirt ,(t)
+
+> ia
+
+, (18) where Cocc ,(t) ∈ RB×Nocc and Cvirt ,(t) ∈ RB×Nvirt are the occupied and virtual blocks of C(t),with i indexing occupied and a virtual orbitals. At a converged SCF solution the Fock matrix is diagonal in its own eigenbasis (Eq. (12) ), so the off-diagonal block Cocc ,⊤F C virt vanishes — the standard first-order optimality condition G = 0.This gives a natural convergence measure: any iterate with large ∥G(t)∥ is far from a stationary point, regardless of how close P(t) is to P∗ in Frobenius norm. The per-cycle loss used in SAIL (Eq. (5) ) is the root-mean-square of this gradient, 
+
+L(t) 
+
+> ∇
+
+=
+
+vuut 1
+
+Nocc Nvirt 
+
+> Nocc
+
+X
+
+> i=1
+> Nvirt
+
+X
+
+> a=1
+
+G(t)
+
+> ia
+> 2
+
+. (19) Unlike the DIIS commutator residual R(t) = F(t)P(t)S − SP (t)F(t) (Appendix A.1), which lives in the full B × B AO space and mixes all orbital pairs, G(t) isolates the Nocc × Nvirt degrees of freedom that actually affect the energy. The RMS normalization makes the loss comparable across molecules of different size. 
+
+# B Surrogate Metrics for Initial Guess Quality 
+
+Throughout this section, ˆX denotes a predicted (ML) quantity and X∗ its converged SCF reference. ML models for SCF acceleration are typically trained and evaluated using elementwise error norms on the predicted tensors ˆP or ˆF. These Frobenius-based targets are convenient to compute but do not directly characterize what makes an initial guess yield fast and stable SCF convergence. Here, we catalog a broader set of surrogate metrics that probe different aspects of initial-guess quality. 
+
+Total energy. The deviation in total electronic energy evaluated at the predicted density: 
+
+∆E = |E( ˆP) − E(P∗)|, E(P) = 
+
+> B
+
+X
+
+> μ,ν =1
+
+H(core ) 
+
+> μν
+
+Pνμ + 12
+
+> B
+
+X
+
+> μ,ν =1
+
+Jμν (P) Pνμ + Exc [ρ(P)] ,
+
+(20) 14 where H(core ) 
+
+> μν
+
+is the one-electron (core) Hamiltonian, Jμν (P) = PBλ,σ =1 (μν |λσ ) Pλσ the Coulomb matrix, and Exc the exchange-correlation functional including optional HF-exchange contributions 3.Since E(P) is stationary at P∗, ∆E is second order in ∥ ˆP − P∗∥ and therefore insensitive to the direction of the initial guess error. 
+
+Mean-field energy. The sum of one-electron and classical Coulomb contributions, 
+
+EMF (P) = 
+
+> B
+
+X
+
+> μ,ν =1
+
+H(core ) 
+
+> μν
+
+Pμν + 12
+
+> B
+
+X
+
+> μ,ν =1
+
+Jμν (P) Pμν , (21) provides an energetically meaningful measure of density quality that is independent of the choice of exchange-correlation functional [Gould, 2023]. 
+
+Real-space density norms. The Lp distance between densities: 
+
+∥∆ρ∥p =
+
+Z
+
+|ˆρ(r) − ρ∗(r)|p dr
+
+1/p 
+
+, p ∈ { 1, 2}. (22) The L1 norm gives the total absolute electron displacement; the L2 norm, expressed in the AO basis, involves the four-center overlap tensor (μν |λσ ) = R χμ(r)χν (r)χλ(r)χσ (r) dr. Both weight all spatial regions uniformly and do not distinguish OV errors from redundant OO or VV contributions. 
+
+Dipole moment. Unlike the Lp norms, which weight all regions of space equally, the electronic dipole moment weights the density error by the position vector r, making it a physically transparent measure of charge displacement: 
+
+∆μ = ∥μ(ˆ ρ) − μ(ρ∗)∥, μα(ρ) = −
+
+Z
+
+rα ρ(r) dr, (23) where the nuclear contribution cancels in the difference ∆μ and is therefore omitted. The linear weighting by r projects out only the ℓ = 1 multipole component of ∆ρ, so ∆μ is insensitive to higher-order error structure, but directly governs long-range electrostatic properties. 
+
+Orbital projection. Lehtola [2019] propose the projection of the initial guess onto the converged occupied subspace, 
+
+Q =
+
+> B
+
+X
+
+> μ,ν,λ,κ =1
+
+ˆPμν Sνλ P ∗ 
+
+> λκ
+
+Sκμ , (24) as a continuous metric that separates initial guess quality from the dynamics of the SCF algorithm. 
+
+DIIS residual. The commutator that measures departure from self-consistency: 
+
+rDIIS = ∥R∥F , Rμν =
+
+> B
+
+X
+
+> λ,σ =1
+
+
+
+Fμλ ( ˆP) ˆPλσ Sσν − Sμλ ˆPλσ Fσν ( ˆP)
+
+
+
+. (25) In an orthonormal basis this reduces to ∥[F( ˆP), ˆP]∥F , whose OV block is the orbital gradient 
+
+gia = 2 Fia . This isolates the OV sector but treats all OV pairs uniformly regardless of their gap. 
+
+Orbital rotation gradient. The squared norm of the energy gradient with respect to occupied-virtual rotations: 
+
+∥G∥2 = X
+
+> ia
+
+ BX
+
+> μ,ν =1
+
+Cocc  
+
+> μi
+
+Fμν ( ˆP) Cvirt 
+
+> νa
+
+2
+
+, (26) where Cocc and Cvirt are the occupied and virtual orbital coefficient matrices obtained from ˆP. Like 
+
+rDIIS , ∥G∥ isolates the OV sector but weights all OV pairs uniformly regardless of their gap.          
+
+> 3Hence, Exc is formally a functional of ρ, as well as, a function of Pif the functional is a hybrid.
+
+15 Frobenius norms. Elementwise matrix distances: 
+
+∥∆F∥F =
+
+ BX
+
+> μ,ν =1
+
+| ˆFμν − F ∗ 
+
+> μν
+
+|21/2
+
+, ∥∆P∥F =
+
+ BX
+
+> μ,ν =1
+
+| ˆPμν − P ∗ 
+
+> μν
+
+|21/2
+
+. (27) The Frobenius norm treats OO, OV, and VV blocks identically. For F, core-core diagonal elements can dominate over the small but physically critical OV elements that enter the energy gradient Gia .For P, the set of valid density matrices forms a Grassmannian of dimension Nocc × Nvirt , far lower than the B2 degrees of freedom of the full basis representation. The Frobenius norm penalizes deviations in all B2 components equally, including OO and VV blocks that correspond to redundant rotations affecting neither observables nor convergence. 
+
+# C Evaluation Details 
+
+The reference computations and final speedup evaluations are performed using PySCF [Sun et al., 2020] with grid level 1. We use the def2-SVP basis set [Weigend and Ahlrichs, 2005], and density fitting with the def2-universal-j (for PBE, SCAN) and def2-universal-jk (B3LYP) auxiliary basis sets [Vahtras et al., 1993]. The RIC and ERIC are measured relative to pyscf’s default (MINAO) and using its default convergence threshold of 10 −9 Ha [Sun et al., 2020]. 
+
+C.1 Data Split 
+
+We follow Yu et al. [2024] and split QM9 by molecular size, assigning molecules with at most 20 atoms to training, 21–22 to validation, and 23 or more to testing. To evaluate out-of-distribution generalization beyond QM9, we additionally use QM40 and QMugs as far out-of-distribution test sets. For QM40 we randomly sample up to 100 molecules per heavy-atom count, whereas for QMugs we sample 10 molecules at every tenth heavy-atom count from 40 to 90, drawing at most one conformer per molecule since QMugs provides three conformers each. For both QM40 and QMugs we restrict the sampling to molecules composed only of the elements present in QM9 (H, C, N, O, F), isolating size extrapolation from element extrapolation. 
+
+C.2 Coefficient-Based Model Extensions 
+
+The auxiliary-coefficient ansatz predicts a linear expansion of the electron density, ˆρ(r) =ˆcP χ(aux)  
+
+> P
+
+(r), rather than an AO density matrix [Song and Feng, 2024, Liu et al., 2025]. The Kohn-Sham Fock matrix decomposes as 
+
+F = H(core) + J[ρ] + V(local /grid) xc [ρ, ∇ρ, τ ] + α K[D], (28) where α ∈ [0 , 1] is the exact-exchange fraction, V(local /grid) xc collects the semi-local XC contribution, and K is the Hartree-Fock exchange matrix. H(core) is density-independent, and J is evaluated from 
+
+ˆρ through the standard auxiliary-basis density-fitting route [Vahtras et al., 1993]. The remaining two terms require inputs that ˆρ alone does not determine, namely the kinetic-energy density τ for meta-GGA functionals and the density matrix D for any functional with α > 0. Liu et al. [2025] address each with a substitution derivable from ˆρ.
+
+Meta-GGA functionals. The kinetic-energy density 
+
+τ (r) = 12
+
+X
+
+> i
+
+∇ψi(r) · ∇ ψi(r) (29) is a sum over occupied molecular orbitals {ψi} and is not recoverable from ρ. Liu et al. [2025] substitute the von Weizsäcker kinetic-energy density 
+
+τvW (r) = ∇ρ(r) · ∇ ρ(r)8 ρ(r) , (30) which depends only on ρ and ∇ρ and is therefore directly evaluable from ˆc [Perdew and Constantin, 2007]. The τ -dependent contribution to the meta-GGA XC matrix then evaluates on a real-space 16 quadrature grid {rg } with weights {ωg } as 
+
+V(τ )xc 
+
+ 
+
+> μν
+
+= 12
+
+X
+
+> g
+
+ωg vτ (rg ) ∇χμ(rg ) · ∇ χν (rg ), vτ = ∂[ρ ε xc (ρ, ∇ρ, τ )] 
+
+∂τ ρ= ˆ ρ, τ =τvW 
+
+. (31) 
+
+τvW is exact for single-orbital systems and introduces a systematic approximation error for general molecules [Perdew and Constantin, 2007]. The predicted ˆρ therefore parametrizes an approximate meta-GGA Fock build rather than the exact one. 
+
+Hybrid and range-separated functionals. The exchange matrix K[D] is a function of the density matrix rather than of ρ. Many density matrices correspond to the same ρ, so reconstructing D from ˆρ
+
+is underdetermined. Liu et al. [2025] replace the learned density matrix with the superposition-of-atomic-densities (SAD) matrix, 
+
+DSAD = M
+
+> A
+
+DA, (32) where DA is the atomic SCF density matrix for atom A, and use K[DSAD ] in Eq. (28) . DSAD 
+
+coincides with the MINAO initial guess of most quantum-chemistry implementations [Sun et al., 2020]. The α K contribution is therefore independent of the learned prediction and coincides with the exchange contribution from a MINAO/SAD initial density, while the learned coefficients still determine the Coulomb and semi-local XC terms. 
+
+Per-iteration cost. For pure and semi-local functionals ( α = 0 ), the coefficient-based Fock build scales as O(B2Baux ) under density fitting for the recovery of J, with an additional O(GB aux +
+
+GB 2) grid cost to evaluate ˆρ, ∇ˆρ, and assemble the semi-local XC matrix, where G is the number of quadrature grid points. For hybrids, evaluating K[DSAD ] is an O(B4) operation identical in complexity to the exchange build of a standard B3LYP iteration. The initial-guess pipeline ˆc → ˆρ →
+
+F(−1) → P(0) therefore incurs one Fock build before entering the SCF loop, similar to the overhead of Hamiltonian ∆-learning and contributing one extra iteration to ERIC. 
+
+C.3 Wall-time measurement procedures 
+
+All measurements were performed on a single NVIDIA A100 GPU. We separate the neural ini-tialization from the SCF loop into two stages rather than running them concurrently, because JAX and GPU4PySCF do not cohabit a single GPU cleanly. JAX assumes it owns the device, tends to pre-allocate aggressively, and does not always release memory back to the driver, which interferes with GPU4PySCF’s memory management. Running the two stages back-to-back on the same GPU, with JAX fully torn down before the SCF starts, gives a clean measurement of each. In the first stage, the ML model produces an initial density matrix for each molecule. The reported initialization time covers the model forward pass and the construction of the initial density matrix from the model output. In the second stage, this density matrix is passed to GPU4PySCF for the SCF calculation using the same basis set, exchange-correlation functional, grid level, and density-fitting settings as the baseline. The accelerated wall-time is the sum of the two stages. The baseline is GPU4PySCF initialized with the standard MINAO guess. We exclude two categories of cost from the ML-initial guess acquisition, both of which a production implementation would avoid. First, we exclude the construction of integral tensors that GPU4PySCF recomputes in the subsequent SCF stage, such as the overlap matrix. A merged implementation would compute these once and share them across both stages. Second, we exclude JAX tracing, compilation, which ahead-of-time compilation removes entirely. 
+
+# D Traditional Baselines 
+
+A perfect prediction of the target ground state would reach RIC = 0 , so there is no absolute ceiling on what a ground-state-based initial guess can achieve. What we can measure instead is how far a realistic but imperfect ground-state-like guess takes us. A natural way to construct such a guess is to run the target SCF starting from a converged ground-state density of a cheaper functional, where the imperfection comes from the difference between the two theories rather than from an ML approximation. This gives a reference point for the acceleration achievable from ground-state-like 17 guesses that fall short of the true target by a known amount. We run all valid chains across Jacob’s ladder (LDA → PBE, LDA/PBE → SCAN, and LDA/PBE/SCAN → B3LYP) and report the resulting RIC in Figure 6. Initializing from a converged cheaper functional reduces iteration counts by 20–30% relative to MINAO, with higher-rung sources yielding progressively lower RIC. The reductions are stable across 
+
+Nheavy . SCAN → B3LYP reaches the lowest RIC at ∼70% .
+
+Wall-time reductions do not follow. The pre-run is not free. Even SCAN, despite its formally lower scaling than B3LYP, costs roughly ten Fock builds to converge, which has to be paid back by the iteration savings in the subsequent hybrid SCF. An ML initial guess, by contrast, costs a single forward pass. The RIC reductions reported here are therefore not wall-time competitive with ML initialization, and serve only as a reference point for the iteration savings attainable when a ground-state-like guess approximates the target through a cheaper theory. 10 20 30       
+
+> Nheavy
+> 0.7
+> 0.8
+> 0.9
+> Relative Iteration Count (RIC)  PBE
+> 10 20 30
+> Nheavy
+> SCAN
+> 10 20 30
+> Nheavy
+> B3LYP
+> LDA initialization PBE initialization SCAN initialization
+
+Figure 6: RIC when initializing KS-DFT from converged orbitals of a cheaper functional. Each panel is a different target functional, with initialization sources colored. Dashed lines show mean RIC. SCAN → B3LYP reaches the lowest RIC at ∼70% .
+
+# E Related Work and Additional Reference Models 
+
+OOD-S vs OOD-L. Here we introduce two out-of-distribution regimes to reconcile our results with prior work. OOD-S follows the standard QH9-stable-ood split of Yu et al. [2024], in which training molecules have up to 20 atoms and test molecules contain up to 29 atoms, corresponding to a mild size extrapolation of less than 1.5× the training distribution. OOD-L corresponds to a more demanding protocol in which a substantial fraction of the test set consists of molecules more than twice the size of the largest training molecule. Since the OOD split of QH9 alone has been reported to be insufficient to expose size-transferability failures of learned Hamiltonian initializations [Liu et al., 2025], we adopt OOD-L as our primary out-of-distribution benchmark and retain OOD-S only for comparability with prior work. We match the metric used in prior work (RIC; Table E) in our own measurements (Table E), expressing both as the relative iteration reduction 1 − RIC with respect to MINAO so that readers can compare across the two tables directly. 
+
+Reproduction of QHFlow. Using the official QHFlow reference implementation [Kim et al., 2025], we are unable to reproduce the 69% ID SCF iteration reduction originally reported, and our numbers instead align with the independent evaluation of Liu et al. [2025] and with the authors’ own re-evaluation in Kim et al. [2026], both of which report substantially lower acceleration. Inspection of the reference implementation reveals two accounting choices that inflate the reported acceleration relative to a like-for-like comparison against the MinAO baseline used elsewhere in the literature [Sun et al., 2020]. First, although the paper describes the 100% reference as conventional DFT initialized with MinAO, the inference pipeline computes the baseline SCF using the 1e (core-Hamiltonian) 18 Table 2: Relative iteration reduction ( 1 − RIC ) with respect to MINAO as reported in prior work. Values with a star are using ∆-Learning for Fock prediction or coefficient Fock build with similar cost s.t. RIC ̸ = ERIC. OOD values in brackets are limited extrapolation.                                                                            
+
+> Model Theory ID OOD-S OOD-L Notes
+> QHNet
+> Yu et al. [2024] B3LYP/SVP 29% 28% -QH9 dataset. For OOD: train and valida-tion on <22 , test on up to 29 atoms Zhang et al. [2024] "-36% -QH9 dataset, with subsampled test set. With additional self-consistency tuning Zhang et al. [2024] "34% ∗--Trained on MD22 and QH9 datasets, and evaluated on MD22. With additional self-consistency tuning Kim et al. [2026] "33% --"Li et al. [2025b] "/TZVP 10% --PubChemQH (40 - 100 Atoms). WALoss Liu et al. [2025] PBE/SVP 37% -−80% On SCF-bench (QM9-like)
+> WANet
+> Li et al. [2025b] B3LYP/TZVP 18% --PubChemQH (40 - 100 Atoms). WALoss
+> QHFlow
+> Kim et al. [2026] B3LYP/SVP 40% ∗--"Liu et al. [2025] PBE/SVP 43% ∗-−47% ∗On SCF-bench (QM9-like)
+> Graph2Mat
+> Febrer et al. [2025] PBE/DZP 40% --On QM9 molecules with SIESTA de-faults García et al. [2020]. PBE func-tional confirmed by correspondence with the authors.
+> aux-coefficients
+> Liu et al. [2025] PBE/SVP 36% ∗-33% ∗On SCF-bench (QM9-like) "SCAN/ " 12% ∗-14% ∗" trained on PBE "B3LYP/ " 15% ∗-16% ∗" trained on PBE
+
+guess via init_guess_by_1e 4, which is known to be a strictly worse starting point than MinAO [Lehtola, 2019] and therefore inflates the denominator of every iteration and wall-time ratio. Second, QHFlow is a residual-learning model and requires an initial Fock matrix Finit as input; this Finit is produced by a full Fock build on top of a MinAO density 5 and cached in the preprocessed dataset, so that the per-molecule cost of constructing the model’s own input is amortized into offline dataset preparation and is absent from both the inference timer and the SCF timer. A similar gap applies to the generalized eigendecomposition that converts the predicted Hamiltonian into an initial density matrix, which is executed after the inference timer has stopped and before the SCF timer has started. Under an evaluation protocol that charges these costs to the per-molecule budget and uses MinAO as the 100% reference, we obtain the numbers reported in E. We can, however, reproduce the size extrapolation failure mode reported by Liu et al. [2025] for both the original QHFlow. 
+
+QDensFlow. To disentangle the cost of the extra Fock build required by Hamiltonian-target learning from the acceleration attributable to the learned initialization itself, we introduce QDensFlow, an adapted variant of QHFlow in which the supervision target is swapped from the Fock matrix to the density matrix while keeping the architecture, prior distributions, flow-matching objective, and residual-learning setup otherwise unchanged. The predicted density matrix is passed directly to SCF as dm0 , and the MinAO density matrix used as the residual reference Pinit is available at negligible cost, removing the per-molecule Fock build that Hamiltonian-target residual learning requires. We  
+
+> 4https://github.com/seongsukim-ml/QHFlow/blob/b2e8662ee8e6549e2a00b66bb41f0709bf24a4b3/ src/pl_module/base_module.py#L356 , commit b2e8662 , dated 2025-10-25.
+> 5https://github.com/seongsukim-ml/QHFlow/blob/b2e8662ee8e6549e2a00b66bb41f0709bf24a4b3/ src/dataset_module/ori_dataset.py#L313-L330 , same commit.
+
+19 Table 3: Relative iteration reduction ( 1 − RIC ) with respect to MINAO, measured in this work. Higher is better; negative values indicate deceleration. We use the def2-SVP basis set and pyscf’s defaults [Sun et al., 2020]. The Coefficients, Density Matrix, and Fock rows are trained on QM9 with OOD-L evaluated on QM40. Values with a star are using ∆-Learning for Fock prediction or coefficient Fock build with similar cost s.t. RIC ̸ = ERIC.                                                   
+
+> Model Functional OOD-S OOD-L
+> base SAIL base SAIL
+> QHNet
+> This work PBE --––
+> QHFlow
+> This work B3LYP --––
+> QDensFlow
+> This work B3LYP --––
+> Coefficients PBE 45% ∗45% ∗43% ∗44% ∗
+> Density Matrix
+> PBE 26% 36% −4% 37%
+> SCAN 26% 35% −4% 33%
+> B3LYP 21% 30% −5% 27%
+> Fock
+> PBE 47% ∗39% ∗−32% ∗39% ∗
+> SCAN 45% ∗41% ∗−28% ∗31% ∗
+> B3LYP 40% ∗39% ∗−57% ∗33% ∗
+
+do not expect this swap to resolve the size extrapolation failure and confirm this empirically in E, but it allows a fair accounting of the per-molecule cost of learned initialization within the QHFlow framework. 
+
+Consistency with independent evaluations. Our reproduction is consistent with the independent evaluation of Liu et al. [2025], who report a QHFlow ID acceleration of 43% and an OOD-L deceleration of −47% on SCF-bench, well below the 69% /68% originally claimed. The authors of QHFlow themselves appear to have revised these numbers downward in their follow-up work [Kim et al., 2026], where QHFlow is re-evaluated under a shared SCF protocol and reaches only 40% 
+
+ID acceleration on QH9 (B3LYP/SVP), in line with our measurements and with those of Liu et al. [2025]. 20 F Hyperparameters 
+
+Table 4: Hyperparameters not listed here follow the defaults of EquiformerV2 (base model), Neu-ralSCF (embedding and coefficient readout), and QHNet (matrix readout). 
+
+Parameter Value (c/ P/ F) Notes 
+
+Base Model 
+
+Radial cutoff (Å) 5 Typical value for MLIPs, also used by Equiformerv2. Emb dim encoder 128 Dimensionality of each learned atom-type embedding. Env hidden encoder 64 Width of the encoder edge MLP. Gaussian RBF 128 
+
+Resolution of point samples R 9 We use β = 9 , α = 2 β + 1 as opposed to square 18x18. Memory-costly hyperparameter with negligible difference for higher values. Maximum degree Lmax 4 Matches highest angular momentum of (auxiliary) basis functions used in our experiments 
+
+Baseline (Pretraining) 
+
+Loss L2–Overlap/ mixed Frobenius– L1
+
+We used the proposed loss by Song and Feng [2024] for our coefficient-based models and Yu et al. [2024] for the matrix-based models. Optimizer Muon More stable, less sensitive to LR. Epochs 100 Good balance between performance and training time. Batch size 32 Tried { 1, 4, 8, 32 , 64 }. Warmup schedule linear 1000 Steps. Decay Cosine Base LR 5e-3 Tried {2e-2, 1e-2, 5e-3, 2e-3, 1e-3, 5e-4}. LR higher than 5e-3 would sometimes result in divergence. Min LR 1e-6 EMA decay 0.995 Exponential moving average of model parameters. Stabi-lizes training, improves generalization. Gradient clipping norm 10 .0 Reduces impact of outliers. Weight decay 1e-3 
+
+SAIL (Finetuning) 
+
+Loss Eq. (5) Commutator Loss can be used as an alternative. Optimizer Muon Epochs 5
+
+Batch size 1 Current implementation does not support batching Warmup schedule linear 1000 Steps. Decay Cosine Base LR 5e-4 / 1e-3 / 5e-4 Tried {5e-3, 2e-3, 1e-3, 5e-4, 2e-4, 1e-4, 5e-5, 1e-5}. While lower LR can have better learning curves ID, they end up performing worse OOD. We emphasize the impor-tance of higher LR in combination with EMA and Muon. Min LR 1e-7 Improvements unnoticeable below this. EMA decay 0.995 Exponential moving average of model parameters. Stabi-lizes training, improves generalization. Gradient clipping norm 1.0
+
+SCF-cycles T 10 Most molecules converge within 10 cycles. Ablations showed that it can be reduced to T = 4 without losing performance. SCF-loss weighting Uniform Since early SCF iterations typically have larger errors, this naturally gives them a larger absolute contribution to the total loss. We also tested reweighting schemes that equalize relative contributions across cycles or emphasize later cycles, but both degraded performance. 
+
+21

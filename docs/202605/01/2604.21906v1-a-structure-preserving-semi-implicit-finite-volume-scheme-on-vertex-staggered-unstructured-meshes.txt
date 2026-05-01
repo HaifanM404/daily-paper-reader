@@ -1,0 +1,1255 @@
+Title: A structure-preserving semi-implicit finite volume scheme on vertex-staggered unstructured meshes
+
+URL Source: https://arxiv.org/pdf/2604.21906v1
+
+Published Time: Fri, 24 Apr 2026 01:15:49 GMT
+
+Number of Pages: 26
+
+Markdown Content:
+# A structure-preserving semi-implicit finite volume scheme on vertex-staggered unstructured meshes 
+
+Elena Bernardelli ∗ Elena Gaburro † Michael Dumbser ‡
+
+April 24, 2026 
+
+Abstract 
+
+We present a novel structure-preserving semi-implicit finite volume method on vertex-based stag-gered meshes for the compatible discretization of first order systems of time-dependent partial dif-ferential equations (PDEs). The method preserves divergence-free and curl-free vector fields exactly thanks to the compatible vertex-staggered discretization of the state variables on unstructured grids that are constituted by primal Delaunay triangles and their dual polygons. For the weakly compress-ible Euler equations, the proposed semi-implicit scheme is also asymptotic preserving in the low Mach number limit, i.e. it provides a compatible discretization of the incompressible Euler equations when the Mach number tends to zero. The new scheme applies to a broad spectrum of governing partial differential equations, including the weakly compressible and incompressible Euler and Navier-Stokes equations, the incompressible magnetohydrodynamics (MHD) system, and the incompressible version of the first-order hyperbolic Godunov-Peshkov-Romenski (GPR) model for continuum mechanics. The computational domain is covered by a primal triangular mesh and a dual tessellation made of so-called star polygons constructed by linking the barycenters of adjacent triangles and the midpoints of the shared edges. The scalar pressure field, the density, and the viscous stress tensor are defined at the triangles nodes. In particular, the nodal pressure is evolved implicitly in a continuous finite element-type fashion, yielding a symmetric and positive definite pressure system. Instead, the velocity, the momentum, the magnetic field and the distortion field are stored at the barycenters of the triangles and are evolved explicitly with a compatible finite volume approach. Thanks to the semi-implicit discretization, the CFL condition does not depend on the sound speed, thus enabling simulations also at low Mach numbers. The fully compatible nature of our semi-implicit vertex-staggered finite volume method ensures an exactly divergence-free velocity field in the incom-pressible limit, an exactly divergence-free magnetic field for the MHD equations and an exactly curl-free 
+
+inverse deformation gradient for solid mechanics. The method is validated through classical benchmark test cases for the weakly compressible and incompressible Euler equations, the incompressible Navier-Stokes equations, the incompressible MHD equations and the incompressible GPR model. 
+
+Keywords: unstructured mesh, vertex-staggered finite volume scheme, structure-preserving, asymp-totic preserving, semi-implicit, fully compatible discretization, divergence-free, curl-free 
+
+# 1 Introduction 
+
+Fluids, solids and plasmas are involved in numerous natural phenomena as well as industrial and biological processes including, e.g., geophysical applications, as weather forecasting, pollution modeling and seismic 
+
+> ∗
+
+Department of Computer Science, University of Verona, Strada le Grazie 15, Verona, 37134, Italy (elena.bernardelli@univr.it) 
+
+> †
+
+Department of Computer Science, University of Verona, Strada le Grazie 15, Verona, 37134, Italy (elena.gaburro@univr.it) 
+
+> ‡
+
+Laboratory of Applied Mathematics, University of Trento, Via Mesiano 77, 38123 Trento, Italy (michael.dumbser@unitn.it) 
+
+1
+
+> arXiv:2604.21906v1 [math.NA] 23 Apr 2026
+
+wave propagation, blood flow in the human cardiovascular system, clean energy production via fusion or aerodynamics design of vehicles, aircraft and spacecraft. As a consequence, understanding their behavior is of great importance for the development of modern society. From the mathematical point of view, fluids are modeled with the Euler equations, which are directly derived from the fundamental principles of mass and momentum conservation. Then, under appropriate assumption for the viscous stress tensor, the Navier-Stokes equation are derived, which constitute the most extended model for the simulation of viscous flows. Additionally, the magnetohydrodynamics (MHD) system generalizes the fluid dynamics framework to account for the interactions between electrically conducting fluids and magnetic fields occurring in plasma flows. This system couples the Euler equations with the Maxwell equations to describe the evolution of the magnetic field and plays a crucial role in astrophysics, plasma physics, and fusion energy research. On the other hand, the Godunov-Peshkov-Romenski (GPR) model [1, 2, 3] provides a unified first-order hyperbolic formulation for continuum mechanics, encompassing both fluid and solid-like behavior of the continuum. Unlike classical models, the GPR model introduces additional evolution equations for the distortion field, allowing the system to capture elastodynamics and plasticity within a unified framework. This makes it particularly well-suited for simulating complex multi-material flows, wave propagation in heterogeneous media, and high-speed impact problems, where traditional fluid models fail to accurately describe material deformation and shear wave interactions. The behavior of a fluid is generally classified based on the dimensionless Mach number , defined as 
+
+M = ∥u∥/c 0, where u is the flow velocity and c0 is the speed of sound in the medium. In the limit 
+
+M → 0, the fluid behaves as an incompressible medium, satisfying the well-known divergence-free con-dition ∇ · u = 0. This asymptotic behavior was rigorously studied by Klainermann and Majda in [4, 5]. Traditionally, numerical methods for fluid flows have been divided into two big families: pressure-based 
+
+and density-based solvers. The difference between these two kinds of numerical methods was initially moti-vated by the compressibility properties of the flow. Typically, the incompressible Euler and Navier-Stokes equations are solved via semi-implicit pressure-based schemes of finite difference type on staggered grids, see e.g. [6, 7, 8, 9, 10, 11, 12, 13, 14] or at the aid of continuous finite elements [15, 16, 17, 18, 19, 20, 21]. Conversely, compressible flows at higher Mach numbers are more effectively handled by explicit density-based finite volume schemes of the Godunov type [22, 23, 24, 25, 26, 27, 28, 29, 30, 31]. A first attempt to generalize pressure-based schemes to the more general case of compressible flows was made by Casulli and Greespan [7], but the proposed method was not conservative. Semi-implicit schemes that explicitly make use of the low-Mach-number asymptotic limit of the governing partial differential equations can be found in [32, 33, 34, 35], while the first conservative staggered semi-implicit pressure-based scheme for compressible flows was introduced by Park and Munz in [36]. The scheme [36] can be considered as one of the first all Mach numbers flow solvers ever proposed in the literature. The particular splitting of the explicit convective terms and implicit pressure term used in [36] was later studied in more details in [37] in order to construct a novel flux-vector splitting method, which was the base in [38, 39, 40]. For the numerical solution of the MHD equations, exactly divergence-free schemes usually employ 
+
+staggered meshes [41, 42, 43, 44, 45], where the location of the discrete electric and magnetic field is chosen in a suitable manner in combination with compatible discrete differential operators that guarantee that the discrete magnetic field remains exactly divergence-free if it was initially divergence-free. But staggered grids are not only used in the context of structure-preserving schemes. They are also widely used in the context of semi-implicit schemes. The need of structure preserving schemes for hy-perbolic conservation laws is very well known in the context of numerical methods for the solution of hyperbolic partial differential equations. Common to almost all the exactly structure-preserving schemes is the fact that they require the use of a staggered grid in order to provide natural and compatible def-initions of the discrete curl, gradient and divergence operators [46, 47, 48, 49, 50] which should respect the two basis vector calculus identities exactly also at the discrete level, namely that curl of gradient and 
+
+divergence of curl are identically zero [47, 51, 52]. The two basis vector calculus identities 
+
+∇ × ∇ ϕ = 0 , ∇ · ∇ × J = 0 , (1.1) 2with ϕ a scalar field and J a vector field are an immediate consequence of the Schwarz theorem on the symmetry of second partial derivatives 
+
+∂j ∂kϕ = ∂k∂j ϕ, ∂j ∂kJm = ∂k∂j Jm. (1.2) This can be easily seen in Einstein index notation, assuming summation over two repeated indices, and using a classical fully anti symmetric Levi-Civita tensor ϵijk for which it is well known that its contraction with a symmetric tensor is zero ( ϵijk Tjk = 0 for Tjk = Tkj since ϵijk = −ϵijk ): 
+
+∇ × ∇ ϕ = ϵijk ∂j ∂kϕ = 0 , ∇ · ∇ × J = ∂i(ϵijk ∂j Jk) = ϵijk ∂i∂j Jk = 0 , (1.3) due to the symmetry of second partial derivatives (1.2) and because the contraction of the antisymmetric Levi-Civita tensor with a symmetric tensor is zero. Without pretending completeness, we refer the reader to the well-known mimetic finite differences [53, 54, 55], compatible finite volume schemes [36, 56, 57] and compatible finite element [58, 59, 60, 61, 62, 63, 64, 65, 66, 67] schemes and references therein. Moreover, compatible schemes that preserve the curl-free property of a vector field exactly on the discrete level are still quite rare, but important steps forward in this direction have been made in [68, 69, 70, 71, 72, 73, 74]. Concerning compatible semi-implicit schemes, we mention [40, 48, 75] and [70, 76]. The aim of this paper is to present a novel fully compatible, asymptotic preserving semi-implicit vertex-staggered finite volume method for the numerical solution of the Euler and Navier-Stokes equa-tions, the incompressible MHD equations and the incompressible GPR model. The proposed scheme is both structure-preserving (SP), and asymptotic-preserving (AP), making it also suitable for low Mach numbers flows in the weakly compressible regime. Explicit density-based solvers suffer from inefficiencies and inaccuracies in the low Mach number regime, necessitating implicit time discretization. However, fully implicit schemes in general lead to highly nonlinear, non-symmetric algebraic systems with a large number of unknowns (density, velocity, pressure, distortion field, and magnetic field). Our semi-implicit approach circumvents these issues by employing: (i) an implicit discretization only for the pressure term and (ii) an explicit discretization for all other terms, especially of the non-linear convective terms. For weakly compressible flows, our discretization results in a mildly non-linear, symmetric positive definite system for the pressure as the only unknown. Moreover, the time step restriction of our method is dictated by the flow velocity rather than the speed of sound, ensuring accuracy and robustness also in the incompressible limit when the Mach number tends to zero. The rest of the paper is organized as follows: in Section 2 we present the different systems of partial differential equations treated in this paper, in Section 3 we introduce the domain discretization and the definition of our compatible discrete differential operators together with their properties. After that, we derive the discretization of the governing equations via the new structure-preserving semi-implicit finite volume scheme. In Section 4, an extensive validation through classical benchmark test cases is shown. The conclusions and an outlook to further works are given in Section 5. 
+
+# 2 Governing PDE systems 
+
+As stated before, the new method introduced here applies to a rather broad spectrum of PDEs. In the following, we briefly introduce the governing equations treated in this paper. 
+
+2.1 Incompressible Euler equations 
+
+Let ρ = const be a constant fluid density, u = ( u, v ) the velocity vector and p the fluid pressure. The incompressible Euler equations read 
+
+∇ · u = 0 ,∂(ρu)
+
+∂t + ∇ · (ρu ⊗ u) + ∇p = 0 , (2.1) 3and are of mixed hyperbolic-elliptic type due to the divergence-free condition of the velocity field. 
+
+2.2 Weakly compressible Euler and Navier-Stokes equations 
+
+Let ρ denote the density and u = ( u, v ) the velocity vector of the fluid. The weakly compressible Euler and Navier-Stokes equations expressing the conservation of mass and momentum are given in conservation form by ∂ρ ∂t + ∇ · (ρu) = 0 ,∂(ρu)
+
+∂t + ∇ · (ρu ⊗ u) + ∇p + ∇ · σ = 0 ,
+
+(2.2) where p represents the pressure, σ = −μ(∇u + ∇uT − 23 (∇ · u)I) is the viscous stress tensor with dynamic viscosity μ and I is the identity matrix. Throughout this paper we assume the following relation between density and pressure: 
+
+p = ρc 20, (2.3) where c0 = const is the isothermal sound speed. We furthermore introduce the Mach number 
+
+M = ∥u∥
+
+c . (2.4) In the limit of incompressible flows when M → 0, see [4, 5, 32, 33], the velocity field becomes divergence-free, i.e. ∇ · u → 0, and the stress tensor can be simplified to σ = −μ∇u. The divergence-free property of the velocity in the limit M → 0 will play a key role in validating our numerical results. In the particular case when the dynamic viscosity μ is equal to zero, we retrieve the isothermal Euler equations. 
+
+2.3 Incompressible MHD equations 
+
+The incompressible magnetohydrodynamics (MHD) equations describe the dynamics of electrically con-ducting fluids in the presence of magnetic fields. The governing equations read 
+
+∂ρ u
+
+∂t + ∇ · 
+
+
+
+ρu ⊗ u − B ⊗ B + 12 B2I
+
+
+
++ ∇p = 0 ,∂B
+
+∂t + ∇ × E = 0 ,
+
+∇ · u = 0 .
+
+(2.5) Here the density ρ is assumed to be constant, B is the magnetic field obtained from a vector potential 
+
+A as B = ∇ × A and E is the electric field given by E = −u × B. In the case of the MHD system, the magnetic field must remain divergence-free, as no magnetic monopoles can exist, i.e. we have the following involution, 
+
+∇ · B = 0 ,
+
+which is automatically satisfied for all times if it is satisfied initially. 
+
+2.4 Incompressible GPR system 
+
+The Godunov–Peshkov–Romenski (GPR) model [1] of continuum mechanics in the incompressible limit reads ∂ρ u
+
+∂t + ∇ · (ρu ⊗ u) + ∇p + ∇ · σ = 0 ,∂A
+
+∂t + ∇(Au ) + u · ∇ × A = 0 ,
+
+∇ · u = 0 ,
+
+(2.6) 4where A is the distortion field and σ is the shear stress tensor. For elastic solids the distortion field A =
+
+Aik = ∂X i/∂x k represents the inverse deformation gradient, with Xi being the Lagrangian coordinates in the reference configuration and xk being the Eulerian coordinates. Since A is a gradient, it must obviously be curl-free, hence the following condition (involution) on A holds for all times: 
+
+∂mAik − ∂kAim = 0 , or, equivalently , ∇ × A = 0 .
+
+This expression represents the curl-free condition for the rows of the distortion field A, which we will use at the discrete level to validate our numerical results. From A the stress tensor can be computed as 
+
+σ = ρc 2 
+
+> s
+
+AT A dev( G), (2.7) with cs the shear sound speed, G = AT A being the Riemannian metric tensor induced by the coordinate transformation from Lagrangian to Eulerian coordinates and dev( G) = G − 13 tr( G)I its trace-free part. In index notation we write the term in the second equation of (2.6) u · ∇ × A = um · (∂mAik − ∂kAim )more precisely. It is formally zero, since A is curl-free, but it is necessary to ensure Galilean invariance and thermodynamic compatibility of the system, see also [77, 78, 79]. 
+
+# 3 Numerical method 
+
+In this section, we present how the computational domain is discretized at the aid of staggered un-structured meshes and we also introduce the definition of our compatible discrete differential operators, together with their mathematical properties. Moreover, we explain how to discretize the aforementioned governing equations both in space and time. We then present the main properties of the obtained structure-preserving numerical schemes. These include the full compatibility with the low Mach number limit, the exact preservation of the divergence-free property of the magnetic field and of the curl-free property of the inverse deformation gradient, and the divergence-free property of the velocity for the incompressible Euler and Navier-Stokes equations. Furthermore, the asymptotic-preserving property of the scheme is shown for the weakly compressible Euler equations as M → 0. 
+
+3.1 Staggered mesh, definition of the compatible discrete differential operators and main properties of the scheme 
+
+We discretize our domain Ω with boundary ∂Ω in d = 2 space dimensions with a set of non-overlapping triangular control volumes ωc of the Delaunay type, which will represent our primal mesh. Here, each triangle ωc is identified by the index c and its barycenter has coordinates xc. Next, we denote with p ageneric vertex of the triangulation with coordinates xp. In particular, the set of vertexes belonging to cell 
+
+ωc is called P(c), while the set of triangles sharing the node p is indicated with C(p). The notation and the definition of the discrete differential operators follows [80, 81]. In order to create the dual mesh, we first need to define the sub-cell ωpc by connecting the vertex with position xp, the cell barycenter of coordinates xc = 1 /(d + 1) P 
+
+> p∈P (c)
+
+xp and the left and right midpoints of the edges impinging on node p, namely p−1/2 and p+1 /2 with position xp−1/2 and xp+1 /2 , respectively. The half lengths of these edges are given by l− 
+
+> pc
+
+= |xp − xp−1/2 | and l+ 
+
+> pc
+
+= |xp − xp+1 /2 | and the corner normal vector is computed as 
+
+lpc npc = l+
+
+> pc
+
+n+ 
+
+> pc
+
++ l−
+
+> pc
+
+n−
+
+> pc
+
+. (3.1) By construction, the corner vectors satisfy the fundamental geometrical identity 
+
+X
+
+> p∈P (c)
+
+lpc npc = 0 , (3.2) 5which is a consequence of the Gauss theorem. Now, we introduce the dual cell ωp given by the union of all sub-cells ωpc sharing the generic mesh node p:
+
+ωp = [
+
+> c∈C (p)
+
+ωpc . (3.3) The outward pointing corner vectors of ωp are simply the cell corner vectors lpc npc with opposite sign for all c ∈ C (p) and thus the following identity holds: 
+
+X
+
+> c∈C (p)
+
+−lpc npc = 0 . (3.4) From now on, we define lcp ncp = −lpc npc .After introducing all the spatial ingredients, we can define our compatible discrete nabla operators as follows: 
+
+∇pc ∗ = 1
+
+|ωc|
+
+X
+
+> p∈P (c)
+
+lpc npc ∗, ∇cp∗ = 1
+
+|ωp|
+
+X
+
+> c∈C (p)
+
+lcp ncp ∗, (3.5) where the first operator is defined on the primal mesh based on the triangular control volumes ωc, while the second one is defined on the dual mesh built around each vertex of the triangulation. 
+
+Boundary conditions Let p be a node lying on the boundary of the domain ∂Ω, as depicted on the right of Figure 1. The corner vectors on the boundary are given by 
+
+lpb npb = l+
+
+> pb
+
+n+ 
+
+> pb
+
++ l−
+
+> pb
+
+n−
+
+> pb
+
+, (3.6) where the outward normals l+
+
+> pb
+
+n+ 
+
+> pb
+
+and l−
+
+> pb
+
+n− 
+
+> pb
+
+are referred to the boundary side impinging on node p. These normals are essential to satisfy the discrete Gauss theorem also for a boundary node, and they are indeed linked to the corner vectors with the following relation: 
+
+X
+
+> c∈C (p)
+
+lpc npc = lpb npb . (3.7) Now that the operators have been defined, we can prove the classical two basic vector calculus identities (1.1) in the discrete form. Given a scalar field ϕp and a vector field Jp, we can prove that 
+
+∇cp × ∇ pc ϕp = 0 , ∇cp · (∇pc × Jp) = 0 . (3.8)     
+
+> lpc npc =l+
+> pc n+
+> pc +l−
+> pc n−
+> pc
+
+ωpc 
+
+> p
+
+ωc           
+
+> xbc
+> xp−1/2xp+1 /2
+> n+
+> pc n−
+> pc
+> l−
+> pc =|xp−xp−1/2|l+
+> pc =|xp−xp+1 /2|
+
+ωp     
+
+> p
+> ωpc xbc
+> −lpc npc
+> lpc npc
+> lpb npb =l+
+> pb n+
+> pb +l−
+> pb n−
+> pb
+> p
+
+ωp          
+
+> xp−1/2
+> xp+1 /2
+> n+
+> pb
+> n−
+> pb
+> l−
+> pb =|xp−xp−1/2|
+> l+
+> pb =|xp−xp+1 /2|
+
+Figure 1: On the left, a control volume ωc, with its barycenter and edge midpoints. In violet, the sub-cell 
+
+ωpc which results by connecting the vertex with position xp, the cell barycenter of coordinates xbc =1/(d + 1) P 
+
+> p∈P (c)
+
+xp and the left and right midpoints of the edges impinging on node p, namely p−1/2 and 
+
+p+1 /2. In the middle, the dual cell ωp (cyan) is obtained by the union of all sub-cells ωc sharing a generic mesh node p. On the right, the notation for the boundary dual cell located on ∂Ω. 6In the following Lemma 1, we will prove the first discrete vector calculus identity, namely that the curl of the gradient of a scalar field is zero. We also recall that this Lemma 1 has already been proven in a slightly different context in [47, 49, 82]. 
+
+Lemma 1. In two space dimensions ( d = 2 ) the discrete gradient operator applied to a scalar field ϕp
+
+defined in the mesh nodes p
+
+∇pc ϕp = 1
+
+|ωc|
+
+X
+
+> p∈P (c)
+
+lpc npc ϕp, (3.9) 
+
+and its dual discrete curl operator applied to a vector field Jc defined in the cell centers 
+
+∇cp × Jc = 1
+
+|ωp|
+
+X
+
+> c∈C (p)
+
+lpc ncp × Jc, (3.10) 
+
+satisfy the first discrete vector calculus identity (3.8). Proof. Let us consider a generic control volume ωc with indices of the three nodes p1, p 2 and p3 and Eulerian nodes coordinates xp1, xp2 and xp3, respectively. We assume that the nodes are ordered counter-clockwise. The indices of the edges of ωc are denoted by e1, e 2 and e3, respectively, with edge e1 composed of nodes p1 and p2, edge e2 composed of nodes p2 and p3 and edge e3 composed of nodes p3 and p1.Assuming a linear distribution of the scalar field ϕp inside the control volume ωc yields the following averages in the edge midpoints: 
+
+ϕe1 = 12 (ϕp1 + ϕp2) , ϕ e2 = 12 (ϕp2 + ϕp3) , ϕ e3 = 12 (ϕp3 + ϕp1) . (3.11) The three corner normals are given by 
+
+lp1cnp1c = 12 (( yp2 − yp3), (xp3 − xp2), 0) T ,lp2cnp2c = 12 (( yp3 − yp1), (xp1 − xp3), 0) T ,lp3cnp3c = 12 (( yp1 − yp2), (xp2 − xp1), 0) T ,
+
+(3.12) while the area of the element ωc is 
+
+|ωc| = 12 (xp1yp2 − xp1yp3 − xp2yp1 + xp2yp3 + xp3yp1 − xp3yp2) . (3.13) The discrete gradient ∇pc ϕp = 1
+
+> |ωc|
+
+P 
+
+> p
+
+lpc npc ϕp of the scalar filed ϕp in the cell c then reads 
+
+∇pc ϕp = 12|ωc|
+
+
+
+(yp2 − yp3)ϕp1 + ( yp3 − yp1)ϕp2 + ( yp1 − yp2)ϕp3
+
+(xp3 − xp2)ϕp1 + ( xp1 − xp3)ϕp2 + ( xp2 − xp1)ϕp3
+
+0
+
+ . (3.14) We now show that this gradient is identical to the discrete gradient obtained by using continuous P1 Lagrange finite elements inside the control volume ωc. The associated basis functions in the universal reference element T0 = {ξ1, ξ 2 : 0 ≤ ξ1 < 1, 0 ≤ ξ2 ≤ 1 − ξ1} with nodes (0,0), (1,0) and (0,1) and reference coordinates ξ = ( ξ1, ξ 2) read 
+
+ψp1 = ψp1(ξ) = 1 − ξ1 − ξ2, ψp2 = ψp2(ξ) = ξ1, ψp3 = ψp3(ξ) = ξ2. (3.15) The Jacobian of the mapping 
+
+x = x(ξ) = ψp1(ξ)xp1 + ψp2(ξ)xp2 + ψp3(ξ)xp3 = X
+
+> p∈P (c)
+
+ψpxp, (3.16) 7reads 
+
+Mc(x) = ∂x
+
+∂ξ =
+
+xp2 − xp1 xp3 − xp1
+
+yp2 − yp1 yp3 − yp1
+
+
+
+= X
+
+> p∈P (c)
+
+∂ψ p
+
+∂ξ xp, (3.17) with |Mc| = 2 |ωc|. The discrete gradient of a discrete scalar quantity ϕh = ϕp1ψp1 + ϕp2ψp2 + ϕp3ψp3 is then given by 
+
+∇pc ϕp = M−Tc
+
+∂ϕ h
+
+∂ξ = M−Tc
+
+X
+
+> p∈P (c)
+
+∂ψ p
+
+∂ξ ϕp
+
+= 12|ωc|
+
+
+
+(yp2 − yp3)ϕp1 + ( yp3 − yp1)ϕp2 + ( yp1 − yp2)ϕp3
+
+(xp3 − xp2)ϕp1 + ( xp1 − xp3)ϕp2 + ( xp2 − xp1)ϕp3
+
+0
+
+ = ∇pc ϕp.
+
+(3.18) In the following, we denote a generic node of element ωc by p, as usual, and the corresponding two nodes on the opposite edge are denoted in counter-clockwise order by p− and p+, respectively. Furthermore, we denote by e− 
+
+> pc
+
+the edge connecting p with p−, and by e+ 
+
+> pc
+
+the edge connecting p with p+. We now compute the single contribution of element ωc and node p to the curl on the dual mesh |ωp|∇ cp × ∇ pc ϕp =
+
+− P 
+
+> c
+
+lpc npc × ∇ pc ϕp i.e. the contribution −lpc npc × ∇ pc ϕp, which after straightforward calculation reduces to 
+
+−lpc npc × ∇ pc , ϕ p = 12
+
+ ϕp+ − ϕp−
+
+ = ϕe+ 
+
+> pc
+
+− ϕe− 
+
+> pc
+
+, (3.19) i.e. the difference of values at the respective edge midpoints. Consider now two adjacent elements ωc and 
+
+ωd which share a common edge e composed of node p and q. We assume that the elements are ordered counter clockwise, i.e. the previous element is ωc and the subsequent element is ωd. The value at the edge midpoint given by the previous element ωc is denoted by ϕ− 
+
+> e
+
+= ϕe+ 
+
+> pc
+
+and the value at the edge midpoint given by the subsequent element ωd is denoted by ϕ+ 
+
+> e
+
+= ϕe− 
+
+> pc
+
+. Since the values of the scalar filed ϕ at the edge midpoint are the same for two adjacent elements that share a common edge e, i.e. 
+
+ϕ+ = ϕ− = 12 (ϕp + ϕq), summing up over all elements ωc around the node p yields zero, due to the telescopic sum property: 
+
+|ωp|∇ cp × ∇ pc ϕp = − X
+
+> c∈C (p)
+
+lpc npc × ∇ pc ϕp = X
+
+> e∈E (p)
+
+ϕ+ 
+
+> e
+
+− ϕ− 
+
+> e
+
+= 0 . (3.20) Here, E(p) is the set of edge connected to node p. The above identity completes the proof that the discrete curl on the dual mesh applied to the discrete gradient on the primal mesh is zero. Moreover, in a similar manner it is possible to prove that the discrete dual divergence of the discrete primary curl is zero, see [47]. Finally, the time coordinate t is defined in the interval [0; tf ] and is approximated by a sequence of discrete points tn such that 
+
+tn+1 = tn + ∆ t, (3.21) where the time step ∆ t is computed according to the CFL stability condition as ∆t ≤ CFL min 
+
+> c
+
+h(c)
+
+λ(c) , (3.22) where h(c) is the incircle diameter of control volume ωc and λ involves only the eigenvalues related to the explicit subsystem, while pressure is always treated implicitly. 83.2 Semi-implicit discretization of the equations 
+
+To discretize the governing partial differential equations, we first need to clarify where the relevant vari-ables are defined. From now on, we will use the subscript c for variables defined inside triangle ωc and the subscript p for variables defined at mesh nodes. Sometimes, it is possible that a quantity discretized on the mesh nodes needs to be used within a discretization at the barycenters and vice versa. For example, to define the velocity discretized on the mesh nodes up starting from values of uc given at the barycenters of the control volumes ωc, a weighted average approach is used. Specifically, the velocity at the node p is computed as: 
+
+up = 1
+
+|ωp|
+
+X
+
+> c∈C (p)
+
+|ωpc | uc, (3.23) where |ωp| is the total area of the star polygon associated with the node p, |ωpc | is the area of the subvolume ωpc = ωc ∩ ωp and uc is the velocity at the barycenter c. In this way, the velocity at the mesh node is obtained by averaging the velocity at the barycenters, weighted by the areas of the subvolumes surrounding the node p.Vice versa, to define the density ρc on the barycenters of triangles ωc, starting from values of ρp defined at the mesh node p, a similar weighted average approach can be employed. In this case, the density at the barycenter of the control volume ωc is computed averaging the densities at the vertices belonging to triangle ωc, with each vertex contributing equally. Specifically: 
+
+ρc = 13
+
+X
+
+> p∈P (c)
+
+ρp, (3.24) where P(c) is the set of vertexes belonging to control volume ωc.
+
+3.2.1 Incompressible Euler equations 
+
+Using the notations and the operators introduced before, and assuming constant density ρc = ρ = const ,we first discretize the incompressible Euler equations in a semi-implicit manner as they represent the essential core of the numerical discretization of all the other equations. We proceed as in classical projection schemes, [6, 11, 83, 84], i.e. we first compute an intermediate momentum and velocity field via an explicit 
+
+finite volume method as follows: 
+
+m∗ 
+
+> c
+
+= mnc − ∆t
+
+|ωc|
+
+X
+
+> a∈N c
+
+|∂ω ac |f rus  
+
+> ac
+
+, u∗ 
+
+> c
+
+= m∗
+
+> c
+
+ρc
+
+, (3.25) where Nc is the set of neighboring control volumes ωac that share an edge with element ωc and f rus  
+
+> ac
+
+is the classical edge-based Rusanov flux computed as 
+
+f rus  
+
+> ac
+
+= 12 (F(Qa) + F(Qc)) · nac − 12 smax (ua − uc). (3.26) Here, Q is the vector of state variables, smax is the maximum characteristic velocity computed as smax =max( |λmax (Qa)|, |λmax (Qc)|) and F = ρu ⊗ u is the flux tensor that includes the nonlinear convective terms. Whereas convective terms are treated explicitly, the pressure term is handled implicitly. At the aid of the intermediate momentum m∗ 
+
+> c
+
+, we can rewrite the discrete momentum equation as 
+
+mn+1  
+
+> c
+
+= m∗ 
+
+> c
+
+− ∆t∇pc pn+1  
+
+> p
+
+, (3.27) which is combined with the discrete divergence-free condition of the velocity field 
+
+∇cp · un+1  
+
+> c
+
+= 0 . (3.28) 9Since ρc = ρ = const we have 
+
+∇cp · mn+1  
+
+> c
+
+= 0 . (3.29) Inserting (3.27) into (3.29) leads to the discrete pressure Poisson equation 
+
+∇cp · ∇ pc pn+1  
+
+> p
+
+= 1∆t ∇cp · m∗ 
+
+> c
+
+, (3.30) which results in a symmetric and positive definite system that is solved for the pressure at the next time step pn+1  
+
+> p
+
+using an iterative method, such as the matrix-free Conjugate Gradient (CG) method [85]. Once the new pressure is known, the momentum can be updated via (3.27). 
+
+3.2.2 Weakly compressible Euler and Navier-Stokes equations 
+
+In the case of the weakly compressible Euler and Navier-Stokes equations, the discrete momentum equation reads as follows: 
+
+m∗ 
+
+> c
+
+= mnc − ∆t
+
+|ωc|
+
+X
+
+> a∈N c
+
+|∂ω ac |f rus  
+
+> ac
+
+− ∆t∇pc · σp, u∗ 
+
+> c
+
+= m∗
+
+> c
+
+ρnc
+
+. (3.31) In case of an explicit discretization of the viscous stress tensor we simply have 
+
+σp = −μ
+
+
+
+(∇cpunc ) + ( ∇cpunc )T − 23 (∇cp · unc )I
+
+
+
+, (3.32) while an implicit discretization of the viscous stress tensor reads 
+
+σp = −μ
+
+
+
+(∇cpu∗ 
+
+> c
+
+) + ( ∇cpu∗ 
+
+> c
+
+)T − 23 (∇cp · u∗ 
+
+> c
+
+)I
+
+
+
+, (3.33) and requires the solution of a symmetric positive definite linear system for the star velocity u∗ 
+
+> c
+
+. The discrete momentum equation can still be written in terms of m∗ 
+
+> c
+
+as 
+
+mn+1  
+
+> c
+
+= m∗ 
+
+> c
+
+− ∆t∇pc pn+1  
+
+> p
+
+. (3.34) In the weakly compressible case, the discrete mass conservation equation reads 
+
+ρ(pn+1  
+
+> p
+
+) = ρnp − ∆t∇cp · mn+1  
+
+> c
+
+. (3.35) Making use of the isothermal equation of state p = ρc 20 leads to 1
+
+c20
+
+pn+1  
+
+> p
+
+= 1
+
+c20
+
+pnp − ∆t∇cp · mn+1  
+
+> c
+
+. (3.36) Inserting the discrete momentum equation (3.34) into the discrete mass conservation equation (3.36) yields the following discrete wave equation for the pressure: 
+
+pn+1 
+
+> p
+
+c20
+
+− ∆t2∇cp · ∇ pc pn+1  
+
+> p
+
+= pnp
+
+c20
+
+− ∆t∇cp · m∗ 
+
+> c
+
+. (3.37) Once the new pressure is known, the momentum is updated via (3.34) and the density via (3.35). It is easy to see that for c0 → ∞ , i.e. in the low Mach number limit M → 0, the discrete pressure equation (3.37) reduces to the incompressible pressure Poisson equation (3.30). Furthermore, since for M → 0 we have ∇cp · mn+1  
+
+> c
+
+→ 0, an immediate result is that ρn+1  
+
+> p
+
+→ ρnp , i.e. density will remain constant if it was initially constant. Hence, our new method is asymptotic-preserving (AP) in the low Mach number limit. 10 3.2.3 Incompressible MHD equations 
+
+The numerical scheme for the incompressible MHD equations is a straightforward extension of the method presented initially for the incompressible Euler equations. For incompressible MHD, the compatible dis-cretization of the magnetic field reads 
+
+Bn+1  
+
+> c
+
+= Bnc − ∆t ∇pc × Enp , with Enp = −unp × Bnp , (3.38) while the flux tensor to be used in (3.26) is given by F = ρu ⊗ u − B ⊗ B + 12 B2I. In order to ensure an exactly divergence-free magnetic field for all times, at the initial time t = 0 the magnetic field must be derived from a vector potential Ap such that Bc = ∇pc × Ap.
+
+3.2.4 Incompressible GPR model 
+
+Also the discretization of the incompressible GPR model is a straightforward extension of the incompress-ible Euler equations. For the distortion field equation, the compatible discretization reads 
+
+An+1  
+
+> c
+
+= Anc − ∆t∇pc (Anp unp ) − ∆tunc · ∇ pc × Anp , (3.39) while the flux tensor to be used in (3.26) is F = ρu ⊗ u + ρc 2 
+
+> s
+
+G dev( G) with G = AT A.
+
+3.3 Fully-discrete energy stability of the implicit pressure subsystem 
+
+For the incompressible equations treated in this paper the chosen compatible semi-implicit discretization leads to a kinetic energy stable scheme for the pressure subsystem. 
+
+Lemma 2. The implicit pressure subsystem in the incompressible equations is kinetic energy stable at the fully-discrete level, in the sense that for the subsystem 
+
+ρ un+1  
+
+> c
+
+− u∗
+
+> c
+
+∆t + ∇pc pn+1  
+
+> p
+
+= 0 ,
+
+∇cp · un+1  
+
+> c
+
+= 0 ,
+
+(3.40) 
+
+the total kinetic energy is non increasing, i.e. summing over all cells in the domain we have 
+
+X
+
+> c
+
+12 ρ|ωc|  un+1 
+
+> c
+
+2 ≤ X
+
+> c
+
+12 ρ|ωc| (u∗ 
+
+> c
+
+)2 (3.41) 
+
+Proof. The total kinetic energy at time tn is defined as En = P 
+
+> c
+
+|ωc| 12 ρ(unc )2. We now multiply the momentum equation of the pressure subsystem by un+1  
+
+> c
+
+|ωc| and the divergence-free condition by pn+1  
+
+> p
+
+|ωp|.We obtain 
+
+ρ un+1  
+
+> c
+
+|ωc| · un+1  
+
+> c
+
+− u∗
+
+> c
+
+∆t + un+1  
+
+> c
+
+|ωc| · ∇ pc pn+1  
+
+> p
+
+= 0 ,pn+1  
+
+> p
+
+|ωp|∇ cp · un+1  
+
+> c
+
+= 0 ,
+
+(3.42) and arranging the equations and substituting the discrete formulations of our compatible nabla operators (3.5), we obtain 
+
+ρ|ωc| un+1  
+
+> c
+
+· un+1  
+
+> c
+
+− un+1  
+
+> c
+
+· u∗
+
+> c
+
+∆t + un+1  
+
+> c
+
+· X
+
+> p∈P (c)
+
+lpc npc pn+1  
+
+> p
+
+= 0 ,pn+1 
+
+> p
+
+X
+
+> c∈C (p)
+
+lcp ncp · un+1  
+
+> c
+
+= 0 .
+
+(3.43) 11 The numerator in the first term of the first equation can be rewritten as 
+
+un+1  
+
+> c
+
+· un+1  
+
+> c
+
+− un+1  
+
+> c
+
+· u∗ 
+
+> c
+
+= un+1  
+
+> c
+
+· un+1  
+
+> c
+
+− un+1  
+
+> c
+
+· u∗ 
+
+> c
+
++ u∗ 
+
+> c
+
+· u∗ 
+
+> c
+
+− u∗ 
+
+> c
+
+· u∗
+
+> c
+
+= 12
+
+ un+1  
+
+> c
+
+− u∗
+
+> c
+
+2 + 12
+
+ un+1 
+
+> c
+
+2 − 12 (u∗ 
+
+> c
+
+)2 . (3.44) Since un+1  
+
+> c
+
+does not depend on p and pn+1  
+
+> p
+
+does not depend on c and with lcp = lpc and ncp = −npc we can rewrite the equations as 
+
+ρ|ωc|
+
+> 12
+
+ un+1  
+
+> c
+
+− u∗
+
+> c
+
+2 + 12
+
+ un+1 
+
+> c
+
+2 − 12 (u∗ 
+
+> c
+
+)2
+
+∆t + X
+
+> p∈P (c)
+
+lpc npc · un+1  
+
+> c
+
+pn+1  
+
+> p
+
+= 0 ,
+
+− X
+
+> c∈C (p)
+
+lpc npc · un+1  
+
+> c
+
+pn+1  
+
+> p
+
+= 0 .
+
+(3.45) Summing the first equation over all cells c of the domain, summing the second equation over all points p
+
+of the domain and summing up both equations yields 
+
+X
+
+> c
+
+ρ|ωc|
+
+> 12
+
+ un+1  
+
+> c
+
+− u∗
+
+> c
+
+2 + 12
+
+ un+1 
+
+> c
+
+2 − 12 (u∗ 
+
+> c
+
+)2
+
+∆t = 0 . (3.46) Multiplication by ∆ t leads to 
+
+X
+
+> c
+
+ρ|ωc| 12
+
+ un+1  
+
+> c
+
+− u∗
+
+> c
+
+2 + X
+
+> c
+
+ρ|ωc| 12
+
+ un+1 
+
+> c
+
+2 − X
+
+> c
+
+ρ|ωc| 12 (u∗ 
+
+> c
+
+)2 = 0 . (3.47) Since  un+1  
+
+> c
+
+− u∗
+
+> c
+
+2 ≥ 0 we obtain the sought result 
+
+X
+
+> c
+
+ρ|ωc| 12
+
+ un+1 
+
+> c
+
+2 − X
+
+> c
+
+ρ|ωc| 12 (u∗ 
+
+> c
+
+)2 ≤ 0. (3.48) 
+
+# 4 Numerical results 
+
+In this section, we validate the new numerical method proposed in this paper using several well-known benchmark problems. 
+
+4.1 Taylor-Green vortex 
+
+Here we solve the well-known Taylor-Green vortex problem of the incompressible Euler and Navier-Stokes equations, see e.g. [86] for the setup used here. We also solve the problem in the low Mach number limit of the weakly compressible Euler equations. We consider a periodic square domain Ω = [0 , 2π]2 and set CFL = 0.9. In the incompressible limit, the exact solution of pressure, density and velocity field are given as follows: 
+
+p(x, t ) = P0 + 14 (cos(2 x) + cos(2 y)) e−4νt ,ρ(x) = 1 ,u(x) = sin( x) cos( y)e−2νt ,v(x) = − cos( x) sin( y)e−2νt , (4.1) where ν = μ/ρ is the kinematic viscosity of the fluid and the constant P0 can be chosen arbitrarily. For the first series of numerical experiments, carried out in the incompressible limit, we set P0 = − 12 so that 12 p(0, t ) = 0, which we also impose strongly in the linear algebraic system for the pressure in order to fix the pressure constant inside the numerical scheme. We first solve the problem with ν = 0 (inviscid incompressible Euler equations) on a triangular mesh with a number of Nx = Ny points along each boundary edge of the square domain. The simulation is run until a final time of tf = 0 .25 to verify that the discrete divergence of the velocity field remains zero up to machine precision as it is shown in Figure 2. We then run the same test again but on a sequence of successively refined unstructured triangular meshes in order to verify the order of convergence, see Table 1. 
+
+Figure 2: Numerical solution of the Taylor-Green vortex at the final time tf = 0 .25 obtained using our structure-preserving semi-implicit scheme. Pressure contours (top left), 1D cut along the line y = π for the velocity component u and along the line x = π for v and comparison with the exact solution (top right). Time evolution of the kinetic energy integrated over Ω (bottom left) and time evolution of the L2
+
+norm of the divergence of the velocity field (bottom right). 13 N x = N y L2(u) O(u) L2(v) O(v) L2(p) O(p)20 1.403E-1 - 1.401E-1 - 3.445E-1 -40 7.248E-2 1.0 7.138E-2 1.0 1.595E-1 1.1 60 4.803E-2 1.0 4.718E-2 1.0 7.449E-2 1.1 80 3.629E-2 1.0 3.560E-2 1.0 5.837E-2 1.1 100 2.894E-2 1.0 2.838E-2 1.0 4.784E-2 1.1 Table 1: Numerical convergence results of our structure preserving semi-implicit scheme for the incom-pressible Euler equations applied to the 2D Taylor-Green vortex problem. The L2 error norms refer to the velocity components u and v and the pressure p at the final time tf = 0 .25. 
+
+c0 = 10 c0 = 100 c0 = 1000 
+
+∇ · u 3.8516E-6 1.1649E-8 1.2987E-10 Table 2: Numerical convergence results for the compressible Euler equations with N x = N y = 100 and 
+
+tf = 0 .25. The table proves the asymptotic preserving property, showing that the divergence velocity goes to zero as the square of the Mach number. 
+
+c0 = 10 c0 = 100 c0 = 1000 
+
+∇ · u 6.8248E-7 1.4046E-9 1.9768E-11 Table 3: Numerical convergence results for the compressible Euler equations with N x = N y = 200 and 
+
+tf = 0 .25. The table proves the asymptotic preserving property, showing that the divergence velocity goes to zero as the square of the Mach number. 
+
+N x = N y L2(u) O(u) L2(v) O(v) L2(p) O(p)20 1.282E-01 - 1.287E-01 - 3.207E-01 -40 6.660E-02 1.0 6.597E-02 1.0 1.472E-01 1.3 60 4.416E-02 1.0 4.364E-02 1.0 9.344E-02 1.2 80 3.340E-02 1.0 3.297E-02 1.0 6.788E-02 1.2 100 2.664E-02 1.0 2.629E-02 1.0 5.324E-02 1.1 Table 4: Numerical convergence results of our structure preserving semi-implicit scheme for the incom-pressible Navier-Stokes equations with explicit viscosity applied to the 2D Taylor-Green vortex problem. The L2 error norms refer to the velocity components u and v and the pressure p at the final time tf = 0 .25. In the case of compressible Euler equations, the density is computed as ρ(x) = p(x)/c 20, where c0 is the sound speed in the fluid. In Tables 2 and 3, we verify the asymptotic preserving (AP) property running the simulation with increasing values of the isentropic sound speed, demonstrating that the divergence of the velocity field tends to zero with the square of the Mach number, as already shown in [39, 70]. In the case of the incompressible Navier-Stokes equations, we decide to treat the viscosity term both explicitly and implicitly. As before, we run the problem on a triangular mesh with a number of Nx = Ny
+
+points along each boundary edge of the periodic square domain. The simulation is run with ν = 1 and 
+
+ρ = 1 until tf = 0 .25 to verify that the discrete divergence of the velocity remains zero up to machine precision. We then run the same test again on a sequence of successively refined unstructured triangular meshes in order to verify the order of convergence, see Tables 4 and 5. 14 Figure 3: Numerical solution of the Taylor-Green vortex at the final time tf = 0 .25 obtained using our structure-preserving semi-implicit scheme for the incompressible Navier-Stokes equations with implicit viscosity. Total momentum (left), time evolution of the kinetic energy integrated over Ω (center) and time evolution of the L2 norm of the divergence of the velocity field (right). 
+
+N x = N y L2(u) O(u) L2(v) O(v) L2(p) O(p)20 1.278E-01 - 1.284E-01 - 3.220E-01 -40 6.637E-02 1.0 6.579E-02 1.0 1.514E-01 1.2 60 4.403E-02 1.0 4.354E-02 1.0 9.857E-02 1.1 80 3.331E-02 1.0 3.290E-02 1.0 7.223E-02 1.1 100 2.658E-02 1.0 2.623E-02 1.0 5.698E-02 1.0 Table 5: Numerical convergence results of our structure preserving semi-implicit scheme for the incom-pressible Navier-Stokes equations with implicit viscosity applied to the 2D Taylor-Green vortex problem. The L2 error norms refer to the velocity components u and v and the pressure p at the final time tf = 0 .25. 15 4.2 Riemann Problem 
+
+For the Sod-type shock tube problem considered here, the computational domain is Ω = [ −1, 1] 2. The initial condition reads (ρ, u, p ) = 
+
+
+
+(1 , 0, 0, c 20ρ) if x ≤ 0,
+
+(0 .125 , 0, 0, c 20ρ) if x > 0,
+
+(4.2) where c0 is the isothermal sound speed in the fluid. The solution of the shock tube problem is characterized by a left-moving rarefaction wave and a right-moving shock wave, connecting the initial high-density/high-pressure state on the left with the low-density/low-pressure state on the right. 
+
+4.3 Gresho Vortex 
+
+The Gresho problem is a stationary incompressible rotating vortex around the origin in two dimensions. The periodic computational domain is the square Ω = [ −0.5, 0.5] 2. The initial condition for pressure and velocity are: 
+
+u(x) = eϕ ·
+
+
+
+5r(x) if x < 0.2,
+
+2 − 5r(x) if 0 .2 ≤ x < 0.4,
+
+0 if x ≥ 0.4,
+
+(4.3) 
+
+p(x) = 
+
+
+
+p0 + 25 2 r(x)2 if x < 0.2,p0 + 25 2 r(x)2 + 4(1 − 5r(x)) + 4 log(5 r(x)) if 0 .2 ≤ x < 0.4,p0 − 2 + 4 log(2) if x ≥ 0.4,
+
+(4.4) where eϕ is the azimuthal unit vector in two-dimensional polar coordinates, r(x) = px2 + y2. The pressure in the vortex center is p0 = c20ρ with constant density ρ = 1. 
+
+Figure 4: Numerical solution of the Sod shock tube problem obtained using our structure-preserving semi-implicit scheme for compressible Euler equations. 1D cut along the line y = 0 for the density (left) and for the momentum (right) at tf = 0 .25. 16 N x = N y L2(u) O(u) L2(v) O(v) L2(p) O(p) L2(Bx ) O(Bx ) L2(By ) O(By )20 2.388E-1 - 2.420E-1 - 2.483E-1 - 2.453E-1 - 2.954E-1 -40 1.283E-1 0.9 1.270E-1 1.0 1.384E-1 0.9 1.377E-1 0.9 1.513E-1 1.1 60 8.564E-2 1.0 8.575E-2 1.0 9.968E-2 0.8 9.946E-2 0.8 1.051E-1 0.9 80 6.565E-2 1.0 6.548E-2 1.0 7.994E-2 0.8 7.995E-2 0.8 8.134E-2 0.9 100 5.226E-2 1.0 5.240E-2 1.0 6.477E-2 0.9 6.477E-2 0.9 6.445E-2 1.1 
+
+Table 6: Numerical convergence results of our structure preserving semi-implicit scheme for the incom-pressible MHD systems applied to a vortex problem. The L2 error norms refer to the velocity components 
+
+u and v and the pressure p at tf = 0 .25. 
+
+4.4 Incompressible MHD vortex 
+
+The test case of the MHD vortex is used to solve the incompressible MHD system. The computational domain is the periodic square Ω = [ −5, 5] 2 and we choose CFL = 0.9. The pressure is set to p(x) = 1 + 12 e − 12 r(x)e1−r2(x) where r(x) = px2 + y2 and the density is ρ(x) = 1. The velocity field is defined as 
+
+u(x) = e 12 (1 −r(x)2)[−y, x, 0] T and the vector potential is set to A(x) = e 12 (1 −x2−y2)[0 , 0, −1] T . The magnetic field is obtained as B(x) = ∇ × A(x) and the electric field is computed as E(x) = −u(x) × B(x). As before, we run the problem on a triangular mesh with a number of Nx = Ny points along each boundary edge of the square domain. The simulation is run until a final time of tf = 0 .25 to verify that the discrete divergence of the velocity and magnetic field remain zero up to machine precision. We then run the same test again but on a sequence of successively refined unstructured triangular meshes to verify the order of convergence. 
+
+4.5 Solid Rotor 
+
+In the solid rotor test case, see e.g. [70], the computational domain is the periodic square Ω = [ −1, 1] 2,the final simulation time is set to tf = 0 .25 and we choose CFL = 0.9. With exception made for the velocity field, all variables are initially constant throughout the domain. Specifically we set ρ(x) = 1, 
+
+p(x) = 1, A(x) = I, while the velocity field is u(x) = [ −y/R, x/R, 0] with r(x) = px2 + y2 ≤ R, and 
+
+u(x) = 0 otherwise, that is, outside of the circle of radius R = 0 .2. The characteristic speed of shear waves is cs = 0 .25. We run the problem on a triangular mesh with a number of Nx = Ny points along each boundary edge of the square domain. The simulation is run until tf = 0 .25 to verify that the discrete divergence of 
+
+Figure 5: Numerical solution of the Gresho vortex at the final time tf = 0 .25 obtained using our structure-preserving semi-implicit scheme for the compressible Euler equations. Pressure contours (left), velocity magnitude (center) and time evolution of the kinetic energy integrated over Ω (right). 17 Figure 6: Numerical solution of the MHD vortex ad a final time tf = 0 .25 using the structure preserving semi-implicit scheme. Pressure contours (top left) and magnetic field contours (top right). Time evolution of the kinetic and magnetic energy integrated over Ω (bottom left). Time evolution of the L2 error norm of the divergence of the velocity and of the divergence of the magnetic field (bottom right). 18 Figure 7: Numerical solution of the Solid rotor problem at the final time tf = 0 .25 obtained using our structure-preserving semi-implicit scheme. Pressure contours (top left), time evolution of the kinetic energy integrated over Ω (top right). Time evolution of the L2 norm of the divergence of the velocity field and (bottom left) and curl of the distortion field (bottom right). the velocity field and the curl of the distortion field remain zero up to machine precision. 
+
+# 5 Conclusions 
+
+In this paper, we have designed a new compatible, structure preserving semi-implicit finite volume method on vertex-staggered unstructured meshes for the solution of a broad spectrum of nonlinear systems of time dependent partial differential equations. The semi-implicit nature of the scheme, which discretizes explicitly all nonlinear convective terms and implicitly only the pressure term, allows to generate an 19 asymptotic-preserving method that is consistent with the low Mach number limit of the equations. The resulting linear algebraic system for the pressure is symmetric and positive definite. Moreover, since the time step restriction regards only the convective terms, we can ensure robust performance across all Mach number regimes. Thanks to the use of compatible discrete differential nabla operators on the primary and dual mesh, the method is exactly divergence-free and curl-free. Since our method is a first-order scheme, future work will focus on its extension to higher-order of accuracy following the ideas outlined in [47]. In particular, we plan to investigate suitable reconstructions and time-integration strategies that preserve the same compatibility, stability and asymptotic properties. We will also investigate the extension of the proposed approach to the full compressible Euler equations along the ideas outlined in [36, 38, 70, 87]. Finally, we plan to exploit some of the knowledge acquired in this work to develop novel multidimensional Riemann solvers, as those of [88, 89] with structure preserving capabilities to be inserted in high order explicit ALE schemes on moving polygonal meshes as [90, 91, 92, 93]. 
+
+# Acknowledgments 
+
+All authors are members of the INdAM GNCS group in Italy. E. Gaburro and E. Bernardelli gratefully acknowledge the support received from the European Union with the ERC Starting Grant ALcHyMiA 
+
+(grant agreement No. 101114995). Views and opinions expressed are however those of the authors only and do not necessarily reflect those of the European Union or the European Research Council Executive Agency. Neither the European Union nor the granting authority can be held responsible for them. M. Dumbser was financially supported by the Italian Ministry of University and Research (MUR) in the framework of the PRIN 2022 project High order structure-preserving semi-implicit schemes for hyperbolic equations and via the Departments of Excellence Initiative 2018–2027 attributed to DICAM of the University of Trento (grant L. 232/2016). M. Dumbser was also funded by the Fondazione Caritro via the project SOPHOS. 
+
+# References 
+
+[1] I. Peshkov and E. Romenski. A hyperbolic model for viscous Newtonian flows. Continuum Mechanics and Thermodynamics , 28:85–104, 2016. [2] M. Dumbser, I. Peshkov, E. Romenski, and O. Zanotti. High order ADER schemes for a unified first order hyperbolic formulation of continuum mechanics: Viscous heat–conducting fluids and elastic solids. Journal of Computational Physics , 314:824–862, 2016. [3] M. Dumbser, I. Peshkov, E. Romenski, and O. Zanotti. High order ADER schemes for a unified first order hyperbolic formulation of Newtonian continuum mechanics coupled with electro–dynamics. 
+
+Journal of Computational Physics , 348:298–342, 2017. [4] S. Klainerman and A. Majda. Singular limits of quasilinear hyperbolic systems with large parameters and the incompressible limit of compressible fluids. Communications on pure and applied Mathemat-ics , 34(4):481–524, 1981. [5] S. Klainerman and A. Majda. Compressible and incompressible fluids. Communications in Pure Applied Mathematics , 35:629–651, 1982. [6] F.H. Harlow, J.E. Welch, et al. Numerical calculation of time-dependent viscous incompressible flow of fluid with free surface. Physics of fluids , 8(12):2182, 1965. [7] V. Casulli and D. Greenspan. Pressure method for the numerical solution of transient, compressible fluid flows. International Journal for Numerical Methods in Fluids , 4(11):1001–1012, 1984. 20 [8] A.J. Chorin. A numerical method for solving incompressible viscous flow problems. Journal of computational physics , 135(2):118–125, 1997. [9] A.J. Chorin. Numerical solution of the Navier-Stokes equations. Mathematics of computation ,22(104):745–762, 1968. [10] S.V. Patankar and D.B. Spalding. A calculation procedure for heat, mass and momentum transfer in three-dimensional parabolic flows. In Numerical prediction of flow, heat transfer, turbulence and combustion , pages 54–73. Elsevier, 1983. [11] V.S. Patankar. Numerical Heat Transfer and Fluid Flow . Hemisphere Publishing Corporation, 1980. [12] J. Van Kan. A second-order accurate pressure-correction scheme for viscous incompressible flow. 
+
+SIAM journal on scientific and statistical computing , 7(3):870–891, 1986. [13] J.B. Bell, P. Colella, and H.M. Glaz. A second-order projection method for the incompressible Navier-Stokes equations. Journal of computational physics , 85(2):257–283, 1989. [14] C.W. Hirt and B.D. Nichols. Volume of fluid (VOF) method for the dynamics of free boundaries. 
+
+Journal of computational physics , 39(1):201–225, 1981. [15] C. Taylor and P. Hood. A numerical solution of the Navier-Stokes equations using the finite element technique. Computers & Fluids , 1(1):73–100, 1973. [16] A.N. Brooks and T. Jr Hughes. Streamline upwind/Petrov-Galerkin formulations for convection dominated flows with particular emphasis on the incompressible Navier-Stokes equations. Computer methods in applied mechanics and engineering , 32(1-3):199–259, 1982. [17] T. Jr Hughes, M. Mallet, and M. Akira. A new finite element formulation for computational fluid dynamics: II. Beyond SUPG. Computer methods in applied mechanics and engineering , 54(3):341– 355, 1986. [18] M. Fortin. Old and new finite elements for incompressible flows. International Journal for numerical methods in fluids , 1(4):347–364, 1981. [19] R. Verf¨ urth. Finite element approximation on incompressible Navier-Stokes equations with slip boundary condition. Numerische Mathematik , 50:697–721, 1986. [20] J.G. Heywood and R. Rannacher. Finite element approximation of the nonstationary Navier-Stokes problem. I. Regularity of solutions and second-order error estimates for spatial discretization. SIAM Journal on Numerical Analysis , 19(2):275–311, 1982. [21] J.G. Heywood and R. Rannacher. Finite element approximation of the nonstationary Navier-Stokes problem III. Smoothing property and higher order error estimates for spatial discretization. SIAM Journal on Numerical Analysis , 25(3):489–512, 1988. [22] P.D. Lax and B. Wendroff. Systems of conservation laws. In Selected Papers Volume I , pages 263–283. Springer, 2005. [23] S.K Godunov. Finite difference methods for the computation of discontinuous solutions of the equa-tions of fluid dynamics. Mat. Sb. , 47:271–306, 1959. [24] P.L. Roe. Approximate Riemann solvers, parameter vectors, and difference schemes. Journal of computational physics , 43(2):357–372, 1981. 21 [25] S. Osher and F. Solomon. Upwind difference schemes for hyperbolic systems of conservation laws. 
+
+Mathematics of computation , 38(158):339–374, 1982. [26] A. Harten, P.D. Lax, and B. Leer. On upstream differencing and Godunov-type schemes for hyperbolic conservation laws. SIAM review , 25(1):35–61, 1983. [27] B. Einfeldt, C.-D. Munz, P.L. Roe, and B. Sj¨ ogreen. On Godunov-type methods near low densities. 
+
+Journal of computational physics , 92(2):273–295, 1991. [28] C.-D. Munz. On Godunov-type schemes for Lagrangian gas dynamics. SIAM Journal on Numerical Analysis , 31(1):17–42, 1994. [29] E.F. Toro, M. Spruce, and W. Speares. Restoration of the contact surface in the HLL-Riemann solver. Shock waves , 4(1):25–34, 1994. [30] R.J. LeVeque. Finite volume methods for hyperbolic problems , volume 31. Cambridge university press, 2002. [31] E.F. Toro. Riemann solvers and numerical methods for fluid dynamics: a practical introduction .Springer Science & Business Media, 2013. [32] A. Meister. Asymptotic single and multiple scale expansions in the low Mach number limit. SIAM Journal on Applied Mathematics , 60(1):256–271, 1999. [33] C.-D. Munz, S. Roller, R. Klein, and K.J. Geratz. The extension of incompressible flow solvers to the weakly compressible regime. Computers & Fluids , 32(2):173–196, 2003. [34] R. Klein. Semi-implicit extension of a Godunov-type scheme based on low Mach number asymptotics I: One-dimensional flow. Journal of Computational Physics , 121(2):213–237, 1995. [35] R. Klein, N. Botta, T. Schneider, C.-D. Munz, S. Roller, A. Meister, L. Hoffmann, and T. Sonar. Asymptotic adaptive methods for multi-scale problems in fluid mechanics. Journal of Engineering Mathematics , 39:261–343, 2001. [36] J.H. Park and C.-D. Munz. Multiple pressure variables methods for fluid flow at all Mach numbers. 
+
+International journal for numerical methods in fluids , 49(8):905–931, 2005. [37] E.F. Toro and M.E. V´ azquez-Cend´ on. Flux splitting schemes for the Euler equations. Computers & Fluids , 70:1–12, 2012. [38] M. Dumbser and V. Casulli. A conservative, weakly nonlinear semi-implicit finite volume scheme for the compressible Navier- Stokes equations with general equation of state. Applied Mathematics and Computation , 272:479–497, 2016. [39] E. Zampa and M. Dumbser. An asymptotic-preserving and exactly mass-conservative semi-implicit scheme for weakly compressible flows based on compatible finite elements. Journal of Computational Physics , 521:113551, 2025. [40] M. Dumbser, D.S. Balsara, M. Tavelli, and F. Fambri. A divergence-free semi-implicit finite volume scheme for ideal, viscous and resistive magnetohydrodynamics. Int. J. Numer. Meth. Fl. , 89:16–42, 2019. [41] K. Yee. Numerical solution of initial boundary value problems involving Maxwell’s equations in isotropic media. IEEE Transactions on antennas and propagation , 14(3):302–307, 1966. 22 [42] D.S. Balsara and D.S. Spicer. A Staggered Mesh Algorithm Using High Order Godunov Fluxes to Ensure Solenoidal Magnetic Fields in Magnetohydrodynamic Simulations. Journal of Computational Physics , 149:270–292, 1999. [43] D.S. Balsara. Second-Order Accurate Schemes for Magnetohydrodynamics with Divergence-Free Reconstruction. The Astrophysical Journal Supplement Series , 151:149–184, 2004. [44] D.S. Balsara. Multidimensional HLLE Riemann solver: Application to Euler and magnetohydrody-namic flows. J. Comput. Phys. , 229:1970–1993, 2010. [45] D.S. Balsara. Multidimensional Riemann problem with self-similar internal structure – Part I – Application to hyperbolic conservation laws on structured meshes. J. Comput. Phys. , 277:163–200, 2014. [46] R. Abgrall, S. Busto, and M. Dumbser. A simple and general framework for the construction of thermodynamically compatible schemes for computational fluid and solid mechanics. Applied Math-ematics and Computation , 440:127629, 2023. [47] R. Abgrall, M. Dumbser, and P.-H. Maire. A simple and general framework for the construction of exactly div-curl-grad compatible discontinuous galerkin finite element schemes on unstructured simplex meshes. Journal of Computational Physics , 541:114340, 2025. [48] W. Boscheri and A. Thomann. A structure-preserving semi-implicit IMEX finite volume scheme for ideal magnetohydrodynamics at all Mach and Alfv´ en numbers. Journal of Scientific Computing ,100(3):67, 2024. [49] W. Boscheri, M. Dumbser, R. Loub` ere, and P.-H. Maire. A structure-preserving and thermodynam-ically compatible cell-centered Lagrangian finite volume scheme for continuum mechanics. SIAM Journal on Numerical Analysis , 2026. in press. [50] L. R´ ıo-Mart´ ın, F. Dhaouadi, and M. Dumbser. An exactly curl-free finite-volume/finite-difference scheme for a hyperbolic compressible isentropic two-phase model. Journal of Scientific Computing ,102(1):13, 2025. [51] W. Boscheri, M. Dumbser, and P.-H. Maire. A new thermodynamically compatible finite volume scheme for lagrangian gas dynamics. SIAM Journal on Scientific Computing , 46(4):A2224–A2247, 2024. [52] I. Peshkov, M. Dumbser, W. Boscheri, E. Romenski, S. Chiocchetti, and M. Ioriatti. Simulation of non-Newtonian viscoplastic flows with a unified first order hyperbolic model and a structure-preserving semi-implicit scheme. Computers & Fluids , 224:104963, 2021. [53] J.M. Hyman and M. Shashkov. Natural discretizations for the divergence, gradient, and curl on logically rectangular grids. Computers & Mathematics with Applications , 33(4):81–104, 1997. [54] L.G. Margolin, M. Shashkov, and P.K. Smolarkiewicz. A discrete operator calculus for finite difference approximations. Computer methods in applied mechanics and engineering , 187(3-4):365–383, 2000. [55] K. Lipnikov, G. Manzini, and M. Shashkov. Mimetic finite difference method. Journal of Computa-tional Physics , 257:1163–1227, 2014. [56] D.S. Balsara, S. Garain, A. Taflove, and G. Montecinos. Computational electrodynamics in material media with constraint-preservation, multidimensional Riemann solvers and sub-cell resolution–Part II, higher order FVTD schemes. Journal of Computational Physics , 354:613–645, 2018. 23 [57] A. Hazra, P. Chandrashekar, and D.S. Balsara. Globally constraint-preserving FR/DG scheme for Maxwell’s equations at all orders. Journal of computational physics , 394:298–328, 2019. [58] J.C. N´ ed´ elec. Mixed finite elements in R3. Numerische Mathematik , 35(3):315–341, 1980. [59] S. Zhang. A new family of stable mixed finite elements for the 3D Stokes equations. Mathematics of computation , 74(250):543–554, 2005. [60] R. Hiptmair. Finite elements in computational electromagnetism. Acta Numerica , 11:237–339, 2002. [61] D.N. Arnold, R.S. Falk, and R. Winther. Finite element exterior calculus, homological techniques, and applications. Acta numerica , 15:1–155, 2006. [62] P. Monk. Finite element methods for Maxwell’s equations . Oxford university press, 2003. [63] A. Alonso Rodr´ ıguez and A. Valli. Finite element potentials. Applied Numerical Mathematics , 95:2– 14, 2015. [64] P. M. Campos and E. Sonnendr¨ ucker. Gauss-compatible Galerkin schemes for time-dependent Maxwell equations. Mathematics of Computation , 85(302):2651–2685, 2016. [65] D.A. Di Pietro and J. Droniou. An arbitrary-order discrete de Rham complex on polyhedral meshes: Exactness, Poincar´ e inequalities, and consistency. Foundations of Computational Mathe-matics , 23(1):85–164, 2023. [66] L.B. Bruno and E. Zampa. Unisolvent and minimal physical degrees of freedom for the second family of polynomial differential forms. ESAIM: Mathematical Modelling and Numerical Analysis ,56(6):2239–2253, 2022. [67] E. Zampa, A. Alonso Rodr´ ıguez, and F. Rapetti. Using the FES framework to derive new phys-ical degrees of freedom for finite element spaces of differential forms. Advances in Computational Mathematics , 49(2):17, 2023. [68] R. Jeltsch and M. Torrilhon. On curl-preserving finite volume discretizations for shallow water equations. BIT Numerical Mathematics , 46(Suppl 1):35–53, 2006. [69] D.S. Balsara, R. K¨ appeli, W. Boscheri, and M. Dumbser. Curl constraint-preserving reconstruction and the guidance it gives for mimetic scheme design. Communications on Applied Mathematics and Computation , 5(1):235–294, 2023. [70] W. Boscheri, M. Dumbser, M. Ioriatti, I. Peshkov, and E. Romenski. A structure-preserving staggered semi-implicit finite volume scheme for continuum mechanics. Journal of Computational Physics ,424:109866, 2021. [71] S. Chiocchetti and M. Dumbser. An exactly curl-free staggered semi-implicit finite volume scheme for a first order hyperbolic model of viscous two-phase flows with surface tension. Journal of Scientific Computing , 94(1):24, 2023. [72] J. Jung and V. Perrier. A curl preserving finite volume scheme by space velocity enrichment. Appli-cation to the low Mach number accuracy problem. Journal of Computational Physics , 515:113252, 2024. [73] F. Dhaouadi and M. Dumbser. A structure-preserving finite volume scheme for a hyperbolic refor-mulation of the Navier–Stokes–Korteweg equations. Mathematics , 11(4):876, 2023. 24 [74] W. Barsukow, R. Loub` ere, and P.-H. Maire. A node-conservative vorticity preserving finite volume method for linear acoustics on unstructured grids. Mathematics of Computation , 94:2299–2343, 2025. [75] F. Fambri. A novel structure preserving semi-implicit finite volume method for viscous and resistive magnetohydrodynamics. International Journal for Numerical Methods in Fluids , 93(12):3447–3489, 2021. [76] M. Dumbser, A. Thomann, M. Tavelli, and W. Boscheri. A structure-preserving semi-implicit four-split scheme for continuum mechanics. Journal of Computational Physics , 559:114889, 2026. [77] S.K. Godunov. Symmetric form of the equations of magnetohydrodynamics. Numerical Methods for Mechanics of Continuous Media , 3(1):26–31, 1972. [78] S.K. Godunov and E.I. Romenski. Nonstationary equations of the nonlinear theory of elasticity in Euler coordinates. J. Appl. Mech. Tech. Phys. , 13:868–885, 1972. [79] E. Romenski. Hyperbolic systems of thermodynamically compatible conservation laws in continuum mechanics. Mathematical and computer modelling , 28(10):115–130, 1998. [80] P.-H. Maire, R. Abgrall, J. Breil, and J. Ovadia. A cell-centered lagrangian scheme for two-dimensional compressible flow problems. SIAM J. Sci. Comput. , 29:1781–1824, 2007. [81] P.-H. Maire, I. Bertron, R. Chauvin, and B. Rebourcet. Thermodynamic consistency of cell-centered Lagrangian schemes. Computers and Fluids , 203:104527, 2020. [82] D. Sidilkover. Spurious vorticity in Eulerian and Lagrangian methods. Journal of Computational Physics , 520:113510, 2025. [83] V. Casulli. A semi-implicit finite difference method for non-hydrostatic free-surface flows. Int. J. Numer. Methods Fluids , 30:425–440, 1999. [84] J. L. Guermond, P. Minev, and J. Shen. An overview of projection methods for incompressible flows. 
+
+Comput. Methods Appl. Mech. Eng. , 195:6011–6045, 2006. [85] M. R. Hestenes and E. Stiefel. Methods of conjugate gradients for solving linear systems. Journal of Research of the National Bureau of Standards , 49:409–436, 1952. [86] M. Tavelli and M. Dumbser. A staggered space–time discontinuous Galerkin method for the in-compressible Navier–Stokes equations on two–dimensional triangular meshes. Computers & Fluids ,119:235–249, 2015. [87] M. Tavelli and M. Dumbser. A pressure-based semi-implicit space-time discontinuous Galerkin method on staggered unstructured meshes for the solution of the compressible Navier-Stokes equa-tions at all Mach numbers. J. Comput. Phys. , 341:341–376, 2017. [88] G. Gallice, A. Chan, R. Loub` ere, and P.-H. Maire. Entropy stable and positivity preserving godunov-type schemes for multidimensional hyperbolic systems on unstructured grid. Journal of Computa-tional Physics , 468:111493, 2022. [89] E. Gaburro, M. Ricchiuto, and M. Dumbser. On general and complete multidimensional riemann solvers for nonlinear systems of hyperbolic conservation laws. Computers & Fluids , 311:107030, 2026. [90] E. Gaburro, W. Boscheri, S. Chiocchetti, C. Klingenberg, V. Springel, and M. Dumbser. High order direct Arbitrary-Lagrangian-Eulerian schemes on moving Voronoi meshes with topology changes. 
+
+Journal of Computational Physics , 407:109167, 2020. 25 [91] E. Gaburro and S. Chiocchetti. High-order Arbitrary-Lagrangian-Eulerian schemes on crazy moving Voronoi meshes. In Young Researchers Conference , pages 99–119. Springer, 2021. [92] E. Gaburro. A unified framework for the solution of hyperbolic PDE systems using high order direct Arbitrary-Lagrangian–Eulerian schemes on moving unstructured meshes with topology change. 
+
+Archives of Computational Methods in Engineering , 28(3):1249–1321, 2021. [93] E. Gaburro. High order well-balanced Arbitrary-Lagrangian-Eulerian ADER discontinuous Galerkin schemes on general polygonal moving meshes. Computers & Fluids , page 106764, 2025. 26

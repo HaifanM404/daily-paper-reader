@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.21657v1/fig-001.webp",
+      "caption": "Table 1: SCF acceleration of baseline and SAIL (fine-tuned) models across input representations and functionals, evaluated on QM40 (out-of-distribution). Grey rows show ablation variants of the SCAN entry above them. Bold: best RIC/ERIC per functional across all input representations.",
+      "page": 6,
+      "index": 1,
+      "width": 818,
+      "height": 463
+    },
+    {
+      "url": "assets/figures/arxiv/2604.21657v1/fig-002.webp",
+      "caption": "Table 4: Hyperparameters not listed here follow the defaults of EquiformerV2 (base model), NeuralSCF (embedding and coefficient readout), and QHNet (matrix readout).",
+      "page": 21,
+      "index": 2,
+      "width": 859,
+      "height": 1207
+    },
+    {
+      "url": "assets/figures/arxiv/2604.21657v1/fig-003.webp",
+      "caption": "Figure 1: Size extrapolation of SAIL on B3LYP/def2-SVP. Matrix-based models trained on QM9 and evaluated on QM9, QM40, and QMugs, covering molecules with up to 10× more heavy atoms than any seen during training. The vertical axis is the Effective Relative Iteration Count (ERIC) relative to the traditional baseline (MINAO), with ERIC < 1 indicating speedup and ERIC > 1 indicating slowdown. Baselines trained on ground-state targets degrade outside the training distribution, while SAIL maintains a ∼ 25% speedup across the full range. QMugs samples drug-like molecules while QM9 enumerates small organics, adding an additional chemical shift.",
+      "page": 2,
+      "index": 3,
+      "width": 818,
+      "height": 320
+    },
+    {
+      "url": "assets/figures/arxiv/2604.21657v1/fig-004.webp",
+      "caption": "Figure 4: Effective Relative Iteration Count (ERIC) for different XC-functionals (from left to right: local, semi-local, hybrid) on far out-of-distribution molecules, binned by their number of heavy atoms (up to 71 atoms, 37 heavy). All models are trained on QM9 molecules with at most 20 atoms, we only plot the QM9 test molecules with > 23 heavy atoms. The dashed vertical line marks the transition from the QM9 test set to the QM40 test set. For comparison to related work, see Table E.",
+      "page": 7,
+      "index": 4,
+      "width": 818,
+      "height": 317
+    },
+    {
+      "url": "assets/figures/arxiv/2604.21657v1/fig-005.webp",
+      "caption": "Figure 5: Left: Wall-time speedup on B3LYP/def2-SVP. Total SCF wall-time on QM40 (left of dashed line) and QMugs, measured on GPU with GPU4PySCF. Each bar is decomposed into initial-guess acquisition (lighter color) and the subsequent SCF loop. Both SAIL-trained matrix-based models deliver consistent speedups across the full size range, with no degradation on molecules 10× larger than the training distribution. Numbers above the bars report the speedup of the density matrix model, which outperforms the Hamiltonian model at every size. Right: Initial-guess acquisition breakdown. Per-component cost of the initial-guess acquisition on QMugs. Both models use ∆-learning on top of MINAO, so the MINAO build is a fixed cost shared by both ansätze. The model forward pass adds only a small overhead, while the extra Fock build MP→F required by ∆-Hamiltonian learning dominates at large sizes, motivating ERIC. Additional evaluation details are provided in Appendix C.3.",
+      "page": 7,
+      "index": 5,
+      "width": 821,
+      "height": 320
+    },
+    {
+      "url": "assets/figures/arxiv/2604.21657v1/fig-006.webp",
+      "caption": "Figure 6: RIC when initializing KS-DFT from converged orbitals of a cheaper functional. Each panel is a different target functional, with initialization sources colored. Dashed lines show mean RIC. SCAN → B3LYP reaches the lowest RIC at ∼70%.",
+      "page": 18,
+      "index": 6,
+      "width": 817,
+      "height": 303
+    },
+    {
+      "url": "assets/figures/arxiv/2604.21657v1/fig-007.webp",
+      "caption": "Table 2: Relative iteration reduction (1 − RIC) with respect to MINAO as reported in prior work. Values with a star are using ∆-Learning for Fock prediction or coefficient Fock build with similar cost s.t. RIC ̸= ERIC. OOD values in brackets are limited extrapolation.",
+      "page": 19,
+      "index": 7,
+      "width": 869,
+      "height": 707
+    },
+    {
+      "url": "assets/figures/arxiv/2604.21657v1/fig-008.webp",
+      "caption": "Table 3: Relative iteration reduction (1−RIC) with respect to MINAO, measured in this work. Higher is better; negative values indicate deceleration. We use the def2-SVP basis set and pyscf’s defaults [Sun et al., 2020]. The Coefficients, Density Matrix, and Fock rows are trained on QM9 with OOD-L evaluated on QM40. Values with a star are using ∆-Learning for Fock prediction or coefficient Fock build with similar cost s.t. RIC ̸= ERIC.",
+      "page": 20,
+      "index": 8,
+      "width": 568,
+      "height": 485
+    }
+  ]
+}

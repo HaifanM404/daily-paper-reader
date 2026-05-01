@@ -6,136 +6,121 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-04-30
-- 运行时间：2026-04-30 22:20:38 UTC
+- 最新运行日期：2026-05-01
+- 运行时间：2026-05-01 21:57:40 UTC
 - 运行状态：成功
-- 本次总论文数：38
-- 精读区：26
+- 本次总论文数：33
+- 精读区：21
 - 速读区：12
 
 ### 今日简报（AI）
-今日深度研读 38 篇前沿成果，聚焦物理信息神经网络（PINN）与生物医药图学习的满分突破。
-核心推荐 PINN 在磁流体力学方程的高效求解，以及利用残差图同构网络精准预测药物协同效应。
-建议读者重点关注 AI 在复杂物理建模与新药研发领域的跨学科融合趋势。
-- 详情：[/202604/30/README](/202604/30/README)
+今日精读 21 篇前沿论文，重点聚焦深度学习与物理信息神经网络（PINN）在等离子体鞘层及中微子振荡等复杂物理场景中的突破性应用。
+核心结论显示，AI 正在精准重构高维偏微分方程求解与生物活性数据挖掘，特别是针对极端物理环境的建模已达到极高精度。
+建议关注 AI for Science 领域中物理约束模型与多模态挖掘系统的交叉进展，这正成为解决复杂科学问题的关键。
+- 详情：[/202605/01/README](/202605/01/README)
 
 ### 精读区论文标签
-1. [A Physics-Informed Neural Network for Solving the Quasi-static Magnetohydrodynamic Equations](/202604/30/2604.20085v1-a-physics-informed-neural-network-for-solving-the-quasi-static-magnetohydrodynamic-equations)  
+1. [A Deep Learning Approach to Describing the Plasma Sheath](/202605/01/2604.22566v1-a-deep-learning-approach-to-describing-the-plasma-sheath)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解磁流体动力学方程的物理信息神经网络
-2. [Drug Synergy Prediction via Residual Graph Isomorphism Networks and Attention Mechanisms](/202604/30/2604.21473v1-drug-synergy-prediction-via-residual-graph-isomorphism-networks-and-attention-mechanisms)  
-   标签：评分：10.0/10、query:ddi
-   evidence：利用深度学习和图神经网络进行药物协同预测
-3. [Transferable Physics-Informed Representations via Closed-Form Head Adaptation](/202604/30/2604.21761v1-transferable-physics-informed-representations-via-closed-form-head-adaptation)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的可迁移物理信息神经网络
-4. [Computational Control of Nonlinear Partial Differential Equations Using Machine Learning](/202604/30/2604.22414v1-computational-control-of-nonlinear-partial-differential-equations-using-machine-learning)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于非线性PDE控制的物理信息神经网络(PINNs)
-5. [A Deep Learning Approach to Describing the Plasma Sheath](/202604/30/2604.22566v1-a-deep-learning-approach-to-describing-the-plasma-sheath)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：使用物理信息神经网络 (PINN) 来评估受偏微分方程约束的模型
-6. [Physics-Informed Neural Networks for Solving Two-Flavor Neutrino Oscillations in Vacuum and Matter Environments for Atmospheric and Reactor Neutrinos](/202604/30/2604.22862v1-physics-informed-neural-networks-for-solving-two-flavor-neutrino-oscillations-in-vacuum-and-matter-environments-for-atmospheric-and-reactor-neutrinos)  
+   evidence：利用物理信息神经网络 (PINN) 评估等离子体鞘层模型
+2. [Physics-Informed Neural Networks for Solving Two-Flavor Neutrino Oscillations in Vacuum and Matter Environments for Atmospheric and Reactor Neutrinos](/202605/01/2604.22862v1-physics-informed-neural-networks-for-solving-two-flavor-neutrino-oscillations-in-vacuum-and-matter-environments-for-atmospheric-and-reactor-neutrinos)  
    标签：评分：10.0/10、query:pde-llm
    evidence：用于求解微分方程的物理信息神经网络
-7. [Collocation-based Robust Physics Informed Neural Networks for time-dependent simulations of pollution propagation under thermal inversion conditions on Spitsbergen](/202604/30/2604.23003v1-collocation-based-robust-physics-informed-neural-networks-for-time-dependent-simulations-of-pollution-propagation-under-thermal-inversion-conditions-on-spitsbergen)  
+3. [C-PINN: A neural network framework based on the Cordès condition for solving linear and fully nonlinear equations in non-divergence form and its applications](/202605/01/2604.25606v1-c-pinn-a-neural-network-framework-based-on-the-cords-condition-for-solving-linear-and-fully-nonlinear-equations-in-non-divergence-form-and-its-applications)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于平流扩散偏微分方程的物理信息神经网络
-8. [When PINNs Go Wrong: Pseudo-Time Stepping Against Spurious Solutions](/202604/30/2604.23528v1-when-pinns-go-wrong-pseudo-time-stepping-against-spurious-solutions)  
+   evidence：用于求解非线性PDE的物理信息神经网络(PINN)
+4. [Large-eddy simulation nets (LESnets) based on physics-informed neural operator for wall-bounded turbulence](/202605/01/2604.26621v1-large-eddy-simulation-nets-lesnets-based-on-physics-informed-neural-operator-for-wall-bounded-turbulence)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解PDE的物理信息神经网络(PINNs)
-9. [Shearlet Neural Operators for Anisotropic-Shock-Dominated and Multi-scale parametric partial differential equations](/202604/30/2604.25181v1-shearlet-neural-operators-for-anisotropic-shock-dominated-and-multi-scale-parametric-partial-differential-equations)  
+   evidence：用于偏微分方程的物理信息神经算子
+5. [An adaptive wavelet-based PINN for problems with localized high-magnitude source](/202605/01/2604.28180v1-an-adaptive-wavelet-based-pinn-for-problems-with-localized-high-magnitude-source)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于参数化偏微分方程的神经网络算子架构
-10. [C-PINN: A neural network framework based on the Cordès condition for solving linear and fully nonlinear equations in non-divergence form and its applications](/202604/30/2604.25606v1-c-pinn-a-neural-network-framework-based-on-the-cords-condition-for-solving-linear-and-fully-nonlinear-equations-in-non-divergence-form-and-its-applications)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解线性和非线性偏微分方程的PINN框架
-11. [Predictivity and Utility of Neural Surrogates of Multiscale PDEs](/202604/30/2604.20061v1-predictivity-and-utility-of-neural-surrogates-of-multiscale-pdes)  
+   evidence：用于求解微分方程的自适应小波PINN
+6. [A Green-Integral-Constrained Neural Solver with Stochastic Physics-Informed Regularization](/202605/01/2604.21411v1-a-green-integral-constrained-neural-solver-with-stochastic-physics-informed-regularization)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于多尺度PDE的科学机器学习和神经代理模型
-12. [Droplet-LNO: Physics-Informed Laplace Neural Operators for Accurate Prediction of Droplet Spreading Dynamics on Complex Surfaces](/202604/30/2604.20993v1-droplet-lno-physics-informed-laplace-neural-operators-for-accurate-prediction-of-droplet-spreading-dynamics-on-complex-surfaces)  
+   evidence：为亥姆霍兹方程引入了具有物理信息正则化的神经求解器
+7. [Transferable Physics-Informed Representations via Closed-Form Head Adaptation](/202605/01/2604.21761v1-transferable-physics-informed-representations-via-closed-form-head-adaptation)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于多物理场问题的物理信息拉普拉斯神经算子
-13. [A Green-Integral-Constrained Neural Solver with Stochastic Physics-Informed Regularization](/202604/30/2604.21411v1-a-green-integral-constrained-neural-solver-with-stochastic-physics-informed-regularization)  
+   evidence：用于求解偏微分方程的可迁移物理信息表示
+8. [Computational Control of Nonlinear Partial Differential Equations Using Machine Learning](/202605/01/2604.22414v1-computational-control-of-nonlinear-partial-differential-equations-using-machine-learning)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：使用积分表示和物理信息正则化的亥姆霍兹方程神经求解器
-14. [Four-dimensional QCD equation of state from a quasi-parton model with physics-informed neural networks](/202604/30/2604.22352v1-four-dimensional-qcd-equation-of-state-from-a-quasi-parton-model-with-physics-informed-neural-networks)  
+   evidence：用于非线性偏微分方程控制近似的物理信息神经网络
+9. [Collocation-based Robust Physics Informed Neural Networks for time-dependent simulations of pollution propagation under thermal inversion conditions on Spitsbergen](/202605/01/2604.23003v1-collocation-based-robust-physics-informed-neural-networks-for-time-dependent-simulations-of-pollution-propagation-under-thermal-inversion-conditions-on-spitsbergen)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于量子色动力学的物理信息神经网络框架
-15. [C-MORAL: Controllable Multi-Objective Molecular Optimization with Reinforcement Alignment for LLMs](/202604/30/2604.23061v1-c-moral-controllable-multi-objective-molecular-optimization-with-reinforcement-alignment-for-llms)  
+   evidence：用于随时间变化模拟的物理信息神经网络框架
+10. [A Filtered MgNet Solver For Radiative Transfer Equations](/202605/01/2604.23265v1-a-filtered-mgnet-solver-for-radiative-transfer-equations)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：提出了一种用于辐射传输方程的算子学习框架
+11. [When PINNs Go Wrong: Pseudo-Time Stepping Against Spurious Solutions](/202605/01/2604.23528v1-when-pinns-go-wrong-pseudo-time-stepping-against-spurious-solutions)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于求解偏微分方程的物理信息神经网络
+12. [Physics informed operator learning of parameter dependent spectra](/202605/01/2604.23625v1-physics-informed-operator-learning-of-parameter-dependent-spectra)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于微分算子谱分析的物理信息算子学习
+13. [Learning Interpretable PDE Representations for Generative Reconstructions with Structured Sparsity](/202605/01/2604.23867v1-learning-interpretable-pde-representations-for-generative-reconstructions-with-structured-sparsity)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：将潜变量参数化为控制偏微分方程的系数和源项
+14. [Multi-scale Dynamic Wake Modeling of Floating Offshore Wind Turbines via Fourier Neural Operators and Physics-Informed Neural Networks](/202605/01/2604.23937v1-multi-scale-dynamic-wake-modeling-of-floating-offshore-wind-turbines-via-fourier-neural-operators-and-physics-informed-neural-networks)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：使用傅里叶神经算子和物理信息神经网络进行尾流预测
+15. [PINNs in More General Geometry](/202605/01/2604.25020v1-pinns-in-more-general-geometry)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于微分条件和几何问题的PINN架构
+16. [Encoded Forward Backward Stochastic Neural Network for High-Dimensional Backward Stochastic Differential Equations and Parabolic Partial Differential Equations](/202605/01/2604.25147v1-encoded-forward-backward-stochastic-neural-network-for-high-dimensional-backward-stochastic-differential-equations-and-parabolic-partial-differential-equations)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于求解高维抛物型偏微分方程的深度学习
+17. [Shearlet Neural Operators for Anisotropic-Shock-Dominated and Multi-scale parametric partial differential equations](/202605/01/2604.25181v1-shearlet-neural-operators-for-anisotropic-shock-dominated-and-multi-scale-parametric-partial-differential-equations)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于学习参数化偏微分方程解算子的神经算子
+18. [Learning Neural Operator Surrogates for the Black Hole Accretion Code](/202605/01/2604.25985v1-learning-neural-operator-surrogates-for-the-black-hole-accretion-code)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于MHD模拟的物理信息傅里叶神经算子(PINO)
+19. [Do Larger Models Really Win in Drug Discovery? A Benchmark Assessment of Model Scaling in AI-Driven Molecular Property and Activity Prediction](/202605/01/2604.26498v1-do-larger-models-really-win-in-drug-discovery-a-benchmark-assessment-of-model-scaling-in-ai-driven-molecular-property-and-activity-prediction)  
    标签：评分：9.0/10、query:ddi
-   evidence：利用大语言模型进行药物设计的分子优化
-16. [A Filtered MgNet Solver For Radiative Transfer Equations](/202604/30/2604.23265v1-a-filtered-mgnet-solver-for-radiative-transfer-equations)  
+   evidence：AI驱动的分子属性与活性预测
+20. [Compositional Meta-Learning for Mitigating Task Heterogeneity in Physics-Informed Neural Networks](/202605/01/2604.26999v1-compositional-meta-learning-for-mitigating-task-heterogeneity-in-physics-informed-neural-networks)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于辐射传输方程的算子学习框架，使用神经组件
-17. [Physics informed operator learning of parameter dependent spectra](/202604/30/2604.23625v1-physics-informed-operator-learning-of-parameter-dependent-spectra)  
+   evidence：用于逼近偏微分方程解的物理信息神经网络
+21. [An adaptive Deep Ritz framework for second-order fully nonlinear partial differential equations](/202605/01/2604.27731v1-an-adaptive-deep-ritz-framework-for-second-order-fully-nonlinear-partial-differential-equations)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：微分算子的物理信息算子学习
-18. [Learning Interpretable PDE Representations for Generative Reconstructions with Structured Sparsity](/202604/30/2604.23867v1-learning-interpretable-pde-representations-for-generative-reconstructions-with-structured-sparsity)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：从数据中学习可解释的PDE表示
-19. [Multi-scale Dynamic Wake Modeling of Floating Offshore Wind Turbines via Fourier Neural Operators and Physics-Informed Neural Networks](/202604/30/2604.23937v1-multi-scale-dynamic-wake-modeling-of-floating-offshore-wind-turbines-via-fourier-neural-operators-and-physics-informed-neural-networks)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于尾流建模的PINN和傅里叶神经网络算子
-20. [Adaptive-Distribution Randomized Neural Networks for PDEs: A Low-Dimensional Distribution-Learning Framework](/202604/30/2604.23999v1-adaptive-distribution-randomized-neural-networks-for-pdes-a-low-dimensional-distribution-learning-framework)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的随机神经网络
-21. [PINNs in More General Geometry](/202604/30/2604.25020v1-pinns-in-more-general-geometry)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于微分几何和泛函的 PINN 模型
-22. [Encoded Forward Backward Stochastic Neural Network for High-Dimensional Backward Stochastic Differential Equations and Parabolic Partial Differential Equations](/202604/30/2604.25147v1-encoded-forward-backward-stochastic-neural-network-for-high-dimensional-backward-stochastic-differential-equations-and-parabolic-partial-differential-equations)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：高维偏微分方程的深度学习
-23. [Learning Neural Operator Surrogates for the Black Hole Accretion Code](/202604/30/2604.25985v1-learning-neural-operator-surrogates-for-the-black-hole-accretion-code)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于磁流体动力学演化的物理信息傅里叶神经算子
-24. [Structure-Aware Tensorial Model Reduction](/202604/30/2604.26280v1-structure-aware-tensorial-model-reduction)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：参数化偏微分方程的降阶模型
-25. [Do Larger Models Really Win in Drug Discovery? A Benchmark Assessment of Model Scaling in AI-Driven Molecular Property and Activity Prediction](/202604/30/2604.26498v1-do-larger-models-really-win-in-drug-discovery-a-benchmark-assessment-of-model-scaling-in-ai-driven-molecular-property-and-activity-prediction)  
-   标签：评分：9.0/10、query:ddi
-   evidence：AI驱动的分子属性和活性预测基准
-26. [Large-eddy simulation nets (LESnets) based on physics-informed neural operator for wall-bounded turbulence](/202604/30/2604.26621v1-large-eddy-simulation-nets-lesnets-based-on-physics-informed-neural-operator-for-wall-bounded-turbulence)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的物理信息神经算子
+   evidence：用于求解全非线性偏微分方程的Deep Ritz框架
 
 ### 速读区论文标签
-1. [Fourier Weak SINDy: Spectral Test Function Selection for Robust Model Identification](/202604/30/2604.20141v1-fourier-weak-sindy-spectral-test-function-selection-for-robust-model-identification)  
+1. [BioMiner: A Multi-modal System for Automated Mining of Protein-Ligand Bioactivity Data from Literature](/202605/01/2604.21508v1-biominer-a-multi-modal-system-for-automated-mining-of-protein-ligand-bioactivity-data-from-literature)  
+   标签：评分：8.0/10、query:ddi
+   evidence：自动挖掘蛋白质-配体生物活性数据用于药物发现
+2. [Finite Expression Method with TranNet-based Function Learning for High-Dimensional Partial Differential Equations](/202605/01/2604.22208v1-finite-expression-method-with-trannet-based-function-learning-for-high-dimensional-partial-differential-equations)  
    标签：评分：8.0/10、query:pde-llm
-   evidence：用于模型识别的数据驱动方程学习方法
-2. [Machine learning moment closure models for the radiative transfer equation IV: enforcing symmetrizable hyperbolicity in two dimensions](/202604/30/2604.20143v1-machine-learning-moment-closure-models-for-the-radiative-transfer-equation-iv-enforcing-symmetrizable-hyperbolicity-in-two-dimensions)  
+   evidence：基于机器学习的高维偏微分方程求解器
+3. [A New Adaptive Deep Learning based Reduced Order Model for Hybrid-Type Parabolic PDEs: Rigorous Error Analysis and Applications](/202605/01/2604.22512v1-a-new-adaptive-deep-learning-based-reduced-order-model-for-hybrid-type-parabolic-pdes-rigorous-error-analysis-and-applications)  
    标签：评分：8.0/10、query:pde-llm
-   evidence：机器学习用于辐射传输方程闭合
-3. [Structure-Aware Variational Learning of a Class of Generalized Diffusions](/202604/30/2604.20188v1-structure-aware-variational-learning-of-a-class-of-generalized-diffusions)  
-   标签：评分：8.0/10、query:pde-llm
-   evidence：从Fokker-Planck方程学习随机系统的势能
-4. [A Hybridizable Neural Time Integrator for Stable Autoregressive Forecasting](/202604/30/2604.21101v1-a-hybridizable-neural-time-integrator-for-stable-autoregressive-forecasting)  
-   标签：评分：8.0/10、query:pde-llm
-   evidence：用于科学基础模型和动力系统的自回归Transformer
-5. [Physics-Enhanced Deep Learning for Proactive Thermal Runaway Forecasting in Li-Ion Batteries](/202604/30/2604.20175v1-physics-enhanced-deep-learning-for-proactive-thermal-runaway-forecasting-in-li-ion-batteries)  
+   evidence：基于深度学习的抛物型偏微分方程降阶模型
+4. [C-MORAL: Controllable Multi-Objective Molecular Optimization with Reinforcement Alignment for LLMs](/202605/01/2604.23061v1-c-moral-controllable-multi-objective-molecular-optimization-with-reinforcement-alignment-for-llms)  
+   标签：评分：8.0/10、query:ddi
+   evidence：用于多目标分子优化和药物设计的大语言模型
+5. [Assessing Emulator Design and Training for Modal Aerosol Microphysics Parameterizations in E3SMv2](/202605/01/2604.21233v1-assessing-emulator-design-and-training-for-modal-aerosol-microphysics-parameterizations-in-e3smv2)  
    标签：评分：7.0/10、query:pde-llm
-   evidence：用于传热方程的物理信息长短期记忆网络
-6. [Mol-Debate: Multi-Agent Debate Improves Structural Reasoning in Molecular Design](/202604/30/2604.20254v1-mol-debate-multi-agent-debate-improves-structural-reasoning-in-molecular-design)  
-   标签：评分：7.0/10、query:ddi
-   evidence：利用多智能体辩论进行人工智能驱动的药物研发和分子设计
-7. [AI models of unstable flow exhibit hallucination](/202604/30/2604.20372v1-ai-models-of-unstable-flow-exhibit-hallucination)  
+   evidence：探索用于气溶胶过程的科学机器学习 (SciML) 仿真器
+6. [A structure-preserving semi-implicit finite volume scheme on vertex-staggered unstructured meshes](/202605/01/2604.21906v1-a-structure-preserving-semi-implicit-finite-volume-scheme-on-vertex-staggered-unstructured-meshes)  
    标签：评分：7.0/10、query:pde-llm
-   evidence：流体动力学AI模型与物理定律违背
-8. [A Hybridizable Neural Time Integrator for Stable Autoregressive Forecasting](/202604/30/2604.21101v2-a-hybridizable-neural-time-integrator-for-stable-autoregressive-forecasting)  
+   evidence：偏微分方程的离散化
+7. [JetSCI: A Hybrid JAX-PETSc Framework for Scalable Differentiable Simulation](/202605/01/2604.22087v1-jetsci-a-hybrid-jax-petsc-framework-for-scalable-differentiable-simulation)  
    标签：评分：7.0/10、query:pde-llm
-   evidence：用于科学基础模型和动力系统的Transformer模型
-9. [Sheaf Neural Networks on SPD Manifolds: Second-Order Geometric Representation Learning](/202604/30/2604.20308v1-sheaf-neural-networks-on-spd-manifolds-second-order-geometric-representation-learning)  
-   标签：评分：6.0/10、query:ddi
-   evidence：分子取向的几何表示学习
-10. [A topological decoupling of modified nodal analysis including controlled sources](/202604/30/2604.20475v1-a-topological-decoupling-of-modified-nodal-analysis-including-controlled-sources)  
+   evidence：用于科学机器学习和模拟的混合JAX-PETSc框架
+8. [Four-dimensional QCD equation of state from a quasi-parton model with physics-informed neural networks](/202605/01/2604.22352v1-four-dimensional-qcd-equation-of-state-from-a-quasi-parton-model-with-physics-informed-neural-networks)  
+   标签：评分：7.0/10、query:pde-llm
+   evidence：用于QCD状态方程的物理信息神经网络
+9. [Transferable SCF-Acceleration through Solver-Aligned Initialization Learning](/202605/01/2604.21657v1-transferable-scf-acceleration-through-solver-aligned-initialization-learning)  
    标签：评分：6.0/10、query:pde-llm
-   evidence：用于微分代数方程的科学机器学习
-11. [An explicit operator explains end-to-end computation in the modern neural networks used for sequence and language modeling](/202604/30/2604.20595v1-an-explicit-operator-explains-end-to-end-computation-in-the-modern-neural-networks-used-for-sequence-and-language-modeling)  
-   标签：评分：6.0/10、query:pde-llm
-   evidence：神经网络的算子表达式
-12. [Automated Extraction of Pharmacokinetic Parameters from Structured XML Scientific Articles: Enhancing Data Accessibility at Scale](/202604/30/2604.21063v1-automated-extraction-of-pharmacokinetic-parameters-from-structured-xml-scientific-articles-enhancing-data-accessibility-at-scale)  
+   evidence：通过对求解器求导来加速分子计算
+10. [Bridging the Long-Tail Gap: Robust Retrieval-Augmented Relation Completion via Multi-Stage Paraphrase Infusion](/202605/01/2604.22261v1-bridging-the-long-tail-gap-robust-retrieval-augmented-relation-completion-via-multi-stage-paraphrase-infusion)  
    标签：评分：6.0/10、query:ddi
-   evidence：提取用于药物研发的药代动力学参数
+   evidence：语言模型中的关系补全
+11. [StackFeat RL: Reinforcement Learning over Iterative Dual Criterion Feature Selection for Stable Biomarker Discovery](/202605/01/2604.22892v1-stackfeat-rl-reinforcement-learning-over-iterative-dual-criterion-feature-selection-for-stable-biomarker-discovery)  
+   标签：评分：6.0/10、query:ddi
+   evidence：利用强化学习在基因组数据中发现生物标志物
+12. [DeepImagine: Learning Biomedical Reasoning via Successive Counterfactual Imagining](/202605/01/2604.23054v1-deepimagine-learning-biomedical-reasoning-via-successive-counterfactual-imagining)  
+   标签：评分：6.0/10、query:ddi
+   evidence：教大语言模型进行临床试验结果的生物医学推理
 
 
 <div class="dpr-home-promo-card">
