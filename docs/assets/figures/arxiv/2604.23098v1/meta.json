@@ -1,0 +1,70 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2604.23098v1/fig-001.webp",
+      "caption": "Fig. 5 Visualization of the learned context embedding manifold. We projected the averagepooled context embeddings of diverse deformation fields into a two-dimensional t-SNE space. The insets visualize the underlying strain energy density ψ restricted to (I1, I3) states within each deformation field, labeled with their material classes, geometries, and loading modes. In each inset, a curve from A to B marks the selected deformation path, and the smaller panel shows the corresponding normalized energy ψ̄ along the path. Crucially, adjacent points in the manifold correspond to nearly identical strain energy density profiles, despite highly diverse material classes, energy magnitudes, geometries, and loading conditions. This visual evidence demonstrates that ICM successfully learns an intrinsic manifold determined primarily by the profiles of stress-strain relationships rather than other ad hoc factors, thereby driving its robust empirical generalization.",
+      "page": 11,
+      "index": 1,
+      "width": 775,
+      "height": 634
+    },
+    {
+      "url": "assets/figures/arxiv/2604.23098v1/fig-002.webp",
+      "caption": "Fig. 2 Configurations of the training and test sets. a, Geometries and loading modes in the training dataset, including 7 plate geometries with different hole shapes and arrangements (labeled IVII), 3 loading modes, and 10 loading steps for each loading mode. b, Geometries (labeled VIII–XII) and loading modes in the Test-MGL and Test-MGL+ sets. Note the inclusion of unseen square-hole geometries and new loading modes not present in (a). c, Material differences between training (left) and test (right) sets, shown by uniaxial nominal stress-stretch (P -λ) curves, highlighting ordersof-magnitude variations in stress levels. d, Distribution of deformation states in training and test sets, shown in the principal stretch space (λ1-λ2). The contours represent the effective coverage of each dataset, showing that the test sets span regions extending beyond the training domain, thereby providing a comprehensive testbed for evaluating the model’s out-of-distribution generalization.",
+      "page": 7,
+      "index": 2,
+      "width": 775,
+      "height": 582
+    },
+    {
+      "url": "assets/figures/arxiv/2604.23098v1/fig-003.webp",
+      "caption": "Fig. 8 Predicted uniaxial nominal stress responses using the measured full-field deformation data of three geometries as context.",
+      "page": 34,
+      "index": 3,
+      "width": 777,
+      "height": 213
+    },
+    {
+      "url": "assets/figures/arxiv/2604.23098v1/fig-004.webp",
+      "caption": "Fig. 4 Experimental validation of ICM. a, Non-uniform strain fields were captured by applying DIC to 3D-printed perforated specimens under uniaxial tension. These fields, visualized by the maximum principal stretch λ1, serve as the physical context for the network after tokenization. b, The uniform deformation, induced by independent uniaxial tests on standard dog-bone specimens and measured via DIC, is extracted as the query state. c, Comparison between the ICM-inferred nominal stress-stretch (P -λ) curves and the experimental ground truth. The predictions show excellent agreement for both materials without any material-specific retraining. d, Deformation state distributions in the principal stretch (λ1-λ2) space. The non-uniform contextual strain fields (shading indicates data density) provide broad coverage that fully envelopes the 1D strain trajectory of the dog-bone query, driving the accurate stress predictions in (c). e, Test-time scaling and context length extrapolation. The geometric mean (solid lines) and interquartile range (IQR) (shaded regions) of the relative nominal stress error P err across random context samplings both decay with richer contextual strain fields. Notably, the sustained error reduction far beyond the training context length limit (vertical dashed line) demonstrates a remarkable capability for context length extrapolation at inference.",
+      "page": 10,
+      "index": 4,
+      "width": 777,
+      "height": 390
+    },
+    {
+      "url": "assets/figures/arxiv/2604.23098v1/fig-005.webp",
+      "caption": "Fig. 1 Schematic overview of the ICM paradigm. a, Conceptual analogy between a Large Language Model (LLM) and the proposed In-Context Modeling (ICM). The LLM learns to infer an answer given its textual context; ICM learns to infer the stress-strain or diffusivity-concentration relationship given its physical context. b, Physics-informed tokenization in ICM. The strain field is discretized into deformation tokens based on interior equilibrium, while the boundary equilibrium is extracted for the purpose of post-scaling. c, The overall workflow of ICM. Assimilating deformation tokens as the physical context, the core network gθ predicts the scaled strain energy gradient function. In the physics-informed training phase, we enforce interior equilibrium in an unsupervised manner. In the retrain-free in-context modeling phase, we recover the stress-strain relationship via a single forward pass, followed by lightweight post-scaling and analytical reconstruction. d, The network architecture of the ICM network gθ . We first map each deformation token into a context embedding by applying normalization, linear projection, self-attention, and average pooling to its subtokens. Concurrently, input strain queries are independently encoded into query embeddings via normalization and linear projection. These context and query embeddings then interact via self- and cross-attention mechanisms to exchange and aggregate information, before a final linear projection which yields the network output.",
+      "page": 3,
+      "index": 5,
+      "width": 760,
+      "height": 648
+    },
+    {
+      "url": "assets/figures/arxiv/2604.23098v1/fig-006.webp",
+      "caption": "Fig. 3 Generalization performance and finite-element validation of ICM. a, Relative stress error Serr on the training set and the four test sets, where the blue shaded areas and orange lines denote the underlying distributions and geometric means across samples, respectively. The relative errors remain in the order of 10−2 for all datasets, showing robust generalization. b, Visualization of von Mises stress fields for two representative samples from Test-M (left) and Test-MGL+ (right). Each column shows the prediction (σp VM), ground truth reference (σt VM), and spatial distribution of relative error (σerr VM). c, Coefficients of variation for the scaling factors αj,k on the training set and the four test sets, confirming consistency among different boundary conditions. d, Comparison between ICM with 4M parameters and the Equilibrium-based Neural Network (ENN) with 0.1M, 4M, and 8M parameters. ICM achieves lower errors while reducing computation time by more than three orders of magnitude. The solid lines and shaded regions represent the geometric mean and interquartile range (IQR) across test materials, respectively. e, ICM-driven finite element simulations in FEniCS for a Test-MGL+ sample under uniaxial displacement loading (ū1/L = 1.1). Predicted displacement components (ufem1 /L and ufem2 /L, visualized with a scale factor of 0.5), and von Mises stress (σfem VM) closely match the reference finite element solution.",
+      "page": 8,
+      "index": 6,
+      "width": 777,
+      "height": 532
+    },
+    {
+      "url": "assets/figures/arxiv/2604.23098v1/fig-007.webp",
+      "caption": "Table 5 Representative material models corresponding to the highlighted t-SNE points.",
+      "page": 36,
+      "index": 7,
+      "width": 833,
+      "height": 1016
+    },
+    {
+      "url": "assets/figures/arxiv/2604.23098v1/fig-008.webp",
+      "caption": "Fig. 6 Train-time scaling behavior of ICM over computational budget and data diversity. a, Relative stress error as a function of model size (number of parameters) and computational budget across the four test sets. Each point represents a network configuration, colored by total floating-point operations (FLOPs). Dashed curves fit configurations sharing identical FLOPs via quadratic regression, and yellow stars mark the optimal model size that minimizes the error for each computational budget. The black lines fit these optima, illustrating that coupling greater computational budgets with appropriately larger architectures consistently drives down prediction errors. b, Relative stress error evaluated as a function of training-data diversity on the same test sets. The horizontal axis denotes the number of training geometries (1 for (VII) only, 3 for (II)/(V)/(VII), and 7 for all training geometries), while the color indicates the number of loading modes (1, 2, or 3) included in the training set, with results for 1- and 2-mode configurations averaged across all possible combinatorial selections. The monotonic decay in error confirms that the model benefits from expanding the diversity of training set.",
+      "page": 12,
+      "index": 8,
+      "width": 777,
+      "height": 359
+    }
+  ]
+}
