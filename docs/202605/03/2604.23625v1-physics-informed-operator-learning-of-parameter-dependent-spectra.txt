@@ -1,0 +1,865 @@
+Title: Physics informed operator learning of parameter dependent spectra
+
+URL Source: https://arxiv.org/pdf/2604.23625v1
+
+Published Time: Tue, 28 Apr 2026 01:06:37 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+## Physics informed operator learning of parameter dependent spectra 
+
+Haohao Gu, 1, ∗ Sensen He, 1, ∗ Hanlin Song, 2, ∗ Bo Liang, 3, 4, † Zhenwei Lyu, 5, ‡
+
+Xiaoguang Hu, 1 Minghui Du, 3 Peng Xu, 3, 6, 4, 7, § and Bo-Qiang Ma 8, 2, ¶
+
+> 1
+
+Baidu Inc., Beijing 100085, China 
+
+> 2
+
+School of Physics, Peking University, Beijing 100871, China 
+
+> 3
+
+Center for Gravitational Wave Experiment, National Microgravity Laboratory, Institute of Mechanics, Chinese Academy of Sciences, Beijing 100190, China 
+
+> 4
+
+Taiji Laboratory for Gravitational Wave Universe (Beijing/Hangzhou), University of Chinese Academy of Sciences (UCAS), Beijing 100049, China 
+
+> 5
+
+Leicester International Institute, Dalian University of Technology, Panjin 124221, China 
+
+> 6
+
+Key Laboratory of Gravitational Wave Precision Measurement of Zhejiang Province, Hangzhou Institute for Advanced Study, UCAS, Hangzhou 310024, China 
+
+> 7
+
+Lanzhou Center of Theoretical Physics, Lanzhou University, Lanzhou 730000, China 
+
+> 8
+
+School of Physics, Zhengzhou University, Zhengzhou 450001, China 
+
+Spectral problems governed by differential operators underpin a wide range of physical systems, yet remain computationally challenging because their spectra depend sensitively on continuous parame-ters and often demand repeated evaluations across parameter space. Here we present DeepOPiraKAN ,an open source physics informed neural network architecture for spectral analysis. By combining operator learning with enhanced optimization stability, it captures the underlying parameter-to-spectrum mapping in a single model, avoiding repeated spectral solutions at isolated points in parameter space. As a representative and stringent benchmark, we apply this framework to the computation of quasinormal modes of Kerr black holes. A single trained network accurately re-solves modes with ( ℓ, m ) ∈ { (2 , 0) , (2 , 1) } and overtones up to n = 7 across the full spin range, achieving relative errors of O(10 −6) for the fundamental mode and gradually increasing to O(10 −4)for higher overtones, benchmarked against the Leaver’s method. This level of accuracy is already significant for black hole spectroscopy and practical ringdown modelling for current and future ob-servatories. More broadly, these results highlight the potential of DeepOPiraKAN as a general and scalable framework for parameter dependent spectral problems across complex physical systems. 
+
+I. INTRODUCTION 
+
+Spectral problems occupy a central place in modern mathematical physics, providing the mathematical lan-guage for quantization, stability and resonance. Their importance extends across a wide range of problems in physics and engineering, including quantum dynam-ics, astrophysical oscillations, continuum instabilities and wave propagation in complex structures [1]. However, ac-curate spectral computation remains a longstanding chal-lenge. In many realistic systems, spectra depend sensi-tively on continuous physical parameters, making param-eter dependent spectral analysis a fundamental yet com-putationally demanding task. This difficulty is especially pronounced in problems involving strong interactions, complex boundary conditions, or highly constrained ge-ometries, where repeated high-precision eigenvalue solves become both costly and numerically delicate. New ap-proaches to parameter dependent spectral computation could therefore have broad impact across both science and engineering, with potential downstream influence on      
+
+> ∗These authors contributed equally to the work. hanlin@stu.pku.edu.cn
+> †liangbo22@mails.ucas.ac.cn
+> ‡zwlyu@dlut.edu.cn
+> §xupeng@imech.ac.cn
+> ¶mabq@pku.edu.cn
+
+the spectral algorithms embedded in widely used simula-tion platforms such as ANSYS and COMSOL [2]. Astrophysical compact objects pose a particularly de-manding class of parameter dependent spectral problems at the intersection of fundamental physics and scien-tific computing. In these systems, characteristic oscil-lation modes encode essential information about strong field gravity. For neutron stars, normal mode oscillations probe the equation of state and internal composition [3], while for black holes, quasinormal modes (QNMs) de-scribe the characteristic response of spacetime to exter-nal perturbations [4, 5]. Governed by non-Hermitian operators with dissipative boundary conditions, QNMs possess complex spectra that are inherently sensitive to the background geometry and, in some cases, to environ-mental perturbations [6]. This sensitivity makes them a uniquely powerful probe for testing the Kerr no-hair the-orem, constraining possible departures from general rel-ativity, investigating the nature of black holes and other ultracompact celestial objects, and probing the proper-ties and spatial distribution of dark matter around mas-sive black holes [7, 8]. These scientific opportunities have made the detection and interpretation of QNMs a ma-jor objective of gravitational wave astronomy. They are targeted by current LIGO–Virgo–KAGRA analyses [9] and form a core part of the science case for future space based observatories such as LISA [10], Taiji [11, 12], and TianQin [13], where high-signal-to-noise ringdown sig-nals from massive black hole mergers are expected to 
+
+> arXiv:2604.23625v1 [gr-qc] 26 Apr 2026
+
+2enable much sharper spectroscopic tests. In this context, multimode black hole spectroscopy requires going beyond the dominant (2 , 2) family to include subdominant modes such as (2 , 1) and (2 , 0), which carry complementary in-formation about the post-merger black hole spacetime. This, in turn, places stringent demands on the rapid and accurate computation of QNM spectra across parameter space for large scale waveform construction. Physics informed neural networks (PINNs) have re-cently emerged as a promising framework for scientific machine learning and differential equations by embed-ding governing physical laws directly into neural network training [14, 15]. They have already been applied to as-trophysical spectral problems, including neutron star os-cillations and black hole QNMs in Schwarzschild, Kerr, and extended gravity settings [16–22]. However, most existing PINN based spectral solvers remain pointwise rather than operator level, so spectra at different param-eter values must be recomputed separately. This limits scalability and is particularly problematic for higher over-tones, whose solutions are more sensitive to boundary conditions and numerical precision. As a result, existing methods remain focused primarily on individual modes or narrow parameter regimes, leaving fast, robust, and accu-rate parameter dependent spectral computation largely unresolved. To address these limitations, we develop an open source physics informed neural network architecture, termed the Physics Informed Deep Operator Network with Residual Adaptive Kolmogorov–Arnold Network Architecture ( DeepOPiraKAN 1), for parameter dependent spectral problems. The central idea of DeepOPiraKAN is to elevate spectral learning from a pointwise, instance based paradigm to an operator level formulation that directly maps physical parameters to spectral solutions within a single unified model. It combines the operator learning capability of DeepONet [24, 25] with PirateKAN ,a new residual adaptive architecture introduced here to improve optimization stability in spectral regimes with strong parameter sensitivity and increasing structural complexity, such as the higher overtones of Kerr black hole QNMs. By embedding parameters such as black hole spin and overtone number into the branch network, the model captures global spectral structure across con-tinuous parameter space. As a representative and strin-gent benchmark of this general framework, we apply 
+
+DeepOPiraKAN to Kerr black hole QNMs, where a single trained network accurately resolves the physically rele-vant subdominant modes with lm ∈ { 20 , 21 } and over-tones up to n = 7 over the full spin range, achieving accuracies several orders of magnitude better than exist-ing PINN based methods. DeepOPiraKAN therefore es-tablishes a scalable and robust framework for parameter           
+
+> 1The DeepOPiraKAN code developed in this work have been made publicly available through the open source PaddleScience
+> GitHub repository [23]
+
+dependent spectral learning, with potential applications extending beyond black hole QNMs to a broad class of spectral problems in physics and engineering.  
+
+> II. DEEPOPIRAKAN ARCHITECTURE
+
+The application of PINNs to complex nonlinear ordi-nary differential equation (ODEs) and partial differen-tial equation (PDEs) is often hindered by severe train-ing pathologies, including spectral bias [26], unbalanced objectives [27], trivial solutions [28], and nonphysical lo-cal minima [29, 30]. These difficulties arise primarily from optimization challenges induced by high order dif-ferentiation in the loss function, rather than from insuf-ficient approximation capacity. To overcome this, we propose the Physics Informed Residual Adaptive Kol-mogorov Arnold Network ( PiraKAN ) architecture, which combines the strong nonlinear approximation capacity of the Kolmogorov Arnold Network ( KAN ) [31, 32] with the residual adaptive short connection mechanism intro-duced by Wang et al. [33]. This architecture achieves high accuracy and stable convergence when solving spec-tra problems. Furthermore, we extend the framework by integrating PiraKAN into the DeepONet architecture, replacing both the branch and trunk networks. The re-sulting DeepOPiraKAN model enables efficient learning of parameter dependent spectral problems at the operator level. Once trained, it can infer solution functions and eigenvalues at given PDE parameters with minimal fine-tuning. In the following, we describe the proposed archi-tecture in detail. 
+
+PiraKAN .— The subfigure (a) of Fig. 1 shows the modules of the forward pass of a PiraKAN block. First, the input coordinates x ∈ Rd are projected to a high di-mensional ( n-dim) feature space by the random Fourier embedding function [34], which has been proved to be useful in alleviating spectral bias and better approxima-tion of high frequency solutions: Ψ( x) = 
+
+cos( Bx )sin( Bx )
+
+ ∈ Rn, (1) where B ∈ Rn/ 2×d has entities i.i.d. sampled from Gaus-sian distribution N (0 , s 2) with the standard deviation s
+
+set as a hyperparameter. After the projection, the embedded coordinates Ψ( x)are fed into two dense layers U, V, both follow standard feedforward linear layer formulation and serve as gates in the blocks: 
+
+U = σ(WuΨ( x)) + bu, V = σ(WvΨ( x)) + bv, (2) where σ is a pointwise activation function. Such design has been widely employed to enhance the trainability and convergence of PINNs [33, 35, 36]. Let x(l) be the input of the l-th block of PiraKAN (1 ≤
+
+l ≤ L), the feed forward process can be formulated as 3... n Branch Net x... n Branch Net x... n Branch Net x... n Branch Net xn
+
+> ...
+> Trunk Net r*
+> ...
+> tu1
+> tuh
+> Trunk Net u
+
+u
+
+> BC hard  constraint
+
+DeepOPiraKAN 
+
+> BC hard  constraint
+
+ODE Loss 
+
+Data Loss  (optional) 
+
+ω A
+
+> Trainable
+> eigen values
+> Train Model's
+
+θ* 
+
+> Minimizing
+
+a ...   
+
+> ...
+> a Branch Net x
+> ...
+> a Branch Net u
+> Input
+> coordinates
+> Embedding
+> Gate U
+> MLP layer
+> Gate V
+> MLP layer
+> KAN Layer 1
+> Fourier, Legendre, etc. KAN Layer 2 KAN Layer 3
+
+α 
+
+> Adaptive Skip Connection
+> Lblocks
+> Outputs
+
+(a) 
+
+(b) 
+
+FIG. 1. The Physics Informed Deep Operator Network with Residual Adaptive KAN ( DeepOPiraKAN ) Architecture. (a) Physics Informed Residual Adaptive Kolmogorov Arnold Network ( PiraKAN ): In the current model, input coordinates are first projected into a high dimensional feature space with random Fourier embedding, then passes through N blocks of residual adaptive KAN. Each block consists of three KAN layers, gated by two linear dense layers, and adaptively short connected at the end (controlled by a trainable parameter α). (b) The multi-branch DeepONet of the current work to solve QNM equations. The radial and angular coordinates serve as input coordinates of two separate trunk nets, which output the base solution. To achieve parameterized solving of QNM, the ODE parameters pass through multi-branch nets, condition the trunk net outputs, and give rise to the final solution. Boundary conditions are imposed as hard constraints on the network outputs. 
+
+follows: 
+
+f (l) =
+
+> 2n+1
+
+X
+
+> q=1
+
+Φ(l)1q
+
+> n
+
+X
+
+> p=1
+
+ϕ(l)1q,p (xp)
+
+!
+
+, (3) 
+
+z(l)1 = f (l) ⊙ U + (1 − f (l)) ⊙ V, (4) 
+
+g(l) =
+
+> 2n+1
+
+X
+
+> q=1
+
+Φ(l)2q
+
+> n
+
+X
+
+> p=1
+
+ϕ(l)2q,p (z(l)1p )
+
+!
+
+, (5) 
+
+z(l)2 = g(l) ⊙ U + (1 − g(l)) ⊙ V, (6) 
+
+h(l) =
+
+> 2n+1
+
+X
+
+> q=1
+
+Φ(l)3q
+
+> n
+
+X
+
+> p=1
+
+ϕ(l)3q,p (z(l)2p )
+
+!
+
+, (7) 
+
+x(l+1) = α(l)h(l) + (1 − α(l))x(l), (8) 4where ⊙ denotes the Hadamard (elementwise) prod-uct, and ϕ(l) 
+
+> iq,p
+
+is a single variable nonlinear function of the p-th entry of block input x(l), which serves as the ‘edge’ function in KAN architecture [31], the lower script i = 1 , 2, 3 denotes the i-th KAN layer of the l-th block. In current work, we employ Fourier series 
+
+ϕ(x) = a0 + PMm=1 (am cos( mωx ) + bm sin( mωx )) as the edge function [37, 38], where M , the cutoff frequency mode, is a user defined hyperparameter. All the weights are initialized by the Glorot Normal scheme, while the biases are initialized to 0. The α(l) ∈ R
+
+in Eq. (8) is a trainable parameter which controls the nonlinear output ratio of each block. During initializa-tion, α(l) are set to 0, which means the network reduces to linear mapping. With training proceeds, the α(l) gradu-ally increases in a layerwised manner (the shallow blocks are activated before the deeper blocks). This design in-troduced in Ref. [33] has been proved useful to circum-vent the initialization pathologies of PINNs at the be-ginning stage of training, largely prevent the NNs from convergence to trivial solutions. Additionally, the non-linear approximation capacity endowed by Fourier KAN 
+
+[37, 38] greatly reduces the depth and width to achieve similar expressiveness compared with multilayer percep-trons (MLPs). Consequently, the total number of train-able parameters required to simulate the solution func-tions of various PDEs are largely reduced. Such a fea-ture simplifies the optimization task for PINNs training, and leads to faster and more stable convergence in PDE-solving tasks. 
+
+DeepONet .—To enable fast inference of parameter-ized PDE solutions at the operator level, we adopt the 
+
+DeepONet framework [24, 25], in which an operator G :
+
+u(·, μ) 7 → y(·, μ) is learned either from input-output func-tion pairs {(ui(x), y i(x)) }Ni=1 or from PDE residuals [39]. The DeepONet represents the target operator as an in-ner product between the latent feature of one or multiple input function(s) u(·) (encoded by the branch network) and that of a coordinate point x (encoded by the trunk 
+
+network)[25]: 
+
+G(x|u1...n ) = S
+
+B1(u1)
+
+| {z }
+
+> branch 1
+
+⊙ · · · ⊙ Bn(un)
+
+| {z }
+
+> branch n
+
+⊙ Tk(x)
+
+| {z } 
+
+> trunk
+
+ + b, 
+
+(9) where S represents the summation over all components of a vector, and b ∈ R is a trainable bias. The term B1(u1)denotes the encoded feature of the i-th input function or PDE parameter through the i-th branch network, while 
+
+Tk(x) denotes the encoded coordinate via the trunk net-work. Once trained, the DeepONet can evaluate the so-lution y(x, μ) for arbitrary input function u(·) or PDE parameters μ in a single forward pass, enabling rapid inference. 
+
+DeepOPiraKAN .—In the proposed DeepOPiraKAN 
+
+architecture, both the branch and trunk networks are implemented with the PiraKAN blocks introduced in the previous section. Specifically, each branch network Bθb
+
+maps one PDE parameter to a latent feature vector: 
+
+Bμ(μ) = Bμθb (μ) ∈ Rr , (10) where μ denotes the PDE parameters ( e.g. spin and mode numbers when solving the Teukolsky equation). while the trunk network Tθt encodes the spatial temporal coordinates: 
+
+T(x) = Tθt (x) ∈ Rr . (11) The predicted solution is then obtained through Eq. (12). Both Bθb and Tθt are implemented by multiple PiraKAN 
+
+blocks. This design enables strong nonlinear represen-tation while maintaining stable optimization properties for physics informed learning. In addition, the eigenval-ues of the governing equations are incorporated into the trainable parameters, allowing both the forward problem (PDE solving) and the inverse problem (parameter iden-tification) to be addressed simultaneously. During training, the boundary conditions can be im-posed either as hard constraints directly on the network outputs, or as soft constraints formulated as the terms of loss functions. The overall loss function combines physics based constraints and supervised data constraints (if input-output function data pairs are available): 
+
+L = Ldata + λpde LPDE + λbc LBC , (12) where LPDE enforces the governing equation residuals, and LBC ensures boundary or initial conditions are sat-isfied. Using PiraKAN as the building block of DeepONet of-fers three main advantages. The combination of Fourier feature embedding and KAN based edge functions im-proves the representation of multiscale PDE solutions and mitigates spectral bias. The residual adaptive short connections, governed by trainable coefficients α(l), en-hance optimization stability by reducing the initializa-tion pathologies often observed in PINNs and related operator learning architectures. In addition, the Kol-mogorov–Arnold functional decomposition increases ex-pressive efficiency, enabling comparable approximation accuracy with reduced depth and width, which in turn lowers parameter counts and supports faster, more sta-ble convergence. Once trained, the DeepOPiraKAN can quickly predict the solution field y(x, μ) and associated eigenvalues for new PDE parameters μ by finetuning of the eigenvalues instead of resolving the governing equa-tions.  
+
+> III. THE QUASINORMAL MODES OF KERR BLACK HOLE
+
+The QNMs denotes the characteristic oscillations of perturbed black holes, determined solely by their masses, spins, and charges [3]. The QNMs represent the intrinsic 5“fingerprints” of black holes, encoding the fundamental properties of the general relativity. The first detection of ringdown stage by LIGO–Virgo–KAGRA Collaboration has confirmed the existence of QNMs [9], with the dom-inate mode observed in the gravitational wave of ring-down signal of GW150914 [40]. Moreover, the high order ringdown modes are believed to have been observed in GW231123 [41] and GW250114 [42]. Future detectors like LISA [10], Taiji [11, 12], TianQin [13], Cosmic Ex-plorer [43] and Einstein telescope [44] are expected to re-solve more multiple subdominant modes, enabling black hole spectroscopy to test the Kerr hypothesis and probe GR in the strong field regime [45, 46]. Accurate and effi-cient computation of QNM spectra is therefore essential for interpreting gravitational wave observations. The gravitational perturbations of a black hole with mass M and spin a are governed by the Teukolsky equa-tion [47, 48], 
+
+ (r2 + a2)2
+
+∆ − a2 sin 2 θ
+
+ ∂2ψc2∂t 2 + 4GM ar c3∆
+
+∂2ψ∂t∂ϕ +
+
+ a2
+
+∆ − 1sin 2 θ
+
+ ∂2ψ∂ϕ 2 − ∆2 ∂∂r 
+
+ 1∆
+
+∂ψ ∂r 
+
+
+
+− 1sin θ∂∂θ 
+
+
+
+sin θ ∂ψ ∂θ 
+
+
+
++4 
+
+ a(r − GM/c 2)∆ + i cos θ
+
+sin 2 θ
+
+ ∂ψ ∂ϕ + 4 
+
+ GM (r2 − a2)/c 2
+
+∆ − r − ia cos θ
+
+ ∂ψ c∂t + 2(2 cot 2 θ + 1) ψ = 0 ,
+
+(13) where ∆ := r2 − 2GM r/c 2 + a2. After the standard pro-cedure of separation of variables, the perturbation func-tion ψ can be expressed as, 
+
+ψ =
+
+> ∞
+
+X
+
+> l=2
+> l
+
+X
+
+> m=−l
+
+eimϕ 
+
+Z ∞−∞ 
+
+Slm (cos θ , ω )Rlm (r, ω )e iωt dω 
+
+2π ,
+
+(14) where ( t, r, θ, ϕ ) denote the spacetime coordinates. The perturbation function ψ is complex and can be sepa-rated into a radial part Rlm (r, ω ) and an angular part 
+
+Slm (cos θ, ω ). ∆2 ddr 
+
+ 1∆
+
+dR lm 
+
+dr 
+
+
+
++
+
+ [( r2 + a2)( ω/c ) − am ]2 − 4i(r − GM/c 2)[( r2 + a2)( ω/c ) − am ]∆
+
+−8ir (ω/c ) + 2 am (ω/c ) − a2(ω/c )2 − Alm 
+
+)
+
+Rlm = 0 ,
+
+(15)   
+
+> ddcos θ
+
+(1 − cos 2 θ) d S lm   
+
+> dcos θ
+
++
+
+h
+
+a2(ω/c )2 cos 2 θ + 4 a(ω/c ) cos θ − 2 − (m−2 cos θ)2  
+
+> 1−cos 2θ
+
++ Alm 
+
+i
+
+Slm = 0 , (16) where Alm is the separation constant, and ω denotes the QNM frequency, with its real part representing the oscillation frequency and its imaginary part characteriz-ing the damping rate of the perturbation. The computation of QNMs has a long history, with a variety techniques developed to solve the perturbation equation [3]. Among them, the Leaver’s continued frac-tion method [49] is widely regarded as a benchmark ap-proach for computing QNMs. In this method, the so-lution to the Teukolsky equation is expressed as an in-finite series expansion, whose coefficients satisfy a three term recurrence relation that can be cast into a continued fraction form. Substituting this series into the original equation transforms the differential eigenvalue problem into an algebraic root finding one, significantly improving both computational efficiency and numerical precision. Other approaches, such as evolving the time dependent wave equation [50], evolving the time independent wave equation [51], and the WKB approximation [52, 53], have also been extensively developed and refined over the past decades. While these traditional methods have achieved remarkable accuracy, they typically require solving the eigenvalue problem separately for each set of black hole parameters, making large scale exploration across spin and mode space computationally expensive. These considerations indicate that the main challenge in QNM calculations is not the accuracy of individual solvers, but the repeated solution of closely related eigen-value problems across continuous parameter space. This naturally motivates a learning based reformulation, in which the goal is to capture the functional dependence of the spectrum on black hole parameters within a uni-6fied framework, rather than recomputing each configura-tion independently. Within this framework, to facilitate neural network training, the radial function Rlm (r, ω )and angular function Slm (cos θ, ω ) are further simpli-fied through the introduction of transformed variables 2
+
+r∗ = r+/r and u = cos θ, where r+ = (1 + √1 − 4a2)/2. Under this transformation, the domains are mapped to the regular intervals [0 , 1] and [ −1, 1], respectively. Fol-lowing the approach of Luna et al. [19], the radial and angular equations can then be reduced to the following simplified forms, 
+
+LF [f (r∗)] = F2f ′′ (r∗) + F1f ′(r∗) + F0f (r∗) = 0 ,
+
+LG[g(u)] = G2g′′ (u) + G1g′(u) + G0g(u) = 0 , (17) where the convention G = c = 2 M = 1 is assumed for simplicity, and Fi(r∗) and Gi(u) denote coefficient func-tions, which can be found in the Appendix of Luna et al. [19]. The associated boundary conditions are then given by, 
+
+f (1) = 1 , g (−1) = 1 . (18)   
+
+> IV. RESULTS A. Computational framework and training strategy
+
+The configurations of DeepOPiraKAN are summarized in Table 1. Both the trunk and branch networks adopt the same PiraKAN configuration, including the hidden dimension, number of blocks, KAN grid size, activation function, and factorized random initialization. The trunk network takes the spatial coordinates ( r∗, u ) as input, while the branch network encodes the physical parame-ters ( a, n ). During training, each minibatch is constructed by first sampling 100 parameter pairs ( a ∈ [0 , 0.5) , n ∈{0, 1, 2..., 7}), and then drawing 128 collocation points of ( r∗, u ) for each parameter pair. The training dataset is generated from high precision QNM computed with Leaver’s method. For each overtone n, eigenvalues are precomputed on a uniform grid of 100 spin values in 
+
+a ∈ [0 , 0.5). During training, 22 spin values are uni-formly subsampled for each overtone, resulting in a to-tal of 176 ( a, n ) eigenvalue labels used to supervise the model. These eigenvalues are embedded into the loss function as parametric inputs, enabling the network to learn a continuous operator mapping from the physical parameters ( a, n ) to the corresponding solution mani-fold and spectral values. The loss function includes the Teukolsky equation residual evaluated at these points, while the boundary conditions are hard imposed to the         
+
+> 2Unlike Ref. [19], we adopt the notation r∗=r+/r instead of
+> x=r+/r to maintain notational consistency throughout this paper.
+
+network output following Ref. [19]. Training is performed using the SOAP [27] optimizer for 2 × 10 5 with an ex-ponential decay schedule. The combination of strong nonlinear representation and adaptive short residual con-nections facilitates the stable optimization, allowing the network to converge uniformly across different spins and overtones. After training, all network parameters are frozen, and only the complex eigenvalues ω and A are treated as learnable parameters during evaluation. These two pa-rameters are initialized using empirical analytic formulas that depend on the spin a and the mode numbers lmn .The initial guess for ω follows Refs. [54–56], 
+
+ω ≈ (l + 1 /2)Ω − iγ L(n + 1 /2) , (19) where the Ω is the Keplerian frequency of the circular photon orbit and γL is the Lyapunov exponet of the or-bit. Both quantities also depend on spin a and the mode numbers lm . The initial guess for the angular eigenvalue 
+
+A is taken from Refs. [53, 55, 56], 
+
+Alm ≈ (l + 1 /2) 2 − a2ω2
+
+2
+
+
+
+1 − m2
+
+(l + 1 /2) 2
+
+
+
+. (20) For a given ( a, n ), the eigenvalue is optimized for 2 × 10 3
+
+or 4 × 10 3 steps to minimize the residual loss, yielding the final prediction. The development, traing and evalution of current model are implemented using PaddlePaddle 3.0 [57] deep learning framework together with PaddleScience 1.4 scientific machine learning toolkit [23]. Both the pretraining and evaluation are performed on asingle NVIDIA A100-40G GPU. The pretraining of 
+
+DeepOPiraKAN takes approximately 19 hours on single A100. During evaluation, the computational cost is de-termined by the finetuning steps of eigenvalue, with an average runtime of about 70 seconds per 10 3 optimization steps.  
+
+> B. Benchmarking on Kerr quasinormal modes
+
+To demonstrate the practical utility of our framework, we apply DeepOPiraKAN to the Teukolsky equation gov-erning perturbations of Kerr black holes. We study the QNM spectrum in detail for the fundamental mode and the first seven overtones of the ( ℓ, m ) = (2 , 0) and (2 , 1) families across the full Kerr spin range. Beyond the well known dominant (2 , 2) branch, these families are among the subdominant modes most relevant for mul-timode black hole spectroscopy, while future space based observations are expected to reach signal-to-noise lev-els at which incomplete mode modeling may become a significant source of systematic error [7, 8, 58]. Re-solving these families and their overtones across the full Kerr spin range is therefore directly relevant to the ac-curate modeling required for future ringdown inference and spectroscopy. More importantly, the results show 7                                             
+
+> TABLE I. Architectural configurations of DeepOPiraKAN .
+> Architecture Training Evaluation Hyperparam. Value Hyperparam. Value Hyperparam. Value
+> Hidden dim 64 Param batch 100 Steps (2 ∼4) ·10 3
+> Blocks ( L)2PDE batch 128 Init LR 1×10 −3
+> KAN grid 1Init LR 1×10 −3Decay steps 4×10 2
+> Activation Tanh Steps 2×10 5
+> Fourier scale 0.7 Decay rate 0.9 Weight fact. μ= 1 .0, σ = 0 .1Decay steps 5×10 3
+
+that DeepOPiraKAN can learn the structured dependence of eigenvalues on continuous physical parameters, estab-lishing a general and reusable framework for parameter dependent spectral computation beyond the specific Kerr setting studied here. The results for the first eight modes with lm = 20 are shown in Fig. 2, obtained using 2 × 10 3 evaluation steps. The left panel displays the relative error in the real part of the eigenfrequency ω with respect to the benchmark values computed using the Leaver’s method, while the right panel shows the corresponding results for the imag-inary part. The relative error is defined as 
+
+ϵrel = ωPINN − ωLeaver 
+
+ωLeaver 
+
+, (21) where ωLeaver is obtained using the qnm package [59]. In each panel, from bottom to top, the curves correspond to successive mode indices as functions of the spin pa-rameter a ∈ [0 , 0.5). We find that, in the low overtone regime, the relative errors in Re( ω) and Im( ω) are of com-parable magnitude. As the overtone index increases, the relative error in Im( ω) becomes systematically smaller than that in Re( ω), primarily due to the rapid growth of |Im( ω)| with increasing n [49]. Overall, the relative errors for both components exhibit a clear and system-atic scaling with overtone number. For example, the er-ror in Re( ω) increases from O(10 −5) for the fundamental mode to O(10 −3) at n = 7, with Im( ω) following a simi-lar trend. Importantly, for a fixed mode index, the error magnitude remains largely insensitive to variations in the spin parameter a, showing only mild fluctuations within the similar order of magnitude. Together, these features indicate that the learned spectral mapping preserves the intrinsic structure of the QNM spectrum across continu-ous parameter space, capturing key aspects of its hierar-chical organization through a stable and well conditioned operator representation, rather than merely interpolating isolated eigenvalues. The real part of the first eight QNM modes with 
+
+lm = 21 is shown in Fig. 3. The left panel presents results obtained using 2 × 10 3 evaluation steps. Over-all, the error behavior closely follows that observed for the lm = 20 modes, with relative errors increasing sys-tematically with overtone number. A notable deviation appears for the first seven modes at spin values a > 0.1, where the relative error exhibits a pronounced increase. This behavior originates from the spin–mode coupling term in Eq. (15), which becomes active for m = 1 and introduces increased numerical stiffness at higher spins. Importantly, this degradation does not indicate a break-down of the learned operator representation, but rather reflects the increased resolution required to accurately re-solve the spectrum in this strongly coupled regime. As shown in the right panel of Fig. 3, increasing the number of evaluation steps to 4 × 10 3 restores smooth conver-gence and removes the discontinuity. With this refine-ment, the relative error in Re( ω) ranges from O(10 −6)for the fundamental mode to O(10 −4) at n = 7. The imaginary part exhibits consistent behavior. When suffi-cient evaluation resolution is employed, the relative error in Im( ω) follows the same systematic scaling with over-tone number and remains well controlled across the full spin range, as shown in Fig. 4. The lm = 21 modes pro-vide a stringent stress test for the proposed architecture, demonstrating that DeepOPiraKAN maintains stable and systematically controllable accuracy even in the presence of strong spin–mode coupling, without requiring retrain-ing or mode specific adjustments. Taken together, these results establish DeepOPiraKAN 
+
+as both a new physics informed operator architecture and a practical framework for parameter dependent spectral computation. A single trained model resolves the Kerr QNM spectrum across the full spin range, captures both fundamental and overtone structure in the ( ℓ, m ) = (2 , 0) and (2 , 1) families, and maintains systematically con-trollable accuracy even in the strongly coupled regime without mode-specific retraining. Our results point to a practically viable route toward high-precision QNM tem-plate infrastructures, demonstrating that neural operator learning can transform the computation of Kerr spectra from a pointwise numerical task into a scalable surro-gate problem, with a level of accuracy that is promising for future black hole spectroscopy [60]. More broadly, the architecture provides a promising template for other 80.0 0.1 0.2 0.3 0.4 0.5                                   
+
+> 10 −4
+> 10 −3
+> 10 −2
+> rel  n=7
+> 0.00.10.20.30.40.5
+> 10 −4
+> 10 −3
+> 10 −2
+> rel  n=6
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −4
+> 10 −3
+> rel  n=5
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −4
+> 10 −3
+> rel  n=4
+> 0.00.10.20.30.40.5
+> 10 −4
+> 10 −3
+> rel  n=3
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −4
+> rel  n=2
+> 0.00.10.20.30.40.5
+> 10 −6
+> 10 −4
+> rel  n=1
+> 0.00.10.20.30.40.5
+
+a
+
+> 10 −6
+> 10 −5
+> rel  n=0
+
+Relative Errors in Re( ω) for the First Eight lm = 20 Modes 0.0 0.1 0.2 0.3 0.4 0.5                                   
+
+> 10 −4
+> 10 −3
+> rel  n=7
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −3
+> rel  n=6
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −3
+> rel  n=5
+> 0.00.10.20.30.40.5
+> 10 −6
+> 10 −5
+> 10 −4
+> rel  n=4
+> 0.00.10.20.30.40.5
+> 10 −5
+> rel  n=3
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −4
+> 10 −3
+> rel  n=2
+> 0.00.10.20.30.40.5
+> 10 −6
+> 10 −5
+> 10 −4
+> rel  n=1
+> 0.00.10.20.30.40.5
+
+a
+
+> 10 −6
+> 10 −5
+> 10 −4
+> rel  n=0
+
+Relative Errors in Im( ω) for the First Eight lm = 20 Modes 
+
+FIG. 2. Relative accuracy of the first eight QNMs for the lm = 20 case across the full spin range obtained with DeepOPiraKAN .The left panel shows the relative error in the real part of the QNM frequencies, while the right panel shows the corresponding error in the imaginary part. Relative errors are evaluated with respect to benchmark values computed using the Leaver’s method. 
+
+parameter-dependent spectral problems in which com-plex spectra must be learned as continuous functions of physical parameters. 
+
+V. DISCUSSION AND SUMMARY 
+
+Beyond the benchmark performance reported above, the present results also reveal an important methodolog-ical feature of DeepOPiraKAN . Its predictive accuracy is controlled not only by training, but also by the resolution at which the learned operator is evaluated during infer-ence. For the lm = 21 mode family, using 2 × 10 3 eval-uation steps leads to visible degradation of accuracy at higher spins ( a > 0.1), whereas increasing the evaluation steps to 4 × 10 3 restores smooth convergence across the full parameter range. As shown in Fig. 5, the mean PDE loss LPDE decreases systematically with increasing eval-uation resolution, with the most pronounced reduction occurring between 10 3 and 2 × 10 3 steps, followed by a more gradual improvement up to 4 ×10 3 steps. For a fixed evaluation budget, higher-spin configurations yield larger values of LPDE , consistent with the increased stiffness of the underlying equations. This behaviour indicates that the learned mapping is globally constrained and can be systematically refined at inference time without re-training. Such a separation between operator learning and evaluation resolution is a distinctive advantage over pointwise eigensolvers, enabling predictable and control-lable accuracy across continuous parameter space. More broadly, beyond the specific Kerr benchmark studied here, DeepOPiraKAN provides a general opera-tor learning framework for parameter dependent spec-tral problems governed by differential operators. At the methodological level, its modular design allows al-ternative functional representations, including other or-thogonal polynomial bases or wavelet expansions, to be incorporated without changing the core learning strat-90.0 0.1 0.2 0.3 0.4 0.5                                   
+
+> 10 −5
+> 10 −4
+> 10 −3
+> rel  n=7
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −3
+> rel  n=6
+> 0.00.10.20.30.40.5
+> 10 −4
+> 10 −3
+> rel  n=5
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −3
+> rel  n=4
+> 0.00.10.20.30.40.5
+> 10 −4
+> 10 −2
+> rel  n=3
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −3
+> rel  n=2
+> 0.00.10.20.30.40.5
+> 10 −5
+> rel  n=1
+> 0.00.10.20.30.40.5
+
+a
+
+> 10 −6
+> 10 −3
+> rel  n=0
+
+Relative Errors in Re( ω) for the First Eight lm = 21 Modes 0.0 0.1 0.2 0.3 0.4 0.5                                   
+
+> 10 −5
+> 10 −4
+> 10 −3
+> rel  n=7
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −4
+> 10 −3
+> rel  n=6
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −3
+> rel  n=5
+> 0.00.10.20.30.40.5
+> 10 −5
+> rel  n=4
+> 0.00.10.20.30.40.5
+> 10 −5
+> 10 −3
+> rel  n=3
+> 0.00.10.20.30.40.5
+> 10 −5
+> rel  n=2
+> 0.00.10.20.30.40.5
+> 10 −7
+> 10 −6
+> 10 −5
+> rel  n=1
+> 0.00.10.20.30.40.5
+
+a
+
+> 10 −7
+> 10 −6
+> 10 −5
+> rel  n=0
+
+Refined results of Re( ω) for the First Eight lm = 21 Modes 
+
+FIG. 3. Solution accuracy for the real part of the first eight QNMs in the lm = 21 case obtained with DeepOPiraKAN , illustrating the effect of evaluation resolution. The left panel shows results obtained using 2 × 10 3 evaluation steps, while the right panel shows results obtained using 4 × 10 3 evaluation steps. 
+
+egy. At the application level, a particularly natural next application is to neutron star oscillation spectra with realistic equations of state, where spectral calcu-lations remain highly challenging because the modes de-pend sensitively on multiple continuous parameters and conventional mode-by-mode solvers are computationally costly [61, 62]. Furthermore, this framework suggests a scalable route for spectral computation across physics and engineering, especially in systems where complex spectra depend nontrivially on continuous parameters. Together with the open-source implementation released in this work, our results position learning based neural operators as a promising new paradigm for complex spec-tral analysis. 
+
+Acknowledgements .— We thank Sifan Wang and Huan Yang for helpful discussion and comments. This work is supported by National Natural Science Founda-tion of China under Grants No. 12335006. ZL is sup-ported by “the Fundamental Research Funds for the Central Universities”. It is also supported by the High-performance Computing Platform of Peking University. 
+
+[1] V. Hern´ andez, J. E. Rom´ an, V. Vidal, Slepc: Scalable library for eigenvalue problem computations, in: Inter-national Conference on High Performance Computing for Computational Science, Springer, 2002, pp. 377–391. [2] J. E. Roman, C. Campos, E. Romero, A. Tom´ as, Slepc users manual, Departamento di Sistemas Informaticos y Computaci´ on, Universitat Politecnica de Valencia, TR DSIC-II/24/02, Rev 3 (2016). [3] K. D. Kokkotas, B. G. Schmidt, Quasinormal modes of stars and black holes, Living Rev. Rel. 2 (1999) 2. arXiv: gr-qc/9909058 , doi:10.12942/lrr-1999-2 .[4] R. A. Konoplya, A. Zhidenko, Quasinormal modes of 10 0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −5
+
+10 −2
+
+> rel
+
+n=7 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −4
+
+10 −1
+
+> rel
+
+n=6 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −3
+
+> rel
+
+n=5 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −4
+
+10 −1
+
+> rel
+
+n=4 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −4
+
+> rel
+
+n=3 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −4
+
+> rel
+
+n=2 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −5
+
+> rel
+
+n=1 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+a
+
+10 −4
+
+> rel
+
+n=0 
+
+Relative Errors in Im( ω) for the First Eight lm = 21 Modes 0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −6
+
+> rel
+
+n=7 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −4
+
+10 −1
+
+> rel
+
+n=6 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −4
+
+10 −1
+
+> rel
+
+n=5 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −4
+
+> rel
+
+n=4 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −5
+
+10 −2
+
+> rel
+
+n=3 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −6
+
+10 −2
+
+> rel
+
+n=2 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+10 −6
+
+10 −4
+
+> rel
+
+n=1 
+
+0.0 0.1 0.2 0.3 0.4 0.5
+
+a
+
+10 −6
+
+10 −4
+
+> rel
+
+n=0 
+
+Refined results of Im( ω) for the First Eight lm = 21 Modes 
+
+FIG. 4. Solution accuracy for the imaginary part of the first eight QNMs in the lm = 21 case, shown under the same conditions as Fig. 3. 1000 2000 3000 4000 Evaluation Steps 
+
+10 −3
+
+6 × 10 −4
+
+2 × 10 −3
+
+> LPDE
+
+Mean PDE Loss per Evaluation Steps Across Different Spin Intervals 
+
+a ∈ [0 .0, 0.1) 
+
+a ∈ [0 .1, 0.2) 
+
+a ∈ [0 .2, 0.3) 
+
+a ∈ [0 .3, 0.4) 
+
+a ∈ [0 .4, 0.5) 0.0-0.1 0.1-0.2 0.2-0.3 0.3-0.4 0.4-0.5 Spin Intervals 
+
+10 −3
+
+6 × 10 −4
+
+2 × 10 −3
+
+> LPDE
+
+Mean PDE Loss per Spin Intervals Across Different Evaluation Steps 1000 Steps 2000 Steps 3000 Steps 4000 Steps 
+
+FIG. 5. Mean PDE loss LPDE for the lmn = 211 mode as a function of spin interval and evaluation resolution. The left panel shows the dependence of LPDE on the number of evaluation steps for different spin intervals, while the right panel displays its variation with spin interval at fixed evaluation steps. 11 
+
+black holes: From astrophysics to string theory, Rev. Mod. Phys. 83 (2011) 793–836. arXiv:1102.4014 , doi: 10.1103/RevModPhys.83.793 .[5] E. Berti, V. Cardoso, A. O. Starinets, Quasinormal modes of black holes and black branes, Class. Quant. Grav. 26 (2009) 163001. arXiv:0905.2975 , doi:10. 1088/0264-9381/26/16/163001 .[6] E. Barausse, V. Cardoso, P. Pani, Can environmental effects spoil precision gravitational-wave astrophysics?, Phys. Rev. D 89 (10) (2014) 104059. arXiv:1404.7149 ,
+
+doi:10.1103/PhysRevD.89.104059 .[7] N. Franchini, S. H. V¨ olkel, Testing General Relativity with Black Hole Quasi-normal Modes, 2024. arXiv: 2305.01696 , doi:10.1007/978-981-97-2871-8_9 .[8] J. Abedi, et al., Black hole spectroscopy: from theory to experiment (5 2025). arXiv:2505.23895 .[9] B. P. Abbott, et al., Observation of Gravitational Waves from a Binary Black Hole Merger, Phys. Rev. Lett. 116 (6) (2016) 061102. arXiv:1602.03837 , doi:10.1103/ PhysRevLett.116.061102 .[10] P. Amaro-Seoane, et al., Laser Interferometer Space An-tenna, e-prints (2 2017). arXiv:1702.00786 .[11] W.-R. Hu, Y.-L. Wu, The Taiji Program in Space for gravitational wave physics and the nature of gravity, Natl. Sci. Rev. 4 (5) (2017) 685–686. doi:10.1093/nsr/ nwx116 .[12] M. Du, et al., Towards realistic detection pipelines of Taiji: New challenges in data analysis and high-fidelity simulations of space-based gravitational wave antenna, Sci. China Phys. Mech. Astron. 69 (4) (2026) 249501. 
+
+arXiv:2505.16500 , doi:10.1007/s11433-025-2870-8 .[13] J. Luo, et al., TianQin: a space-borne gravitational wave detector, Class. Quant. Grav. 33 (3) (2016) 035010. arXiv:1512.02076 , doi:10.1088/0264-9381/ 33/3/035010 .[14] M. Raissi, P. Perdikaris, G. E. Karniadakis, Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving non-linear partial differential equations, J. Comput. Phys. 378 (2019) 686–707. arXiv:1711.10561 , doi:10.1016/ j.jcp.2018.10.045 .[15] C. Anitescu, B. ˙Ismail Ate¸ s, T. Rabczuk, Physics-informed neural networks: Theory and applications, in: Machine Learning in Modeling and Simulation: Methods and Applications, Springer, 2023, pp. 179–218. [16] D. Tseneklidou, A. Torres-Forne, P. Cerda-Duran, To-wards asteroseismology of neutron stars with physics-informed neural networks, Eur. Phys. J. C 85 (10) (2025) 1218. arXiv:2504.12183 , doi:10.1140/epjc/ s10052-025-14942-z .[17] A. S. Cornell, A. Ncube, G. Harmsen, Using physics-informed neural networks to compute quasinormal modes, Phys. Rev. D 106 (12) (2022) 124047. arXiv: 2205.08284 , doi:10.1103/PhysRevD.106.124047 .[18] N. Patel, A. Aykutalp, P. Laguna, Calculating Quasi-Normal Modes of Schwarzschild Black Holes with Physics Informed Neural Networks (1 2024). arXiv:2401.01440 .[19] R. Luna, J. Calder´ on Bustillo, J. J. S. Mart´ ınez, A. Torres-Forn´ e, J. A. Font, Solving the Teukolsky equa-tion with physics-informed neural networks, Phys. Rev. D 107 (6) (2023) 064025. arXiv:2212.06103 , doi:10. 1103/PhysRevD.107.064025 .[20] A. S. Cornell, S. R. Herbst, A. M. Ncube, H. Noshad, Solving the Regge-Wheeler and Teukolsky equations: supervised versus unsupervised physics-informed neural networks (2 2024). arXiv:2402.11343 .[21] A. M. Pombo, L. Pizzuti, Teukolsky by Design: A Hybrid Spectral-PINN solver for Kerr Quasinormal Modes (11 2025). arXiv:2511.15796 .[22] R. Luna, D. D. Doneva, J. A. Font, J.-H. Lien, S. S. Yazadjiev, Quasinormal modes in modified gravity us-ing physics-informed neural networks, Phys. Rev. D109 (12) (2024) 124064. arXiv:2404.11583 , doi:10. 1103/PhysRevD.109.124064 .[23] https://github.com/PaddlePaddle/PaddleScience/ tree/develop/examples/qnm (2025). [24] L. Lu, P. Jin, G. Pang, Z. Zhang, G. E. Karni-adakis, Learning nonlinear operators via deeponet based on the universal approximation theorem of operators, Nature Machine Intelligence 3 (3) (2021). 
+
+doi:10.1038/s42256-021-00302-5 .URL http://dx.doi.org/10.1038/ s42256-021-00302-5 
+
+[25] P. Jin, S. Meng, L. Lu, Mionet: Learning multiple-input operators via tensor product (2022). arXiv:2202.06137 .URL https://arxiv.org/abs/2202.06137 
+
+[26] S. Wang, H. Wang, P. Perdikaris, On the eigenvector bias of fourier feature networks: From regression to solv-ing multi-scale pdes with physics-informed neural net-works, Computer Methods in Applied Mechanics and En-gineering 384 (2021) 113938. doi:10.1016/j.cma.2021. 113938 .URL http://dx.doi.org/10.1016/j.cma.2021.113938 
+
+[27] S. Wang, A. K. Bhartari, B. Li, P. Perdikaris, Gradi-ent alignment in physics-informed neural networks: Asecond-order optimization perspective (2025). arXiv: 2502.00604 .URL https://arxiv.org/abs/2502.00604 
+
+[28] A. Daw, J. Bu, S. Wang, P. Perdikaris, A. Karpatne, Mitigating propagation failures in physics-informed neu-ral networks using retain-resample-release (R3) sampling, in: A. Krause, E. Brunskill, K. Cho, B. Engelhardt, S. Sabato, J. Scarlett (Eds.), Proceedings of the 40th International Conference on Machine Learning, Vol. 202 of Proceedings of Machine Learning Research, PMLR, 2023, pp. 7264–7302. URL https://proceedings.mlr.press/v202/daw23a. html 
+
+[29] V. Gopakumar, S. Pamela, D. Samaddar, Loss land-scape engineering via data regulation on pinns, Machine Learning with Applications 12 (2023) 100464. 
+
+doi:https://doi.org/10.1016/j.mlwa.2023.100464 .URL https://www.sciencedirect.com/science/ article/pii/S2666827023000178 
+
+[30] P. Rathore, W. Lei, Z. Frangella, L. Lu, M. Udell, Chal-lenges in training pinns: A loss landscape perspective (2024). arXiv:2402.01868 .URL https://arxiv.org/abs/2402.01868 
+
+[31] Z. Liu, Y. Wang, S. Vaidya, F. Ruehle, J. Halverson, M. Soljaˇ ci´ c, T. Y. Hou, M. Tegmark, Kan: Kolmogorov-arnold networks (2025). arXiv:2404.19756 .URL https://arxiv.org/abs/2404.19756 
+
+[32] Y. Wang, J. Sun, J. Bai, C. Anitescu, M. S. Eshaghi, X. Zhuang, T. Rabczuk, Y. Liu, Kolmogorov–arnold-informed neural network: A physics-informed deep learn-ing framework for solving forward and inverse problems based on kolmogorov–arnold networks, Computer Meth-ods in Applied Mechanics and Engineering 433 (2025) 12 
+
+117518. doi:10.1016/j.cma.2024.117518 .URL http://dx.doi.org/10.1016/j.cma.2024.117518 
+
+[33] S. Wang, B. Li, Y. Chen, P. Perdikaris, Piratenets: Physics-informed deep learning with residual adaptive networks (2024). arXiv:2402.00326 .URL https://arxiv.org/abs/2402.00326 
+
+[34] M. Tancik, P. P. Srinivasan, B. Mildenhall, S. Fridovich-Keil, N. Raghavan, U. Singhal, R. Ramamoorthi, J. T. Barron, R. Ng, Fourier features let networks learn high frequency functions in low dimensional domains (2020). 
+
+arXiv:2006.10739 .URL https://arxiv.org/abs/2006.10739 
+
+[35] S. Wang, Y. Teng, P. Perdikaris, Understanding and mit-igating gradient pathologies in physics-informed neural networks (2020). arXiv:2001.04536 .URL https://arxiv.org/abs/2001.04536 
+
+[36] S. J. Anagnostopoulos, J. D. Toscano, N. Stergiopulos, G. E. Karniadakis, Residual-based attention and connec-tion to information bottleneck theory in pinns (2023). 
+
+arXiv:2307.00379 .URL https://arxiv.org/abs/2307.00379 
+
+[37] J. Zhang, Y. Fan, K. Cai, K. Wang, Kolmogorov-arnold fourier networks (2025). arXiv:2502.06018 .URL https://arxiv.org/abs/2502.06018 
+
+[38] A. Farea, M. S. Celebi, Learnable activation functions in physics-informed neural networks for solving partial differential equations (2025). arXiv:2411.15111 .URL https://arxiv.org/abs/2411.15111 
+
+[39] S. Wang, H. Wang, P. Perdikaris, Learning the solution operator of parametric partial differential equations with physics-informed deeponets, Science Advances 7 (40) (2021) eabi8605. arXiv:https:// www.science.org/doi/pdf/10.1126/sciadv.abi8605 ,
+
+doi:10.1126/sciadv.abi8605 .URL https://www.science.org/doi/abs/10.1126/ sciadv.abi8605 
+
+[40] B. P. Abbott, et al., Tests of general relativity with GW150914, Phys. Rev. Lett. 116 (22) (2016) 221101, [Erratum: Phys.Rev.Lett. 121, 129902 (2018)]. arXiv: 1602.03841 , doi:10.1103/PhysRevLett.116.221101 .[41] A. G. Abac, et al., GW231123: A Binary Black Hole Merger with Total Mass 190–265 M ⊙, Astrophys. J. Lett. 993 (1) (2025) L25. arXiv:2507.08219 , doi:10.3847/ 2041-8213/ae0c9c .[42] Black Hole Spectroscopy and Tests of General Relativity with GW250114 (9 2025). arXiv:2509.08099 .[43] D. Reitze, et al., Cosmic Explorer: The U.S. Contri-bution to Gravitational-Wave Astronomy beyond LIGO, Bull. Am. Astron. Soc. 51 (7) (2019) 035. arXiv:1907. 04833 .[44] M. Punturo, et al., The Einstein Telescope: A third-generation gravitational wave observatory, Class. Quant. Grav. 27 (2010) 194002. doi:10.1088/0264-9381/27/ 19/194002 .[45] E. Berti, V. Cardoso, J. A. Gonzalez, U. Sper-hake, M. Hannam, S. Husa, B. Bruegmann, Inspiral, merger and ringdown of unequal mass black hole bina-ries: A Multipolar analysis, Phys. Rev. D 76 (2007) 064034. arXiv:gr-qc/0703053 , doi:10.1103/PhysRevD. 76.064034 .[46] S. Bhagwat, C. Pacilio, E. Barausse, P. Pani, Land-scape of massive black-hole spectroscopy with LISA and the Einstein Telescope, Phys. Rev. D 105 (12) (2022) 124063. arXiv:2201.00023 , doi:10.1103/PhysRevD. 105.124063 .[47] S. A. Teukolsky, Rotating black holes - separable wave equations for gravitational and electromagnetic pertur-bations, Phys. Rev. Lett. 29 (1972) 1114–1118. doi: 10.1103/PhysRevLett.29.1114 .[48] S. A. Teukolsky, Perturbations of a rotating black hole. 1. Fundamental equations for gravitational electromag-netic and neutrino field perturbations, Astrophys. J. 185 (1973) 635–647. doi:10.1086/152444 .[49] E. W. Leaver, An Analytic representation for the quasi normal modes of Kerr black holes, Proc. Roy. Soc. Lond. A 402 (1985) 285–298. doi:10.1098/rspa.1985.0119 .[50] C. V. Vishveshwara, Scattering of Gravitational Radia-tion by a Schwarzschild Black-hole, Nature 227 (1970) 936–938. doi:10.1038/227936a0 .[51] S. Chandrasekhar, S. L. Detweiler, The quasi-normal modes of the Schwarzschild black hole, Proc. Roy. Soc. Lond. A 344 (1975) 441–452. doi:10.1098/rspa.1975. 0112 .[52] B. F. Schutz, C. M. Will, BLACK HOLE NORMAL MODES: A SEMIANALYTIC APPROACH, Astrophys. J. Lett. 291 (1985) L33–L36. doi:10.1086/184453 .[53] S. Iyer, C. M. Will, Black Hole Normal Modes: A WKB Approach. 1. Foundations and Application of a Higher Order WKB Analysis of Potential Barrier Scattering, Phys. Rev. D 35 (1987) 3621. doi:10.1103/PhysRevD. 35.3621 .[54] V. Ferrari, B. Mashhoon, New approach to the quasi-normal modes of a black hole, Phys. Rev. D 30 (1984) 295–304. doi:10.1103/PhysRevD.30.295 .[55] H. Yang, D. A. Nichols, F. Zhang, A. Zimmerman, Z. Zhang, Y. Chen, Quasinormal-mode spectrum of Kerr black holes and its geometric interpretation, Phys. Rev. D 86 (2012) 104006. arXiv:1207.4253 , doi:10.1103/ PhysRevD.86.104006 .[56] C. O’Toole, R. Macedo, T. Stratton, B. Wardell, Quasi-normalmodes: A black hole perturbation toolkit package, 
+
+https://github.com/BlackHolePerturbationToolkit/ QuasiNormalModes , a package for computing quasi-normal modes of Schwarzschild and Kerr black holes (2025). [57] B. Inc, https://www.paddlepaddle.org.cn/en (2025). [58] V. Baibhav, E. Berti, Multimode black hole spectroscopy, Phys. Rev. D 99 (2) (2019) 024005. arXiv:1809.03500 ,
+
+doi:10.1103/PhysRevD.99.024005 .[59] L. C. Stein, qnm: A Python package for calculating Kerr quasinormal modes, separation constants, and spherical-spheroidal mixing coefficients, J. Open Source Softw. 4 (42) (2019) 1683. arXiv:1908.10377 , doi:10.21105/ joss.01683 .[60] G. Carullo, Black hole spectroscopy: status report, Gen. Rel. Grav. 57 (5) (2025) 76. doi:10.1007/ s10714-025-03408-y .[61] K. D. Kokkotas, B. F. Schutz, W-modes: A New family of normal modes of pulsating relativistic stars, Mon. Not. Roy. Astron. Soc. 225 (1992) 119. [62] O. Benhar, E. Berti, V. Ferrari, The Imprint of the equation of state on the axial w modes of oscillat-ing neutron stars, Mon. Not. Roy. Astron. Soc. 310 (1999) 797–803. arXiv:gr-qc/9901037 , doi:10.1046/ j.1365-8711.1999.02983.x .

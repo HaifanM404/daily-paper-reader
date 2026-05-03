@@ -1,0 +1,392 @@
+Title: HBGSA: Hydrogen Bond Graph with Self-Attention for Drug-Target Binding Affinity Prediction
+
+URL Source: https://arxiv.org/pdf/2604.23115v1
+
+Published Time: Tue, 28 Apr 2026 00:25:41 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+# HBGSA: Hydrogen Bond Graph with Self-Attention for Drug-Target Binding Affinity Prediction 
+
+Junxiao Kong, 1,† Chupei Tang, 1,† Di Wang, 1 Jixiu Zhai, 1 Yi He, 1 Moyu Tang, 1 and Tianchi Lu 2,∗
+
+> 1
+
+School of Mathematics and Statistics, Lanzhou University, 222 South Tianshui Road, 730000, Gansu, China 
+
+> 2
+
+Department of Computer Science, City University of Hong Kong, 83 Tat Chee Avenue, Kowloon Tong, Hong Kong 999077, China 
+
+> †
+
+These authors contributed equally to this work. 
+
+∗Corresponding author. tianchilu4-c@my.cityu.edu.hk (T.L.) Department of Computer Science, City Uni-versity of Hong Kong, 83 Tat Chee Avenue, Kowloon Tong, Hong Kong 999077, China, Tel: +86-13239620274 
+
+Abstract 
+
+Accurate prediction of drug-target binding affinity accelerates drug discovery by prioritizing compounds for experimental validation. Current methods face three limitations: sequence-based approaches discard spatial geometric constraints, structure-based methods fail to exploit hydrogen bond features, and conventional loss functions neglect prediction-target correlation—a key factor for identifying high-affinity compounds in virtual screening. We developed HBGSA (Hydrogen Bond Graph with Self-Attention), a 3.06M-parameter model that encodes hydrogen bond spatial features. HBGSA uses graph neural networks to model hydrogen bond spatial topology with self-attention enhancement and Pearson correlation loss. Experimental results on PDBbind Core Set and CSAR-HiQ dataset demonstrate that HBGSA outperforms baseline methods with strong generalization capability. Ablation studies confirm the effectiveness of hydrogen bond modeling and Pearson correlation loss. 
+
+Keywords: Drug-Target Affinity; Hydrogen Bonds; GNN; Correlation Optimization; Virtual Screening 
+
+1 Introduction 
+
+Drug discovery faces high experimental costs [25]. Computational models prioritizing high-affinity candidates before synthesis reduce experi-mental burden. Drug-target affinity (DTA) predic-tion is central to this virtual screening workflow. Existing DTA methods fall into two categories. Sequence-based methods like DeepDTA [1] and DeepDTAF [2] use 1D convolutions on sequences and SMILES, but discard spatial structural infor-mation. Structure-based methods like GraphDTA [3], MMPD-DTA [6], and ML-PLA [7] construct molec-ular graphs from spatial coordinates. However, most methods define edges using fixed distance thresholds (e.g., 6.0 Å in MMPD-DTA), treating all atomic contacts equally. This approach fails to distinguish hydrogen bonds from van der Waals contacts. Recent works like PLIG [19] and IGN [4] encode interaction types as node features, but lack explicit modeling of hydrogen bond spatial pat-terns. Existing graph neural networks treat atoms as isotropic nodes, unable to encode hydrogen bond spatial distributions or model cooperative effects of hydrogen bond networks. Furthermore, most methods use MSE loss, which optimizes absolute error but neglects prediction-target correlation—a key factor for identifying high-affinity compounds in virtual screening. HBGSA addresses these limitations through three innovations: (i) Hydrogen Bond Graph Architecture :Graph neural networks model spatial topology and cooperative effects of hydrogen bond interactions. (ii) Pearson Correlation Loss : Combining SmoothL1 regression loss with Pearson correlation 1
+
+> arXiv:2604.23115v1 [cs.LG] 25 Apr 2026
+
+3 METHODS 
+
+loss optimizes both absolute prediction accuracy and prediction-target correlation, enhancing the model’s ability to identify high-affinity compounds. (iii) Self-Attention Enhancement : Self-attention modules in sequence and SMILES en-coders improve feature utilization and representa-tion quality. 
+
+Paper Organization: Section 2 reviews sequence-based and structure-based methods, op-timization objectives, and attention mechanisms. Section 3 details datasets and metrics (3.1-3.2), then presents the HBGSA architecture including mul-timodal encoders (3.3-3.4), graph-based hydrogen bond modeling (3.5), and hybrid loss optimization (3.6). Section 4 presents results on PDBbind v2016 Core and CSAR-HiQ, with ablation studies validat-ing each component. Section 5 discusses hydrogen bond density analysis, correlation-based optimiza-tion, and model limitations. 
+
+2 Related Work 
+
+2.1 Sequence-based Approaches 
+
+Sequence-based methods encode proteins as amino acid strings and ligands as SMILES. DeepDTA (2018) [1] pioneered this approach using 1D CNNs on one-hot encoded sequences. WideDTA [15] added ligand maximum common substructures and protein motifs as auxiliary features. DeepDTAF (2021) [2] focused on binding pockets and intro-duced dilated convolutions to model long-range dependencies, substantially improving accuracy. MMPD-DTA [6] explored Transformer architectures [32] for richer contextual representations. These methods treat proteins as 1D strings, dis-carding spatial topology. This loses geometric rela-tionships between residues, limiting physical inter-pretability of binding mechanisms. 
+
+2.2 Structure-based Graph Learning 
+
+Structure-based methods encode spatial molecular geometry. Traditional approaches like RF-Score and ECIF use hand-crafted features. Structure-based CNN methods emerged with Pafnucy [12], OnionNet, and DeepAtom, which voxelize protein-ligand complexes. GraphDTA [3] represents ligands as molecular graphs. IGN [4], SIGN, and SGADN construct interaction graphs containing both pro-tein and ligand atoms. MMPD-DTA [6] proposes pocket-drug graphs combined with GraphSAGE for neighbor aggregation. ML-PLA [7] uses heteroge-neous graph neural networks to model protein mi-croenvironments. Geometric learning methods include PLIG, EGNN, TankBind [5], and GIGN. Advanced mul-timodal approaches like HAC-Net, MMDTA, MBP, and UAMRL combine multiple representations and pre-training strategies. CAPLA and KSM represent recent advances in this field. Graph construction methods like MMPD-DTA and ML-PLA typically use fixed distance thresh-olds. This treats all atomic contacts equally, failing to distinguish hydrogen bonds from van der Waals contacts. HBGSA addresses this by explicitly mod-eling hydrogen bond spatial features (Section 3.5). 
+
+2.3 Optimization Objectives 
+
+Most methods (DeepDTAF [2], GraphDTA [3], MMPD-DTA [6]) use mean squared error (MSE) loss, which optimizes absolute prediction error. However, virtual screening requires strong correla-tion between predictions and true affinities to reli-ably identify high-affinity compounds. Some recent works explore alternative objectives: TankBind [5] introduces contrastive loss, while MBP uses pair-wise ranking loss to handle label noise. Direct optimization of global correlation (Pear-son coefficient [37]) in DTA regression remains un-derexplored. Section 3.6 details our Pearson corre-lation loss. 
+
+2.4 Attention Mechanisms 
+
+Attention mechanisms dynamically weight key re-gions. AttentionDTA and AttentiveFP enable mod-els to focus on atoms or residues contributing most to binding. These mechanisms apply primarily to sequence feature extraction, using self-attention to model long-range dependencies and enhance feature expressiveness. 
+
+3 Methods 
+
+3.1 Datasets 
+
+We use PDBbind v2016 [23] as the primary benchmark, which includes experimentally verified protein-ligand binding affinity from Protein Data Bank. We focus on three subsets: General Set (originally 9,226 complexes), Refined Set (originally 4,057 complexes), and Core Set 2016 (290 complexes as the standard test benchmark). To prevent data overlap, we perform data clean-ing: (1) remove 290 Core Set complexes from Re-23.2 Evaluation Metrics 3 METHODS 
+
+Figure 1: Overall architecture of the HBGSA model. fined Set; (2) remove 82 validation and 5 train-ing complexes to maintain consistency with Deep-DTAF [2] and Pafnucy [12]. After cleaning, General Set contains 9,221 complexes and Refined Set con-tains 3,685 complexes. Data partition: Test Set uses Core Set 2016 (290 complexes); Validation Set randomly samples 1,000 from cleaned Refined Set; Training Set com-bines General Set (9,221) with remaining Refined Set (2,685), totaling 11,906 complexes. We also evaluate on CSAR-HiQ [24], merging two subsets (176 and 167 complexes) and removing overlaps with PDBbind Refined Set, yielding 135 independent test complexes following MBP [28] and SGADN [10] protocols. Maximum sequence lengths cover approximately 90% of samples: 1,000 residues for protein se-quences, 63 for binding pockets, and 150 characters for SMILES (consistent with DeepDTAF [2]). For hydrogen bonds, we select top N = 20 strongest bonds per complex, covering 96.61% of training samples (Section 4.4). 
+
+3.2 Evaluation Metrics 
+
+We evaluate model performance using four stan-dard metrics (detailed calculation methods in Sup-plementary File Section 1). Let yi denote the true binding affinity and ˆyi the predicted value for the 
+
+i-th sample, with N total samples. 
+
+Root Mean Squared Error (RMSE) mea-sures prediction accuracy: RMSE =
+
+√√√√ 1
+
+N
+
+> N
+
+∑
+
+> i=1
+
+(yi − ˆyi)2 (1) 
+
+Mean Absolute Error (MAE) measures av-erage absolute deviation: MAE = 1
+
+N
+
+> N
+
+∑
+
+> i=1
+
+|yi − ˆyi| (2) 
+
+Pearson Correlation Coefficient (Pearson R) measures linear correlation: 
+
+r =
+
+∑Ni=1 (yi − ¯y)(ˆ yi − ¯ˆy)
+
+√∑Ni=1 (yi − ¯y)2
+
+√∑Ni=1 (ˆ yi − ¯ˆy)2
+
+(3) where ¯y and ¯ˆy are the means of true and predicted values. 
+
+Concordance Index (CI) measures prediction monotonicity: CI = 1
+
+Z
+
+∑
+
+> i,j :yi>y j
+
+⊮(ˆ yi > ˆyj ) (4) 33.3 Architecture Overview 3 METHODS 
+
+where Z is the number of comparable pairs and ⊮(·)
+
+is the indicator function. 
+
+3.3 Architecture Overview 
+
+HBGSA is a compact 3.06M-parameter model that integrates four input modalities through parallel en-coders (Figure 1; detailed parameter breakdown in Supplementary Table 2): protein sequences, bind-ing pockets, ligand SMILES, and hydrogen bond spatial coordinates. The protein and SMILES en-coders use dilated convolutions with self-attention; the pocket encoder uses standard 1D convolutions; the hydrogen bond encoder uses graph neural net-works to model spatial topology. After adaptive pooling, the four feature vectors are concatenated and passed through a fully connected predictor with dropout to output binding affinity. 
+
+3.4 Multi-modal Feature Extraction 
+
+Following DeepDTAF [2], HBGSA processes three sequence modalities: global protein sequences, lo-cal binding pockets, and ligand SMILES. The ar-chitecture of protein sequence and binding pocket encoders is adapted from DeepDTAF [2]. Protein sequences use 40-dimensional physicochemical prop-erty vectors encoding hydrophobicity, charge, polar-ity, and secondary structure propensity. All inputs are projected to a unified 128-dimensional feature space. For protein sequences and ligand SMILES, we use multi-scale dilated convolutions to model long-range dependencies. Dilated residual blocks stack 1D convolutional layers, with residual connections [35] and layer normalization to prevent gradient van-ishing. For the shorter binding pocket branch, stan-dard 1D convolutional layers (kernel size 3) encode local features. To identify key pharmacophores and residues, we add 1D self-attention modules at the end of se-quence and SMILES branches, and use adaptive max pooling to generate fixed-dimensional vectors 
+
+vseq , vpkt , vsmi ∈ R128 for multimodal fusion (Fig-ure 2). 
+
+Figure 2: Self-attention feature enhancement mod-ule. 
+
+3.5 Graph-Based Interaction Learning 
+
+The hydrogen bond module is the core innovation of HBGSA. Most methods treat interactions as 1D se-quences or simple distance contacts, failing to model spatial topology and cooperative effects of hydrogen bonds. HBGSA uses graph neural networks to cap-ture spatial relationships among hydrogen bonds. 
+
+Hydrogen Bond Extraction and Selection. 
+
+HBGSA is designed as a multimodal model that can leverage 3D structural information when available. When protein-ligand complex structures are avail-able (from crystallography or docking), we extract hydrogen bonds using PyMOL’s distance command (mode=2), which identifies them based on standard geometric criteria: donor-acceptor distance d ≤ 3.5
+
+Å, D-H...A angle ≥ 120 , and polar atom types (N, O, S). This definition follows the IUPAC hydrogen bond standard [31]. For each complex, we rank all identified hydrogen bonds by distance and select the top N = 20 strongest, which covers 96.61% of sam-ples in the training set. Complexes with fewer than 20 bonds are zero-padded. When 3D structures are unavailable, the model can still make predictions us-ing only sequence and SMILES information by set-ting hydrogen bond inputs to zero vectors, though with reduced accuracy. Each hydrogen bond is represented by a 9-dimensional coordinate vector: protein end pi ∈ R3,ligand end li ∈ R3, and midpoint mi = ( pi + li)/2 ∈
+
+R3. The global hydrogen bond information xhb ∈
+
+R180 is reshaped into Xhb ∈ R20 ×9 as input to the graph encoder. 
+
+GNN Encoder models spatial geometric topo-logical relationships among hydrogen bonds through graph neural networks (Figure 3). Treating the 20 hydrogen bonds as graph nodes, node features are first embedded: h(0)  
+
+> i
+
+= Linear (Xhb,i ) ∈ R128 . Spa-tial relationships are encoded through pairwise dis-tances calculated using midpoint coordinates dij =
+
+∥mi − mj ∥2. A dynamic KNN graph is constructed by selecting the k = 5 nearest spatial neighbors for each bond, forming adjacency matrix A.Graph convolutional layers aggregate neighbor information through the adjacency matrix. The first graph convolution: 
+
+H(1) = GELU (LayerNorm (Linear (A · H(0) ))) (5) where A ∈ R20 ×20 is the KNN adjacency matrix and H(0) ∈ R20 ×128 is the node feature matrix. The 43.6 Prediction and Optimization 4 RESULTS 
+
+Figure 3: Hydrogen bond graph neural network encoder. second layer adds residual connections: 
+
+H(2) = GELU (H(1) + LayerNorm (Linear (A · H(1) ))) 
+
+(6) Finally, global max pooling yields shb =max( H(2) , dim = 0) ∈ R128 .
+
+3.6 Prediction and Optimization 
+
+We concatenate features from all branches into a unified representation: 
+
+scat = [ sseq ; spkt ; ssmi ; shb ] ∈ R512 (7) A three-layer fully connected network progressively downsamples the fused features: 
+
+h1 = PReLU (Dropout (Linear 1(scat ))) (8) 
+
+h2 = PReLU (Dropout (Linear 2(h1))) (9) 
+
+y = Linear 3(h2) (10) where layer dimensions are 512 → 128 → 64 → 1,with dropout ratio 0.5. We design a hybrid loss function to optimize both absolute prediction accuracy and prediction-target correlation: 
+
+L = Lreg + λLpearson (11) where Lreg is the SmoothL1 loss (Huber loss), robust to outliers: 
+
+Lreg = 1
+
+N
+
+> N
+
+∑
+
+> i=1
+
+{ 12 (yi − ˆyi)2 if |yi − ˆyi| ≤ 1
+
+|yi − ˆyi| − 12 otherwise (12) This loss uses squared loss for small errors (sensitive to small errors) and absolute value loss for large er-rors (robust to outliers). 
+
+Lpearson is our Pearson correlation coefficient loss, defined as Lpearson = 1 − rpearson , where 
+
+rpearson is the Pearson correlation between pre-dicted and true values. This loss calculates cor-relation after centering predicted and true values. When rpearson = 1 (perfect positive correlation), 
+
+Lpearson = 0 ; when rpearson = 0 (no correlation), 
+
+Lpearson = 1 .This loss function provides three benefits: (i) 
+
+Correlation Optimization : forces the model to learn correct relative relationships rather than just minimizing absolute errors. Strong correlation en-sures that compounds with higher predictions in-deed have higher true values, which is crucial for prioritizing candidates in virtual screening;(ii) Ro-bustness to Systematic Bias : Pearson correla-tion is invariant to linear transformations of pre-dictions (e.g., constant shifts, Pearson loss remains small);(iii) Improved Monotonicity : Optimiz-ing correlation naturally improves monotonicity— the tendency for higher predictions to match higher true values. Our ablation study demonstrates that the optimal λ balances correlation and absolute accuracy (see Section 4.2). 
+
+4 Results 
+
+4.1 Performance Comparison and General-ization 
+
+Table 1 compares HBGSA with baseline methods on PDBbind Core Set. HBGSA achieves state-of-the-art performance across all metrics, with RMSE=1.099 and Pearson R=0.865 on PDBbind Core Set. Table 2 shows performance on CSAR-HiQ, an independent test set with 135 complexes. HBGSA achieves RMSE=1.603 and Pearson R=0.808, demonstrating strong generalization. 54.2 Ablation Studies 4 RESULTS 
+
+Table 1: Performance on PDBbind v2016 Core Set 
+
+Method RMSE ↓ MAE ↓ Pearson R ↑ CI ↑
+
+Traditional ML & Sequence/2D-based Methods 
+
+RF-Score (2010) 1.468 1.173 0.767 -ECIF (2021) 1.362 1.080 0.803 -DeepDTA (2018) 1.443 1.148 0.749 0.771 DeepDTAF (2021) 1.355 1.073 0.789 0.799 GraphDTA (2021) 1.658 1.308 0.653 -CAPLA (2023) 1.200 0.966 0.843 0.820 
+
+Structure-based Methods (CNN/Contact) 
+
+Pafnucy (2018) 1.418 1.129 0.775 0.789 OnionNet (2019) 1.278 0.984 0.816 -DeepAtom (2019) 1.232 0.904 0.831 -
+
+Geometric & Graph-based Methods (GNNs) 
+
+PLIG (2022) 1.646 1.316 0.664 -EGNN (2021) 1.377 1.076 0.778 -TankBind (2022) 1.346 1.070 0.726 -SGADN (2023) 1.342 1.045 0.800 -SIGN (2021) 1.316 1.027 0.797 0.754 KSM (2025) 1.288 0.975 0.813 -IGN (2021) 1.220 0.940 0.837 -GIGN (2023) 1.190 0.933 0.840 0.816 
+
+Advanced Multimodal & Pre-training Methods 
+
+HAC-Net (2023) 1.205 0.971 0.846 -MMDTA (2024) 1.166 0.921 0.844 0.822 ML-PLA (2023) 1.179 0.892 0.845 0.827 MBP (2024) 1.263 0.999 0.825 -UAMRL (2025) 1.121 0.869 0.863 0.834 
+
+HBGSA (Ours) 1.099 0.752 0.865 0.850 Table 2: Performance on CSAR-HiQ dataset 
+
+Method RMSE ↓ MAE ↓ Pearson R ↑ CI ↑
+
+Traditional ML & Sequence/2D-based Methods 
+
+RF-Score (2010) 1.947 1.466 0.723 -DeepDTAF (2021) 1.974 1.601 0.146 0.670 GraphDTA (2021) 2.023 1.530 0.577 -
+
+Structure-based Methods (CNN/Contact) 
+
+Pafnucy (2018) 1.939 1.562 0.686 -OnionNet (2019) 1.927 1.471 0.690 -
+
+Geometric & Graph-based Methods (GNNs) 
+
+IGN (2021) 1.864 1.455 0.741 0.676 SIGN (2021) 1.618 1.238 0.772 -SGADN (2023) 1.619 1.261 0.772 -
+
+Advanced Multimodal & Pre-training Methods 
+
+MBP (2024) 1.624 1.240 0.791 -
+
+HBGSA (Ours) 1.603 1.283 0.808 0.809 4.2 Ablation Studies 
+
+Table 3 shows that hybrid loss (SmoothL1 +Pearson, denoted as S1+P) achieves both strong absolute prediction accuracy (RMSE=1.099) and high correlation (Pearson R=0.865). As a re-sult, the model also exhibits improved monotonicity (CI=0.850), outperforming SmoothL1 alone (S1). 
+
+Table 3: Ablation study on loss functions 
+
+Loss RMSE MAE R CI 
+
+S1 1.249 0.938 0.820 0.816 
+
+S1+P 1.099 0.752 0.865 0.850 
+
+64.3 Model Interpretability 4 RESULTS 
+
+Table 4: Ablation experiments on core components (PDBbind v2016 Core Set) 
+
+Configuration RMSE ↓ MAE ↓ Pearson R ↑ CI ↑
+
+SEQ 1.959 1.576 0.497 0.672 SEQ+SMILES 1.429 1.146 0.759 0.778 SEQ+Pocket 1.539 1.220 0.707 0.753 SEQ+Pocket+SMILES 1.382 1.079 0.791 0.797 SEQ+Pocket+SMILES+self-attention 1.246 1.001 0.808 0.801 SEQ+Pocket+SMILES+H-BondGNN 1.118 0.851 0.848 0.838 
+
+HBGSA 1.099 0.752 0.865 0.850 
+
+Table 4 shows that hydrogen bond graph mod-eling substantially improves performance. Table 5 presents the impact of different Pearson loss weight coefficients λ. Due to the long training time, we sampled seven representative values: λ ∈{1, 25 , 50 , 75 , 100 , 125 , 150 }. The results reveal a U-shaped curve for RMSE and MAE: as λ increases, prediction errors first decrease then increase, reach-ing optimal values at λ = 50 (RMSE=1.099, MAE=0.752). Meanwhile, Pearson R and CI (mea-suring correlation and monotonicity respectively) improve monotonically with λ up to λ = 75 , then plateau. 
+
+Table 5: Impact of Pearson loss weight λλ RMSE MAE R CI 
+
+1 1.275 1.032 0.821 0.808 25 1.212 0.881 0.840 0.829 
+
+50 1.099 0.752 0.865 0.850 
+
+75 1.124 0.812 0.872 0.852 100 1.163 0.855 0.869 0.849 125 1.201 0.893 0.867 0.847 150 1.253 0.944 0.864 0.844 Figure 4 visualizes these trade-offs using a radar chart, clearly showing that λ = 50 achieves the most balanced performance across all metrics. 
+
+Figure 4: Radar chart of λ trade-offs. To validate model stability, we conduct five-fold cross-validation. Table 6 presents detailed results for each fold. The model maintains stable perfor-mance across different data partitions, with average RMSE of 1.110 ± 0.028 , Pearson R of 0.864 ± 0.007 ,and CI of 0.851 ± 0.006 . The small standard devia-tions validate the model’s generalization capability and result reliability. 
+
+4.3 Model Interpretability 
+
+To understand HBGSA’s prediction mechanism, we conduct comprehensive visualization analysis across all data partitions. Figure 5 shows the model’s pre-diction performance across all datasets. The model achieves strong performance on training and vali-dation sets, with slight performance degradation on test set and CSAR-HiQ indicating good generaliza-tion without overfitting. To visualize the model’s prediction monotonicity and correlation quality, we present sorted bar chart analysis across all datasets. Figure 6 shows sorted bar charts for all four datasets (training, validation, test, and CSAR-HiQ), where samples are sorted by true affinity values. Strong correlation manifests as smooth monotonic trends in predicted values. HBGSA maintains strong monotonicity across all datasets, as evidenced by the smooth trends in sorted bar charts. This monotonicity reflects the high correlation between predictions and true affinities, which is the direct result of Pearson loss optimization. The improved CI values (measuring monotonicity) stem from enhanced correlation. 
+
+4.4 Hydrogen Bond Density Analysis 
+
+Statistical analysis of the training dataset reveals that the hydrogen bond count distribution sup-ports our choice of N = 20 (Figure 7). The aver-age number of hydrogen bonds is 8.22 (median=7, std=5.67). The distribution shows that 96.61% of samples contain 20 or fewer hydrogen bonds, with only 3.39% exceeding this threshold. The 95th per-centile is 19 bonds, confirming that N = 20 provides comprehensive coverage while maintaining compu-tational efficiency. 74.4 Hydrogen Bond Density Analysis 4 RESULTS 
+
+Table 6: Five-fold cross-validation results Fold RMSE ↓ MAE ↓ Pearson R ↑ CI ↑
+
+Fold 1 1.1410 0.8124 0.8587 0.8436 Fold 2 1.0691 0.7529 0.8769 0.8595 Fold 3 1.1200 0.7394 0.8581 0.8529 Fold 4 1.1143 0.7675 0.8607 0.8464 Fold 5 1.1054 0.7396 0.8656 0.8514 Mean ± Std 1.110 ± 0.028 0.762 ± 0.036 0.864 ± 0.007 0.851 ± 0.006       
+
+> (a) Training Set (b) Validation Set
+> (c) Test Set (d) CSAR-HiQ Dataset
+
+Figure 5: Prediction performance on 4 sets. 
+
+84.4 Hydrogen Bond Density Analysis 4 RESULTS       
+
+> (a) Training Set (b) Validation Set
+> (c) Test Set (d) CSAR-HiQ Dataset
+
+Figure 6: Sorted bar chart analysis for 4 sets. 
+
+Figure 7: Distribution of hydrogen bond counts in the training dataset. To validate the physical basis of HBGSA’s per-formance improvements, we analyze the relationship between hydrogen bond density and binding affinity using representative complexes from the PDBbind dataset. Figure 8 presents two typical cases, reveal-ing the quantitative relationship between hydrogen bond density and binding affinity. Hydrogen bond density, rather than absolute count, fundamentally determines binding affinity. Both complexes use acetazolamide (AZM) but dif-fer significantly in affinity: 1zsb (5 bonds, 19 atoms, 26.3% density, Kd = 0 .6 nM) vs. 3ekv (9 bonds, 57 atoms, 15.8% density, Kd = 9.41 nM). The H94N mutation in 3ekv disrupts Zn 2+ chelation, destabilizing the metal center despite more hydro-gen bonds. This confirms that affinity depends on density, geometry, and structural environment—not bond count alone. We define hydrogen bond density as the ratio of hydrogen bonds to ligand atoms: 
+
+ρhbond = Nhbond 
+
+Nligand 
+
+(13) where Nhbond is the number of hydrogen bonds formed and Nligand is the number of ligand atoms. Table 7 presents detailed quantitative analysis for both complexes, showing that despite having fewer hydrogen bonds (5 vs. 9), complex 1zsb achieves 95 DISCUSSION AND CONCLUSION          
+
+> (a) High-affinity complex (pdbid: 1zsb, Kd= 0 .6nM) (b) Low-affinity complex (pdbid: 3ekv, Kd= 9 .41 nM)
+
+Figure 8: Relationship between hydrogen bond density and binding affinity. Yellow dashed lines indicate hydrogen bonds. higher affinity due to its superior hydrogen bond density (26.3% vs. 15.8%). 
+
+Table 7: Hydrogen bond density analysis in repre-sentative complexes                    
+
+> Property 1zsb 3ekv
+> Ligand Acetazolamide Acetazolamide Formula C4H6N4O3S2C4H6N4O3S2
+> Molecules 13
+> Nligand 19 57
+> Nhbond 59
+> ρhbond 26.3% 15.8%
+> Kd(nM) 0.6 9.41 Affinity high low
+
+5 Discussion and Conclusion 
+
+This section discusses the underlying physical mech-anisms behind these improvements, implications for virtual screening workflows, and current model lim-itations. 
+
+5.1 Physical Mechanism of Hydrogen Bond Graph Architecture 
+
+HBGSA models hydrogen bonds through graph neu-ral networks, capturing spatial topology and co-operative effects more effectively than distance-threshold methods. 
+
+5.2 Value of Correlation-Based Loss in Vir-tual Screening 
+
+Virtual screening aims to identify promising drug candidates from large compound libraries (typically millions of compounds) for experimental validation. In this context, prediction-target correlation is crit-ical because virtual screening decisions are based on relative comparisons rather than absolute val-ues. For instance, researchers do not need to know whether a compound’s binding affinity is precisely 5.23 nM or 5.45 nM; instead, they need to deter-mine which compounds are most likely to exhibit high affinity. Correlation-based optimization offers three key advantages. First, it is naturally robust to system-atic bias. Pearson correlation is invariant to linear transformations of predictions—if all predictions are systematically shifted by a constant or scaled by a factor, the correlation remains unchanged. Second, correlation-based optimization encourages models to maintain correct relative relationships, even if absolute errors are larger. This property is cru-cial for identifying the small subset of high-affinity compounds that are the primary targets of virtual screening. Third, by directly optimizing the linear relationship between predictions and true values, correlation-based loss preserves the model’s ability to distinguish high-affinity from low-affinity com-pounds across the full range of binding affinities. Our hybrid loss function (SmoothL1 + Pearson) balances these considerations: SmoothL1 loss en-sures reasonable absolute accuracy, while Pearson loss optimizes correlation to maintain correct rel-ative relationships. The ablation study (Table 5) demonstrates this balance—as λ increases from 1 to 50, correlation improves (Pearson R: 0.821→0.865), and as a natural consequence, prediction monotonic-ity improves (CI: 0.808→0.850). However, excessive 
+
+λ values create a trade-off—while λ = 75 achieves the highest correlation (Pearson R=0.872), absolute 10 5.3 Model Limitations 5 DISCUSSION AND CONCLUSION 
+
+prediction accuracy degrades with RMSE increasing by 2.3% and MAE by 8.0% compared to λ = 50 .The optimal λ = 50 achieves both strong correla-tion and acceptable absolute accuracy, making the model particularly suitable for virtual screening ap-plications. 
+
+5.3 Model Limitations 
+
+HBGSA relies on high-quality static crystal struc-tures, which may not capture conformational flexi-bility in physiological conditions. For example, ki-nase DFG-flip (Asp-Phe-Gly motif transition) dra-matically alters affinity but cannot be captured by static structure models. Future work will explore conformational ensemble modeling to address this limitation. 
+
+5.4 Conclusion 
+
+HBGSA demonstrates that explicit modeling of hy-drogen bond spatial features through graph neural networks, combined with correlation-optimized loss, significantly improves both prediction accuracy and cross-dataset generalization in drug-target affinity prediction. The correlation-based optimization nat-urally enhances prediction monotonicity, making the model particularly suitable for virtual screening applications. The model achieves state-of-the-art performance on PDBbind Core Set while maintain-ing robust generalization on CSAR-HiQ. Future work will explore conformational flexibil-ity modeling and model compression techniques for efficient deployment in large-scale virtual screening. 
+
+Key Points 
+
+• We propose HBGSA, which integrates three key innovations: (1) hydrogen bond graph neural networks that explicitly model spa-tial topology and cooperative effects of hydrogen bonds, (2) self-attention mecha-nisms on sequence encoders to enhance fea-ture representation, and (3) Pearson cor-relation loss to optimize prediction-target correlation. • HBGSA achieves state-of-the-art per-formance on PDBbind Core Set (RMSE=1.099, Pearson R=0.865) and demonstrates strong generalization on CSAR-HiQ dataset (RMSE=1.603, Pear-son R=0.808). • Ablation studies confirm that all three components—hydrogen bond GNN, self-attention, and Pearson correlation loss— contribute significantly to performance im-provements. 
+
+Author Contributions 
+
+Junxiao Kong (Co-first author): Conceptualiza-tion, Methodology, Software, Investigation, Writ-ing - Original Draft. Chupei Tang (Co-first au-thor): Data Curation, Validation (Baseline Ex-periments), Methodology Optimization. Di Wang: Methodology Optimization, Software Testing. Jixiu Zhai: Validation, Writing - Review & Editing. Yi He: Resources, Validation. Moyu Tang: Re-sources, Validation. Tianchi Lu (Corresponding au-thor):Methodology, Supervision, Project Adminis-tration, Funding Acquisition, Writing - Review & Editing (Final Version). 
+
+Acknowledgments 
+
+We thank all members of our research group for their valuable discussions and feedback throughout this project. 
+
+Competing interests 
+
+No competing interest is declared. 
+
+Data Availability 
+
+The original data source is from https://www. pdbbind-plus.org.cn/ . Supplementary materials including detailed hyperparameter configurations, 11 REFERENCES REFERENCES 
+
+parameter breakdown, and evaluation metric calcu-lations are provided in the Supplementary File. 
+
+References 
+
+[1] Öztürk, H., Özgür, A., & Ozkirimli, E. (2018). DeepDTA: deep drug–target binding affinity prediction. Bioinformatics , 34(17), i821-i829. [2] Jiang, M., Li, Z., Zhang, S., Wang, S., Wang, X., Yuan, Q., & Wei, Z. (2021). Drug–target affinity prediction using graph neural network and contact maps. RSC Advances , 10(35), 20701-20712. [3] Nguyen, T., Le, H., Quinn, T. P., Nguyen, T., Le, T. D., & Venkatesh, S. (2021). GraphDTA: predicting drug–target binding affinity with graph neural networks. Bioinformatics , 37(8), 1140-1147. [4] Wang, K., Zhou, R., Tang, J., & Li, M. (2022). InteractionGraphNet: A Novel and Efficient Deep Graph Representation Learning Frame-work for Accurate Protein–Ligand Interaction Predictions. Journal of Medicinal Chemistry ,65(10), 7155-7171. [5] Lu, W., Wu, Q., Zhang, J., Rao, J., Li, C., & Zheng, S. (2022). TANKBind: Trigonometry-Aware Neural NetworKs for Drug-Protein Binding Structure Prediction. Advances in Neural Information Processing Systems , 35, 7236-7249. [6] Zhao, Q., Duan, G., Yang, M., Cheng, Z., Li, Y., & Wang, J. (2023). MMPD-DTA: Integrat-ing Multi-Modal Deep Learning with Pocket-Drug Graphs for Drug-Target Binding Affinity Prediction. Bioinformatics , 39(5), btad234. [7] Yang, Z., Zhong, W., Lv, Q., Dong, T., & Chen, C. Y. C. (2023). ML-PLA: Enhanc-ing Protein-Ligand Binding Affinity Prediction with Microenvironment and Long-Range In-teraction Aware. Briefings in Bioinformatics ,24(4), bbad451. [8] Li, S., Wan, F., Shu, H., Jiang, T., Zhao, D., & Zeng, J. (2021). GIGN: Learning Geometry-Aware Interaction Graph Neural Network for Protein-Ligand Binding Affinity Prediction. 
+
+Bioinformatics , 37(18), 2988-2995. [9] Li, S., Zhou, J., Xu, T., Huang, L., Wang, F., Xiong, H., ... & Dou, D. (2021). Structure-Aware Interactive Graph Neural Networks for the Prediction of Protein-Ligand Binding Affin-ity. KDD , 975-985. [10] Li, M., Cao, Y., Liu, X., & Ji, H. (2024). Structure-Aware Graph Attention Diffusion Network for Protein–Ligand Binding Affinity Prediction. IEEE Transactions on Neural Net-works and Learning Systems , 35(12), 18370-18380. [11] Li, M., Zhang, Y., Li, Y., & Wang, J. (2025). Knowledge-enhanced and structure-enhanced representation learning for protein– ligand binding affinity prediction. Pattern Recognition , 166, 111701. [12] Stepniewska-Dziubinska, M. M., Zielenkiewicz, P., & Siedlecki, P. (2018). Development and evaluation of a deep learning model for protein– ligand binding affinity prediction. Bioinformat-ics , 34(21), 3666-3674. [13] Kwon, Y., Shin, W. H., Ko, J., & Lee, J. (2020). AK-Score: Accurate Protein-Ligand Binding Affinity Prediction Using an Ensem-ble of Convolutional Neural Networks. Inter-national Journal of Molecular Sciences , 21(22), 8424. [14] Zheng, L., Fan, J., & Mu, Y. (2019). OnionNet: A Multiple-Layer Intermolecular-Contact-Based Convolutional Neural Network for Protein–Ligand Binding Affinity Predic-tion. ACS Omega , 4(14), 15956-15965. [15] Öztürk, H., Ozkirimli, E., & Özgür, A. (2019). WideDTA: Prediction of drug-target binding affinity. arXiv preprint arXiv:1902.04166 .[16] Xu, W., Wang, X., Luo, H., Shan, W., Liu, B., & Huang, X. (2025). UAMRL: multi-granularity uncertainty-aware multimodal rep-resentation learning for drug-target affinity prediction. Bioinformatics , 41(10), btaf512. [17] Lai, H., Gao, Y., Tan, C., Huang, P., Ron-grong, J., & Cheng, J. (2024). Interformer: an interaction-aware model for protein-ligand docking and affinity prediction. Nature Com-munications , 15(1), 10223. [18] Samudrala, M. V., Kc, D. B., & Bhattacharya, D. (2025). PLAIG: Protein–Ligand Binding Affinity Prediction Using a Novel Interaction-Based Graph Neural Network Framework. ACS Bio & Med Chem Au , 5, 447-463. 12 REFERENCES REFERENCES 
+
+[19] Moesser, M. A., Hoffmann, M., Steinmann, C., & Hensen, U. (2022). PLIG: A structure-informed approach for protein-ligand interac-tion prediction. Journal of Chemical Informa-tion and Modeling , 62(13), 3170-3183. [20] Yi, Y., Zhao, Z., Sun, J., & Huang, B. (2024). Equivariant Line Graph Neural Net-work for Protein-Ligand Binding Affinity Pre-diction. IEEE Journal of Biomedical and Health Informatics , 28(7), 4336-4347. [21] Truong Jr, T. F. (2020). Interpretable Deep Learning Framework for Binding Affinity Pre-diction. Master’s thesis, Massachusetts Insti-tute of Technology. [22] Kyro, G. W., Brent, R. I., & Batista, V. S. (2023). HAC-Net: A Hybrid Attention-Based Convolutional Neural Network for Highly Ac-curate Protein–Ligand Binding Affinity Pre-diction. Journal of Chemical Information and Modeling , 63(6), 1947-1960. [23] Liu, Z., Li, Y., Han, L., Li, J., Liu, J., Zhao, Z., ... & Wang, R. (2015). PDB-wide collection of binding data: current status of the PDBbind database. Bioinformatics , 31(3), 405-412. [24] Dunbar Jr, J. B., Smith, R. D., Yang, C. Y., Ung, P. M. U., Lexa, K. W., Khazanov, N. A., ... & Carlson, H. A. (2011). CSAR bench-mark exercise of 2010: selection of the protein– ligand complexes. Journal of Chemical Infor-mation and Modeling , 51(9), 2036-2046. [25] DiMasi, J. A., Grabowski, H. G., & Hansen, R. W. (2016). Innovation in the pharmaceutical industry: New estimates of R&D costs. Jour-nal of Health Economics , 47, 20-33. [26] Lu, W., Zhang, J., Huang, W., Zhang, Z., Jia, X., Wang, Z., ... & Zheng, S. (2024). Dynamic-Bind: predicting ligand-specific protein-ligand complex structure with a deep equivariant gen-erative model. Nature Communications , 15(1), 1071. [27] Li, S., Zhou, J., Xu, T., Huang, L., Wang, F., Xiong, H., ... & Dou, D. (2021). Structure-aware interactive graph neural networks for the prediction of protein-ligand binding affin-ity. Proceedings of the 27th ACM SIGKDD Conference on Knowledge Discovery & Data Mining , 975-985. [28] Stanley, M., Bronskill, J. F., Maziarz, K., Misztela, H., Lanini, J., Segler, M., ... &Brockschmidt, M. (2021). FS-Mol: A few-shot learning dataset of molecules. Proceedings of the Neural Information Processing Systems Track on Datasets and Benchmarks , 1. [29] Lin, Z., Akin, H., Rao, R., Hie, B., Zhu, Z., Lu, W., ... & Rives, A. (2023). Evolutionary-scale prediction of atomic-level protein structure with a language model. Science , 379(6637), 1123-1130. [30] Bissantz, C., Kuhn, B., & Stahl, M. (2010). A medicinal chemist’s guide to molecular interac-tions. Journal of Medicinal Chemistry , 53(14), 5061-5084. [31] Arunan, E., Desiraju, G. R., Klein, R. A., Sadlej, J., Scheiner, S., Alkorta, I., ... & Nes-bitt, D. J. (2011). Definition of the hydrogen bond (IUPAC Recommendations 2011). Pure and Applied Chemistry , 83(8), 1637-1641. [32] Vaswani, A., Shazeer, N., Parmar, N., Uszko-reit, J., Jones, L., Gomez, A. N., ... & Polo-sukhin, I. (2017). Attention is all you need. Ad-vances in Neural Information Processing Sys-tems , 30, 5998-6008. [33] Loshchilov, I., & Hutter, F. (2017). Decoupled weight decay regularization. arXiv preprint arXiv:1711.05101 .[34] Srivastava, N., Hinton, G., Krizhevsky, A., Sutskever, I., & Salakhutdinov, R. (2014). Dropout: a simple way to prevent neural net-works from overfitting. The Journal of Machine Learning Research , 15(1), 1929-1958. [35] He, K., Zhang, X., Ren, S., & Sun, J. (2016). Deep residual learning for image recognition. 
+
+Proceedings of the IEEE Conference on Com-puter Vision and Pattern Recognition , 770-778. [36] Kipf, T. N., & Welling, M. (2016). Semi-supervised classification with graph convolutional networks. arXiv preprint arXiv:1609.02907 .[37] Benesty, J., Chen, J., Huang, Y., & Cohen, I. (2009). Pearson correlation coefficient. In 
+
+Noise reduction in speech processing (pp. 1-4). Springer, Berlin, Heidelberg. 13
