@@ -1,0 +1,404 @@
+Title: COMO: Closed-Loop Optical Molecule Recognition with Minimum Risk Training
+
+URL Source: https://arxiv.org/pdf/2604.23546v1
+
+Published Time: Tue, 28 Apr 2026 01:00:21 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+## COMO: Closed-Loop Optical Molecule Recognition with Minimum Risk Training 
+
+Zhuoqi Lyu 1 and Qing Ke 1, ∗
+
+> 1
+
+Department of Data Science, College of Computing, City University of Hong Kong, Hong Kong, China 
+
+(Dated: April 28, 2026) 
+
+## Abstract 
+
+Optical chemical structure recognition (OCSR) translates molecular images into machine-readable representations like SMILES strings or molecular graphs, but remains challenging in real-world documents due to inexhaustible variations in chemical structures, shorthand conven-tions, and visual noise. Most existing deep-learning-based approaches rely on teacher forcing with token-level Maximum Likelihood Estimation (MLE). This training paradigm suffers from exposure bias, as models are trained under ground-truth prefixes but must condition on their own previous predictions during inference. Moreover, token-level MLE objectives hinder the optimization to-wards molecular-level evaluation criteria such as chemical validity and structural similarity. Here we introduce Minimum Risk Training (MRT) to OCSR and propose COMO ( Closed-loop Optical 
+
+Molecule rec Ognition), a closed-loop framework that mitigates exposure bias by directly opti-mizing over molecule-level, non-differentiable objectives, by iteratively sampling and evaluating the model’s own predictions. Experiments on ten benchmarks including synthetic and real-world chemical diagrams from patent and scientific literature demonstrate that COMO substantially out-performs existing rule-based and learning-based methods with less training data. Ablation studies further show that MRT is architecture-agnostic, demonstrating its potential for broad application to end-to-end OCSR systems. 
+
+Keywords: Optical chemical structure recognition, Molecule recognition, Minimum risk training, Non-differentiable optimization, Molecule modeling, Chemical informatics  
+
+> ∗
+
+q.ke@cityu.edu.hk 
+
+1 
+
+> arXiv:2604.23546v1 [cs.CV] 26 Apr 2026 I. INTRODUCTION
+
+Optical chemical structure recognition (OCSR) aims to convert molecular structure im-ages into machine-readable representations such as linear notations like SMILES strings [1]. It is a fundamental component for large-scale chemical information extraction, enabling the digitization of compounds from patents [2, 3] and scientific literature [4]. Although recent deep-learning-based OCSR systems have substantially improved over rule-based pipelines by framing the task as image-to-sequence generation or graph prediction, accurate recognition from real-world documents remains challenging. As presented in Fig. 1, models must cope with complex ring structures, substituent abbreviations (e.g., “Et”, “Me”), condensed formu-las (e.g., “COOH”), R-group placeholders (e.g., “R 1”, “L”), as well as cluttered surrounding text and visual artifacts introduced by scanning and document layout. These factors cre-ate a substantial distribution gap between the clean, synthetic images commonly used for training and the heterogeneous molecular depictions encountered in real documents, causing models to produce predictions that are structurally plausible but chemically incorrect. A central reason for this failure is the mismatch between how current encoder-decoder OCSR models are trained and how they perform inference. Most modern systems rely on an autoregressive sequence decoder trained with teacher forcing , which minimizes token-level cross-entropy under ground-truth prefixes. While effective for learning local syntactic pat-terns, this Maximum Likelihood Estimation (MLE) objective introduces two compounding limitations: 
+
+• Exposure bias : Under teacher forcing, the decoder is trained to condition on gold-standard prefixes, whereas at inference time, it must condition on its own previous outputs rather than ground-truth prefixes [5, 6]. Consequently, errors made early in decoding can propagate and accumulate in ways never encountered during training. This issue is especially severe for SMILES generation: a single incorrect atom type, misplaced parentheses, or erroneous ring-closure digit can render an otherwise correct molecular structure chemically invalid, turning a near-miss into a complete failure. 
+
+• Objective function mismatch : The token-level cross-entropy objective is struc-turally incapable of optimizing the molecular-level metrics, including chemical valid-ity, Tanimoto similarity, and exact structural match, which the evaluation actually 2CLEF 
+
+Input Image  
+
+> log p = -34.4 R = 0.41
+
+Greedy Prediction  
+
+> log p = -35.0 R = 1.00
+
+Candidate 1  
+
+> log p = -54.7 R = 0.42
+
+Candidate 2  
+
+> log p = -55.0 R = 0.54
+
+Candidate 3                      
+
+> JPO
+> log p = -11.8 R = 0.46 log p = -12.6 R = 0.50 log p = -12.7 R = 0.38 log p = -13.7 R = 1.00
+> ACS
+> log p = -8.9 R = 0.42 log p = -9.4 R = 0.31 log p = -11.1 R = 0.42 log p = -12.2 R = 1.00
+> WildMol-10K
+> log p = -25.8 R = 0.44 log p = -47.0 R = 0.41 log p = -52.1 R = 0.44 log p = -66.4 R = 1.00
+
+Sampled Candidates in MRT FIG. 1. Examples of predictions made by an MLE-trained model. Each row represents a sample from an OCSR dataset, followed by the corresponding model predictions. The first column shows the image inputs xi.The second column presents greedy-search predictions ˆ yi, with the corresponding log probabilities log p( ˆ yi |
+
+xi) (larger indicates higher probability) annotated below. In all shown examples, the greedy predictions fail (highlighted in red), with atom-level discrepancies explicitly highlighted in the skeletal formulas. In the third to the fifth columns, we display three prediction candidates generated using multinomial sampling (N = 32, temperature = 0 .5). We show that the correct predictions (shown in green) can lie within the MLE model’s search space. By applying meaningful similarity measurements (Tanimoto similarity is used in this figure) between the candidate and the ground truth, we can compute a reward R (annotated below) that serves as a guiding signal to optimize the decoding distribution backward. When fed the same images into our trained COMO model, it always hits the correct predictions with the highest R.
+
+3measures. These metrics are inherently discrete and non-differentiable, and hence inaccessible to standard MLE training. Fig. 1 both illustrates these failures and points toward a remedy. Across several rep-resentative real-world examples, greedy decoding from a purely MLE-trained model yields incorrect predictions. However, when the same model is allowed to generate multiple can-didates by sampling, the correct structure frequently exists already within its search space. The problem is therefore not a capacity failure: the model can represent the correct answer. The problem is that MLE has concentrated probability mass on a suboptimal decoding path. If one could evaluate these candidates against a molecular-level similarity signal and redis-tribute probability mass toward the chemically superior ones, the training objective would directly align with the evaluation criterion—closing the loop between prediction quality and parameter update. Motivated by this observation, we propose COMO , a Closed-loop Optical Molecule rec Ognition framework built with Minimum Risk Training (MRT) [7, 8]. Originally de-veloped for neural machine translation and later adapted to image captioning and other sequence generation tasks, MRT provides a principled way to directly optimize discrete, non-differentiable metrics [9]. We instantiate it here for molecular recognition. As shown in Fig. 2, COMO retains the encoder-decoder backbone while augmenting purely token-level MLE with a joint MLE–MRT training strategy. During MRT, the model samples candi-date SMILES from its own predictive distribution, evaluates them using a molecular-level reward, and updates its parameters to favor candidates with higher reward. The reward function is modular, combining three complementary signals: chemical validity, exact string match, and an interchangeable structural similarity term, which can be instantiated as edit distance, fingerprint-based Tanimoto similarity, or a learned visual similarity score from a separate image encoder (MolDiscriminator). This design offers three practical advantages. First, by computing gradients over samples drawn from the model’s own predictive distribution rather than teacher-forced prefixes, MRT directly closes the exposure-bias loop: the distribution the model optimizes during train-ing matches the distribution it operates under at inference. Second, by defining the loss through a non-differentiable reward rather than token-level log-probabilities, MRT can op-timize chemical validity, structural similarity, and exact match directly, which is not achiev-4Canonical SMILES Input 
+
+C1=CC=CC=C1 
+
+Image 
+
+COMO 
+
+Auto-regressive Atom Predictor 
+
+Image Encoder Greedy Search 
+
+Sampling 
+
+Bond Predictor 
+
+Bond Matrix 
+
+Bi=[[0 4 0 0 0 4] [4 0 4 0 0 0] [0 4 0 4 0 0] [0 0 4 0 4 0] [0 0 0 4 0 4] [4 0 0 0 4 0]] 
+
+Loss Atom Loss Bond Loss MRT 
+
+RDKit & Indigo 
+
+Atom Sequence 
+
+Ai=
+
+['C' , 55 , 31 , 1, =
+
+'C' , 43 , 52 ,
+
+'C' , 20 , 52 , =
+
+'C' , 8, 31 ,
+
+'C' , 20 , 11 , =
+
+'C' , 43 , 11 , 1]
+
+Graph-to-SMILES Convertion 
+
+SMILES Prediction 
+
+SMILES String log p
+
+C1=CC=CC=C1 -8.9 
+
+Atoms, Coordinates &
+
+connections symbols Bonds 
+
+> MLE Training Path
+> Inference Path
+
+SMILES Candidates 
+
+SMILES String log p
+
+C1=CC=CC=C1 -8.9 
+
+CC1=CC=CC=C1 -11.8 
+
+... ... 
+
+> Minimum Risk Traning Path
+
+Similarity functions 
+
+Image Candidates 
+
+p=0.98 p=0.01 
+
+... Indigo 
+
+Edit Distance 
+
+MolDiscriminator (frozen) 
+
+Tanimoto Similarity 
+
+Loss MLE = α *Loss Atom + β * Loss Bond 
+
+Once every K MLE steps 
+
+RDKit to Check validity FIG. 2. Pipeline overview of COMO. Training paths are highlighted in green, and the inference path is highlighted in blue. Solid and dashed arrows indicate MRT and MLE, respectively. Hollow arrows indicate interchangeable similarity functions used to compute reward at the bottom. 
+
+able in MLE training. Third, reward-based supervision requires only ground-truth SMILES strings, without the need for atom coordinates or bond annotations, enabling COMO to 5benefit from the large pool of real-world molecular images that lack dense labels. Extensive experiments demonstrate the effectiveness of the proposed approach. COMO achieves state-of-the-art exact match accuracy across all ten OCSR benchmarks, with par-ticularly large improvements on challenging real-world datasets, including JPO (+10.2 pp), UOB (+3.6 pp), ACS (+16.3 pp), and WildMol-10K (+0.3 pp). Notably, these gains are ob-tained using substantially less training data than the strongest prior system for real-world settings, MolParser [10]. Ablation studies further confirm that the gains stem from the training mechanism rather than from additional data: replacing MRT steps with identically scheduled MLE steps on the same real-world images results in performance degradation on 5 out of 10 benchmarks. Moreover, applying the same MRT procedure to a structurally distinct model, SwinOCSR, yields accuracy gains of 2–20 × on real-world benchmarks, con-firming that MRT is a model-agnostic training principle for OCSR. To the best of our knowledge, our work is the first effort to introduce MRT into end-to-end OCSR. In summary, our work makes three main contributions. 
+
+• We propose COMO, a closed-loop OCSR framework that incorporates minimum risk training into an encoder–decoder molecular recognition pipeline, directly bridging the gap between token-level training and molecular-level evaluation objectives. 
+
+• We design a modular reward function with three variants: string-level edit distance, fingerprint-based Tanimoto similarity, and a visual similarity score produced by a self-supervised Siamese encoder (MolDiscriminator), enabling reward computation without requiring for atom-coordinate annotations. 
+
+• We demonstrate, through comprehensive experiments and ablations, that MRT is a data-efficient, architecture-agnostic approach to real-world OCSR, outperforming prior state-of-the-art across 10 benchmarks while using substantially fewer training samples.   
+
+> II. COMO A. Architecture
+
+COMO employs an encoder–decoder architecture for image-to-graph molecular recogni-tion [11]. Given an input molecular image I, the model predicts a 2D molecular graph 6G = ( A, B ), where A = {ai = ( li, x i, y i)} is the set of atoms, each associated with a SMILES label li and image-space coordinates ( xi, y i), and B ⊆ A × A × T is the set of typed bonds. The bond type set T includes single, double, triple, aromatic, and wedge bonds. 
+
+a. Image encoder. An ImageNet-pretrained Swin-B backbone [12] encodes the 384 ×384 input into spatial feature maps, which are projected to dmodel =256 dimensions and aug-mented with 2D sinusoidal positional encodings. 
+
+b. Sequence decoder. We employ a 6-layer Transformer decoder with 8 attention heads to autoregressively generate a chartok coords token sequence SA = [ l1, ˆx1, ˆy1, . . . , l n, ˆxn, ˆyn], where each atom’s SMILES sub-string li is followed by its discretized coordinates ˆ xi, ˆyi ∈{0, . . . , 63 }. Structural tokens such as parentheses and ring-closure digits are preserved in the sequence to help the decoder model molecular topology. During training, the decoder is optimized via teacher forcing with label-smoothed cross-entropy ( ϵ=0 .1). 
+
+c. Bond predictor. For each atom ai, its hidden state hai at the last coordinate token in the decoder output serves as the atom representation. A two-layer MLP with GELU acti-vation takes the concatenation [ hai ; haj ] and classifies the bond type bi,j among seven classes (no bond, single, double, triple, aromatic, solid-wedge, dashed-wedge). Bidirectional predic-tions bi,j and bj,i are symmetrized at inference time to improve accuracy. Stereochemistry is determined by applying RDKit rules over the predicted graph and coordinates. 
+
+d. MolDiscriminator. In addition to the recognition model described above, we train a separate MolDiscriminator —a Siamese image-embedding network—that will later serve as a visual reward signal during minimum risk training (The following subsection). The architecture consists of an EfficientNet-V2-S [13] backbone followed by a projection head (Linear → ReLU → Linear) that maps the 1280-dimensional pooled features to an ℓ2-normalized 128-dimensional embedding. Both branches share all parameters. The model is trained with the symmetric InfoNCE loss [14] at temperature τ =0 .07: for each molecule, two views are rendered with randomly chosen styles (e.g., Indigo or RDKit, varying line widths and fonts), plus hard negatives generated by the CReM library [15] at radius 3 to supply structurally similar but distinct molecules. We train the MolDiscriminator on 500K PubChem SMILES for 3 epochs. Once trained, it is frozen and provides a cosine-similarity-based visual reward that compares rendered images of a predicted SMILES ˆ y and the ground-truth y∗.7B. Minimum Risk Training 
+
+Under the standard MLE training object, the decoder is trained via teacher forcing, which introduces an exposure bias : at inference time, the model conditions on its own (potentially erroneous) predictions rather than ground-truth prefixes, potentially leading to accumulated error. More importantly, the MLE objective is based on token-level cross-entropy and cannot directly optimize molecular-level metrics, such as Tanimoto similarity. It also cannot leverage real-world images that lack atom-coordinate annotations, since MLE requires fully tokenized supervision. To address these limitations, we adopt Minimum Risk Training (MRT) [7, 8], which minimizes the expected cost under the model’s own sampling distribution, as illustrated in Algorithm 1: 
+
+LMRT (θ) = Eˆy∼pθ (·| x)
+
+∆(ˆ y, y ∗) ≈
+
+> N
+
+X
+
+> i=1
+
+Qα(ˆ yi | x) ·  1 − R(ˆ yi, y ∗), (1) where ˆ yi are N candidate SMILES sampled by multinomial decoding, Qα(ˆ yi | x) ∝ exp  α ·
+
+log pθ(ˆ yi | x) is a distribution of probability-sharpened importance weights, and R ∈ [0 , 1] is a composite reward. We further decompose the reward into three terms that capture progressively finer aspects of prediction quality: 
+
+R(ˆ y, y ∗) = wv · 1[valid] + ws · Sim (ˆ y, y ∗) · 1[valid] + we · 1[exact] , (2) where 1[valid] indicates whether ˆ y is a chemically valid SMILES (verified by RDKit), 1[exact] checks canonical string equivalence, and Sim is an interchangeable similarity function de-tailed in Eq. 3. 8Algorithm 1 ComputeMRTLoss                   
+
+> Input: Encoded features h∈RB′×d×H′×W′
+> , Ground-truth SMILES {y∗
+> b}B′
+> b=1 , model θ, frozen MolDiscriminator g,sample size N, temperature τ, sharpness α, reward weights wv, w s, w e
+> Output: MRT loss LMRT
+> // Phase 1: Sample candidates
+
+1: {ˆyb,i }Ni=1 ← SampleDecode (hb, τ ; θ) for each b ▷ multinomial decoding, no grad 
+
+> // Phase 2: Compute rewards
+
+2: valid i, exact i ← Canonicalize (ˆ yi, y ∗     
+
+> b)▷RDKit →validity & exact match
+
+3: si ← Sim (ˆ yi, y ∗       
+
+> b)·1[valid i]▷See Eq. 3 for Sim variants
+
+4: Ri ← wv · 1[valid i] + ws · si + we · 1[exact i]
+
+> // Phase 3: Teacher-forced log-probabilities
+
+5: log p(ˆ yi | hb) ← PTi          
+
+> t=1 log pθ(ˆ yi,t |ˆy1,ˆy2, . . . , ˆyt−1,hb)▷with grad
+> // Phase 4: MRT loss
+
+6: Qα(ˆ yi | hb) ← exp( α·log p(ˆ yi|hb))    
+
+> PNj=1 exp( α·log p(ˆ yj|hb))
+
+7: LMRT ← 1       
+
+> B′
+> PB′
+> b=1
+> PNi=1 Qα(ˆ yi|hb)·(1 −Ri)
+
+The similarity component Sim is designed to be modular: any differentiable or non-differentiable metric that scores a predicted SMILES against a reference can be plugged in. We instantiate three variants that span a spectrum from string-level to perception-level comparison: 
+
+Sim (ˆ y, y ∗) = 
+
+
+
+1 − Lev (ˆ y,y ∗)max( |ˆy|,|y∗|) (edit distance) 
+
+Tanimoto  FP (ˆ y), FP (y∗) (Tanimoto) cos  g(Render (ˆ y)) , g (Render (y∗))  (visual) (3) where g is a frozen image encoder, Render (·), e.g., Indigo or RDKit, converts a SMILES string to a molecular structure image, FP (·) computes Morgan circular fingerprints, and 
+
+Lev (·, ·) denotes the Levenshtein edit distance. In principle, the visual reward should be the most powerful variant, as rendered images preserve rich structural details (stereochemistry, ring layout, functional-group topology) that are compressed away by fingerprints or string comparison. However, its effectiveness is constrained by the visual encoder’s discriminative power. Our current MolDiscriminator serves as a proof-of-concept; stronger visual encoders could further unlock the potential of cycle-consistent rewards. 9Algorithm 2 Training Pipeline 
+
+Input: MLE dataset DMLE (synthetic PubChem ∪ USPTO), MRT dataset DMRT (MolParser-SFT), model θ={θenc , θ dec , θ bond }, Token weight α, Bond weight β,warm-up epochs Ew ; MRT weight λ; MLE batch size B, MRT batch size B′, frozen MolDiscriminator g
+
+Output: Trained θ
+
+1: T ← ⌈|D MLE |/B ⌉ ▷ MLE steps per epoch 
+
+2: TMRT ← ⌈|D MRT |/B ′⌉ ▷ MRT batches per epoch 
+
+3: K ← max  1, ⌊T / T MRT ⌋ ▷ MRT frequency: one MRT step every K MLE steps, so DMRT is traversed ∼once per epoch 
+
+4: for e = 1 , . . . , E do ▷ epoch loop 
+
+5: for t = 1 , . . . , T do ▷ MLE step loop 
+
+6: Sample MLE batch {(Ij , s j , cj , E j )}Bj=1 from DMLE ▷ rendered image, SMILES, coords, bonds 
+
+7: tj ← Tokenize (sj , cj ) for each j
+
+// MLE forward + backward (gradient accumulation starts) 
+
+8: ˆptok , ˆpedge , ← Model θ
+
+ {Ij }, {tj, 1, tj, 2, . . . , tj,T −1} ▷ Teacher-forcing 
+
+9: LMLE ← α · CE  ˆptok , {tj, 2, tj, 3, . . . , tj,T }; ϵ=0 .1 + β · CE  ˆpedge , {Ej }; wc
+
+
+
+10: ∇θ LMLE .backward () ▷ gradients accumulate in θ. grad 
+
+// MRT forward + backward (interleaved every K MLE steps, skip during warmup) 
+
+11: if e > E w and t mod K = 0 then 
+
+12: Sample {(xb, y ∗ 
+
+> b
+
+)}B′ 
+
+> b=1
+
+from DMRT 
+
+13: h ← PosEnc2D  Enc θ (x) ▷ with grad, shared encoder 
+
+14: LMRT ← ComputeMRTLoss (h, {y∗ 
+
+> b
+
+}, g ; θdec ) ▷ Alg. 1 
+
+15: ∇θ (λ · L MRT ).backward () ▷ gradients accumulate with MLE grads 
+
+16: end if 
+
+// Optimizer step on accumulated gradients 
+
+17: θ ← θ − AdamW  ∇θ ; clip ∥∇∥ ≤ 1
+
+18: end for 
+
+19: end for 
+
+We interleave both objectives in a single training run, and find that this joint setting out-performs the 2-stage training pipeline (MLE pretraining first, then MRT fine-tuning). As detailed in Algorithm 2, the first Ew epochs perform MLE-only warmup to establish mean-ingful encoder representations; subsequent epochs insert one MRT step every K MLE steps so that DMRT is traversed approximately once per epoch. Gradients from both objectives accumulate before a single optimizer step, yielding a combined update ∇θ
+
+ LMLE + λ · L MRT 
+
+.This design allows the model to learn from both fully supervised synthetic data and weakly supervised real-world images throughout training, while the MLE term anchors the decoder and maintains bond-predictor gradients that MRT alone cannot provide. 10 C. Training Data 
+
+For MLE training, we construct a dataset DMLE using 1 million SMILES strings randomly picked from PubChem as synthetic samples and 680 thousand molecules from patent grants as patent samples, provided by Qian et al. , but with several modifications: 
+
+• We remap the wildcard placeholder (“*”) in patent data from the original Mol files to match their visual representations (like “R”, “X”, and “Me”) on images. This is aimed at aligning the training object of synthetic data and the patent data. We finally successfully recovered 652 thousand samples and used them in the MLE training. 
+
+• We apply an adaptive interpolation algorithm selection mechanism to independently scale up/down to enhance image quality during training and inference. 
+
+• We keep the original aspect ratio by padding the input molecule images rather than distorting them. 
+
+• We add a random comment in Japanese/Chinese as an image augmentation. 
+
+• We randomly replace wedge bonds with wavy bonds to augment the molecular struc-ture. For MRT, we used MolParser-SFT, which contains 91.2K downloadable real-world molec-ular images labeled with E-SMILE provided by Fang et al. . We filtered out samples with position variation indicator ( 〈r〉), frequency variation indicator (?), and abstract ring in-dicator ( 〈c〉), since they are out of the scope of this study, then we expand and map the abbreviated functional groups inside the substituent indicator ( 〈a〉) back into the SMILES backbone. We treat all orphaned wildcard placeholders or connection points ( 〈dum 〉) as “*” and obtain around 83 thousand samples as our MRT dataset DMRT . 
+
+> III. EXPERIMENTS
+
+In this section, we train and evaluate our models on a wide range of mainstream OCSR benchmarks and compare them with state-of-the-art methods. Furthermore, we conduct two ablation studies from different perspectives—training data and model architecture—to demonstrate the effectiveness and utility of our method. 11 A. Experimental Setup 
+
+We implement COMO in PyTorch and train it on 4 ×NVIDIA L40 GPUs. 
+
+a. COMO. We adopt the interleaved MLE-MRT-joint pipeline to train COMO for 30 epochs. The MLE branch uses AdamW with a learning rate of 4 ×10 −4 for both the encoder and the decoder, weight decay of 10 −6, a 2% linear warmup followed by cosine decay, and a per-GPU batch size of 64. Images are resized to 384 ×384 with aspect-ratio-preserving padding. The first 5 epochs are MLE-only warmup; after that, one MRT step is interleaved every K=⌊T /T MRT ⌋ MLE steps. The MRT branch uses a per-GPU batch size of 16, N =32 candidate samples drawn by multinomial decoding at temperature τ =0 .5, sharpening expo-nent α=1 .0, maximum decoding length 500, and MRT loss weight λ=0 .1. Reward weights are wv=0 .1 (validity), ws=0 .5 (similarity), and we=0 .4 (exact match). Gradient norms are clipped to 1.0. 
+
+b. MolDiscriminator. The visual reward encoder is trained separately on 500K Pub-Chem SMILES for 3 epochs with a batch size of 48 per GPU, a learning rate of 3 ×10 −4,and a 3% linear warmup. 
+
+c. SwinOCSR. For the cross-architecture experiment, we fine-tune a pretrained SwinOCSR [16] checkpoint for 6 epochs with MRT only, using the same 83K MolParser-SFT data. The learning rate is 10 −5 for both encoder and decoder, batch size 16, N =32 samples, tempera-ture τ =0 .3, and the same reward configuration as COMO.  
+
+> B. Benchmarks and Metrics
+
+To compare our method with the state of the art, we evaluate it on widely used main-stream OCSR benchmarks: CLEF, JPO, UOB, USPTO [17], and Staker [18]. We also include results on: 
+
+• two synthetic benchmarks, Indigo and ChemDraw, as well as a real-world benchmark, ACS, proposed in [11]; 
+
+• a large-scale real-world benchmark named USPTO-10K, contributed by Morin et al. ;and 12 • a large-scale real-world benchmark where molecules are labeled using E-SMILES named WildMol-10K, proposed by Fang et al. .It should be noted that there are well-known label errors in the public benchmarks re-ported in previous studies [10, 20], and we adopted manually-corrected versions of CLEF, JPO, and UOB datasets from [20]. Furthermore, we find a pervasive phenomenon of mis-labeling molecules with their tautomers in UOB, hence we adopt Xiong et al. ’s manner to report results after tautomer-standardization on that dataset. In WildMol-10K’s E-SMILES labels, we find that some abbreviated functional groups like “Boc” ( tert -Butyloxycarbonyl) are marked as wildcard placeholders in the backbone and annotated literally in the extension part. This hinders a fair evaluation of our models’ capability since the models can give concrete predictions as “[C](=O)OC(C)(C)C”, but the label may require a placeholder “*”, therefore, we systematically expand and map these substituents back into their corresponding backbone to reconstruct valid SMILES strings. We also find index conflicts between the substituent extension and the placeholder in some samples. In total, we exclude 111 samples from the benchmark due to expansion failures or index conflicts, and ensure that all remaining samples are valid using RDKit’s checks. We adhere to Qian et al. ’s evaluation protocol to canonicalize both prediction and ground truth SMILES strings, replace R-groups with wildcards (“*” of “[d*]”, where d is an integer), and to preserve the tetrahedral chirality, but ignore cis–trans isomerism because it is often absent in ground truth. Finally, we compute and report the string exact match as the evaluation metric.  
+
+> C. State-of-the-Art Comparison
+
+We compare COMO with six representative OCSR methods spanning three generations of techniques, and present the results in Table I. 
+
+• OSRA [21] is a rule-based pipeline that relies on image binarization, vectorization, and heuristic bond/atom assembly without any learned components. 
+
+• Img2Mol [22] regresses a CNN-extracted feature vector into the CDDD latent space and decodes SMILES from the resulting continuous descriptor. 13 TABLE I. Performance comparison with state-of-the-art OCSR methods. Values are exact match accuracy and we use bold to indicate the best performance and underline to denote the second-best performance. Results on UOB are after tautomer standardization. *: re-implemented results. †:results from [11], ‡: results from [10], and − means not available.                                                                                                                         
+
+> Synthetic Real-World Indigo (5719) ChemDraw (5719) CLEF (992) JPO (450) UOB (5740) USPTO (5719) USPTO-10K (10000) Staker (50000) ACS (331) WildMol-10K (10000) OSRA 2.1 *95 .284 .786 .058 .689 .088 .189 .80.049 .225 .0Img2Mol *59 .146 .417 .717 .684 .626 .424 .917 .123 .619 .8SwinOCSR *67 .874 .526 .912 .749 .324 .932 .40.220 .210 .6MolGrapher *‡76.4 76.5 90.5 67.5 94.9 91.5 93.3 0.0 41.4 45.5 MolScribe †‡ 97 .593 .888 .976 .287 .992 .696 .086 .971 .966 .4MolSight *96.3 93.7 88.3 70.4 95.6 93.2 89.4 83.4 72.9 9.0 MolParser-Tiny †−−91 .075 .691 .693 .089 .5−−73 .1MolParser-Small †−−90 .876 .291 .193 .194 .8−−76 .3MolParser-Base †−−90 .778 .991 .893 .094 .5−−76 .9
+> COMO-Edit-Distance 98 .896 .395 .089 .198 .593 .095 .987 .588 .277 .2COMO-Tanimoto 98 .696 .594 .888 .498 .093 .496 .187 .484 .677 .1
+> COMO-Visual 98 .796 .394 .687 .196 .893 .396 .087 .586 .476 .9
+
+• SwinOCSR [16] is an end-to-end encoder–decoder model that pairs a Swin Trans-former encoder with a Transformer decoder to generate DeepSMILES. 
+
+• MolGrapher [19] decomposes OCSR into keypoint detection, candidate graph con-struction, and GNN-based node/edge classification. 
+
+• MolScribe [11] uses a Swin-B encoder and a Transformer decoder to autoregressively generate a molecular graph with atom coordinates. 
+
+• MolSight [23] has a MolScribe-like architecture but employs an Efficient ViT as image encoder, adds extra pretraining on MolParser-7M from [10], and detaches the atom coordinate predictions. We use the MolSight-extra checkpoint for this evaluation, since it outperforms coordinate-enhanced or RL-post-trained variants, as reported in their paper. 
+
+• MolParser [10] treats OCSR as an image-captioning task: a Swin encoder feeds a BART decoder that directly emits Extended SMILES (E-SMILES). 14 COMO achieves the highest exact-match accuracy across all 10 benchmarks, with both variants delivering comparable results (within 2 percentage points of each other), suggesting that MRT is robust to the choice of similarity measurement. On the two synthetic sets, COMO matches or surpasses the previous best (MolScribe) by about 1–3 points. On the real-world benchmarks, the improvement is particularly striking on JPO (88 .4% vs. 78 .9%, the previous best by MolParser-Base) and UOB (98 .0% vs. 94 .9% by MolGrapher). Because COMO shares MolScribe’s encoder–decoder backbone, the performance gap be-tween the two isolates the contribution of MRT training and the additional 83K real-world images. COMO improves over MolScribe on every benchmark: the gains range from modest on synthetic data (+1.1 on Indigo, +2.7 on ChemDraw) to substantial on real-world data (+5.9 on CLEF, +12.2 on JPO, +10.1 on UOB, +14.5 on ACS, +10.7 on WildMol-10K). This pattern indicates that MRT is especially effective at bridging the domain gap between synthetic training images and real-world test images, which cannot be achieved by MLE alone, even when given the same additional data (cf. ablation in Table II). MolParser is the strongest prior method on real-world benchmarks, benefiting from a 7.7-million-sample training set that includes 400K human-annotated real images curated through an active-learning data engine. In contrast, COMO uses only 1.65M MLE samples (1M PubChem + 652K USPTO) and 83K real images for MRT, roughly 4.7 × less data in total. Despite this data disadvantage, COMO-Tanimoto outperforms MolParser-Base on CLEF, JPO, UOB, USPTO, USPTO-10K, and WildMol-10K. Note that MolParser is not open-source at the time of writing, and hence we cannot reproduce its results on benchmarks where the authors did not report numbers (Indigo, ChemDraw, Staker, ACS). Moreover, MolParser’s evaluation protocol for WildMol-10K—in particular, how E-SMILES extensions are mapped back to canonical SMILES for comparison—is not publicly documented, making a fully apples-to-apples comparison on that benchmark difficult. Rule-based and earlier deep-learning methods exhibit drawbacks to varying degrees. OSRA achieves respectable accuracy on clean synthetic and patent images but collapses on images that deviate from its hand-crafted heuristics. Img2Mol suffers from an information bottleneck in its 512-dimensional CDDD latent space, resulting in low accuracy across all benchmarks. SwinOCSR, despite sharing the Swin Transformer encoder family, was trained exclusively on 5M synthetic images and consequently generalizes poorly to real data. MolG-rapher achieves strong results on some classic benchmarks, but its reliance on synthetic-only 15 TABLE II. Ablation study on extra training data DMRT . Values are exact match accuracy. Results on UOB are after tautomer standardization. The upper half presents evaluation results from pure MLE training. Downward arrows indicate performance degradation by including additional training data DMRT , compared to using DMLE alone. The lower half presents evaluation results from MLE-MRT joint training using DMLE + DMRT (same as in Table I).                                                           
+
+> Synthetic Real-World Indigo (5719) ChemDraw (5719) CLEF (992) JPO (450) UOB (5740) USPTO (5719) USPTO-10K (10000) Staker (50000) ACS (331) WildMol-10K (10000)
+> Pure MLE training
+> Sole DMLE 98 .595 .793 .071 .096 .592 .796 .287 .575 .866 .6
+> DMLE +DMRT 98 .594 .8↓92 .4↓72 .6 95 .8↓93 .096 .1↓87 .4↓77 .666 .6
+> MLE training + MRT
+> COMO-Edit-Distance 98 .896 .395 .089 .198 .593 .095 .987 .588 .277 .2
+> COMO-Tanimoto 98 .696 .594 .888 .498 .093 .496 .187 .484 .677 .1COMO-Visual 98 .796 .394 .687 .196 .893 .396 .087 .586 .476 .9
+
+training data limits its accuracy on ACS and WildMol-10K. Notably, MolGrapher reports 0.0% on Staker, likely due to the dataset’s unusually small image sizes that fall outside the detector’s expected scale range. Although pretrained on a large-scale dataset, MolSight per-forms similarly to MolScribe but dramatically collapses on WildMol-10K, probably resulted from the compounding effect from the prevalence of substituent and the lack of coordinate prediction. 
+
+D. Ablation Study 
+
+To isolate the effects of the additional 83K training data used in MRT from the training mechanism itself, we perform an additional MLE training run on that portion of the data using the same interleaving scheme, as an ablation study. We keep the batch size, number of epochs, and learning rate identical to MRT and map E-SMILES strings back to SMILES strings first, then render them using Indigo to obtain images and coordinates for MLE train-ing. We also keep the same loss weight and number of warm-up epochs as in Algorithm 2, to make a fair comparison. In the upper half of Table II we present the evaluation for two pure-MLE models, we compare the performance of the model trained on additional DM RT with the checkpoint 16 TABLE III. SwinOCSR MRT fine-tuning evaluation results. Values are exact match accuracy. Results on UOB are after tautomer standardization.                                          
+
+> Synthetic Real-World Indigo (5719) ChemDraw (5719) CLEF (992) JPO (450) UOB (5740) USPTO (5719) USPTO-10K (10000) Staker (50000) ACS (331) WildMol-10K (10000) Pretrained 67 .874 .526 .912 .749 .324 .932 .40.220 .210 .6Tanimoto 80 .384 .473 .425 .498 .160 .569 .84.140.5 53 .4
+> Edit-distance 79 .284 .272 .727 .897 .958 .670 .14.039 .052 .5Visual 78 .483 .470 .123 .497 .757 .167 .11.637 .250 .2
+
+trained solely on DM LE , and observe a slight performance degradation across 5 of the total 10 benchmarks, and shows no performance increase on 2 of them, suggesting the model suffers from forgetting, although the loss weight for DM RT is low. The performance improvement on JPO, USPTO, and ACS is marginal compared to MRT results (lower half of Table II). These results reveal that superior performance stems from the training policy rather than from additional training data. To demonstrate that MRT is a model-agnostic method that can be applied to any end-to-end OCSR model, rather than being limited to a specific architecture, we load a pretrained SwinOCSR checkpoint and fine-tune it with MRT, as we do for COMO. To be specific, we continually perform MRT on the checkpoint for 6 epochs using the identical 83K MolParser-SFT data, with the same hyperparameters, but lowering the sampling temperature to 0.3. Table III presents the evaluation results for both pretrained and fine-tuned models, where we can observe a huge improvement introduced by MRT—from 2 to 20 times exact match accuracy on real-world datasets, compared to the pretrained checkpoint. The fine-tuned SwinOCSR even outperforms COMO on UOB, underscoring the broad applicability and the strong potential of MRT to enhance OCSR models’ capabilities. 
+
+IV. CONCLUSION 
+
+We presented COMO, a closed-loop optical molecule recognition system that integrates Minimum Risk Training into the encoder–decoder pipeline. By letting the model sam-ple its own SMILES predictions and optimizing a non-differentiable reward, MRT directly targets molecular-level objectives that token-level MLE cannot capture. The reward’s simi-17 larity component is modular: we instantiated three variants—edit distance, Tanimoto, and visual—and showed that each delivers consistent gains, with the edit distance variant achiev-ing state-of-the-art accuracy across all 10 benchmarks. Two ablation studies support our claims. First, replacing MRT steps with identically scheduled MLE steps on the same data leads to performance degradation, confirming that the improvements stem from the closed-loop training mechanism rather than from addi-tional data. Second, applying MRT to SwinOCSR—an architecture with a different en-coder, decoder, and output format—yields 2–20 × accuracy gains on real-world benchmarks, demonstrating that MRT is model-agnostic and broadly applicable to end-to-end OCSR systems. 
+
+[1] D. Weininger, SMILES, a chemical language and information system. 1. Introduction to methodology and encoding rules, Journal of Chemical Information and Computer Sciences 
+
+28 , 31 (1988). [2] L. Morin, V. Weber, G. I. Meijer, F. Yu, and P. W. Staar, Patcid: an open-access dataset of chemical structures in patent documents, Nature Communications 15 , 6532 (2024). [3] G. Papadatos, M. Davies, N. Dedman, J. Chambers, A. Gaulton, J. Siddle, R. Koks, S. A. Irvine, J. Pettersson, N. Goncharoff, A. Hersey, and J. P. Overington, SureChEMBL: A large-scale, chemically annotated patent document database, Nucleic Acids Research 44 , D1220 (2016). [4] K. Rajan, H. O. Brinkhaus, M. I. Agea, A. Zielesny, and C. Steinbeck, DECIMER.ai: An open platform for automated optical chemical structure identification, segmentation and recognition in scientific publications, Nature Communications 14 , 5045 (2023). [5] S. Bengio, O. Vinyals, N. Jaitly, and N. Shazeer, Scheduled Sampling for Sequence Prediction with Recurrent Neural Networks, in Advances in Neural Information Processing Systems ,Vol. 28 (Curran Associates, Inc., 2015). [6] M. Ranzato, S. Chopra, M. Auli, and W. Zaremba, Sequence Level Training with Recurrent Neural Networks (2016), arXiv:1511.06732 [cs]. [7] S. Shen, Y. Cheng, Z. He, W. He, H. Wu, M. Sun, and Y. Liu, Minimum Risk Training for Neural Machine Translation, in Proceedings of the 54th Annual Meeting of the Association 
+
+18 for Computational Linguistics (Volume 1: Long Papers) , edited by K. Erk and N. A. Smith (Association for Computational Linguistics, Berlin, Germany, 2016) pp. 1683–1692. [8] F. J. Och, Minimum Error Rate Training in Statistical Machine Translation, in Proceedings of the 41st Annual Meeting of the Association for Computational Linguistics (Association for Computational Linguistics, Sapporo, Japan, 2003) pp. 160–167. [9] S. J. Rennie, E. Marcheret, Y. Mroueh, J. Ross, and V. Goel, Self-critical Sequence Training for Image Captioning (2017), arXiv:1612.00563 [cs]. [10] X. Fang, J. Wang, X. Cai, S. Chen, S. Yang, H. Tao, N. Wang, L. Yao, L. Zhang, and G. Ke, MolParser: End-to-end Visual Recognition of Molecule Structures in the Wild, in Proceedings of the IEEE/CVF International Conference on Computer Vision (2025) pp. 24528–24538. [11] Y. Qian, J. Guo, Z. Tu, Z. Li, C. W. Coley, and R. Barzilay, Molscribe: robust molecular structure recognition with image-to-graph generation, Journal of Chemical Information and Modeling 63 , 1925 (2023). [12] Z. Liu, Y. Lin, Y. Cao, H. Hu, Y. Wei, Z. Zhang, S. Lin, and B. Guo, Swin transformer: Hierarchical vision transformer using shifted windows, in Proceedings of the IEEE/CVF in-ternational conference on computer vision (2021) pp. 10012–10022. [13] M. Tan and Q. Le, Efficientnetv2: Smaller models and faster training, in International con-ference on machine learning (PMLR, 2021) pp. 10096–10106. [14] T. Chen, S. Kornblith, M. Norouzi, and G. Hinton, A simple framework for contrastive learning of visual representations, in International conference on machine learning (PmLR, 2020) pp. 1597–1607. [15] P. Polishchuk, Crem: chemically reasonable mutations framework for structure generation, Journal of Cheminformatics 12 , 28 (2020). [16] Z. Xu, J. Li, Z. Yang, S. Li, and H. Li, Swinocsr: end-to-end optical chemical structure recognition using a swin transformer, Journal of Cheminformatics 14 , 41 (2022). [17] K. Rajan, H. O. Brinkhaus, A. Zielesny, and C. Steinbeck, A review of optical chemical structure recognition tools, Journal of Cheminformatics 12 , 60 (2020). [18] J. Staker, K. Marshall, R. Abel, and C. M. McQuaw, Molecular structure extraction from documents using deep learning, Journal of Chemical Information and Modeling 59 , 1017 (2019). [19] L. Morin, M. Danelljan, M. I. Agea, A. Nassar, V. Weber, I. Meijer, P. Staar, and F. Yu, 
+
+19 Molgrapher: graph-based visual recognition of chemical structures, in Proceedings of the IEEE/CVF International Conference on Computer Vision (2023) pp. 19552–19561. [20] J. Xiong, X. Liu, Z. Li, H. Xiao, G. Wang, Z. Niu, C. Fei, F. Zhong, G. Wang, W. Zhang, Z. Fu, Z. Liu, K. Chen, H. Jiang, and M. Zheng, αExtractor: A system for automatic extraction of chemical information from biomedical literature, Science China Life Sciences 67 , 618 (2024). [21] I. V. Filippov and M. C. Nicklaus, Optical structure recognition software to recover chemical information: Osra, an open source solution, Journal of Chemical Information and Modeling 
+
+49 , 740–743 (2009). [22] D.-A. Clevert, T. Le, R. Winter, and F. Montanari, Img2Mol – accurate SMILES recognition from molecular graphical depictions, Chemical Science 12 , 14174 (2021). [23] S. Fan, Y. Xie, B. Cai, A. Xie, G. Liu, M. Qiao, J. Xing, and Z. Nie, OCSU: Optical Chemical Structure Understanding for Molecule-centric Scientific Discovery (2025), arXiv:2501.15415 [cs]. 
+
+20
