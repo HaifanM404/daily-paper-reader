@@ -1,0 +1,1257 @@
+Title: An online adaptive finite-element method for nonsmooth PDE-constrained optimization
+
+URL Source: https://arxiv.org/pdf/2604.24065v1
+
+Published Time: Tue, 28 Apr 2026 01:47:04 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+# An online adaptive finite-element method for nonsmooth PDE-constrained optimization ∗
+
+Harbir Antil † Robert J. Baraldi ‡ Rohit Khandelwal § Drew P. Kouri ‡
+
+April 28, 2026 
+
+Abstract 
+
+We present a trust-region-based adaptive finite-element algorithm for numerically solving a class of nonsmooth PDE-constrained optimization problems that includes problems with spar-sifying regularizers and convex constraints. In particular, we consider the class of problems whose objective function is the sum of a smooth, possibly nonconvex, function and a nons-mooth extended real-valued convex function. Our method combines the robustness of inexact trust-region algorithms for nonsmooth problems with the efficiency of adaptive finite-element discretizations. Starting from a coarse mesh, the algorithm automatically refines the discretiza-tion based on reliable a posteriori error estimators for both the state and adjoint equations, systematically controlling the accuracy of the computed smooth objective function value and gradient. This adaptivity mechanism balances computational cost and solution accuracy, en-abling high resolution of localized phenomena and sparsity structures in the state and control variables. We demonstrate the performance of our algorithm through numerical experiments on representative control and topology optimization examples. 
+
+Keywords 
+
+Nonsmooth Optimization, Adaptive Finite Elements, Trust Regions, Proximal Methods, Convex Constraints 
+
+Mathematics Subject Classification 
+
+49M37, 49K20, 49J20, 65M12, 65M15, 65M60, 90C30, 93C20 
+
+> ∗
+
+This work is partially supported by the Office of Naval Research (ONR) under Award NO: N00014-24-1-2147, NSF grant DMS-2408877, the Air Force Office of Scientific Research (AFOSR) under Award NO: FA9550-25-1-0231. This research was sponsored, in part, by the Department of Energy Office of Science under the Advanced Scientific Computing Research ASCEND and Early Career Research Programs. Sandia National Laboratories is a multimission laboratory managed and operated by National Technology and Engineering Solutions of Sandia, LLC., a wholly owned subsidiary of Honeywell International, Inc., for the U.S. Department of Energy’s National Nuclear Security Administration under contract DE-NA0003525. This paper describes objective technical results and analysis. Any subjective views or opinions that might be expressed in the paper do not necessarily represent the views of the U.S. Department of Energy or the United States Government. 
+
+> †
+
+Department of Mathematical Sciences and Center for Mathematics and Artificial Intelligence, George Mason University, Fairfax, VA, 22030, USA; hantil@gmu.edu 
+
+> §
+
+Faculty of Mathematical Sciences, South Asian University, New Delhi, India, 110068; rkhandel@sau.int 
+
+> ‡
+
+Optimization and Uncertainty Quantification, Sandia National Laboratories, PO Box 5800, Albuquerque, 87185-1320, NM, USA; {rjbaral@sandia.gov, dpkouri@sandia.gov }
+
+1
+
+> arXiv:2604.24065v1 [math.OC] 27 Apr 2026
+
+# 1 Introduction 
+
+We consider the optimization problem min  
+
+> z∈Z
+
+J(S(z), z ) + ϕ(z), (1) where Z is a Hilbert space, U is a Banach space, the objective function consists of a smooth function J : U × Z → R and a proper, closed and convex—potentially nonsmooth—function 
+
+ϕ : Z → (−∞ , +∞], and u = S(z) ∈ U is the solution to a system of partial differential equations (PDEs), i.e., c(u, z ) = 0 ∈ V ∗. Here, V is a reflexive Banach space, V∗ its dual space, and 
+
+c : U × Z → V ∗ represents a weak form of the PDE, which we assume to be sufficiently regular as to admit derivatives of the solution map z 7 → S(z). Commonly V = U [36], but we do not make this assumption. Algorithms for solving optimization problems constrained by PDEs (1) must balance conver-gence robustness with the computational cost of solving the PDE. In applications where solutions may exhibit sharp interfaces (e.g., topology optimization [31]), memory limitations [3, 10, 44], or high-dimensional uncertainties [30, 38, 39, 54, 58], solvers must be able to handle inexactness arising from coarse discretizations or early termination of iterative linear/nonlinear PDE solvers. Many optimization algorithms can leverage various forms of inexactness, such as trust-region [10, 37, 54], linesearch [25, 48], and sequential quadratic programming (SQP) methods [32, 33, 50, 55, 56]. Modern inexact trust-region algorithms build upon the early developments of Mor´ e [43] and Carter [20, 21], and control inexactness automatically during optimization. Examples include: inexact linear solves [6], adaptive quadrature [38, 39], reduced-order models [28, 54, 58], and randomized compression [10, 44]. Similarly, SQP methods can be modified to incorporate inexactness in both the solution of the quadratic subproblem and objective values and gradients [18, 32, 33, 56]. In particular, [50, 55, 56] bear the closest resemblance to the present work in their algorithmic con-trol of adaptive finite elements; however, these methods do not handle nonsmoothness aside from convex control constraints [55]. Similar analysis was employed by [14] for nonlinear least-squares methods with inexact objective values and gradients under similar assumptions as [6]. Inexactness in step computation for nonsmooth methods has been studied in [25, 42], but the objective value and gradient are exact. We build upon recent advances in nonsmooth trust-region algorithms [6] for infinite-dimensional optimization problems (1). Specifically, [6, Algorithm 1] demonstrates rapid convergence [7], subproblem solver flexibility [8], and inexactness [6, 10]. With respect to the latter, [6, Algorithm 1] converges even when the objective value and gradient are evaluated up to some algorithmically determined tolerance. We utilize this algorithm to provide a robust foundation for challenging PDE-constrained optimization problems via adaptive finite-element discretizations using residual-based error indicators of the state and adjoint equations. Adaptive finite-element methods (AFEM) [1, 5, 16, 51] provide an effective mechanism for reducing computational cost while maintaining sufficient accuracy required for solving the PDE. AFEM typically exploits three types of adaptivity (or combinations thereof): ( i) h-adaptivity that refines the mesh [23, 46]; ( ii ) p-adaptivity that increases the polynomial order of the elements [23]; and ( iii ) r-adaptivity that relocates mesh nodes [17, 19]. Guiding the aforementioned types of refinement are various estimators that quantify the discretization error associated with the ap-proximation of the infinite-dimensional space. The estimator and adaptivity combination is often tailored to the optimization problem; c.f. [13, 15, 35, 53]. For instance, goal-oriented AFEM aims to perform adaptivity by minimizing an error most relevant to a desired quantity of interest rather than a global norm, e.g., energy norms in the case of Navier-Stokes simulation [15] and variational inequalities [35]. A more mechanical approach involves solving a full optimization problem, refining, 2then repeating the process until a particular refinement level or error is attained [11, 12, 52, 53]; this technique of optimize-then-refine often lacks rigorous convergence guarantees. In concert with these techniques, a variety of a posteriori error estimators exist that indicate which cells should be refined [5]. A common type is the averaging ZZ-estimator [29, 57], which was derived for higher-order elements in [50, 56]. Along with ZZ estimators, residual-based error estimators can be used for online refinement. For instance, the aforementioned Ulbrich and Ziems work [56] proposed an inexact adaptive SQP method with residual-driven refinement for nonlinear PDE-constrained op-timization. This SQP algorithm was later generalized for time-dependent PDEs in [50] and control constraints in [55]. More recently, [2] develop AFEM for sparse PDE-constrained optimization and [47] performed adaptivity for regularized problems (1). In our work, we use reliable , residual-based estimators that involve the state or adjoint equations. Reliable estimators provide upper bounds on the true, infinite-dimensional error and hence indicate where the mesh should be refined to improve the approximation quality [5, 19]. Our paper is organized in the following way. In Section 2, we discuss the problem formulation and illustrate the general concepts behind our finite-element implementation in Section 3. In Sec-tion 4, we introduce the nonsmooth trust-region algorithm and discuss how it handles inexactness. We conclude in Section 5, demonstrating the performance of our approach on numerical examples. 
+
+# 2 Preliminary Results 
+
+Let W and X be real Banach spaces and Y be a real Hilbert space. We denote by L(W, X )the space of continuous linear operators mapping W into X . When X = W, we simplify denote 
+
+L(X , X ) = L(X ) and when X = R, we denote L(W, R) = W∗ (i.e., the topological dual space of 
+
+W). We denote the norm on W by ∥ · ∥ W and the duality pairing between W and W∗ by ⟨· , ·⟩ W∗,W .Moreover, we denote the inner product on Y by ⟨· , ·⟩ Y and we assume the norm ∥ · ∥ Y is the usual Hilbert norm. For the product space W × X , we employ the norm 
+
+∥(w, x )∥W×X := ∥w∥W + ∥x∥X for ( w, x ) ∈ W × X .
+
+For any proper, closed and convex function ψ : Y → (−∞ , +∞], we denote the effective domain of 
+
+ψ by dom ψ := {y ∈ Y | ψ(y) < +∞} and the proximity operator of ψ by Prox rψ (y) := argmin 
+
+> y′∈Y
+
+ 12r ∥y′ − y∥2 
+
+> Y
+
++ ψ(y′) , r > 0. (2) Finally, for a Fr´ echet-differentiable function h : W → R, we denote the derivative of h at w ∈ W 
+
+by h′(w) ∈ W ∗.For the convergence analysis of the trust-region method in [6] applied to the general optimization problem min  
+
+> z∈Z
+
+{F (z) := f (z) + ϕ(z)} (3) we require the following basic assumptions on the problem data Z, f and ϕ.
+
+Assumption 1 (General Assumptions) . The following conditions hold for the data in (3) .1. Z is a Hilbert space and the function ϕ : Z → (−∞ , +∞] is proper, closed and convex. 2. There exists an open set NZ ⊆ Z , containing dom ϕ, on which the function f : Z → R is Fr´ echet differentiable with Lipschitz continuous gradient. We denote the Lipschitz modulus for the gradient by Lf > 0.
+
+33. The objective function F = f + ϕ is bounded below. 
+
+We recall from [6, Lemma 1] that any local minimizer ¯ z ∈ Z for (3) satisfies ¯z = Prox rϕ (¯ z − r∇f (¯ z)) for any fixed r > 0 and ∇f (x) ∈ Z the Reisz representation of the derivative f ′(x) ∈ Z ∗. With this in mind, we define the function Ψ : Z × (0 , +∞) → [0 , +∞) by Ψ( z, r ) := 1
+
+r ∥Prox rϕ (z − r∇f (z)) − z∥Z . (4) Moreover, we say that z ∈ Z is stationary or is a stationary point for (3) if Ψ( z, r ) = 0 for any fixed 
+
+r > 0. Given the particular form of our target optimization problem (1), where f (z) = J(S(z), z ) with 
+
+S(z) the solution to a system of PDEs, we postulate the following assumptions, which allow us to prove that Assumption 1 holds, and importantly facilitate error estimation based on the state and adjoint residuals. 
+
+Assumption 2 (Regularity Properties for (1)) . The following conditions hold for the data in (1) .1. Z is a Hilbert space, U and V are Banach spaces with V reflexive, and ϕ : Z → (−∞ , +∞] is proper, closed and convex. 2. The objective function J : U × Z → R and PDE map c : U × Z → V ∗ are continuously Fr´ echet differentiable. We denote the partial derivatives of J by Ju and Jz , and analogously for c.3. There exists open convex sets NZ ⊆ Z and NU ⊆ U satisfying dom ϕ ⊂ N Z and for all 
+
+z ∈ N Z , there exists a unique u ∈ N U satisfying c(u, z ) = 0 . For fixed z ∈ N Z , we denote the unique solution to c(u, z ) = 0 by u = S(z) and refer to S : NZ → N U as the control-to-state map. 4. The objective function (u, z ) 7 → J(u, z ) + ϕ(z) is bounded from below on N := NU × N Z .5. There exists a positive constant σ0 > 0 such that the state Jacobian cu(¯ u, ¯z) ∈ L (U, V∗)
+
+satisfies 
+
+sup  
+
+> v∈V
+> v̸=0
+
+Z 10
+
+⟨cu(¯ u + t(¯ ¯u − ¯u), ¯z)u, v ⟩V∗,V
+
+∥v∥V
+
+dt ≥ σ0∥u∥U ∀ u ∈ U , ¯¯u ∈ N U (5a) sup 
+
+> u∈U
+> u̸=0
+
+⟨cu(¯ u, ¯z)u, v ⟩V∗,V
+
+∥u∥U
+
+≥ σ0∥v∥V ∀ v ∈ V (5b) 
+
+for all (¯ u, ¯z) ∈ N .6. For fixed u ∈ N U , the PDE map c(u, ·) is Lipschitz continuous on NZ and the associated Lipschitz modulus Lc > 0 is independent of u.7. The partial Jacobians cu and cz , and the partial derivatives of the objective function Ju and 
+
+Jz are Lipschitz continuous on N . We denote the Lipschitz modulii of these quantities by 
+
+Lcu > 0, etc. 
+
+48. The partial derivatives cu, cz , and Ju are uniformly bounded on N , i.e., there exists σ1 ≥ σ0
+
+such that 
+
+∥cu(¯ u, ¯z)∥L(U,V∗) ≤ σ1, ∥cz (¯ u, ¯z)∥L(Z,V∗) ≤ σ1, ∥Ju(¯ u, ¯z)∥Z∗ ≤ σ1 (6) 
+
+for all (¯ u, ¯z) ∈ N .
+
+Some comments are in order regarding Assumption 2. Conditions 1, 2 and 4 are standard, while condition 3 is effectively the result of the implicit function theorem. Condition 5 is somewhat non-standard. For example, (5a) is stronger than the traditional inf-sup condition (cf. [27]). That is, by setting ¯ ¯u = ¯ u, we obtain sup  
+
+> v∈V
+> v̸=0
+
+⟨cu(¯ u, ¯z)u, v ⟩V∗,V
+
+∥v∥V
+
+≥ σ0∥u∥U ∀ u ∈ U . (7) In addition, we require that the inf-sup conditions (5) hold uniformly on N . On the one hand, these conditions ensure that cu(¯ u, ¯z) is bijective for all (¯ u, ¯z) ∈ N [27, Corollary A.45]. On the other hand, these conditions will facilitate the development of error bounds. Of course, if u 7 → c(u, z ) is linear for fixed z ∈ N Z , then (5a) simplifies to the standard inf-sup condition (7) and verifying (5) can be done using standard techniques. Another common setting where (5a) is satisfied is when U
+
+is a Hilbert space, U = V and cu(¯ u, ¯z) is uniformly coercive on N , i.e., 
+
+⟨cu(¯ u, ¯z)u, u ⟩U∗,U ≥ σ0∥u∥2 
+
+> U
+
+∀ u ∈ U 
+
+for all (¯ u, ¯z) ∈ N . As we will see, the remaining conditions will facilitate proving the Lipschitz continuity of the gradient of the reduced objective function z 7 → J(S(z), z ) as well as developing error bounds for guiding the AFEM discretization during optimization. By introducing the control-to-state map S(·), we can define the reduced objective functions 
+
+f : Z → R and F : Z → (−∞ , +∞] by f (z) := J(s(z), z ) and F (z) := f (z) + ϕ(z), respectively. Under Assumption 2, we have that f is continuously differentiable with derivative given by 
+
+f ′(z) = cz (S(z), z )∗λ + Jz (S(z), z ),
+
+where λ ∈ V solves the adjoint equation 
+
+cu(S(z), z )∗λ + Ju(S(z), z ) = 0 .
+
+By Assumption 2 and [27, Remark 2.7], cu(S(z), z )∗ is bijective and so the adjoint variable λ
+
+is unique. To simplify the presentation, we introduce the general adjoint residual operator G :
+
+U × Z × V → U ∗ defined by 
+
+G(u, z, λ ) := Ju(u, z ) + cu(u, z )∗λ
+
+and the general adjoint solution operator Λ : U × Z → V defined implicitly by 
+
+G(u, z, Λ( u, z )) = 0 .
+
+Moreover, we introduce the function g : U × Z × V → Z ∗ by 
+
+g(u, z, λ ) := cz (u, z )∗λ + Jz (u, z )and note that f ′(z) = g(S(z), z, Λ( S(z), z )). As stated above, we can leverage Assumption 2 to verify Assumption 1 as in the following result. 5Proposition 1. If Assumption 2 holds, then Assumption 1 holds for (1) .Proof. Note that Assumption 1.1 holds by Assumption 2.1 and that Assumption 1.3 holds by Assumption 2.4. We now prove Assumption 1.2. Let z, ¯z ∈ N Z be arbitrary and define u = S(z), ¯u = S(¯ z), λ = Λ( u, z ) and ¯λ = Λ(¯ u, ¯z). We first bound ∥u − ¯u∥U and ∥λ − ¯λ∥V . For the state bound, (5a) ensures that 
+
+⟨c(¯ u, z ), v ⟩V∗,V = ⟨c(¯ u, z ) − c(u, z ), v ⟩V∗,V
+
+=
+
+Z 10
+
+⟨cu(u + t(¯ u − u), z )(¯ u − u), v ⟩V∗,V dt (8) for all v ∈ V . Here, we have applied the mean-value theorem to w 7 → ⟨ c(w, z ), v ⟩V∗,V using, e.g., [40, Theorem 4.2] and [34, Theorem 3.7.12]. Dividing by ∥v∥V , passing to the supremum over V ∋ v̸ = 0 and applying (5a) yields 
+
+∥c(¯ u, z )∥V ≥ σ0∥¯u − u∥U . (9) In addition, Assumption 2.6 ensures that 
+
+∥c(¯ u, z )∥Y∗ = ∥c(¯ u, z ) − c(¯ u, ¯z)∥Y∗ ≤ Lc∥z − ¯z∥Z .
+
+Combining these bounds yields 
+
+∥¯u − u∥U ≤ σ−10 Lc∥¯z − z∥Z .
+
+We employ similar arguments for the adjoint bound. In particular, employing the adjoint equation, we have that 
+
+∥cu(¯ u, ¯z)∗(λ − ¯λ)∥U∗ ≤ ∥ cu(¯ u, ¯z) − cu(u, z )∥L(U,V∗)∥λ∥V + ∥Ju(¯ u, ¯z) − Ju(u, z )∥U∗ .
+
+Applying (5b) and Assumption 2.7 yields 
+
+∥λ − ¯λ∥V ≤ σ−10 (Lcu ∥λ∥V + LJu )∥(¯ u, ¯z) − (u, z )∥U×Z 
+
+≤ σ−10 (Lcu ∥λ∥V + LJu )(1 + σ−10 Lc)∥¯z − z∥Z .
+
+Finally, (5b) ensures that 
+
+σ0∥λ∥V ≤ ∥ cu(¯ u, ¯z)∗λ∥U∗ = ∥Ju(¯ u, ¯z)∥U∗ ,
+
+where the right-hand side is bounded by Assumption 2.8. Consequently, there exists constants 
+
+Cu > 0 and Cλ > 0 such that 
+
+∥u − ¯u∥U ≤ Cu∥z − ¯z∥Z and ∥λ − ¯λ∥V ≤ Cλ∥z − ¯z∥Z . (10) Using (10), we can bound the difference between the derivatives f ′(z) and f ′(¯ z). In particular, we have that ∥f ′(z) − f ′(¯ z)∥Z∗ ≤ ∥ (cz (u, z ) − cz (¯ u, ¯z)) ∗λ∥Z∗ + ∥cz (¯ u, ¯z)∗(λ − ¯λ)∥Z∗
+
++ ∥Jz (u, z ) − Jz (¯ u, ¯z)∥Z∗ .
+
+Here, note that the first term on the right-hand side is bounded by 
+
+∥(cz (u, z ) − cz (¯ u, ¯z)) ∗λ∥Z∗ ≤ Lcz ∥(u, z ) − (¯ u, ¯z)∥U×Z ∥λ∥V
+
+6since cz is Lipschitz continuous on N . Similarly, the third term is bounded by 
+
+∥Jz (u, z ) − Jz (¯ u, ¯z)∥Z∗ ≤ LJz ∥(u, z ) − (¯ u, ¯z)∥U×Z 
+
+since Jz is Lipschitz continuous on N . In contrast, the second term is bounded by 
+
+∥cz (¯ u, ¯z)∗(λ − ¯λ)∥Z∗ ≤ σ1∥λ − ¯λ∥V .
+
+Combining these bounds with (10) yields the desired result. The value and gradient of f are critical components for most modern optimization algorithms and computing these values inexactly can derail or even halt the progress of the algorithm. In this setting, trust-region methods are ideal as they can robustly handle inexact evaluations of f and 
+
+f ′, while maintaining strong convergence guarantees [9]. Trust-region methods ensure convergence by providing tolerances for inexact computations that depend on the progress of the optimization. In the context of (1), we will use adaptive mesh refinement with residual-based error indicators to achieve these tolerances by levaraging the error bounds provided by the following proposition. 
+
+Proposition 2. Suppose Assumption 2 holds and let z ∈ N Z , u = S(z), λ = Λ( u, z ), ¯u ∈ N U and 
+
+¯λ ∈ V . Then, there exists αi > 0, i = 0 , 1, . . . , 6, such that the following state and adjoint bounds hold 
+
+α0 ∥u − ¯u∥U ≤ ∥ c(¯ u, z )∥V∗ ≤ α1 ∥u − ¯u∥U (11a) 
+
+λ − ¯λ V ≤ α2(1 + ¯λ V ) ∥c(¯ u, z )∥V∗ + α3 G(¯ u, z, ¯λ) U∗ , (11b) 
+
+as well as the objective function value and gradient bounds 
+
+|J(¯ u, z ) − f (z)| ≤ α4 ∥c(¯ u, z )∥V∗ (11c) 
+
+g(¯ u, z, ¯λ) − f ′(z) Z∗ ≤ α5(1 + ¯λ V ) ∥c(¯ u, z )∥V∗ + α6 G(¯ u, z, ¯λ) U∗ . (11d) 
+
+Proof. The proof of this result is similar to the proof of [54, Proposition A.2]. We first bound the difference between u and ¯ u. To this end, the arguments in the proof of Proposition 1 apply here to yield (9). This and Assumption 2.8 applied to (8) yield (11a) with α0 = σ0 and α1 = σ1. Next we bound the difference between λ and ¯λ. By the linearity of the adjoint residual, we have that 
+
+∥G (u, z, ¯λ)∥U∗ = ∥G (u, z, ¯λ) − G (u, z, λ )∥U∗ = ∥cu(u, z )∗(¯λ − λ)∥U∗
+
+and therefore Assumption 2.5 and 2.8 yield 
+
+σ0 λ − ¯λ V ≤ G(u, z, ¯λ) U∗ ≤ σ1 λ − ¯λ V .
+
+The bound (11c) follows from Assumption 2.8 and (11a). In particular, J(·, z ) is Lipschitz contin-uous on NU since Ju is uniformly bounded on NU . Now, consider 
+
+G(u, z, ¯λ) U∗ ≤ G(¯ u, z, ¯λ) U∗ + G(u, z, ¯λ) − G (¯ u, z, ¯λ) U∗
+
+≤ G(¯ u, z, ¯λ) U∗ + (cu(u, z ) − cu(¯ u, z )) ∗ ¯λ U∗
+
++ ∥Ju(u, z ) − Ju(¯ u, z )∥U∗
+
+≤ G(¯ u, z, ¯λ) U∗ + ( Lcu ¯λ V + LJu ) ∥u − ¯u∥U .
+
+7Combining these two bounds yields (11b). Finally, we have that 
+
+g(¯ u, z, ¯λ) − f ′(z) Z∗ ≤ g(¯ u, z, ¯λ) − g(¯ u, z, λ ) Z∗ + ∥g(¯ u, z, λ ) − g(u, z, λ )∥Z∗
+
+= ∥Jz (¯ u, z ) − Jz (u, z ) + ( cz (¯ u, z ) − cz (u, z )) ∗λ∥Z∗
+
++ cz (u, z )∗(¯λ − λ) Z∗
+
+≤ (LJz + Lcz ∥λ∥V ) ∥u − ¯u∥U + σ1 λ − ¯λ V .
+
+Recall that ∥λ∥V is bounded independent of z using Assumption 2.8 and (5b). Consequently, (11d) follows from (11a) and (11b). 
+
+# 3 Adaptive Finite Elements 
+
+Let Ω ⊂ Rd, d = 1 , 2, 3, be an open, connected set with boundary ∂Ω. For (1), the Banach spaces 
+
+U and V consists of measurable functions defined on Ω. Let T h be a partition of the domain Ω into regular triangles such that ¯Ω = S   
+
+> T∈T h
+
+T . The parameter h is the cell-wise constant function defined by h|T = hT = diam( T ). Moreover, let Uh ⊂ U and Vh ⊂ V be finite-dimensional subspaces of cell-wise defined functions on the mesh T h. Moreover let Eh denote the set of edges of T h. Let 
+
+Eh 
+
+> Ω
+
+:= Eh\{ E ∈ E h | E ⊂ ∂Ω} denote the set of interior edges on domain Ω. Additionally, we denote the finite-element state and adjoint approximations by uh ∈ U h and λh ∈ V h, respectively. When the optimization variable z ∈ Z is defined on Ω, we will leverage nested, finite-dimensional (e.g., piecewise constant) approximations to ensure convergence to an infinite-dimensional solution. As such, we will not consider discretizations of z within the AFEM error analysis. We denote the discretized PDE constraint by ch : Uh × Z → (Vh)∗, which is given by the finite-element discretization D
+
+ch(uh, z ), v hE 
+
+> (Vh)∗,Vh
+
+:= 
+
+D
+
+c(uh, z ), v hE
+
+> V∗,V
+
+for all uh ∈ U h and vh ∈ V h. Additionally, we define gh, Sh, and Λ h to be the finite-element approximations of g, S, and Λ, respectively. Given z ∈ Z , let uh = Sh(z) and λh = Λ h(Sh(z), z ). We approximate f ′(z) by 
+
+gh(z) := g(uh, z, λ h) ≈ f ′(z) = g(S(z), z, λ (S(z), z )) .
+
+According to Proposition 2, we can bound the error between gh(z) and f ′(z) by ∥c(uh, z )∥V∗ and 
+
+∥G (uh, z, λ h)∥U∗ . However, these infinite-dimensional residual norms are not directly computable. To permit inexact state and adjoint solves as in [55] (i.e., using iterative linear/nonlinear solvers), we instead bound the state residual norm as 
+
+c(Sh(z), z ) V∗ = c(Sh(z), z ) − ch(Sh(z), z ) + ch(Sh(z), z ) V∗
+
+≤ c(Sh(z), z ) − ch(Sh(z), z ) V∗ + ch(Sh(z), z ) (Vh)∗ ,
+
+and likewise for the adjoint residual. To further bound these quantities, we assume that there exist 
+
+reliable error estimators ξhc and ξh 
+
+> G
+
+for the state and adjoint, respectively, such that ξhc → 0 and 
+
+ξh 
+
+> G
+
+→ 0 as h → 0 for arbitrary fixed z ∈ N Z . We can then employ these estimators to produce the bounds 
+
+c(Sh(z), z ) V∗ ≤ C1κc1 ξhc + κc2 ch(Sh(z), z ) (Vh)∗ (12a) 
+
+G(Sh(z), z, λ h) U∗ ≤ C2κG1 ξh 
+
+> G
+
++ κG2 Gh(Sh(z), z, λ h) (Uh)∗ , (12b) 8with finite, unknown constants κci > 0 and κGi > 0 and positive constants Ci > 0 for i = 1 , 2, independent of mesh parameter h. Through adaptive refinement, we generate a hierarchy of meshes with parameter hk at each optimization iteration k. We denote the mesh parameter at each sub-iteration within the refinement by hk,ℓ , which we then test against the value τ val  
+
+> k
+
+> 0 and derivative 
+
+τ der  
+
+> k
+
+tolerances provided by the trust-region algorithm. In particular, at the k-th trust-region iteration, we refine the mesh as well as the state and adjoint approximations to satisfy 
+
+κc1 ξhk,ℓ  
+
+> c
+
++ κc2 chk,ℓ (uhk,ℓ , z ) (Vhk,ℓ )∗ ≤ τ val  
+
+> k
+
+, (13a) for the objective value at current z = zk and trial z = z+ 
+
+> k
+
+iterates, and for the derivative 
+
+ξhk,ℓ  
+
+> c
+
++ ξhk,ℓ  
+
+> G
+
++ Ghk,ℓ (uhk,ℓ , z k, λ hk,ℓ ) (Uhk,ℓ )∗
+
++ chk,ℓ (uhk,ℓ , z k) (Vhk,ℓ )∗ ≤ τ der  
+
+> k
+
+. (13b) We summarize our mesh refinement procedure for evaluating the objective function f (z) and its derivative in Algorithms 1 and 2. In the subsequent section, it will become clear why two objective 
+
+Algorithm 1 AFEM Objective Function Evaluation 
+
+Require: Initial mesh T hk, 0 with parameter hk, 0 ← hk, iterates zk and z+ 
+
+> k
+
+, tolerances τ val max , τ val  
+
+> k
+
+>
+
+0, and refinement fraction θ ∈ (0 , 1).  
+
+> 1:
+
+for ℓ = 0 , 1, 2, . . . do  
+
+> 2:
+
+Solve: On T hk,ℓ , compute uhk,ℓ ≈ S(zk) and uhk,ℓ  
+
+> +
+
+≈ S(z+ 
+
+> k
+
+) satisfying 
+
+chk,ℓ (uhk,ℓ , z k) (Vhk,ℓ )∗ ≤ min {τ val max , τ val  
+
+> k
+
+}
+
+chk,ℓ (uhk,ℓ  
+
+> +
+
+, z + 
+
+> k
+
+) (Vhk,ℓ )∗ ≤ min {τ val max , τ val  
+
+> k
+
+} 
+
+> 3:
+
+Estimate: Evaluate ξhk,ℓ  
+
+> c
+
+and ξhk,ℓ  
+
+> c, +
+
+at zk and z+ 
+
+> k
+
+, respectively.  
+
+> 4:
+
+Check: If ξhk,ℓ  
+
+> c
+
+≤ min {τ val max , τ val  
+
+> k
+
+} and ξhk,ℓ  
+
+> c, +
+
+≤ min {τ val max , τ val  
+
+> k
+
+}, break . 
+
+> 5:
+
+Mark: Select minimal subset Mℓ ⊂ T hk,ℓ for refinement via the D¨ orfler (bulk-chasing) strategy [26]: 
+
+X 
+
+> T∈M ℓ
+
+ξ2 
+
+> T
+
+≥ θ X  
+
+> T∈T hk,ℓ
+
+ξ2 
+
+> T
+
+,
+
+where ξT denotes the local element indicator on T . 
+
+> 6:
+
+Refine: Refine marked elements Mℓ (e.g., using newest-vertex bisection [51]) to obtain a conforming mesh T hk,ℓ +1 . 
+
+> 7:
+
+end for  
+
+> 8:
+
+return Approximate objective function evaluations at zk and z+ 
+
+> k
+
+via 
+
+Fk(zk) = J(uhk,ℓ , z k) + ϕ(zk) and Fk(z+ 
+
+> k
+
+) = J(uhk,ℓ  
+
+> +
+
+, z + 
+
+> k
+
+) + ϕ(z+ 
+
+> k
+
+).
+
+function values are approximated by Algorithm 1. These values, zk and z+ 
+
+> k
+
+, coincide with the current and trial iterates generated by our trust-region method. To ensure sufficient decrease, 9we require that our approximation of the difference of the objective function at these values is sufficiently accurate. Notice that Algorithms 1 and 2 use the same refinement mechanisms (i.e., 
+
+Algorithm 2 AFEM Derivative Evaluation 
+
+Require: Initial mesh T hk, 0 with parameter hk, 0 ← hk, zk, tolerances τ der max , τ der  
+
+> k
+
+> 0, and refine-ment fraction θ ∈ (0 , 1).  
+
+> 1:
+
+for ℓ = 0 , 1, 2, . . . do  
+
+> 2:
+
+Solve: On T hk,ℓ , compute uhk,ℓ ≈ S(zk) and λhk,ℓ ≈ Λ( S(zk), z k) satisfying 
+
+chk,ℓ (uhk,ℓ , z k) (Vhk,ℓ )∗ ≤ min {τ der max , τ der  
+
+> k
+
+}
+
+Ghk,ℓ (uhk,ℓ , z k, λ hk,ℓ ) (Uhk,ℓ )∗ ≤ min {τ der max , τ der  
+
+> k
+
+}. 
+
+> 3:
+
+Estimate: Evaluate ξhk,ℓ  
+
+> c
+
+and ξhk,ℓ  
+
+> G
+
+for the state and adjoint at zk, respectively.  
+
+> 4:
+
+Check: If ξhk,ℓ  
+
+> c
+
++ ξhk,ℓ  
+
+> G
+
+≤ min {τ der max , τ der  
+
+> k
+
+}, break . 
+
+> 5:
+
+Mark: Select minimal subset Mℓ ⊂ T hk,ℓ for refinement via the D¨ orfler (bulk-chasing) strategy: 
+
+X 
+
+> T∈M ℓ
+
+ξ2 
+
+> T
+
+≥ θ X  
+
+> T∈T hk,ℓ
+
+ξ2 
+
+> T
+
+,
+
+where ξT is the combined state and adjoint local element indicator on T . 
+
+> 6:
+
+Refine: Refine marked elements Mℓ (e.g., using newest-vertex bisection) to obtain a con-forming mesh T hk,ℓ +1 . 
+
+> 7:
+
+end for  
+
+> 8:
+
+return Derivative approximation gk = g(uhk,ℓ , z k, λ hk,ℓ ) and the total error estimator 
+
+ξ = ξhk,ℓ  
+
+> c
+
++ ξhk,ℓ  
+
+> G
+
++ chk,ℓ (uhk,ℓ , z k) (Vhk,ℓ )∗ + Ghk,ℓ (uhk,ℓ , z k, λ hk,ℓ ) (Uhk,ℓ )∗ .
+
+bulk chasing and newest-vertex bisection). The primary difference between the two being that Algorithm 1 only refines the state approximation, while Algorithm 2 refines both the state and adjoint approximations. 
+
+# 4 Trust-Region Algorithm 
+
+At the k-th iteration, classical trust-region methods compute a trial iterate z+ 
+
+> k
+
+by approximately minimizing a local model of the objective function around the current iterate zk within the current trust region, i.e., the ball of radius ∆ k > 0 centered at zk. To handle nonsmooth objective functions with the form of F , [6] employs the model mk(z) := fk(z) + ϕ(z), where fk : Z → R is a smooth approximation of f around zk. For computational convenience, we utilize quadratic models of the form 
+
+fk(z) := 12 ⟨Bk(z − zk), z − zk⟩Z∗,Z + ⟨gk, z − zk⟩Z∗,Z ,
+
+where Bk = B∗ 
+
+> k
+
+∈ L (Z, Z∗) models curvature information (i.e., the Hessian or a secant approx-imation thereof) and gk ≈ f ′(zk). As in [6, Algorithm 1], we compute trial iterates z+ 
+
+> k
+
+that 10 approximately solve the subproblem min  
+
+> z∈Z
+
+mk(z) subject to ∥z − zk∥Z ≤ ∆k, (14) using the proximal methods introduced in [8]. In particular, we require that z+ 
+
+> k
+
+satisifies the trust-region constraint (up to a constant) 
+
+z+ − zk Z ≤ κrad ∆k
+
+and the fraction of Cauchy decrease condition 
+
+mk(zk) − mk(z+ 
+
+> k
+
+) ≥ κfcd Ψk min 
+
+
+
+∆k, Ψk
+
+1 + ∥Bk∥L(Z,Z∗)
+
+
+
+, (15) where Ψ k, defined as Ψk := t−1 
+
+> k
+
+∥Prox tk ϕ(zk − tk∇fk(zk)) − zk∥Z , (16) indicates the stationarity of the iterate zk for the model mk. Here, κrad > 0 and κfcd > 0 are constants independent of k. In our numerical examples, we choose the parameter tk to be Cauchy point step length, as in [6, Algorithm 5] and [8, Section 5.1], although one could simply take tk to be a constant. The fraction of Cauchy decrease condition (15) ensures that z+ 
+
+> k
+
+∈ dom ϕ since the left-hand side would be −∞ otherwise. Traditionally, one decides whether to accept or reject the trial iterate z+ 
+
+> k
+
+based on the ratio of actual and predicted reductions ˜ρk := ared k
+
+pred k
+
+:= F (zk) − F (z+ 
+
+> k
+
+)
+
+mk(zk) − mk(z+ 
+
+> k
+
+) . (17) Concretely, given user-specified parameters 0 < η 1 < η 2 < 1, we accept the trial iterate zk+1 = z+
+
+> k
+
+if ˜ ρk ≥ η1 and otherwise we reject the trial iterate zk+1 = zk. Moreover, if ˜ ρk < η 1, we decrease the trust-region radius, i.e., ∆ k+1 < ∆k, and if ˜ ρk ≥ η2, we increase the trust-region radius, i.e., ∆k+1 > ∆k.For (1), exact evaluations of the objective function F are not possible since they require the solution of a system of PDEs to evaluate S(z) and hence f (z) = J(S(z), z ). For this problem, we replace F with an AFEM approximation Fk and employ the computed reduction cred k := Fk(zk) − Fk(z+ 
+
+> k
+
+).
+
+For step acceptance and trust-region radius update, we replace ˜ ρk with the ratio of computed and predicted reductions 
+
+ρk := cred k
+
+pred k
+
+. (18) In order to guarantee convergence of the trust-region method, we require that the AFEM ap-proximation of the objective function is sufficiently accurate as defined in the following condition. 
+
+Condition 1 (Inexact Value) . There exists a constant κval > 0, independent of k, such that the AFEM approximation of the objective function value satisfies 
+
+|ared k − cred k| ≤ κval ζk and ζjk ≤ γ min {pred k, ϵ k} ∀ k. (19) 
+
+Here, j ∈ (0 , 1) and γ < min {η1, 1 − η2} are independent of k, and {ϵk} ⊂ [0 , +∞) satisfies ϵk → 0.
+
+11 We satisfy Condition 1 using the mesh refinement algorithm listed as Algorithm 1 with τ val  
+
+> k
+
+=¯κval [η min {pred k, ϵ k}]1/j for some postive user-specified constant ¯ κval > 0. As with the evaluation of f , the derivative f ′ also cannot be compute exactly. However, the model derivative gk will heavily influence the search direction and overall performance of the al-gorithm. For this reason, we require that the approximation gk := f ′
+
+> k
+
+(zk) ≈ f ′(zk) satisfies the following accuracy requirement. 
+
+Condition 2 (Inexact Derivative) . There exists κder > 0, independent of k, such that the model derivative gk satisfies 
+
+gk − f ′(zk) Z∗ ≤ κder min {Ψk, ∆k} ∀ k. (20) Note that the quantities in the right-hand side of the inexact objective function condition (19) are available at the time of evaluating the computed reduction, while the right-hand side of the inexact derivative condition (20) depends on Ψ k, which in turn depends on gk. Consequently, (20) must be satisfied iteratively as described in Algorithm 3. 
+
+Algorithm 3 Iterative AFEM Derivative Evaluation 
+
+Require: Initial mesh T hk, 0 with parameter hk, 0 ← hk, zk, tolerances τ der max , τ der  
+
+> k
+
+> 0, refinement fraction θ ∈ (0 , 1), ¯ κder > 0, and ∆ k. 
+
+> 1:
+
+Set tolerance: Set τ = ¯ κder ∆k and choose ξ > τ . 
+
+> 2:
+
+while ξ > τ do  
+
+> 3:
+
+Derivative computation: Compute gk ≈ f ′(zk) and error ξ using Algorithm 2 with toler-ance τ der  
+
+> k
+
+= τ . 
+
+> 4:
+
+Tolerance update: Compute Ψ k (16) and update τ = ¯ κder min {Ψk, ∆k}. 
+
+> 5:
+
+end while  
+
+> 6:
+
+return The approximate derivative gk.Combining Algorithms 1 and 3 with [6, Algorithm 2], we arrive at the trust-region AFEM solution procedure for (1) listed in Algorithm 4. The subsequent result summarizes the various global convergence results in [8, Theorems 1 and 2]. 
+
+Theorem 1 (Convergence of Algorithm 4) . Let {zk} ⊂ Z be the sequence of iterates generated by Algorithm 4 and let Assumption 2 holds. In addition, suppose that the sequence of model Hessians 
+
+{Bk} ⊂ L (Z, Z∗) satisfy ∞X
+
+> k=1
+
+11 + max 
+
+> i=1 ,...,k
+
+∥Bi∥L(Z,Z∗)
+
+= + ∞ (21) 
+
+and the sequence of AFEM adjoint variables {λhk } is bounded by κadj > 0. Then 
+
+lim inf  
+
+> k→∞
+
+Ψk = 0 and lim inf  
+
+> k→∞
+
+Ψ( zk, t k) = 0 .
+
+Moreover, if there exists tmax > 0 such that tk ≤ tmax for all k, then 
+
+lim inf  
+
+> k→∞
+
+Ψ( zk, t ) = 0 ∀ t > 0.
+
+Finally, if there exists κcurv > 0 such that ∥Bk∥L(Z,Z∗) ≤ κcurv for all k, then 
+
+lim  
+
+> k→∞
+
+Ψk = 0 and lim  
+
+> k→∞
+
+Ψ( zk, t ) = 0 ∀ t > 0.
+
+12 Algorithm 4 Trust-region AFEM algorithm 
+
+Require: Inital guess z0 ∈ dom ϕ and radius ∆ 0 > 0, and constants 0 < η 1 < η 2 < 1, 0 < γ 1 ≤
+
+γ2 < 1 ≤ γ3, θ ∈ (0 , 1), ¯ κval > 0, ¯ κder > 0, τ val max > 0, τ der max > 0, 0 < γ < min {η1, 1 − η2} and 
+
+j ∈ (0 , 1), and the positive sequence {ϵk} ⊂ (0 , ∞).  
+
+> 1:
+
+for k = 0 , 1, 2, · · · do  
+
+> 2:
+
+Model selection: Compute gk via Algorithm 3 and Bk = B∗ 
+
+> k
+
+∈ L (Z, Z∗).  
+
+> 3:
+
+Step computation: Compute trial iterate z+ 
+
+> k
+
+satisfying (15).  
+
+> 4:
+
+Step acceptance: Evaluate cred k via Algorithm 1 with τ val  
+
+> k
+
+= ¯ κval [η min {pred k, ϵ k}]1/j . 
+
+> 5:
+
+if ρk < η 1 then  
+
+> 6:
+
+zk+1 ← zk 
+
+> 7:
+
+∆k+1 ∈ [γ1∆k, γ 2∆k] 
+
+> 8:
+
+else  
+
+> 9:
+
+zk+1 ← z+ 
+
+> 10:
+
+if ρk ∈ [η1, η 2) then  
+
+> 11:
+
+∆k+1 ∈ [γ2∆k, ∆k] 
+
+> 12:
+
+else  
+
+> 13:
+
+∆k+1 ∈ [∆ k, γ 3∆k] 
+
+> 14:
+
+end if  
+
+> 15:
+
+end if  
+
+> 16:
+
+end for 
+
+Proof. This results follows [8, Theorems 1 and 2] if Conditions 1 and 2 are satisfied by Algo-rithms 1 and 2. However, Conditions 1 and 2 are verified by Proposition 2 and (12). In par-ticular, (19) holds with κval = 2 α4 max {κc1 , κ c2 }¯κval and (20) holds with κder = 3 max {α5(1 + 
+
+κadj ), α 6} max {κc1 , κ c2 , κ G1 , κ G2 }¯κder .Note that the Hessian growth condition (21) is weaker than the typical requirement of bounded model Hessians, cf. [6, 22, 49], and is satisfied for certain classes of problems when using, e.g., safeguarded secant approximations [22]. Moreover, the approximate adjoints are typically bounded since the sequence of true adjoints is bounded via Assumption 2. This is the case when, e.g., the discretized adjoint Jacobians chk 
+
+> u
+
+(u, z )∗ satisfy the discrete analogue of the uniform inf-sup condition (5b) and the discretized states satisfy uhk ∈ N U . In addition, Theorem 1 ensures that the iterates of Algorithm 4 will satisfy Ψk ≤ ε
+
+for fixed ε > 0 after only finitely many iterations. For worst-case complexity analysis, see [6, 41]. Furthermore, under additional assumptions, one can prove that the Algorithm 4 iterates converge superlinearly, even quadratically [7, Theorem 3]. 
+
+# 5 Numerical Examples 
+
+We now illustrate our approach on two numerical examples. The first is a sparse-control problem governed by Poisson’s equation on the L-shaped domain. The second is the more challenging, heat-conduction topology optimization problem studied in [31]. Throughout this section, we denote the physical domain by Ω ⊂ R2 and the number of degrees of freedom (DoFs) by Ndof . For both examples, U = V, Uh = Vh, and Z = L2(Ω). Moreover, we represent the control z ∈ Z at each iteration by a piecewise constant function defined on the associated mesh T h, thus generating a sequence of controls defined on a sequence of nested meshes. For all results, we terminate 13 Algorithm 4 when Ψ k ≤ 10 −6 and we set the mesh refinement parameter θ = 0 .05. Moreover, we set ∆ 0 = 50, η1 = 0 .05, η2 = 0 .9, γ1 = 0 .25, γ2 = 1 .0, γ3 = 2 .5, τ val max = 1 .0, τ der max = 1 .0, 
+
+γ = ϵk = 1 − 10 −3, and j = 0 .9. We specify the values of ¯ κval and ¯ κder in each example. 
+
+5.1 A Posteriori Error Estimation for Elliptic PDEs 
+
+Since both applications are governed by elliptic PDEs, we now review a posteriori error estimation for the general elliptic PDE 
+
+−∇ · (A∇u) + bu = q in Ω (22a) 
+
+u = 0 on Γ D and (A∇u) · n = 0 on Γ N , (22b) where Γ D and Γ N are disjoint subsets of the boundary ∂Ω satisfying ∂Ω = Γ D ∪ ΓN . Moreover, 
+
+A : Ω → R2×2 is a symmetric matrix function that is uniformly coercive and bounded, i.e., there exists 0 < a min ≤ amax < ∞ such that 
+
+v⊤Av ≥ amin and ∥A∥ ≤ αmax a.e. ,
+
+and b ∈ L∞(Ω) is nonnegative a.e. We denote the solution space for (22) by 
+
+U = H1ΓD (Ω) := {u ∈ H1(Ω) | u|ΓD = 0 }
+
+and assume that q ∈ U ∗. We further assume that either Γ D̸ = ∅ or that there exists Ω b ⊆ Ωwith postive measure on which b > 0 a.e. Under these assumptions, the bilinear form associated with the weak form of (22) is symmetric, continuous and coercive. Consequently, the Lax-Milgram Lemma guarantees existence and uniqueness of solutions. We discretize (22) using continuous finite elements defined on a mesh T h. For each mesh element T ∈ T h, we denote the space of degree 
+
+s ∈ N polynomials on T by Ps(T ) and the finite-element solution space by 
+
+Uh = {v ∈ C( ¯Ω) ∩ U | v|T ∈ Ps(T ) ∀ T ∈ T h}. (23) Let u ∈ U denote the solution to (22) and uh ∈ U h its finite-element approximation. As in [16], there exists a positive constant C3, independent of mesh parameter h, such that the error between 
+
+u and uh satisfies 
+
+∥u − uh∥2 
+
+> U
+
+≤ C33X
+
+> i=1
+
+(ξh
+
+> U,i
+
+)2, (24) where ξh
+
+> U,i
+
+, i = 1 , 2, 3, are reliable a posteriori error estimators for the volume residual (ξh
+
+> U,1
+
+)2 := X  
+
+> T∈T h
+
+h2 
+
+> T
+
+∥q + ∇ · (A∇uh) − bu h∥2 
+
+> L2(T)
+
+,
+
+and the edge jump residuals (ξh
+
+> U,2
+
+)2 := X
+
+> e∈E h
+> Ω
+
+he∥[( A∇uh) · n]∥2 
+
+> L2(e)
+
+and (ξh
+
+> U,3
+
+)2 := X
+
+> e∈E h∂Ω
+
+he∥(A∇uh) · n∥2
+
+> L2(e)
+
+.
+
+Here, Eh∂Ω := {E ∈ E h | E ∈ ΓN } denotes the set of Neumann edges and [ ·] denotes the jump across interior edge e. Similarly, as in [24, 45], the following reliable a posteriori L∞-error estimate holds: for a positive constant C4 > 0, independent of h, we have 
+
+∥u − uh∥L∞(Ω) ≤ C4| log h|23X
+
+> i=1
+
+ξh
+
+> ∞,i
+
+, (26) 14 where the volume residual ξh 
+
+> ∞,1
+
+is 
+
+ξh 
+
+> ∞,1
+
+:= max    
+
+> T∈T h
+
+h2 
+
+> T
+
+∥q + ∇ · (A∇uh) − bu h∥L∞(T )
+
+and the edge jump residuals are 
+
+ξh 
+
+> ∞,2
+
+:= max 
+
+> e∈E h
+> Ω
+
+he∥[( A∇uh) · n]∥L∞(e) and ξh 
+
+> ∞,3
+
+:= max 
+
+> e∈E h∂Ω
+
+he∥(A∇uh) · n∥L∞(e).
+
+5.2 Poisson Control on the L-Shaped Domain 
+
+Let Ω ⊂ R2 be the nonconvex L-shaped domain and consider the following distributed optimal control problem: min 
+
+> z∈Z
+
+12 ∥S(z) − ud∥2 
+
+> L2(Ω)
+
++ α
+
+2 ∥z∥2 
+
+> L2(Ω)
+
++ β∥z∥L1(Ω) , (28) where the state S(z) = u ∈ U = H10 (Ω) solves the Poisson equation 
+
+−∆u = z in Ω , and u = 0 on ∂Ω, (29a) and the regularization parameters are α = 10 −4 and β = 10 −2. With respect to (1), J(S(·), ·) is the data misfit and L2 regularization and ϕ is the L1 regularization. For the discretized state uh,we utilize the computable error estimators in (24) with A = I the identity matrix, b ≡ 0, q = z
+
+and Γ D = ∂Ω. Similarly, we use (24) for the discretized adjoint λh, where again A = I, b ≡ 0 and ΓD = ∂Ω, but q = uh − ud. Note that for this example, ξh 
+
+> U,3
+
+= 0 for both the state and adjoint. We discretize (29) using quadratic finite elements on a triangular mesh because, as observed in [56, 7.1.2], the error estimators for linear elements decay too slowly; see the first row of Figure 1 for a depiction of the initial grid. We start with 225 state DoFs and cap refinement at 10,000 DoFs. We additionally set the inexact constants to be ¯ κval = ¯ κder = 10 6. Figure 1 depicts the control at iterations k ∈ { 0, 4, 5, 8}, where k = 8 is the final iteration. We observe that as Algorithm 4 progresses, the state and control are refined around the re-entrant corner, accurately capturing the sharp local behavior induced by the corner. 
+
+5.3 Heat Conduction Topology Optimization 
+
+We turn our attention to the heat-conduction topology optimization problem in which we compute a distribution of material z : Ω → [0 , 1] in Ω = (0 , 1) 2 that minimizes energy while satisfying a volume constraint: min 
+
+> z∈Z
+
+Z
+
+> Ω
+
+[q · S(z)]( x)d x subject to 
+
+Z
+
+> Ω
+
+z(x) d x = v0|Ω|, 0 ≤ z ≤ 1 a.e. , (30) where S(z) = u ∈ U = H1ΓD (Ω) solves the diffusion equation 
+
+−div[ K(Fz)∇u] = q in Ω , (31a) 
+
+K(Fz)∇u · n = 0 on ∂ΩN , (31b) 
+
+u = 0 on ∂ΩD, (31c) where K(ρ) is the cubic solid isotropic material with penalization (SIMP) material model, i.e., 
+
+K(ρ) = Kmin + ( Kmax − Kmin )ρ3 and ρ = Fz ∈ H1(Ω) is the Helmholtz-filtered density, which is computed by solving 
+
+−r∆ρ + ρ = z in Ω , (32a) 
+
+∇ρ · n = 0 on ∂Ω. (32b) 15 Ndof k Grid z uh
+
+225 0
+
+600 4
+
+2 · 10 3 5
+
+10 4 8
+
+Figure 1: Results of Algorithm 4 for the Poisson control problem. The last row represents the final iteration mesh, control, and state. The maximum DoFs limit of 10,000 is reached at iteration 5, resulting in 3 full budget iterations. With respect to (1), J(S(·), ·) is the objective function in (30) and ϕ is the indicator function of the constraints. The sets ∂ΩD and ∂ΩN are disjoint subsets of the boundary ∂Ω satisfying ∂ΩD̸ = ∅,and ∂ΩD ∪ ∂ΩN = ∂Ω. We consider the two examples depicted in Figure 2. In the first (i.e. the left panel in Figure 2), we have 
+
+∂ΩD = ( {0} × [0 , 1]) ∪ ([0 , 1] × { 1}) and v0 = 0 .4,
+
+16 Ω        
+
+> Neumann: ( K(z)∇u)·n= 0
+> Dirichlet: u= 0
+> Ω
+> Dirichlet:  u = 0
+> Neumann: ( K(z)∇u)·n= 0
+
+Figure 2: Illustration of the boundary conditions for the heat conduction topology optimization problems. The left figure shows Neumann conditions on the top and left sides, and Dirichlet conditions on the bottom and right sides. The right figure depicts Neumann conditions everywhere except an interval around x = (0 , 0.5). while in the second (i.e. the right graphic of Figure 2), we have 
+
+∂ΩD = {0} × [0 .4, 0.6] and v0 = 0 .1.
+
+For both examples, we set ¯ κval = ¯ κder = 10 9 and the maximum number of degrees of freedom to be 150,000; this number was informed by [56]. The reasoning for such high values of ¯ κval and ¯ κder is to deter refinement at the beginning of the algorithm, thereby avoiding the slow convergence associated with the linear discretization. For both examples, we set q ≡ 10 −2, Kmax = 1, Kmin = 10 −3 and 
+
+r ≡ 10 −2/(2 √3). For a density z ∈ Z , let ρ = Fz be the filtered density, which solves (32). We discretize (32) using linear finite elements and denote the finite-element approximation of ρ by ρh. As we will see, we must bound the L∞-error in the density variables, which we do using (26) with A = rI,
+
+b ≡ 1, q = z and Γ D = ∅. To maintain coercivity and boundedness of (32), we use a lumped mass matrix for the second term on the left-hand side to ensure that the finite-element solution of the filter equation (32) does not violate the discrete maximum principle [4]. In contrast to the filter equation, we discretize the state equation (31) using quadratic finite elements. We denote the continuous state by u = S(z), the continuous state associated with the discrete filtered density ρh by ¯ uh and the fully discrete state by uh. To bound the error u − uh, we individually bound the errors u − ¯uh and ¯ uh − uh. Since uh is the finite-element approximation of ¯uh, we can employ similar error estimates as in Section 5.2, where we note here that the adjoint and state variables associated with (31) are equal up to scaling by −1. Consequently, we do not solve the adjoint equation or account for the adjoint error in mesh refinement. To bound the error w := u − ¯uh, we first leverage (31), which yields 
+
+Z
+
+> Ω
+
+(K(ρ)∇w) · ∇ v dx =
+
+Z
+
+> Ω
+
+(( K(ρ) − K(ρh)) ∇¯uh · ∇ v dx ∀ v ∈ U . (33) Setting v = w in (33) and using K(·) ≥ Kmin yields 
+
+Kmin ∥∇ w∥2 
+
+> L2(Ω)
+
+≤
+
+Z
+
+> Ω
+
+K(ρ)|∇ w|2 dx = −
+
+Z
+
+> Ω
+
+(( K(ρ) − K(ρh)) ∇¯uh) · ∇ w dx (34) 
+
+≤ ∥ K(ρ) − K(ρh)∥L∞(Ω) ∥∇ ¯uh∥L2(Ω) ∥∇ w∥L2(Ω) (35) where the final inequality follows from H¨ older’s inequality. Hence 
+
+Kmin ∥∇ (u − ¯uh)∥L2(Ω) ≤ (Kmax − Kmin )∥ρ3 − (ρh)3∥L∞(Ω) ∥∇ ¯uh∥L2(Ω) 
+
+= ( Kmax − Kmin )∥ρ − ρh∥L∞(Ω) ∥ρ2 + ρρ h + ( ρh)2∥L∞(Ω) ∥∇ ¯uh∥L2(Ω) .
+
+17 Finally, since ¯ uh ∈ U , we bound the error w using (26). Combining this with (24) (with A = K(ρh)I,
+
+b ≡ 0 and Γ N = ∂ΩN ) to bound the error between ¯ uh and uh yields the error bound 
+
+∥u − uh∥U ≤ C| log h|23X
+
+> i=1
+
+ξh 
+
+> ∞,i
+
++
+
+> 3
+
+X
+
+> i=1
+
+(ξh
+
+> U,i
+
+)2
+
+! 12
+
+.
+
+where C > 0 is a positive constant independent of h.Owing to the symmetry of the domains and boundary conditions in Figure 2, the solutions to (30) are also symmetric. To enforce this symmetry, we discretize and optimize over half the domain. For the first example, the half domain is {(x, y ) ∈ Ω | x ≤ 1 − y} and the second is (0 , 1) × (0 , 0.5). The initial mesh for both examples on the full domain was generated by bisecting the elements of a uniform 64 × 64 mesh of quadrilateral elements. After restricting to the half domains, this resulted in 4225 DoFs for the first example and 4193 DoFs for the second; note the discrepancy stems from the Neumann conditions. We depict the results in Figure 3 and Figure 4. In Figure 3, we observe refinement around the sharp features of the density, thereby resulting in a crisper image. The refinement starts on itera-tion 48, and Algorithm 4 achieves the stopping tolerance at iteration 90. Note that our optimization routine does roughly 10 iterations with 150,000 DoF. Likewise, Figure 4 depicts refinement again around the sharp features of the density. Additionally, we hit the DoF limit near the end of the run, again performing about 10 iterations with the full DoF budget. Importantly, the refinement during the final few iterations of Algorithm 4 addresses the fine-scaled features near the edges of the density, cf. the last rows of Figures 3 and 4. 
+
+# References 
+
+[1] M. Ainsworth and J. T. Oden. A posteriori error estimation in finite element analysis . Pure and Applied Mathematics (New York). Wiley-Interscience [John Wiley & Sons], New York, 2000. ISBN 0-471-29411-X. URL https://doi.org/10.1002/9781118032824 .[2] A. Allendes, F. Fuica, and E. Ot´ arola. Adaptive finite element methods for sparse PDE-constrained optimization. IMA J. Numer. Anal. , 40(3):2106–2142, 2020. ISSN 0272-4979,1464-3642. URL https://doi.org/10.1093/imanum/drz025 .[3] M. Alshehri, H. Antil, E. Herberg, and D. P. Kouri. An inexact semismooth newton method with application to adaptive randomized sketching for dynamic optimization. Finite Elem. Anal. Des. , 228:104052, 2024. ISSN 0168-874X. doi: https://doi.org/10.1016/j.finel.2023. 104052. [4] H. Antil, D. P. Kouri, D. Ridzal, D. B. Robinson, and M. Salloum. Uniform flow in ax-isymmetric devices through permeability optimization. Optim. Eng. , 2023. doi: 10.1007/ s11081-023-09820-0. [5] W. Bangerth and R. Rannacher. Adaptive Finite Element Methods for Differential Equations .Lectures in Mathematics, ETH Z¨ urich. Birkh¨ auser Basel, Basel, 2003. ISBN 978-3-0348-76-5-6. [6] R. J. Baraldi and D. P. Kouri. A proximal trust-region method for nonsmooth optimization with inexact function and gradient evaluations. Math. Program. , 201(1-2):559–598, 2023. ISSN 0025-5610,1436-4646. URL https://doi.org/10.1007/s10107-022-01915-3 .18 Ndof k Grid z uh
+
+4225 26 
+
+5 · 10 4 48 
+
+1.1 · 10 5 55 
+
+1.5 · 10 5 90 
+
+Figure 3: Results of Algorithm 4 for the first heat conduction topology optimization example. Our algorithm terminated after 90 iterations. Note Ndof s are approximate. [7] R. J. Baraldi and D. P. Kouri. Local convergence analysis of an inexact trust-region method for nonsmooth optimization. Optim. Lett. , 18(3):663–680, 2024. [8] R. J. Baraldi and D. P. Kouri. Efficient proximal subproblem solvers for a nonsmooth trust-region method. Comput. Optim. Appl. , 90(1):193–226, 2025. ISSN 0926-6003,1573-2894. URL 
+
+https://doi.org/10.1007/s10589-024-00628-x .[9] R. J. Baraldi, D. P. Kouri, and D. Ridzal. Trust-Region Methods with Inexact and Adaptive 
+
+19 Ndof k Grid z uh
+
+4193 21 
+
+2 · 10 4 52 
+
+5 · 10 4 76 
+
+1.5 · 10 5 147 
+
+Figure 4: Results of Algorithm 4 for the second heat conduction topology optimization example. Our algorithm terminated after 147 iterations. Note the Ndof s are approximate. 
+
+Computations , pages 1–8. Springer Nature Switzerland, Cham, 2025. ISBN 978-3-030-54621-2. doi: 10.1007/978-3-030-54621-2 891-1. [10] R. J. Baraldi, D. P. Kouri, and H. Antil. Memory-efficient nonsmooth dynamic opti-mization using adaptive randomized compression. Optim. Eng. , pages 1–32, 2026. doi: 10.1007/s11081-025-10061-6. [11] R. Becker and B. Vexler. A posteriori error estimation for finite element discretization 20 of parameter identification problems. Numer. Math. , 96:435–459, 2004. doi: 10.1007/ s00211-003-0482-9. [12] R. Becker and B. Vexler. Mesh refinement and numerical sensitivity analysis for parameter calibration of partial differential equations. J. Comput. Phys. , 206(1):95–110, 2005. doi: 10.1016/j.jfcp.2004.12.018. [13] R. Becker, H. Kapp, and R. Rannacher. Adaptive finite element methods for optimal control of partial differential equations: basic concept. SIAM J. Control Optim. , 39(1):113–132, 2000. doi: 10.1127/S0363012999351097. [14] S. Bellavia, S. Gratton, and E. Riccietti. A Levenberg–Marquardt method for large nonlinear least-squares problems with dynamic accuracy in functions and gradients. Numer. Math. , 140: 791–825, 2018. doi: 10.1007/s00211-018-0977-z. [15] M. Besier and R. Rannacher. Goal-oriented space–time adaptivity in the finite element galerkin method for the computation of nonstationary incompressible flow. Int. J. Numer. Methods Fluids , 70(9):1139–1166, 2012. doi: 10.1002/fld.2735. [16] A. Bonito, C. Canuto, R. H. Nochetto, and A. Veeser. Adaptive finite element methods. Acta Numer. , 33:163–485, 2024. ISSN 0962-4929,1474-0508. doi: 10.1017/S0962492924000011. [17] C. J. Budd, W. Huang, and R. D. Russell. Adaptivity with moving grids. Acta Numer. , 18: 111–241, 2009. [18] R. H. Byrd, F. E. Curtis, and J. Nocedal. An inexact SQP method for equality constrained optimization. SIAM J. Optim. , 19(1):351–369, 2008. doi: 10.1137/060674004. [19] C. Carstensen, M. Feischl, M. Page, and Praetorius. Axioms and adaptivity. Computers & Mathematics with Applications , 67(6):1195–1253, 2014. [20] R. G. Carter. On the global convergence of trust region algorithms using inexact gradient information. SIAM J. Numer. Anal. , 28:251–265, 1991. [21] R. G. Carter. Numerical experience with a class of algorithms for nonlinear optimization using inexact function and gradient information. SIAM J. Sci. Comput. , 14(2):368–388, 1993. doi: 10.1137/0914023. [22] A. R. Conn, N. I. M. Gould, and P. L. Toint. Global convergence of a class of trust region algorithms for optimization with simple bounds. SIAM J. Numer. Anal. , 25(2):433–460, 1988. ISSN 0036-1429. URL https://doi.org/10.1137/0725029 .[23] L. Demkowicz, W. Rachowicz, and P. Devloo. A fully automatic hp -adaptivity. SIAM J. Sci. Comput. , 17:117–142, 2002. doi: 10.1023/A:1015192312705. [24] A. Demlow and E. H. Georgoulis. Pointwise a posteriori error control for discontinuous Galerkin methods for elliptic problems. SIAM J. Numer. Anal. , 50(5):2159–2181, 2012. ISSN 0036-1429,1095-7170. doi: 10.1137/110846397. [25] A. Dontchev and R. T. Rockafellar. Convergence of inexact Newton methods for generalized equations. Math. Program. , 139:115–137, 2013. doi: 10.1007/s10107-013-0664-x. [26] W. D¨ orfler. A convergent adaptive algorithm for Poisson’s equation. SIAM J. Numer. Anal. ,33(3):1106–1124, 1996. ISSN 0036-1429. doi: 10.1137/0733054. 21 [27] A. Ern and J. Guermond. Theory and Practice of Finite Elements . Applied Mathematical Sciences. Springer New York, 2004. ISBN 9780387205748. [28] M. Fahl and E. W. Sachs. Reduced order modelling approaches to pde-constrained optimiza-tion based on proper orthogonal decomposition. In Large-scale PDE-constrained optimization ,pages 268–280. Springer, 2003. [29] M. Feischl, T. F¨ uhrer, M. Karkulik, and D. Praetorius. ZZ-type a posteriori error estimators for adaptive boundary element methods on a curve. Eng. Anal. Bound. Elem. , 38:49–60, 2014. doi: 10.1015/j.enganabound.2013.10.008. [30] S. Garreis and M. Ulbrich. Constrained optimization with low-rank tensors and applications to parametric problems with PDEs. SIAM J. Sci. Comput. , 39(1):A25–A54, 2017. [31] A. Gersborg-Hansen, M. P. Bendsøe, and O. Sigmund. Topology optimization of heat con-duction problems using the finite volume method. Struct. Multidiscip. Optim. , 31(4):251–259, 2006. ISSN 1615-147X,1615-1488. URL https://doi.org/10.1007/s00158-005-0584-3 .[32] M. Heinkenschloss and D. Ridzal. A matrix-free trust-region sqp method for equality con-strained optimization. SIAM J. Optim. , 24(3):1507–1541, 2014. [33] M. Heinkenschloss and L. N. Vicente. Analysis of inexact trust-region sqp algorithms. SIAM J. Optim. , 12(2):283–302, 2002. doi: 10.1137/S1052623499361543. [34] E. Hille and R. Phillips. Functional Analysis and Semi-groups . Number v. 27 in Colloquium publications. American Mathematical Society, 1957. [35] M. Hinterm¨ uller, R. H. Hoppe, and C. L¨ obhard. Dual-weighted goal-oriented adaptive finite elements for optimal control of elliptic variational inequalities. ESAIM: COCV , 20:524–546, 2014. doi: 10.1051/cocv/2013074. [36] M. Hinze, R. Pinnau, M. Ulbrich, and S. Ulbrich. Optimization with PDE Constraints . Math-ematical Modelling: Theory and Applications. Springer Dordrecht, 2008. ISBN 978-1-4020-8838-4. URL https://doi.org/10.1007/978-1-4020-8839-1 .[37] D. P. Kouri. A matrix-free trust-region Newton algorithm for convex-constrained optimization. 
+
+Optimization Letters , 2020. In Review. [38] D. P. Kouri, M. Heinkenschloss, D. Ridzal, and B. G. van Bloemen Waanders. A trust-region algorithm with adaptive stochastic collocation for PDE optimization under uncertainty. SIAM J. Sci. Comput. , 35(4):A1847–A1879, 2013. [39] D. P. Kouri, M. Heinkenschloss, D. Ridzal, and B. G. van Bloemen Waanders. Inexact objec-tive function evaluations in a trust-region algorithm for PDE-constrained optimization under uncertainty. SIAM J. Sci. Comput. , 36(6):A3011–A3029, 2014. [40] S. Lang. Undergraduate Analysis . Undergraduate Texts in Mathematics. Springer New York, 2005. ISBN 9780387948416. [41] G. Leconte and D. Orban. Complexity of trust-region methods with unbounded hessian approximations for smooth and nonsmooth optimization. Math. Program. , 2026. doi: 10.1007/s10107-025-02304-2. 22 [42] J. Li, M. Andersen, and L. Vandenberghe. Inexact proximal Newton methods for self-concordant functions. Math. Meth. Oper. Res. , 85:19–41, 2017. doi: 10.1007/ s00186-016-0566-9. [43] J. J. Mor´ e. Recent developments in algorithms and software for trust region methods , pages 258– 287. Springer Berlin Heidelberg, Berlin Heidelberg, 1983. doi: 10.1007/978-3-642-68874-1 11. [44] R. Muthukumar, D. P. Kouri, and M. Udell. Randomized sketching algorithms for low-memory dynamic optimization. SIAM J. Optim. , 31(2):1242–1275, 2021. [45] R. H. Nochetto. Pointwise a posteriori error estimates for elliptic problems on highly graded meshes. Math. Comp. , 64(209):1–22, 1995. ISSN 0025-5718,1088-6842. URL https://doi. org/10.2307/2153320 .[46] D. Pardo. Multigoal-oriented adaptivity for hp -finite element methods. Procedia Computer Science , 1(1):1953–1961, 2010. [47] J. Power and T. Pryer. Adaptive regularisation for PDE-constrained optimal control. J. Comput. Appl. Math. , 470:Paper No. 116651, 22, 2025. ISSN 0377-0427,1879-1778. URL 
+
+https://doi.org/10.1016/j.cam.2025.116651 .[48] Z. Shi and J. Shen. New inexact line search method for unconstrained optimization. J. Optim. Theory Appl. , 127:425–446, 2005. doi: 10.1007/s10957-005-6553-6. [49] P. L. Toint. Global convergence of a class of trust-region methods for nonconvex minimization in Hilbert space. IMA J. Numer. Anal. , 8(2):231–252, 1988. ISSN 0272-4979. URL https: //doi.org/10.1093/imanum/8.2.231 .[50] S. Ulbrich and J. C. Ziems. Adaptive multilevel trust-region methods for time-dependent PDE-constrained optimization. Port. Math. , 74(1):37–67, 2017. ISSN 0032-5155,1662-2758. URL https://doi.org/10.4171/PM/1992 .[51] R. Verf¨ urth. A posteriori error estimation and adaptive mesh-refinement techniques. In Pro-ceedings of the Fifth International Congress on Computational and Applied Mathematics (Leu-ven, 1992) , volume 50, pages 67–83, 1994. URL https://doi.org/10.1016/0377-0427(94) 90290-9 .[52] B. Vexler. Adaptive finite elements for output-oriented model calibration. In H. G. Bock, H. X. Phu, E. Kostina, and R. Rannacher, editors, Modeling, Simulation and Optimization of Complex Processes , pages 523–538, Berlin, Heidelberg, 2005. Springer Berlin Heidelberg. ISBN 978-3-540-27170-3. [53] B. Vexler and W. Wollner. Adaptive finite elements for elliptic optimization problems with control constraints. SIAM J. Control Optim. , 47(1):509–534, 2008. doi: 10.1137/070683416. [54] M. J. Zahr, K. T. Carlberg, and D. P. Kouri. An efficient, globally convergent method for optimization under uncertainty using adaptive model reduction and sparse grids. SIAM/ASA J. Uncertain. Quantif. , 7(3):877–912, 2019. ISSN 2166-2525. URL https://doi.org/10. 1137/18M1220996 .[55] J. C. Ziems. Adaptive multilevel inexact SQP-methods for PDE-constrained optimization with control constraints. SIAM J. Optim. , 23(2):1257–1283, 2013. ISSN 1052-6234,1095-7189. URL 
+
+https://doi.org/10.1137/110848645 .23 [56] J. C. Ziems and S. Ulbrich. Adaptive multilevel inexact SQP methods for PDE-constrained optimization. SIAM J. Optim. , 21(1):1–40, 2011. ISSN 1052-6234,1095-7189. doi: 10.1137/ 080743160. [57] O. C. Zienkiewicz and J. Z. Zhu. A simple error estimator and adaptive procedure for practical engineering analysis. Int. J. Numer. Methods Eng. , 24:337–357, 1987. doi: 10.1002/nme. 16202040206. [58] Z. Zou, D. P. Kouri, and W. Aquino. A locally adapted reduced-basis method for solving risk-averse PDE-constrained optimization problems. SIAM/ASA J. Uncertain. Quantif. , 10 (4):1629–1651, 2022. 24
