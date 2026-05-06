@@ -1,0 +1,2072 @@
+Title: Thermodynamically Constrained Information Geometric Regularization for Compressible Flows
+
+URL Source: https://arxiv.org/pdf/2604.27286v1
+
+Published Time: Fri, 01 May 2026 00:24:25 GMT
+
+Number of Pages: 36
+
+Markdown Content:
+# Thermodynamically Constrained Information Geometric Regularization for Compressible Flows 
+
+# Seth Taylor 1* , Raymond J. Spiteri 1 and Stéphane Gaudreault 2
+
+> 1
+
+Department of Computer Science, University of Saskatchewan, Saskatoon, Canada. 
+
+> 2
+
+Recherche en prévision numérique atmosphérique, Environnement et Changement climatique Canada, Dorval, Canada. *Corresponding author(s). E-mail(s): seth.taylor@usask.ca; 
+
+Abstract 
+
+We construct and analyze a thermodynamic extension of the recently proposed information geometric regularization of Cao and Schäfer. The construction extends their shock-mitigating Hessian metric geometry using the Shannon entropy to constrain the regularized motion based on a thermodynamic length. Reformulating the equations in terms of mass and specific entropy explicitly connects the thermodynamic state to a position in the diffeomorphism group, allowing for a derivation of the regularized equations using an information geometric mechanics formalism based on geodesics on a Hessian manifold with a dual affine connection. The dynamics are defined using a pullback geometry for the Levi–Civita connection, describing constrained geodesic motion, and the cubic Amari–Chentsov tensor describing the information geometric correction. This new compressible fluid model introduces an anisotropic stress tensor to the momentum equation that vanishes along isentropic directions and an additional elliptic equation coupled to the barotropic regularization. Numerical simulations in one and two spatial dimensions demonstrate that the geometrically consistent incorporation of a thermodynamic constraint mitigates cusp singularities previously observed in other approaches while still maintaining the benefits of an inviscid regularization. 
+
+# Contents 
+
+1 Introduction 22 Geometric Formalism 4
+
+2.1 Newton’s Equations on the Diffeomorphism Group . . . . . . . . . . . . . . . . . . . 42.2 Hessian Manifolds . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 72.3 Pullback of the Dual Geodesics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 82.4 Information Geometric Regularization . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+
+3 Thermodynamically Constrained Information Geometric Regularization 13 
+
+3.1 Thermodynamic Constraint . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13 3.2 TIGRE Equations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16 3.3 Properties of the Regularized Equations . . . . . . . . . . . . . . . . . . . . . . . . . 20 
+
+4 Numerical Experiments 23 
+
+4.1 Smoothed Sod Shock Tube . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26 4.2 Acoustic Wave Propagation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27 4.3 Kelvin–Helmholtz Instability . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28 
+
+5 Conclusion and Outlook 30 
+
+1
+
+> arXiv:2604.27286v1 [math.NA] 30 Apr 2026
+
+# 1 Introduction 
+
+Information Geometric Regularization for Compressible Flows 
+
+The numerical simulation of fluid dynamic models such as the Euler and Navier–Stokes equations that involve thermodynamic processes is central to the modelling, prediction, and control of natural phenomena [1 –3]. Despite their broad applicability, the full system of equations remains challenging to solve accurately and efficiently. Much of this difficulty stems from dynamical interactions across spatial and temporal scales, which generate multiscale solution structures that are expensive to resolve numerically. Turbulence and shock formation are two of the most prominent consequences. While turbulence remains a central challenge in both pure and applied mathematics, shock formation is a more direct structural property of the equations themselves. Although shocks may serve as an effective model for sharp moving fronts, the formation of a genuine singularity in the macroscopic description of the dynamics of a fluid can be seen as a pathology of the model rather than as a physical feature. Numerical methods designed to handle and capture shocks in compressible fluids have enabled applications such as aerodynamics, inertial confinement fusion, and numerical relativity [2, 4]. A precursor of many of these schemes was the work of Godunov [5], which demonstrated that disconti-nuities could be incorporated into a finite volume method through the solution of local Riemann problems. This approach was followed by foundational work on approximate Riemann solvers [6–9], higher-order accurate methods via reconstruction techniques such as monotonicity upstream meth-ods [10], essentially non-oscillatory [11], and weighted essentially non-oscillatory methods [12, 13], and nonlinear reconstruction schemes avoiding the use of Riemann solvers [14, 15]. These methods all share a common starting point: they solve the original system, which admits singularities, and regu-larize the problem numerically. An alternative standpoint is to modify the model into a new system of equations that maintains the physics of sharp moving fronts without a mathematical singularity formation. Viscous regularizations [16 –19], which systematically introduce dissipation to create a smoothing effect on the shock formation, are the most common approach along this line. Regulariza-tion via dissipation, however, fundamentally alters the equations of motion and can compromise their turbulent multi-scale dynamics by removing energy from the system at small length scales [20–22]. The recently proposed information geometric regularization (IGR) of Cao and Schäfer [23] offers a novel method for inviscid regularization by leveraging a geometric relation between shock formation and a boundary geometry on the space of diffeomorphisms of the fluid domain [24]. The loss in regularity exhibited by the barotropic Euler equations can be associated with the degeneration of the Jacobian determinant of the Lagrangian flow map. In a beautiful application of geometry to scientific computing, the IGR methods leveraged an interior-point formulation to regularize the equations of motion based on a convex barrier functional that extends the vanishing Jacobian determinant boundary to infinity. Convex functionals of this form and their resulting Hessian metrics are common tools in information geometry [25] on the space of probability densities. The methods introduced by [23] provide a first-principles hydrodynamical approach to mitigating shock formation by introducing an alternative mechanical structure on the space that differs from the Lagrangian or Hamiltonian structures commonly used to define alternative flow models. It has been demonstrated that, in one spatial dimension, these equations are globally well-posed [26]. 
+
+Thermodynamic Extensions 
+
+The IGR methods were originally derived in a barotropic setting, and first steps have been taken in the work of [27] to incorporate thermodynamic processes where the regularized equations of motion took the form 
+
+∂tρu + ∇ · (ρu ⊗ u + ( p(E, ρ ) + Σ) I) = 0 ,∂tρ + ∇ · (ρu) = 0 ,∂tE + ∇ · (( E + p + Σ) u) = 0 ,ρ−1Σ − α∇ · (ρ−1∇Σ) = α ((div( u)) 2 + tr( ∇u2)) ,
+
+(1.1) where u is the fluid velocity, ρ the mass density, p is the pressure, E is the total energy density, and Σ is an ‘entropic pressure’ potential associated to the IGR regularization. This regularization approach was an enabling factor to circumvent the computational overhead of shock capturing for the simulation of multi-engine spacecraft at unprecedented scales [27]. However, the regularized system (1.1) was later shown to exhibit a thermodynamic inconsistency, manifested by a spurious spike in 2internal energy at wave collisions [28]. Barham et al. attributed this inconsistency to a geometric mis-match between the barotropic regularization and the full compressible Euler system and introduced several Hamiltonian regularizations of the equations of motions in response. Although these new sets of equations exhibited a conservation of energy, there still remained a spurious spike in energy density at wave-front collisions and they were recognized to introduce additional complications, such as higher-order derivatives in the state variables, that would hinder their numerical use. Their work highlighted that the information geometric mechanics fundamentally differs from the variational structure of Hamiltonian mechanics, and the resolution of this thermodynamic inconsistency within this framework was left as an open problem [28]. 
+
+Thermodynamically Constrained Information Geometric Regularization 
+
+The aim of this work is to develop an extension of the IGR methods that incorporates a thermodynamic regularization directly into the Hessian metric geometry defining the dynamics. The starting point is to rewrite the thermodynamic balance relations in terms of the entropy density 
+
+π = ρs , where s is the specific entropy, which satisfies a conservation law of the form 
+
+∂tπ + ∇ · (πu) = 0 . (1.2) As a transported quantity, the entropy density evolves via pushforward π = φ∗π0 with the Lagrangian flow map φ(t) : M → M defined by ˙φ = u ◦ φ. This perspective offers connection between the full thermodynamic state and a position within the diffeomorphism group. We extend the approach taken by Cao and Schäfer by defining the equations of motion using a convex barrier function in an ambient space in which the diffeomorphism group is embedded. In this setting, we consider an embedding 
+
+D(M ) ↪→ D (M ) × P (M ) × V (M ) ,
+
+which encodes the fluid deformation in the diffeomorphism group D(M ) of the fluid domain M , the mass density in the space of probabilities P(M ), and the entropy density in the space of positive densities (volume forms) V(M ). A similar submanifold geometry was used by Cao and Schafer [23] to derive the barotropic information geometric regularization with the first two components. We extend their convex barrier by constraining the motion to take a path that minimizes a thermodynamic length associated to the Kullback–Leibler divergence 
+
+DKL (π || ¯π) = 
+
+∫
+
+π(x) log( π(x)/¯π(x)) dx , (1.3) where ¯π is a reference entropy density. The equations of motion are then derived using information geometric mechanics, based on the dual affine connection of the pullback Hessian metric defined by the barrier function and the embedding. The resulting thermodynamically constrained information geometric regularization of the Euler (TIGRE) equations take the form 
+
+∂tρu + ∇ · (ρu ⊗ u + ( p(ρ, s ) + Σ) I) = −π∇χ , ∂tρ + ∇ · (ρu) = 0 ,∂tπ + ∇ · (πu) = 0 ,ρ−1Σ − α∇ · (ρ−1(∇Σ + π∇χ)) = α (div( u)2 + tr( ∇u2)) ,χ − βπ −1∇ · (πρ −1(∇Σ + π∇χ)) = β(div π (u)2 − tr( ∇u2) + ∇2 log π[u, u]) ,
+
+(1.4) where div π (u) = π−1div (πu) is an entropy weighted divergence and the additional entropic pressure potential χ arises from the extended barrier function, with the constants α, β > 0 controlling the strength of the regularization. The TIGRE system reduces to the barotropic IGR regularization as β → 0 and possesses many of the same desirable properties of the inviscid regularization. The additional potential responds to entropy weighted deformations of the flow by concentrating or expanding to generate a curvature-driven restoring force. The regularization can be naturally applied to the Navier–Stokes equations by including viscosity and forcing terms; however, its geometric structure is most transparently presented in the inviscid setting. We utilize an information geometric formalism to provide a rigorous derivation of the system (1.4) and further validate the use of this constraint numerically by demonstrating the flow mitigates the cusp-singularities discussed in [28]. 3Outline 
+
+In Section 2, we provide a formalism for the information geometric mechanics used to define the TIGRE equations (1.4) and demonstrate that it reproduces the IGR equations [23]. In Section 3, we then apply the formalism to our proposed thermodynamic extension to derive the equations of motion (1.4) and compare their thermodynamic, conservative, and dynamic properties to the IGR system (1.1) . In Section 4, we perform numerical experiments that validate our theoretical considerations in comparison to the barotropic IGR regularization method. We conclude with some proposed future directions of research into information geometric mechanics at the intersection of geometric mechanics, information theory, and scientific computing. 
+
+# 2 Geometric Formalism 
+
+We begin by recalling the Riemannian geometric formalism of Khesin, Misiołek, and Modin [29] for the description of the full compressible Euler equations as a form of Newton’s equations on the diffeomorphism group. We then discuss the dual affine connections and the pullback geometry needed to define the information geometric regularization. This information geometric mechanics is then applied to derive the IGR regularization [23], which offers an alternative derivation that we describe in detail because the same approach is applied analogously to the derivation of the TIGRE system (1.4) in Section 3. 
+
+2.1 Newton’s Equations on the Diffeomorphism Group 
+
+Let M ⊂ Rd denote an embedded submanifold representing the fluid domain, and denote μ as the restriction of the ambient volume form to M . The compressible Euler equations can be viewed as Newtonian dynamics on the diffeomorphism group D(M ) equipped with a Riemannian metric [29]. The tangent spaces are identified with the space of vector fields on M , denoted X(M ), in the sense that 
+
+TφD(M ) = {v : M → T M : πT M ◦ v = φ} = X(M ) ◦ φ , (2.1) where πT M : T M → M is the tangent bundle projection. When ∂M ̸ = ∅, we restrict to vector fields that are tangent to the boundary satisfying v · n|∂M = 0 . The fluid configuration is described by the Lagrangian flow map φ(t) ∈ D (M ) and the Eulerian fluid velocity u(t) ∈ X(M ) is defined by 
+
+˙φ = u ◦ φ. The fluid mass density is represented by a positive measure ϱ = ρμ associated with an element of the space of probability densities 
+
+P(M ) = 
+
+{
+
+ρ ∈ C∞(M ) : ρ > 0 ,
+
+∫
+
+> M
+
+ρμ =
+
+∫
+
+> M
+
+μ
+
+}
+
+. (2.2) The diffeomorphism group acts on (2.2) by the right action of pullback 
+
+φ∗ϱ = ρ ◦ φJ μ(φ)μ , (2.3) where Jμ(φ) ∈ C∞(M ) is the Jacobian determinant of the transformation, and on the left by the pushforward action 
+
+φ∗ϱ := ( φ−1)∗ϱ . (2.4) The metric relevant to the compressible Euler equations is the L2 metric, expressed in the Lagrangian and Eulerian frames as 
+
+Gφ( ˙ φ, ˙φ) = 
+
+∫
+
+> M
+
+| ˙φ|2μ =
+
+∫
+
+> M
+
+ρ|u|2μ . (2.5) Potential energies on D(M ) are defined by the pullback of a potential ¯U : P(M ) → R as U (φ) = ¯U (φ∗μ). Using this construction, Newton’s equations on the diffeomorphism group are the second-order differential equation of the form [29] 
+
+∇G 
+
+> ˙φ
+
+˙φ = −∇ GU (φ) , (2.6) where ∇G is the covariant derivative defined by the metric (2.5) . The covariant derivative on D(M )
+
+is lifted pointwise from the metric covariant derivative on M , and by computing the gradient of the 4pullback potential energy using an infinite-dimensional analogue of the divergence theorem (see [29] Lemma 2.3), the Newton equations (2.6) admit the equivalent expression 
+
+∇ ˙φ ˙φ = −
+
+(
+
+∇ δ ¯Uδρ 
+
+)
+
+◦ φ , (2.7) where ∇ is the gradient defined by the metric on M and the covariant derivative ∇ ˙φ ˙φ is associated to the material derivative of the Eulerian velocity field via 
+
+∇ ˙φ ˙φ =
+
+( Du
+
+Dt 
+
+)
+
+◦ φ = (∂tu + ∇uu) ◦ φ , (2.8) where the coordinate expression of the covariant derivative is given by (∇uu)k = ui∂iuk + Γ kij uiuj
+
+where Γijk are the Christoffel coefficients. The Newton system can be extended to incorporate other thermodynamic processes using a more general pullback potential energy [29]. 
+
+Adiabatic Compressible Flow 
+
+An adiabatic fluid possesses an extended thermodynamic state involving temperature and mass density, remaining isolated within fluid parcels without external heat exchange, doing work only through changes in pressure [30]. It is convenient in the context of the variational formulation to work with the entropy of the fluid, and we consider the thermodynamic state as an element 
+
+(ρ, π ) ∈ P (M ) × V (M ), where 
+
+V(M ) = {ν ∈ Ωd(M ) : ν > 0} (2.9) is the space of volume forms. The entropy density π ∈ V (M ) can be written as π = ρsμ where 
+
+s ∈ C∞ 
+
+> +
+
+(M ) is the specific entropy and the fluid potential energy becomes 
+
+¯U (ρ, s ) = 
+
+∫
+
+> M
+
+ρe (ρ, s )μ , (2.10) where e(ρ, s ) is the internal energy density. In an adiabatic fluid, the second law of thermodynamics 
+
+ϑ(ρ, s )ds ≥ δQ ≥ 0 , (2.11) where ϑ(ρ, s ) is the temperature and δQ is the change in heat, holds with equality ϑds = δQ . This reversibility of the flow gives the continuity equation (1.2) for the entropy density and in turn implies that the specific entropy is advected 
+
+∂ts + u · ∇ s = 0 = ⇒ s(t) = s0 ◦ φ−1 , (2.12) using the continuity equation for the mass density. The first law of thermodynamics dU = δQ − δW 
+
+can then be expressed as the Gibbs relation 
+
+de (ρ, s ) = ϑ(ρ, s )ds + p(ρ, s )d(ρ−1) , (2.13) where the temperature and pressure are defined by the partial differential relations 
+
+ϑ(ρ, s ) = ∂se(ρ, s ) , p(ρ, s ) = ρ2∂ρe(ρ, s ) . (2.14) The potential on the diffeomorphism group becomes 
+
+U (φ) = ¯U (φ∗μ, s 0 ◦ φ−1) , (2.15) and the Newton’s equations are then defined by its metric gradient. 5Lemma 1. The gradient of the potential (2.15) with respect to the L2 metric (2.5) is given by 
+
+∇GU (φ) = ( ∇h(ρ, s ) − ϑ(ρ, s )∇s) ◦ φ , (2.16) 
+
+where h(ρ, s ) = e(ρ, s ) + ρ−1p(ρ, s ) is the specific enthalpy. Proof. Let φ(t) ∈ D (M ) be a path with ρ(t)μ = φ∗μ and s(t) = s0 ◦ φ−1. By definition of the Riemannian gradient, we can write 
+
+Gφ(∇GU (φ), ˙φ) = ddt U (φ) = ddt ¯U (ρ, s ) ,
+
+from which it follows that 
+
+ddt ¯U (ρ, s ) = 
+
+∫
+
+> M
+
+(ρ∂ se(ρ, s ) ˙ s + ( e(ρ, s ) + ρ∂ ρe(ρ, s )) ˙ ρ) μ
+
+=
+
+∫
+
+> M
+
+(−ρϑ (ρ, s )g(u, ∇s) − h(ρ, s )∇ · (uρ)) μ
+
+=
+
+∫
+
+> M
+
+ρg (∇h − ϑ∇s, u)μ = Gφ(( ∇h(ρ, s ) − ϑ(ρ, s )∇s) ◦ φ, ˙φ) ,
+
+integrating by parts and using the definition of the metric. □
+
+Corollary 2. The Eulerian form of the Newton’s equations (2.6) with potential (2.15) is equivalent to the compressible Euler equations 
+
+∂tρu + ∇ · (ρu ⊗ u + p(s, ρ )I) = 0 ,∂tρ + ∇ · (ρu) = 0 ,∂tπ + ∇ · (πu) = 0 ,
+
+(2.17) 
+
+with ˙φ = u ◦ φ, ρμ = φ∗μ, and π = ρs where s(t) = s0 ◦ φ−1.Proof. The pressure definition (2.14) relates to the temperature and enthalpy via 
+
+1
+
+ρ ∇p = ∇h − ϑ∇s , (2.18) which allows us to write the non-conservative form of the equations by composing the Newton system with the inverse φ−1 to give 
+
+∂tu + ∇uu = − 1
+
+ρ ∇p . (2.19) Multiplying by the mass density and using the conservation of mass and the identity 
+
+∇ · (ρu ⊗ u) = ρ∇uu + u∇ · (ρu)
+
+then gives the conservative form of the momentum equation. The continuity equations are defined directly from the constraints (π, ϱ ) = φ∗(π0, ρ 0μ) defining the pullback potential. □
+
+The full compressible Euler equations are commonly expressed in a flux form with the state variable (ρu, ρ, E ), where E is the total energy density 
+
+E = ρ(e(ρ, s ) + 12 |u|2) . (2.20) Given an internal energy density e = e(ρ, s ), strict positivity of the temperature ϑ(ρ, s ) = ∂se(ρ, s ) > 0
+
+ensures that s 7 → e(ρ, s ) is invertible. This yields a relation s = s(ρ, e ) and an expression of the pressure as 
+
+p(ρ, E ) = p(ρ, s (ρ, E/ρ − 12 |u|2)) , (2.21) 6and an equivalent form of the equations of motion (2.22) given by 
+
+∂tρu + ∇ · (ρu ⊗ u + p(E, ρ )I) = 0 ,∂tρ + ∇ · (ρu) = 0 ,∂tE + ∇ · (( E + p)u) = 0 .
+
+(2.22) In an ideal gas, the internal energy density is given by 
+
+e(ρ, s ) = cv
+
+γ − 1 ργ−1es/c v , (2.23) where cv is the specific heat capacity at constant volume and γ > 1 is the adiabatic ratio γ = cv /c p.This gives the relation p = ( γ − 1) ρe , from which we can write the pressure in the equivalent forms 
+
+p(E, ρ ) = ( γ − 1) 
+
+(
+
+E − 12 ρ|u|2
+
+)
+
+, p(ρ, s ) = ργ es/c v . (2.24) The pressure relations (2.24) will be used to consistently relate the thermodynamic extension of the IGR equations (1.1), written in terms of the dynamical variables (ρ, ρu, E ), to the TIGRE system (1.4) written in terms of (ρ, ρu, s ). The TIGRE system uses the transported thermodynamic variables (ρ, s )
+
+as they can be related explicitly to the state φ(t) ∈ D (M ) without reference to the dynamics. This was an enabling step to define the thermodynamically constrained information geometric regularization of the system (2.22). Before elaborating on this construction further, we first recall the basic geometric structures of information geometry used to define the regularization. 
+
+2.2 Hessian Manifolds 
+
+Information geometry (IG) relates to the study of differential geometric structures on the space of probability densities and measures [25, 31]. Originating from Rao [32] and Chentsov’s [33] studies on Fisher information and culminating in Amari’s seminal differential geometric theory of information [34, 35], IG is now a mature field of study with a host of applications in statistics, machine learning, artificial intelligence, and neuroscience [25]. While the classical notions in IG are formulated for finite-dimensional parametric families of probabilities (statistical manifolds) [36], infinite-dimensional extensions of the theory have been devised [31, 37 –39], and our work is formally in a smooth setting. The information geometric mechanics used to derive the regularized compressible flow equations differs from the Riemannian metric geometry defining the Newton’s equations (2.6) .Here, we recall the basic structures needed to describe these mechanical connections and their constrained form to an embedded submanifold of diffeomorphisms. 
+
+Dual Geodesic Equation 
+
+Let E be a (possibly infinite-dimensional) smooth manifold and ψ : E → R a strictly convex functional. The second Fréchet derivative of this potential defines a metric of the form Gψ = D2ψ,and the pair (E, G ψ ) forms a Hessian manifold [40]. Fundamental to these spaces is the dual pair of affine connections (∇, ∇∗). The so-called primal connection ∇ is defined by 
+
+Gψν (X, Y ) = X(Y ψ ) − (∇X Y )ψ , 
+
+for all X, Y ∈ Tν E, and the dual connection ∇∗ is defined via the relation 
+
+X[Gψ (Y, Z )] = Gψ (∇X Y, Z ) + Gψ (Y, ∇∗ 
+
+> X
+
+Z) .
+
+This pair symmetrizes to give the Levi–Civita connection of the metric 
+
+∇LC = 12 (∇ + ∇∗) . (2.25) Their difference is encoded by the Amari–Chentsov tensor, formed by the symmetric cubic tensor 
+
+C(X, Y, Z ) = ( ∇X g) ( Y, Z ) . (2.26) 7In particular, the (1 , 2) -tensor C♯ defined by Gψ (( C♯)X Y, Z ) = C(X, Y, Z ) gives the identity 
+
+∇∗ 
+
+> X
+
+Y = ∇X Y + ( C♯)X Y . (2.27) The equations of information geometric mechanics can be associated to paths η(t) ∈ E satisfying the dual geodesic equation 
+
+∇∗ 
+
+> ˙η
+
+˙η = ∇ ˙η ˙η + ( C♯) ˙η ˙η = 0 ,
+
+which defines a notion of straight lines with respect to the dual affine connection. Using the identity (2.27), the dual geodesic equation can be expressed equivalently as 
+
+∇∗ 
+
+> ˙η
+
+˙η = ∇LC  
+
+> ˙η
+
+˙η + 12
+
+(C♯) 
+
+> ˙η
+
+˙η = 0 , (2.28) conveniently separating the Riemannian contribution associated to the kinetic energy minimizing motions and the corrections associated to the information geometric regularization. 
+
+2.3 Pullback of the Dual Geodesics 
+
+The equations (2.22) are only locally well-posed, and solutions φ(t) ∈ D (M ) satisfying (2.6) can exit 
+
+D(M ) into the space of maps C∞(M, M ) through the ‘boundary’ of the diffeomorphism group 
+
+∂D(M ) = {F ∈ C∞(M, M ) : Jμ(F ) = 0 } , (2.29) in finite time. The space (2.29) describes non-invertible transformations of the fluid domain with singular Jacobian determinant expressing the onset of singularities due to shock formation. A geometric intuition behind IGR is to move this boundary to be infinitely far away by introducing a convex barrier functional that diverges as Jμ(φ) → 0. Particle collisions can then only occur asymptotically as t → ∞ , resulting in dynamics that remain within the diffeomorphism group [23, 26]. The non-convexity of the mapping φ 7 → Jμ(φ) obstructs the definition of a Hessian metric directly on D(M ). Cao and Schäfer handled this obstruction by defining the barrier functional in the ambient space D(M ) × P (M ) and use an embedding of the form 
+
+ι : D(M ) → D (M ) × P (M ) , ι(φ) = ( φ, φ ∗μ) . (2.30) In the ambient space, the non-convexity could be realized as a submanifold constraint and the equations of motion defined by restriction of the dual geodesic equation on the submanifold 
+
+M = ι(D(M )) ⊂ D (M ) × P (M ) .
+
+The differential of (2.30) is a linear isomorphism of the tangent spaces TφD(M ) ≃ Tι(φ)M, where the latter can be defined by the image of the projection 
+
+Πη : Tη E → Tη M , (2.31) at η = ι(φ). The embedding induces a pullback metric and Amari–Chentsov defined, respectively, by 
+
+˜Gψφ (U, V ) := ( ι∗Gψ )( U, V ) = Gψ (Dι φ(U ), Dι φ(V )) ,
+
+˜Cφ(U, V, W ) := ( ι∗C)( U, V, W ) = C(Dι φ(U ), Dι φ(V ), Dι φ(W )) , (2.32) for all U, V, W ∈ TφD(M ). The analogue of the tensor C♯ is defined using the pullback metric as 
+
+˜Gψφ ( ˜C♯U (V ), W ) = ˜Cφ(U, V, W ) . (2.33) Using these pullback objects on D(M ), we define the analogue dual affine connection as 
+
+˜∇∗ = ˜∇LC + 12 ˜C♯ , (2.34) 8where ˜∇LC is the Levi–Civita connection defined by the pullback metric (2.32) . A curve φ(t) ∈ D (M )
+
+is said to satisfy the pullback dual geodesic equation if 
+
+˜∇∗ 
+
+> ˙φ
+
+˙φ = ˜∇LC  
+
+> ˙φ
+
+˙φ + 12 ˜C♯
+
+> ˙φ
+
+( ˙ φ) = 0 . (2.35) We have the following equivalence to the projected dual geodesic equation. 
+
+Lemma 3. If the curve η(t) = ι(φ(t)) satisfies the restricted dual geodesic equation 
+
+Πη (∇∗ 
+
+> ˙η
+
+˙η) = 0 , (2.36) 
+
+then φ(t) ∈ D (M ) satisfies the pullback dual geodesic equation (2.35) .Proof. We can consider the expression for the equation (2.36) in terms of φ(t),
+
+Πη (∇∗ 
+
+> ˙η
+
+˙η) = Π ι(φ)
+
+(
+
+∇LC Dι ( ˙ φ)Dι ˙φ + 12 C♯Dι ( ˙ φ)(Dι ˙φ)
+
+)
+
+, (2.37) and simplify each component individually. Using Gauss’ formula for the restriction of the covariant derivative and the isometry ι : ( D(M ), ˜Gψ ) → (M, G ψ ), which holds by construction, we get that 
+
+Dι φ
+
+( ˜∇LC X Y ) = Π ι(φ)
+
+(
+
+∇LC Dι ( ˙ φ)Dι ( ˙ φ)
+
+)
+
+. (2.38) The definition of the ambient operator C♯ then gives us 
+
+Gψι(φ)(C♯Dι ( ˙ φ)Dι ( ˙ φ), Dι (X)) = ˜Cφ( ˙ φ, ˙φ, X ) = ˜Gψφ ( ˜C♯ 
+
+> ˙φ
+
+˙φ, X ) = Gψι(φ)(Dι φ( ˜C♯ 
+
+> ˙φ
+
+˙φ), Dι (X)) ,
+
+using the isometry in the last equality. Because Dι (TφD(M )) = Tη M and Πη is the Gψ -orthogonal projector onto the tangent space of the submanifold, it follows that 
+
+Πη
+
+(
+
+C♯Dι (X)Dι (Y )
+
+)
+
+= Dι φ
+
+( ˜C♯X Y
+
+)
+
+. (2.39) Combining the identities (2.38) and (2.39), we get that 
+
+Πη
+
+(∇∗ 
+
+> ˙η
+
+˙η) = Dι φ
+
+(
+
+˜∇LC  
+
+> ˙φ
+
+˙φ + 12 ˜C♯
+
+> ˙φ
+
+( ˙ φ)
+
+)
+
+= 0 ,
+
+which implies that φ(t) satisfies (2.35) because Dι φ : TφD(M ) → Tη M is a linear isomorphism. □
+
+Lemma 3 establishes a convenient formula to derive the regularized equations of motion in the form (2.34), which we now verify for the pressureless IGR equations. 
+
+2.4 Information Geometric Regularization 
+
+In this section, we demonstrate that the pressureless IGR equations are equivalent to a pullback geodesic equation of the form (2.35) . This formulation provides an explicit separation of the two entropic pressures contributing to Σ, also discussed in [28], resulting from a curvature-induced term in the pullback Levi–Civita connection and the barrier geometry encoded by the Amari–Chentsov tensor. The IGR equations proposed by [23] were formulated using a convex barrier of the form 
+
+ψ : D(M ) × P (M ) → R , ψ(φ, ν ) = 12
+
+∫
+
+> M
+
+|φ(x)|2dμ (x) − α
+
+∫
+
+> M
+
+log( ν(x)) dμ (x) , (2.40) involving a transport cost and a log-barrier function penalizing the degeneration of the Jacobian determinant with the constant α > 0 controls the strength of the regularization. The Hessian of the barrier (2.40) is given by 
+
+D2ψφ,ν [( U, η ), (V, ξ )] = 
+
+∫
+
+> M
+
+U · V μ + α
+
+∫
+
+> M
+
+ηξ ν2 μ , (2.41) 9which pulls back to a divergence-weighted metric on D(M ) [28]. 
+
+Lemma 4. The pullback Hessian metric defined by the embedding (2.30) and barrier (2.40) is given by 
+
+Gψφ (U, V ) = 
+
+∫
+
+> M
+
+ρ(u · v + α(∇ · v)( ∇ · u)) μ , (2.42) 
+
+where U, V ∈ TφD(M ) with U = u ◦ φ and V = v ◦ φ.Proof. Letting γ(t) ∈ D (M ) be such that γ(0) = φ and ˙γ(0) = U = u ◦ φ ∈ TφD(M ), we see that 
+
+Dι |φ[U ] = ddt 
+
+∣∣∣∣t=0 
+
+(γ(t), γ ∗μ) = ( U, (∇ · u) ◦ φ · φ∗μ) . (2.43) Using the definition of the pullback Hessian metric 
+
+Gψφ (U, V ) = (ι∗D2ψ[U, V ]) (φ) = D2ψ|ι(φ) [Dι φ[U ], Dι φ[V ]] , (2.44) the expression (2.41), and a change of variables with the inverse map φ−1, we see that 
+
+Gψφ (U, V ) = 
+
+∫
+
+> M
+
+(U · V + α(( ∇ · v)( ∇ · u)) ◦ φ)μ =
+
+∫
+
+> M
+
+ρ(u · v + α(∇ · v)( ∇ · u)) μ , (2.45) which establishes the claim. □
+
+The derivation of the dual geodesic equation is simplified using the Helmholtz–Hodge decomposition 
+
+X(M ) = Xμ(M ) ⊕ ∇ C∞(M ) , (2.46) where Xμ(M ) is the space of divergence-free ( ∇ · v = 0 ) vector fields and the orthogonality is defined with respect to the unweighted L2 inner product 
+
+⟨u, v⟩ =
+
+∫
+
+> M
+
+g(u, v)μ . (2.47) In the weighted L2 inner product (2.5), it follows that if u ∈ X(M ) satisfies 
+
+∫
+
+> M
+
+ρg (u, v)μ = 0 , ∀v ∈ Xμ(M ) , (2.48) then there exists a Σ ∈ C∞(M ) such that u = ρ−1∇Σ.
+
+Theorem 5. The geodesic equation defined by the Levi–Civita connection of the metric (2.42) 
+
+˜∇LC  
+
+> ˙φ
+
+˙φ = 0 (2.49) 
+
+is equivalent to the partial differential equation 
+
+∂tu + ∇uu = − 1
+
+ρ ∇ΣLC ,∂tρ + ∇ · (ρu) = 0 ,ρ−1ΣLC − α∇ · (ρ−1∇ΣLC ) = α(tr(( ∇u)2) − Ric( u, u)) ,
+
+(2.50) 
+
+in the Eulerian frame where ˙φ = u ◦ φ and ρμ = φ∗μ.Proof. The equations (2.50) can be derived as a form of Euler–Poincaré (EP) equations, and the proof follows directly from the connection between the EP equations and geodesic equations on Lie 10 groups (see [41 –43] for further background). By a change of variables, the kinetic energy can be written in the Eulerian frame as 
+
+ℓ(u, ρ ) = 12 Gψφ ( ˙ φ, ˙φ) ,
+
+where u = ˙φ ◦ φ−1 and ρμ = φ∗μ, variations of the state variable φ induce constrained variations of the velocity field and mass density. Let η(t, s ) be a variation of φ(t) such that η(t, 0) = φ(t) and denote v ◦ φ = ∂sη(t, 0) = δφ with fixed endpoints such that δφ (0) = δφ (T ) = 0 . It follows then that 
+
+δu = ˙ v + [ u, v] , δϱ = −L v ϱ , 
+
+where v = δφ ◦ φ−1 and [·, ·] is the Jacobi-Lie bracket on vector fields. Application of Hamilton’s variational principle then gives 
+
+δ
+
+∫ T
+
+> 0
+
+ℓ(u, ϱ )dt =
+
+∫ T
+
+> 0
+
+⟨ δℓ δu , ˙v − ad u(v)⟩ − ⟨ δℓ δϱ , Lu(ϱ)⟩ dt 
+
+=
+
+∫ T
+
+> 0
+
+⟨(∂t + Lu) δℓ δu , v⟩ − ⟨ ϱ ⊗ d δℓ δϱ , v⟩ dt , 
+
+which defines the EP equations (2.50) using the variational derivatives 
+
+δℓ δu = ρu♭ − αd (ρ∇ · u) ,ϱ ⊗ d δℓ δϱ = ρd 
+
+( 12 |u|2 + α
+
+2 (∇ · u)2
+
+)
+
+⊗ μ , 
+
+and setting the variation of the action to zero. In order to see the particular form of the equations, we write the system as 
+
+(∂t + Lu)[ ρu♭ ⊗ μ] − ρd 12 |u|2 ⊗ μ
+
+︸ ︷︷ ︸
+
+> I
+
+= ( ∂t + Lu)[ αd (ρ∇ · u) ⊗ μ]
+
+︸ ︷︷ ︸
+
+> II
+
++ α
+
+2 ρd (∇ · u)2 ⊗ μ
+
+︸ ︷︷ ︸
+
+> III
+
+.
+
+The (I) terms simplify as 
+
+(I) = [( ∂tρ + Luρ + ρ(∇ · u)) u♭] ⊗ μ + ρ(∂tu + Luu♭ − 12 d|u|2) ⊗ μ = ρ(∂tu + ∇uu)♭ ⊗ μ . 
+
+Using commutativity of the Lie derivative and exterior derivative with the continuity equation for the mass density, we can simplify the (II) term as 
+
+(II) + (III) = αd (∂t + Lu)( ρ∇ · u) ⊗ μ + α[dρ (∇ · u)] ∇ · u ⊗ μ + αρ (∇ · u)d(∇ · u) ⊗ μ
+
+= (((((((( (
+
+−αd (ρ(∇ · u)2) ⊗ μ + αd [ρ(∂t + Lu)( ∇ · u)] ⊗ μ + (((((((( 
+
+αd (ρ(∇ · u)2) ⊗ μ . 
+
+Combing these two, taking the sharp ♯ operator, and extracting the density, we can write 
+
+ρ Du
+
+Dt − α∇
+
+(
+
+ρ∇ · 
+
+( Du
+
+Dt 
+
+)) 
+
+= −α∇ (ρ (∇ · ∇ uu − u · ∇ (∇ · u))) . (2.51) Letting ∇iuj = ∂iuj + Γ jik uk be the i-th coordinate of the covariant derivative of the velocity field, we can write 
+
+∇ · ∇ uu − u · ∇ (∇ · u) = ∇i(uj ∇j ui) − uj ∇j ∇iui
+
+= ( ∇iuj )( ∇j ui) + uj ∇i∇j ui − uj ∇j ∇iui
+
+= tr(( ∇u)2) + uj [∇i, ∇j ]ui = tr(( ∇u)2) − Ric( u, u) ,
+
+where we have introduced the Ricci curvature Ric (·, ·) contracted along the velocity field and used the Ricci identity [∇i, ∇j ]ui = −Rjk uk for the commutator of the covariant derivatives. On a flat manifold, this curvature term vanishes. 11 The expression (2.51) implies that the material derivative satisfies the orthogonality condition (2.48). Defining the elliptic operator 
+
+A(ρ)[ v] = ρv − α∇(ρ(∇ · v)) ,
+
+there exists a potential ΣLC ∈ C∞(M ) such that 
+
+A(ρ) Du
+
+Dt = A(ρ) [ρ−1∇ΣLC ] = ∇ΣLC − α∇(ρ∇ · (ρ−1∇ΣLC )) = −α∇(ρtr(( ∇u)2) − ρRic( u, u)) .
+
+Absorbing the minus sign such that ΣLC 7 → − ΣLC gives Du 
+
+> Dt
+
+= −ρ−1∇ΣLC with 
+
+ρ−1ΣLC − α∇ · (ρ−1∇ΣLC ) = α(tr(( ∇u)2) − Ric( u, u)) ,
+
+up to a constant, which establishes the claim. □
+
+Theorem 6. Given the metric (2.42) , the tensor ˜C♯ defined by the relation (2.33) satisfies 
+
+˜C♯ 
+
+> ˙φ
+
+˙φ = (ρ−1∇ΣAC ) ◦ φ , ρ−1ΣAC − α∇ · (ρ−1∇ΣAC ) = 2 α(∇ · u)2 . (2.52) 
+
+Proof. We want to find W = w ◦ φ ∈ TφD(M ) such that 
+
+Gψφ (W, V ) = ˜Cφ( ˙ φ, ˙φ, V ) , ∀ V = v ◦ φ ∈ TφD(M ) .
+
+In the ambient space, the Amari–Chentsov cubic tensor defined by the potential (2.40) is given by 
+
+C(φ,ν )(( U, η ), (V, ξ ), (W, ζ )) = 
+
+(
+
+0, −2α
+
+∫
+
+> M
+
+ξηζ ν3 μ
+
+)
+
+for all (U, η ), (V, ξ ), (W, ζ ) ∈ T(φ,ν )D(M ) × P (M ). Combining with the embedding (2.30), we get that 
+
+∫
+
+> M
+
+ρ(w · v + α(∇ · w)( ∇ · v)) μ = −2α
+
+∫
+
+> M
+
+ρ(∇ · u)2(∇ · v)μ , (2.53) which implies that w satisfies the orthogonality condition (2.48) . Then there exists ΣAC ∈ C∞(M )
+
+such that w = ρ−1∇ΣAC and together with (2.53) gives 
+
+∫
+
+> M
+
+(∇ΣAC − α∇(ρ∇ · (ρ−1∇ΣAC ))) · vμ = 2 α
+
+∫
+
+> M
+
+(∇ρ(∇ · u)2) · vμ , 
+
+which holds for all v ∈ X(M ) and where we have used the the tangency condition of v ∈ X(M ) to drop the boundary integrals after integrating by parts. This then determines the equation for ΣAC 
+
+up to a constant. □
+
+Combining these two results, we get the following geometric interpretation of the IGR equations and split form of the entropic pressure as arising from the curvature induced by the embedding and the information geometric correction. 
+
+Corollary 7. The restricted dual geodesic equations (2.35) defined by the barrier function (2.40) are the Lagrangian form of the pressureless IGR equations, written in conservative form 
+
+∂tρu + ∇ · (ρu ⊗ u + Σ I) = 0 ,∂tρ + ∇ · (ρu) = 0 ,ρ−1Σ − α∇ · (ρ−1∇Σ) = α ((∇ · u)2 + tr( ∇u)2) − Ric( u, u)) ,
+
+(2.54) 12 with the regularization potential defined by 
+
+Σ = Σ LC + 12 ΣAC . (2.55) 
+
+Proof. Using Theorems 5 and 6, we can write the pullback dual geodesic equation (2.35) in the Eulerian frame as 
+
+(
+
+˜∇LC  
+
+> ˙φ
+
+˙φ + 12 ˜C♯ 
+
+> ˙φ
+
+˙φ
+
+)
+
+◦ φ−1 = ∂tu + ∇uu + 1
+
+ρ
+
+(∇ΣLC + 12 ∇ΣAC ) = 0 . (2.56) Because both ΣLC and ΣAC satisfy inhomogeneous elliptic equations with the same differential operator, they combine to give Σ defined by (2.55) and the elliptic equation in (2.54) . The pressureless form of the IGR equations (2.54) follows by rewriting the equations in conservative form. □
+
+# 3 Thermodynamically Constrained Information Geometric Regularization 
+
+The starting point of the thermodynamically constrained information geometric regularization is to augment the ambient space with an entropy component in the space of volume forms (2.9) and to embed the diffeomorphism group into the extended space using 
+
+ȷ : D(M ) → D (M ) × P (M ) × V (M ) , ȷ(φ) = ( φ, φ ∗μ, φ ∗(π0)) , (3.1) where π0 = ρ0s0μ ∈ V (M ) is the initial entropic volume. The embedding (3.1) utilizes a mixed relation involving both the pullback of the initial mass density, performing a volumetric regularization on the flow, and the pushforward of the initial entropic volume, which is designed to constrain this regularization to the thermodynamic structure. We consider the relative entropy, described by the Kullback–Leibler divergence (1.3) from the initial entropy distribution, to define an extended barrier function in the form 
+
+Ψ : D(M ) × P (M ) × V (M ) → R , Ψ( φ, ν, π ) = ψ(φ, ν ) + βDKL (π || π0) , (3.2) where ψ(φ, ν ) is the barrier function (2.40) and β > 0 is a parameter controlling the strength of the thermodynamic regularization. Composing (3.2) and (3.1), we get that 
+
+Ψ ◦ ȷ(φ) = 12
+
+∫
+
+> M
+
+|φ|2μ + α
+
+∫
+
+> M
+
+ρ log( ρ)μ + β
+
+∫
+
+> M
+
+π log 
+
+( ππ0
+
+)
+
+μ , (3.3) where ρ = φ∗μ and π = π0◦φ−1·Jμ(φ−1), using the fact that Jμ(φ)◦φ−1 = Jμ(φ−1)−1. This constrains the paths (2.35) to be simultaneously shock mitigating and thermodynamic length minimizing. In Figure 1, we visualize the discrepancy between these two constraints where the thermodynamic constraint can be seen as distinguishing trajectories in the (φ, J μ(φ), π ) space. 
+
+3.1 Thermodynamic Constraint 
+
+We first provide a geometric motivation for the particular barrier function (3.3) and its thermo-dynamic constraint on the resulting equations of motion. Entropy minimizing motions can be interpreted in the context of information geometry as selecting admissible paths of minimum thermodynamic length as measured by the Fisher–Rao metric [44, 45]. This cost also admits a thermodynamic interpretation using a connection between the Wasserstein distance and rates of entropy production [46, 47]. In this section, we discuss these concepts and their relation to the information geometric regularization. We further relate the curvature of the Boltzmann entropy in the Wasserstein geometry to the dynamics of the potential χ in the TIGRE system (1.4). 
+
+The Fisher–Rao Metric 
+
+The entropic embedding (3.1) has a natural information-theoretic cost associated to the relative entropy. The KL divergence DKL (φ∗π0 || π0) quantifies the information content of the transported distribution φ∗π0 relative to the prior π0, vanishing when the flow leaves the entropy distribution statistically indistinguishable and growing as the flow concentrates or redistributes entropy. The 13 Figure 1 : Geometric illustration comparing the thermodynamically constrained and unconstrained paths. Along a slice a constant entropy slice in the (φ, J μ(φ)) plane, the two paths collapse to satisfy the same barotropic IGR constraints. In the full state space (φ, J μ(φ), π ), the additional thermodynamic curvature distinguishes the two trajectories along changing entropy directions. natural geometric structure to measure this statistical indistinguishability comes from the Fisher– Rao metric of information geometry [31, 34], which has also been used to describe a dissipation cost associated with moving between thermodynamic states [44, 45]. This metric is natural on the space of positive densities because it is the unique invariant metric under the diffeomorphism group action [48]. Because M is oriented, the space of smooth positive densities can be associated to the space of volume forms (2.9) on which all invariant metrics take the form [48] 
+
+Gν (ζ, θ ) = C1
+
+∫
+
+> M
+
+ζμ
+
+νθμ
+
+ν μ + C2
+
+∫
+
+> M
+
+ζ ·
+
+∫
+
+> M
+
+θ
+
+for constants C1, C 2 that depend on the total volume ν(M ), where ζ = ζμμ and θ = θμμ. Restricting to P(M ) or setting C2 = 0 yields the Fisher–Rao metric 
+
+Gf r ν (ζ, θ ) = 
+
+∫
+
+> M
+
+ζμ
+
+νθμ
+
+ν μ . (3.4) The Fisher metric (3.4) can be realized as the Hessian for the family of α-divergences, with α ∈ (−1, 1) ,defined by the convex barrier functionals 
+
+Dα(ν || ν0) = 41 − α2
+
+(∫ 
+
+> M
+
+ν0μ −
+
+∫
+
+> M
+
+ν 1−α 
+
+> 2
+
+ν 1+ α 
+
+> 2
+> 0
+
+μ
+
+)
+
+, (3.5) for fixed ν0 ∈ V (M ). The limits α → ± 1 recover the Kullback–Leibler divergences DKL (ν || ν0) and 
+
+DKL (ν0 || ν), respectively. The one-parameter family of divergences Dα possess different parallel transports described by the affine connections ∇(α) = ∇LC − α 
+
+> 2
+
+C♯ with the Amari–Chentsov tensor 
+
+Cf r (ζ, θ, ξ ) = −
+
+∫
+
+> M
+
+ζμθμξμ
+
+ν2 μ . (3.6) The statistical divergences are all equivalent in their definition of a thermodynamic length; however, their impact on the dual geodesic equations varies with the regularization parameter. The IGR equations possess a mixed Fisher–Rao and Wasserstein geometric structure that further connects to a thermodynamic interpretation of the constraint, distinguishing the KL-divergence. 
+
+Entropy Production 
+
+Although the adiabatic flow is reversible, the discrepancy between the transported entropy distribution φ∗π0 and the prior π0 still possesses a natural thermodynamic interpretation. In particular, one can associate a thermodynamic cost to a relaxation of φ∗π0 = ν2 back to π0, which is a process 14 that would be necessarily irreversible. Transitioning between thermodynamic states ν1, ν 2 ∈ V (M )
+
+depends on the path taken through state space. Forward and reverse directions of thermodynamic transition are distinguished by the second law of thermodynamics, reflecting a privileged direction (‘arrow’) of time characterized by the generation of entropy. In classical thermodynamics, a system in energetic exchange with its environment possesses a maximum amount of work extractable as the system relaxes from state (ρ, π ) to a reference equilibrium (ρ0, π 0) by the exergy , which is a state function of the form 
+
+E (( ρ, π ) || (ρ0, π 0)) = 
+
+∫
+
+> M
+
+ρ [e(ρ, s ) − e(ρ0, s 0) + p0(ρ−1 − ρ−10 ) − T0(s − s0)] μ . (3.7) The Gouy–Stodola theorem states that the rate of exergy decrease along any irreversible process is proportional to the entropy generation rate. The dissipated work satisfies Wdiss = E − W =
+
+T0DKL (π || π0) and measures a gap between this maximum extractable work and the actual work W
+
+performed during the transition. The fastest route towards relaxation is through dissipation, and we lastly note how the Wasserstein distance provides a sharp lower bound on the entropy that must be produced. In the case of an overdamped system, the entropy production admits an equivalent path-based interpretation in the context of the dynamical formulation of optimal transport [49] with the Wasserstein distance 
+
+W 22 (ν1, ν 2) = min 
+
+> vt
+
+∫
+
+> M
+
+∥vt∥2νt , (3.8) where νt ∈ V (M ) is a path connecting ν1 to ν2 such that ˙ν = −div (νtvt). In the case of an over-damped system, the irreversible entropy production Sgen over a period τ satisfies bound of the form 
+
+(Dτ )Sgen ≥ W2(ν1, ν 2) [47], where D is a diffusion coefficient that has even been recently confirmed experimentally [50]. The KL divergence can therefore be similarly interpreted as not necessarily measuring the entropy generated by the flow itself, but rather the information-geometric cost of the equivalent relaxation. It is a proxy for how thermodynamically expensive it would be to undo how the flow map has transformed the entropy distribution. The entropic barrier therefore penalizes flows that create entropic distributions that would be thermodynamically expensive to relax. 
+
+Curvature in the Wasserstein Geometry 
+
+Considering the entropic volume π(t) ∈ V (M ) to be an element of the space P(M ) where the normalization is now defined by the initial entropic volume π0(M ), we can measure the curvature induced by the barrier with respect to the Wasserstein–Otto Riemannian metric structure on space 
+
+P(M ) [51]. In this geometry, tangent vectors at π ∈ P (M ) are associated with the continuity equation source ζ = −∇ · (π∇ϕ) for potentials ϕ ∈ C∞(M )/R, and the metric is defined on the potentials as 
+
+GWπ (ζ, ζ ) = 
+
+∫
+
+> M
+
+π|∇ ϕ|2.
+
+The local curvature as expressed by the Hessian of a functional F : P(M ) → R in the direction 
+
+ζ = −∇ · (πv ) is defined by the second variation along Wasserstein geodesics 
+
+Hess W2 F (π)[ ζ, ζ ] = d2
+
+dt 2
+
+∣∣∣∣t=0 
+
+F (π(t)) .
+
+The KL divergence can be written as 
+
+DKL (π || π0) = 
+
+∫
+
+> M
+
+π log πμ 
+
+︸ ︷︷ ︸
+
+> := H(π)
+
+−
+
+∫
+
+> M
+
+π log( π0)μ , 
+
+where the first term is the Boltzmann entropy, and because the second term is linear in π, its second variation along geodesics vanishes. The KL divergence in the Wasserstein geometry therefore curves in exactly the same way as the Boltzmann entropy of the instantaneous distribution, responding only to the local geometric structure of the current entropy. A similar property does not hold for the 
+
+α-divergences because we are measuring curvature in the Wasserstein geometry. The Hessian of the 15 Boltzmann entropy is given by [52, 53] 
+
+Hess W2 H(π)[ ζ, ζ ] = 
+
+∫
+
+> M
+
+π(|∇ v|2 + (Ric + ∇2 log)[ v, v]) μ , (3.9) and the term (Ric + ∇2 log π)[ v, v] is precisely the Bakry–Émery curvature of the entropy distribution along the velocity field, combining both the geometry of M and the curvature induced by the distribution. This curvature term is also present in the right-hand side of the χ equation in the TIGRE system (1.4), indicating that the regularization responds to the instantaneous curvature of the entropy distribution in the direction of the flow, penalizing motions that would concentrate or redistribute entropy in a thermodynamically costly way. 
+
+3.2 TIGRE Equations 
+
+In this section, we provide a derivation of the TIGRE equation as a pullback dual geodesic equation, following an analogous formulation presented for the pressureless IGR equations in Section 2.4. We first derive the geodesic equations of the metric in the Eulerian frame and then the form of the pullback Amari-Chentsov tensor, beginning with the calculation of the pullback Riemannian metric. 
+
+Lemma 8. The pullback of the Hessian metric defined by the convex barrier functional (3.3) through the embedding (3.1) can be expressed in the Eulerian frame as 
+
+GΨ 
+
+> φ
+
+(U, V ) = 
+
+∫
+
+> M
+
+ρg (u, v)μ + α
+
+∫
+
+> M
+
+ρ(∇ · u)( ∇ · v)μ + β
+
+∫
+
+> M
+
+π−1(∇ · (πu))( ∇ · (πv)) μ , (3.10) 
+
+where U, V ∈ TφD(M ) with U = u ◦ φ and V = v ◦ φ.Proof. Let γ(t) ∈ D (M ) be a curve such that γ(0) = id and γ′(0) = u ∈ X(M ). We can then compute variations of the embedding (3.1) at φ as 
+
+ddt 
+
+∣∣∣∣t=0 
+
+ȷ(γ ◦ φ) = 
+
+(
+
+u ◦ φ, ddt 
+
+∣∣∣∣t=0 
+
+φ∗γ∗(μ), ddt 
+
+∣∣∣∣t=0 
+
+γ∗φ∗(π0μ)
+
+)
+
+= ( u ◦ φ, φ ∗Lu(μ), Lu(πμ )) ,
+
+from which it follows that 
+
+Dȷ |φ[U ] = ( u ◦ φ, (∇ · u) ◦ φ · Jμ(φ)μ, ∇ · (πu )μ) . (3.11) The Hessian of the modified convex barrier functional (3.2) is now given by 
+
+D2Ψ|(φ,ν ) [( U, η, ζ ), (V, ξ, θ )] = D2ψ [( U, η ), (V, ξ )] + β
+
+∫
+
+> M
+
+ζμθμ
+
+π μ , (3.12) where ζ = ζμμ and θ = θμμ. Combining these two expression gives the pullback metric 
+
+(ȷ∗GΨ)φ(U, V ) = ˜Gψφ (U, V ) + 
+
+∫
+
+> M
+
+π−1(∇ · (πu ))( ∇ · (πv )) , (3.13) which establishes the claim with πμ = φ∗(π0μ) and Lemma 4. □
+
+Velocity Field Constraint 
+
+The relevant orthogonality relation for the thermodynamic extension is with respect to the subspace of divergence-free vector fields defined by 
+
+Xμ,π (M ) = {v ∈ X(M ) : ∇ · v = 0 , ∇ · (πv) = 0 , v · n|∂M = 0 } . (3.14) These two simultaneous constraints distinguish a thermodynamic decomposition from the Helmholtz decomposition used in the IGR formulation and the orthogonal complement of (3.14) admits an explicit characterization with an additional constraint on the curl of the velocity field. 16 Lemma 9. Let (M, g ) be a compact Riemannian manifold potentially with boundary ∂M and suppose that ρ, π ∈ C∞(M ) are positive functions. Let w ∈ X(M ) be such that 
+
+∫
+
+> M
+
+ρg (w, v)μ = 0 ∀v ∈ Xμ,π (M ) (3.15) 
+
+and suppose that there exists a potential ˜χ ∈ C∞(M ) such that d(ρw♭) = dπ ∧ d ˜χ. Then there exists 
+
+Σ, χ ∈ C∞(M ) such that 
+
+w = 1
+
+ρ (∇Σ + π∇χ) . (3.16) 
+
+Proof. We can first write ρw := z = ∇Σ′ + u where u ∈ Xμ(M ) using the Helmholtz–Hodge decomposition, and the problem reduces to finding an appropriate decomposition for the divergence-free component. The one-form θ = u♭ − πd ˜χ since 
+
+dθ = du♭ − dπ ∧ d ˜χ = dz♭ − dπ ∧ d ˜χ = 0 ,
+
+and therefore θ = dϕ + ζH by the Hodge decomposition where ζH ∈ Ω1(M ) is a harmonic form. Using the orthogonality condition z ∈ Xμ,π (M )⊥ we then get that 
+
+∫
+
+> M
+
+g(ζH , v)μ = 0 ∀v ∈ Xμ,π (M ) .
+
+Since ζH ∈ Xμ(M ) this implies the tangential component of ζ♯H to the level set of π vanishes and therefore ζH = f dπ . Altogether this gives 
+
+ρw = ∇(Σ ′ + ϕ) + π∇ ˜χ + f ∇π = ∇(Σ ′ + ϕ + f π ) + π∇( ˜ χ − f ) ,
+
+and labelling χ = ˜ χ − f and Σ = Σ ′ + ϕ + f π establishes the claim. □
+
+Gauge Freedom 
+
+The decomposition (3.16) has an infinite-dimensional kernel, defined by the gauge transformation 
+
+(Σ , χ ) 7 → (Σ + H(π), χ + F (π)) ,
+
+where F is a arbitrary smooth function on the range of π and H′ = −πF ′, which is invariant under the decomposition. Under this transformation, the expression ∇Σ + π∇χ determining the velocity field is invariant, and therefore has no effect on the momentum regularization. In our numerical scheme no gauge fixing is applied, however, selecting an appropriate gauge condition could be used to simply the resulting linear system by selecting an equivalence class representative that is best conditioned for the solver for instance. We regard this as an interesting direction for future work. 
+
+Theorem 10. The geodesic equation defined by the Levi–Civita connection of the metric (3.10) on 
+
+D(M ) is equivalent to the system of partial differential equations 
+
+∂tu + ∇uu = ρ−1(∇Σ + π∇χ) ,∂tρ + ∇ · (ρu) = 0 ,∂tπ + ∇ · (πu) = 0 ,ρ−1Σ − α ∇ · (ρ−1(∇Σ + π∇χ)) = α(tr(( ∇u)2) − Ric[ u, u]) 
+
+χ − βdiv π
+
+(ρ−1(∇Σ + π∇χ)) = β((∇2 log π + Ric)[ u, u] − tr(( ∇u)2) + 12 div 2 
+
+> π
+
+(u)) .
+
+(3.17) 
+
+Proof. As in the proof of Theorem 5, we derive these equations from the Euler–Poincaré equations of the reduced Lagrangian 
+
+ℓ(u, ρ, π ) = 12
+
+(ȷ∗D2Ψ)∣ ∣(φ,φ ∗μ,φ ∗π0) [ ˙ φ, ˙φ] , (3.18) 17 which now contains an additional transported variable. The EP equations are given by 
+
+(∂t + Lu)
+
+( δℓ δu ⊗ μ
+
+)
+
+= ρd δℓ δρ ⊗ μ + πd δℓ δπ ⊗ μ . 
+
+Denoting σ = π−1∇ · (πu), we can write the variational derivatives as 
+
+δℓ δu = ρu♭ − αd (ρ∇ · u) − βπdσ , δℓ δρ = 12 |u|2 + 12 α(∇ · u)2 , δℓ δπ = −β
+
+(
+
+u · ∇ σ + 12 σ2
+
+)
+
+.
+
+Rearranging again in terms of the L2 kinetic and regularization terms, we can write 
+
+(I) = ( ∂t + Lu)( αd (ρ∇ · u) ⊗ μ)
+
+︸ ︷︷ ︸
+
+> (II)
+
++ αρd 12 (∇ · u)2
+
+︸ ︷︷ ︸
+
+> (III)
+
++ ( ∂t + Lu)( βπdσ ⊗ μ)
+
+︸ ︷︷ ︸
+
+> (IV)
+
++ πd δℓ δπ ⊗ μ
+
+︸ ︷︷ ︸
+
+> (V)
+
+,
+
+where (I) − ( II ) − ( III ) combine as in the proof of Theorem 5. The term ( IV ) simplifies using the continuity equation for the entropy (1.2) to give 
+
+(IV) + ( V ) = β(∂t + Lu)dσ ⊗ πμ + πd δℓ δπ ⊗ μ
+
+= βπd (∂t + Lu)σ ⊗ μ − βπd (u · ∇ σ + 12 σ2) ⊗ μ
+
+= βπd (∂tσ + u · ∇ σ − u · ∇ σ − 12 σ2) ⊗ μ = βπd (∂tσ − 12 σ2) ⊗ μ . 
+
+Using the continuity equation again we can simplify ∂tσ as 
+
+∂tσ = −π−2∂tπ(∇ · (πu)) + π−1∇ · (∂tπu) + π−1∇ · (π∂ tu)= σ2 − π−1∇ · (u∇ · (πu)) + π−1∇ · (π∂ tu)= σ2 − π−1∇ · (πσ u) + π−1∇ · (π∂ tu)= −u · ∇ σ + π−1∇ · (π∂ tu) .
+
+Defining the operator 
+
+A(ρ, π )[ v] = ρv − α∇(ρ∇ · v) − βπ ∇(π−1∇ · (πv)) , (3.19) we can combine these results to give 
+
+A(ρ, π )
+
+[ Du
+
+Dt 
+
+]
+
+= −α∇(ρQ (u)) − βπ ∇(Qπ (u) + 12 σ2) , (3.20) where we have defined entropy weighted term 
+
+Qπ (u) = u · ∇ σ − π−1∇ · (π∇uu) .
+
+We can simplify this operation by noting that σ is the divergence of u with respect to the weighted volume form πμ , meaning σ = div π (u) where 
+
+Lu(πμ ) = div π (u)πμ . 
+
+It can be shown then that the tensor 
+
+Fπ (u) = ∇u + u ⊗ ∇ log π
+
+satisfies the relation tr( Fπ (u)) = div π (u), allowing us to write 
+
+Qπ (u) = u · ∇ div π (u) − div π (∇uu) = tr ( ∇uFπ (u) − Fπ (∇uu)) , (3.21) 18 using the commutativity between the trace and the covariant derivative. We can then simplify 
+
+∇uFπ (u) − Fπ (∇uu) = ∇u∇u + (((((( (
+
+∇uu ⊗ ∇ log π + u ⊗ ∇ u(∇ log π) − ∇ (∇uu) − (((((( (
+
+∇uu ⊗ ∇ log π . 
+
+We then note that the definition of the Hessian ∇2f of the scalar function log π gives us directly that 
+
+tr ( u ⊗ ∇ u (∇ log π)) = ∇2 log π(u, u) .
+
+On a Riemannian manifold, the commutator of the covariant derivatives can be simplified usign the coordinate expression as 
+
+(∇u∇u)ij − (∇(∇uu)) ij = uk∇k∇j ui − uk∇j ∇kui − (∇j uk)( ∇kui)= uk(∇k∇j − ∇ j ∇k)ui − [( ∇u)2]ij = ukRijkl ul − [( ∇u)2]ij .
+
+Taking the trace then gives yields 
+
+Qπ (u) = ∇2 log π(u, u) + Ric( u, u) − tr(( ∇u)2) . (3.22) Combining with (3.20) we get that 
+
+A(ρ, π )
+
+[ Du
+
+Dt 
+
+]
+
+= ρ Du
+
+Dt − α∇
+
+(
+
+ρ∇ · Du
+
+Dt 
+
+)
+
+− βπ ∇
+
+(
+
+π−1∇ · 
+
+(
+
+π Du
+
+Dt 
+
+)) 
+
+= −α∇(ρ(tr(( ∇u)2) − Ric( u, u))) 
+
+− βπ ∇(∇2 log π(u, u) + Ric( u, u) − tr(( ∇u)2) + 12 div π (u)2) ,
+
+(3.23) and we can see that ρ Du 
+
+> Dt
+
+satisfies the conditions for Lemma 9. Then writing 
+
+ρ Du
+
+Dt = −∇ Σ − π∇χ
+
+and substituting into the expression (3.23) gives the coupled elliptic system of equations in (3.17) and establishing the claim. □
+
+Theorem 11. Given the metric (3.10) and barrier function (3.2) , the tensor ˜C♯ defined by the relation (2.33) satisfies 
+
+˜C♯ 
+
+> ˙φ
+
+˙φ = (ρ−1(∇ΣAC + π∇χAC )) ◦ φ , ρ−1ΣAC − α∇ · (ρ−1(∇ΣAC + π∇χAC )) = 2 α(∇ · u)2 ,χAC − βπ −1∇ · (πρ −1(∇ΣAC + π∇χAC )) = β (div π (u)) 2 .
+
+(3.24) 
+
+Proof. Again we seek W = w ◦ φ ∈ TφD(M ) such that 
+
+GΨ 
+
+> φ
+
+(W, V ) = ˜Cφ( ˙ φ, ˙φ, V ) , (3.25) for all V = v ◦ φ ∈ TφD(M ). In the ambient space, the Amari-Chentsov tensor is given by 
+
+CΨ(φ,ν,π ) (( U, η, ζ ), (V, ξ, σ ), (W, θ, κ )) = 
+
+(
+
+0, −2α
+
+∫
+
+> M
+
+ηξθ ν3 μ, −β
+
+∫
+
+> M
+
+ζσκ π2 μ
+
+)
+
+.
+
+Composing with the differential of the embedding (3.11) and a change of variables gives 
+
+Cφ( ˙ φ, ˙φ, V ) = −2α
+
+∫
+
+> M
+
+ρ(∇ · u)2(∇ · v)μ − β
+
+∫
+
+> M
+
+(div π (u)) 2(∇ · (πv)) μ
+
+A direct computation based on the relation (3.25) then gives 
+
+ρw − α∇(ρ(∇ · w)) − βπ ∇(π−1∇ · (πw)) = 2 α∇(ρ(∇ · u)2) + βπ ∇(div π (u)) 2 . (3.26) 19 It follows that ρw satisfies the conditions for Lemma 9 and we can write ρw = ∇ΣAC + π∇χAC .Substituting into the relation (3.26) yields the system of equations (3.24) , establishing the claim. □
+
+We can now combine these results to form the TIGRE equations, explicitly including the thermodynamic potential terms. 
+
+Corollary 12. The forced pullback dual geodesic equation defined by the barrier function (3.3) as 
+
+˜∇LC  
+
+> ˙φ
+
+˙φ + 12 ˜C♯ 
+
+> ˙φ
+
+˙φ = − (∇h(ρ, s ) − T (ρ, s )∇s) ◦ φ (3.27) 
+
+is the Lagrangian form of the TIGRE system (1.4) .Proof. Expressing the dual geodesic equation (3.27) in the Eulerian frame and using the pressureless form (3.17) and the expression for the L2 gradient of the pullback potential energy (2.15) , we get that 
+
+Du
+
+Dt = −ρ−1(∇h(ρ, s ) − T (ρ, s )∇s) − ρ−1(∇Σ + π∇χ) , (3.28) where we have identified 
+
+Σ = Σ LC + 12 ΣAC , χ = χLC + 12 χAC 
+
+are the combined potentials. The right-hand sides of the equations for the potentials follow from a direct computation combining the solutions determined by Theorems 10 and 11, and the conservative form follows similarly as the IGR formulation. □
+
+3.3 Properties of the Regularized Equations 
+
+The potentials (Σ , χ ) defining the regularization play structurally distinct roles in the dynamics. While the volumetric regularization potential Σ compensates for the compressive motions, the poten-tial χ is sensitive to the thermodynamic structure of the flow, forcing only the non-isentropic motions. Here we elaborate on the conservative, thermodynamic, and dynamic consequences of these properties of the regularization in the TIGRE system (1.4) in comparison with the IGR equations (1.1). 
+
+Conservative Properties 
+
+Along with the total mass of the system, the total momentum, energy, and entropy are conserved quantities of the full compressible Euler equations 
+
+P(t) = ddt 
+
+∫
+
+> M
+
+ρ(t)u(t)μ , E(t) = 
+
+∫
+
+> M
+
+ρ(t)
+
+( 12 |u(t)|2 + e(t)
+
+)
+
+μ , S(t) = 
+
+∫
+
+> M
+
+π(t) . (3.29) 
+
+Proposition 13. The IGR equations (1.1) conserve total mass, momentum, and energy (2.20) . The total entropy satisfies 
+
+ddt 
+
+∫
+
+> M
+
+πμ =
+
+∫
+
+> M
+
+u · ∇ (ϑ−1Σ) μ . (3.30) 
+
+Proof. The conservative properties follow as a consequence of the divergence theorem, which can be read directly from the conservative flux form the equations (1.1) . The evolution of the entropy was noted in [28], which is pointwise defined by 
+
+∂tπ + ∇ · (πu) = −(ϑ−1Σ) ∇ · u , (3.31) using the thermodynamic relations (2.14). □
+
+Proposition 14. The TIGRE equations (1.4) conserve total mass and entropy. The total momentum satisfies 
+
+ddt 
+
+∫
+
+> M
+
+ρudx = −
+
+∫
+
+> M
+
+π∇χdx , (3.32) 20 and the total energy satisfies 
+
+ddt 
+
+∫
+
+> M
+
+ρ
+
+( 12 |u|2 + e(ρ, s )
+
+)
+
+dx = −
+
+∫
+
+> M
+
+u · (∇Σ + π∇χ)dx . (3.33) 
+
+Proof. The conservative properties follow directly from the equations, and the evolution of the total momentum follows directly from the momentum equation. The total energy density evolution proof follows directly from the equations and thermodynamic relations. □
+
+Compressions of the flow becomes sources or sinks of entropy in the IGR equations (1.1). The conservation of energy exhibited by the equations (1.1) can be seen as a constraint equation used to close the system rather than a structural property of the regularization itself. The TIGRE system similarly does not possess a conservation of the total energy density; however, it conserves the total entropy by construction. Neither of the systems necessarily dissipates the total energy or entropy, however, and in our numerical experiments, we observe both increasing and decreasing of the total energy in the TIGRE system (1.4) and the total entropy for the IGR system (1.1) . This behaviour can be attributed to a sign-indefinite character of the regularization [23, 28]; serving as a source of regularization energy in compressive regions or a sink in expansive regions. In both systems, the natural Hamiltonian defined by the kinetic and potential energies is not conserved and instead satisfies the evolution 
+
+ddt 
+
+12 Gψφ ( ˙ φ, ˙φ) + U (φ) = Gψφ (∇LC  
+
+> ˙φ
+
+˙φ, ˙φ) + Gψφ (∇ψ U (φ), ˙φ)= Gψφ (∇∗ 
+
+> ˙φ
+
+˙φ + ∇ψ U (φ), ˙φ) − 12 Gψφ (C♯ 
+
+> ˙φ
+
+˙φ, ˙φ)= Gψφ (∇ψ U (φ) − ∇ GU (φ), ˙φ) − 12 Cφ( ˙ φ, ˙φ, ˙φ) ,
+
+(3.34) where we used the notation ∇ψ to define the gradient with respect to the pullback metric and ∇GU (φ)
+
+as the gradient with respect to the L2 metric as in the Newton’s equations (2.6) and the fact that 
+
+˜∇∗ 
+
+> ˙φ
+
+˙φ = −∇ GU (φ) (3.35) in the last inequality for either system (1.1) or (1.4) . The cubic term arising due to the Amari– Chentsov tensor in (3.34) serves as a source of regularization energy in compressive regions or a sink in expansive regions and contrasts the sign-definite of dissipative viscous regularizations. This sign-indefinite character of the information geometric regularization is fundamental to its formulation as an inviscid regularization and is a consequence of the use of the dual geodesic evolution. 
+
+Acoustic Wave Propagation 
+
+The use of the L2 gradient in the forcing of the pullback dual geodesic equations (3.35) has an important structural consequence in preserving the linear acoustic wave propagation in the flow. The use of the gradient of the Hessian metric, which results in dynamics of the form 
+
+˜∇∗ 
+
+> ˙φ
+
+˙φ = −∇ ψ U (φ) ,
+
+can be shown to introduce a non-local pressure into the momentum equation, which compromises the acoustic wave dispersion relations of the full compressible Euler equations. A similar property is noted in [28], where it was also shown that the IGR equations conserve the acoustic wave propagation of the Euler equations. Using a similar line of reasoning, we can show that the TIGRE equations (1.4) also preserve the acoustic wave propagation of the full compressible Euler equations. In particular, we have the following proposition. 
+
+Proposition 15. The linearized characteristics of the TIGRE equations (1.4) about a constant background state support acoustic waves with dispersion relation τ = u0 · ξ ± c0|ξ|, where c0 is the isentropic speed of sound and ξ is the wave vector. The regularization potentials (Σ , χ ) do not contribute to the acoustic spectrum at linear order. 
+
+21 Proof. We consider a constant background state U0 = ( ρ0, u 0, π 0) and a perturbation of the solution 
+
+U = U0 + ϵ ˜U with a plane wave ansatz 
+
+˜U (x, t ) = ˆU e iξ ·x−τ t ,
+
+where ˆU = ( ˆρ, ˆu, ˆπ) are expressed in Fourier space. We first note that with the background state we get a steady state solution with (Σ , χ ) = (0 , 0) because the right-hand sides of the equations are zero since u0 and π0 are constant and the zero solution is valid for both elliptic equations. Linearizing the elliptic subsystem about (Σ , χ ) = ϵ( ˜Σ, ˜χ), we get the that the left-hand sides satisfy 
+
+ρ−1Σ − α∇ · (ρ−1(∇Σ + π∇χ)) = ϵρ −10 ˜Σ − αϵρ −10 ∇ · (∇ ˜Σ + π0∇ ˜χ) + O(ϵ2) ,χ − βπ −1∇ · (πρ −1(∇Σ + π∇χ)) = ϵ ˜χ − ϵβρ −10 ∇ · (∇ ˜Σ + π0∇ ˜χ) + O(ϵ2) .
+
+Since the background velocity is spatially constant, the terms div (u)2 and tr (( ∇u)2) are O(ϵ2). In the χ equation, we see that 
+
+div π (u0 + ϵ˜u) = div( u0 + ϵ˜u) + ϵ(u0 + ϵ˜u) · ∇ ˜π = ϵdiv(˜ u) + ϵu 0π−10 ∇˜π + O(ϵ2) ,
+
+and hence its square is O(ϵ2). In the other term, we have that 
+
+∇2 log π[u0 + ϵ˜u, u 0 + ϵ˜u] = ∇2 log π0[u0, u 0] + 2 ϵ∇2 log π0[u0, ˜u] + O(ϵ2)
+
+and the first terms vanish because ∇2 log (π0) = 0 . Substituting into the system of equations (1.4), replacing ∂t → − iτ and ∇ → iξ , and introducing a Doppler-shifted frequency ˆτ = τ − u0 · ξ, the linearized equations become an algebraic system of the form 
+
+−ˆτ ρ 0 ˆu + c20ξ ˆρ + ∂p ∂s ξˆs + ξ ˆΣ + π0ξ ˆχ = 0 , −ˆτ ˆρ + ρ0ξ · ˆu = 0 , −ˆτ ˆπ + π0ξ · ˆu = 0 , (3.36) and the elliptic subsystem at O(ϵ) becomes 
+
+(ρ−10 (1 + α|ξ|2 απ 0ρ−10 |ξ|2
+
+βπ −10 ρ−10 |ξ|2 1 + βπ −10 ρ−10 |ξ|2
+
+) ( ˆΣˆχ
+
+)
+
+=
+
+(00
+
+)
+
+.
+
+The determinant of this matrix is given by 
+
+det L(ξ) = ρ−10
+
+(1 + ( α + βπ −10 ρ−10 )|ξ|2) > 0 ,
+
+and therefore L(ξ) is invertible for all ξ allowing us to conclude the ˆΣ = ˆχ = 0 , simplying the momentum equation relation. Note then that the continuity equation relations give us the relation 
+
+ˆρ/ρ 0 = ˆ π/π 0 and since π = ρs , linearizing we get ˆπ = s0 ˆρ + ρ0 ˆs and therefore 
+
+ˆππ0
+
+= ˆρρ0
+
++ ρ0 ˆsπ0
+
+= ˆρρ0
+
++ ˆss0
+
+=⇒ ˆs = 0 .
+
+The system (3.36) then reduces to 
+
+−ˆτ ρ 0 ˆu + c20ξ ˆρ = 0 ,
+
+−ˆτ ˆρ + ρ0ξ · ˆu = 0 ,
+
+which implies that ˆu is proportional to the wave vector ξ and there is no equation forcing the transverse directions ˆu⊥ to be vorticity modes. Letting ˆu∥ be the longitudinal direction, the only nontrivial solution of the equations is given by ˆτ = ±c0|ξ|, and restoring the Doppler shift, we get 
+
+τ = u0 · ξ ± c0|ξ|, establishing the claim. □
+
+Potential Vorticity 
+
+It is desirable that the regularization to mitigate shock formation still maintain the vortex-wave interactions described by the transport of the potential vorticity. In the non-barotropic setting in a three-dimensional domain, the Ertel potential vorticity q = ρ−1ω · ∇ s, where ω = ∇ × u is the 22 vorticity vector field, is a material invariant of the full compressible Euler equations. This can be readily observed using a coordinate-free interpretation with differential forms, where we can write 
+
+q = ρ−1 ⋆ (ω ∧ ds ) , (3.37) with ω ∧ ds being the wedge product between the vorticity two-form ω = du ♭ and the exterior derivative of the specific entropy and ⋆ : Ω 3(M ) → Ω0(M ) is the Hodge star operation. Taking the exterior derivative of the evolution equation for the velocity one-form u♭ in the compressible Euler equations gives us 
+
+∂tu♭ + Luu♭ = −d(h − 12 |u|2) + ϑds =⇒ ∂tω + Luω = dϑ ∧ ds , 
+
+where we have used the commutativity of the Lie derivative and exterior derivative. Using the fact that ρq = ⋆ω ∧ ds =⇒ ρqμ = ω ∧ ds and the continuity equation for ρ, we have 
+
+ρ(∂tq + Luq)μ = q(∂t + Lu)ρμ + ρ(∂tq + Luq)μ
+
+= ( ∂t + Lu)ρqμ 
+
+= ( ∂t + Lu)ω ∧ ds + ω ∧ d(∂t + Lu)s
+
+= dϑ ∧ ds ∧ ds = 0 ,
+
+(3.38) which implies the advection of the potential vorticity (3.37). 
+
+Proposition 16. The potential vorticity (3.37) in the TIGRE system (1.4) is a material invariant. Proof. Writing the momentum equation in differential form and taking the exterior derivative, we see 
+
+∂tω + Luω = dϑ ∧ ds − d(ρ−1πdχ ) = ( dϑ + dχ ) ∧ ds , 
+
+using the anti-symmetry of the wedge product. The conservation of the potential vorticity then follows using the conservation of entropy and a similar manipulation as equation (3.38). □
+
+Proposition 17. The potential vorticity (3.37) in thermodynamic IGR equations (1.1) satisfies 
+
+∂tq + u · ∇ q = − 1
+
+ρ (∇ × u) · ∇ 
+
+( Σ
+
+ρϑ (∇ · u)
+
+)
+
+.
+
+Proof. This property follow as a consequence of the loss of conservation of the entropy exhibited by the system (1.1). In particular, because π satisfies (3.31), we see that 
+
+(∂t + Lu)ω ∧ ds = dϑ ∧ ds ∧ ds + ω ∧ d(∂t + Lu)s = −ω ∧ d
+
+( Σ
+
+ϑρ (∇ · u)
+
+)
+
+.
+
+The proof then follows by using ρqμ = ω ∧ ds and taking the Hodge star on both sides to give 
+
+⋆ρ (∂tq + Luq)μ = ρ(∂tq + Luq) = − ⋆ ω ∧ d
+
+( Σ
+
+ϑρ (∇ · u)
+
+)
+
+= −(∇ × u) · ∇ 
+
+( Σ
+
+ρϑ (∇ · u)
+
+)
+
+,
+
+which establishes the formula. □
+
+The dynamical invariance of the potential vorticity in the TIGRE equations is a corollary of the conservation of entropy and can be seen as an additional benefit to conserving the entropy when formulating the information geometric regularization. 
+
+# 4 Numerical Experiments 
+
+In this section, we describe a suite of numerical experiments that investigate and validate the proper-ties of the TIGRE equations (1.4) in comparison to the thermodynamic IGR equation (1.1) . We use the same numerical method as [23], a Richtmyer Lax–Wendroff time-stepping scheme to compute the 23 solution. The first experiment(4.1) is a one-dimensional, smooth, and periodicized Sod shock tube initial condition as used in [28] (section 1.4) to demonstrate a spurious cusp-like singularity formation in the density and internal energy of the thermo-IGR equations after the collision of two wave fronts for the equations (1.1) . The TIGRE equations are demonstrated to mitigate this cusp-singularity by constraining the dynamics to be thermodynamic length minimizing. The second experiment (4.2) illustrates the dynamical similarity of the two equations with a two-dimensional experiment of colliding pressure waves, demonstrating numerically how acoustic wave dispersion is preserved in both sets of equations. The third experiment (4.3) illustrates the interactions between pressure waves and vortex-dominated motion in a Kelvin–Helmholtz instability. We observe that the TIGRE regularization approach introduces less dispersive error at vortex filaments while still maintaining a similar dynamics in the velocity and pressure fields. These experiments all provide a strong indication of the efficacy of including a thermodynamic constraint into the information geometric regularization. 
+
+Numerical Methods. Our numerical experiments are performed using a Richtmyer Lax–Wendroff (LW) iteration of the form 
+
+qn+1 /2 
+
+> i+1 /2
+
+= 12 (qni + qni+1 ) − ∆t
+
+2∆ x
+
+(F (qni+1 ) − F (qni )) + ∆t
+
+2
+
+(S(qni ) + S(qni+1 )) ,
+
+qn+1  
+
+> i
+
+= qni − ∆t
+
+∆x
+
+(
+
+F (qn+1 /2 
+
+> i+1 /2
+
+) − F (qn+1 /2 
+
+> i−1/2
+
+)
+
+)
+
++ ∆ tS
+
+( 12 (qn+1 /2 
+
+> i+1
+
++ qn+1 /2 
+
+> i−1
+
+)
+
+)
+
+,
+
+(4.1) where we use the notation 
+
+q = ( ρ, ρu, π )⊤, F (q) = ( ρu, ρu 2 + p(ρ, s ) + Σ) ⊤, S(q) = (0 , −π∇χ, 0) ⊤ ,
+
+for the state vector, flux, and source term respectively. The domain is taken to be [0 , 1) 2 with periodic boundary conditions, and the solution is computed on a uniform mesh of size ∆x = 1 /N x. The derivative in the source term is approximated using a centred finite difference, and the elliptic system for (Σ n, χ n) needed to evaluate the fluxes is constructed as follows. Letting Dxunij and Dy unij denote the centred finite-difference approximations of the velocity field in the coordinate directions, we can write the approximation of the right-hand side of the equations for Σ using the expressions 
+
+[div( u)2]ij = ( Dxuxij + Dy uyij )2 ,
+
+[tr(( ∇u)2)] ij = ( Dxuxij )2 + 2( Dxuyij )( Dy uxij ) + ( Dy uyij )2 .
+
+The entropy-weighted divergence term is computed using a cell-averaging of the form 
+
+[div π (u)] i,j = 1
+
+πi,j 
+
+( ¯πi+1 /2,j uxi+1 ,j − ¯πi−1/2,j uxi−1,j 
+
+∆x + ¯πi,j +1 /2uyi,j +1 − ¯πi,j −1/2uyi,j −1
+
+∆y
+
+)
+
+,
+
+with the notation ¯πi±1/2,j = ( πi,j +πi±1,j )/2 and similarly for ¯πi,j ±1/2. The Hessian of log π evaluating along the velocity field is approximated as 
+
+[∇2 log π[u, u ]] i,j = ( uxi,j )2 (log πi+1 ,j − 2 log πij + log πi−1,j ) /∆x2
+
++ uxi,j uyi,j (log πi+1 ,j +1 − log πi−1,j +1 − log πi+1 ,j −1 + log πi−1,j −1) /(2∆ x∆y)+ ( uyi,j )2 (log πi,j +1 − 2 log πij + log πi,j −1) /∆y2 .
+
+We discretize the weighted divergence operators defining the system for (Σ , χ ) using cell-centred finite-differences with face-averaged coefficients as 
+
+[∇ · (g∇f )] ij = 12∆ x2
+
+(¯gi+1 /2,j (fi+1 ,j − fi,j ) + ¯ gi−1/2,j (fi,j − fi−1,j ))
+
++ 12∆ y2
+
+(¯gi,j +1 /2(fi,j +1 − fij ) + ¯ gi,j −1/2(fi,j − fi,j −1)) .
+
+(4.2) 24 The elliptic system for the potentials at each iteration can be expressed as the linear system 
+
+(Dρ + αL 11 αL 12 
+
+βL 21 Dπ I + βL 22 Dπ
+
+) ( Σn
+
+χn
+
+)
+
+=
+
+( α(div( un)2 + tr(( ∇un)2)) 
+
+β(div 2 
+
+> π
+
+(un) − tr(( ∇un)2) + ∇2 log( πn)[ un, u n]
+
+)
+
+, (4.3) where Dρ = diag (ρ−1 
+
+> ij
+
+) and Dπ = diag (π−1 
+
+> ij
+
+) are diagonal matrices of pointwise multiplications and we have used the notation Lkl to denote the N × N symmetric matrix representing the weighted divergence operators Lkl = −∇ · (gkl ∇) as defined by (4.2) with g11 = ρ−1, g12 = g21 = πρ −1, and 
+
+g22 = π2ρ−1. Writing the matrix defining the linear system as A and the right-hand side as (f1, f 2),we can split the system as A = AD + AN where AD collects all centre node contributions and AN
+
+collects all the off-diagonal neighbour couplings the cells (i, j ). The splitting induces the following fixed-point iteration 
+
+AD
+
+( ˜Σk+1 
+
+˜χk+1 
+
+)
+
+= −AN
+
+( ˜Σk+1 
+
+˜χk+1 
+
+)
+
++
+
+(f1
+
+f2
+
+)
+
+, (4.4) where f1, f 2 corresponds to the right-hand side of the system and ( ˜Σ0, ˜χ0) = (Σ n, χ n) is the initialization. Because AD is block diagonal with 2 × 2 blocks, we can compute each solution exactly via Cramer’s rule on the blocks. We use a similar Gauss–Seidel fixed-point iteration similar to those in prior IGR work [23, 27] to solve the system. The method uses a red-black colouring of the mesh to improve the convergence rate. On a small 4 × 4 grid this colouring looks like 
+
+> R
+> B
+> R
+> B
+> B
+> R
+> B
+> R
+> R
+> B
+> R
+> B
+> B
+> R
+> B
+> R
+> 0
+> 0
+> 1
+> 1
+> 2
+> 2
+> 3
+> 3
+
+i
+
+j
+
+At each iteration, the values of either the red or black cells are frozen, and the fixed-point iteration is performed consecutively between coloured cells. The regularization parameters scale as α ∼ β ∼ ∆x2,yielding a well-conditioned system. The number of fixed-point iterations requiring convergence was approximately halved by using an extrapolation ( ˜Σ0, ˜χ0) = (2Σ n − Σn−1, 2χn − χn−1) as the initial guess at each time step. In practice, we observed only a few fixed-point iterations were needed for convergence. The time stepping is performed adaptively using a CFL condition of the form 
+
+∆t = C ∆x
+
+∥| u| + √∂p/∂ρ ∥∞
+
+with a constant C chosen based on the experimental setup. We will refer to the solution of the thermodynamic extension of the IGR equations (1.1) using the LW scheme as LW-IGR and the application to our new TIGRE equations as LW-TIGRE. 
+
+Metrics of Comparison. As quantitative comparison of the two regularization approaches, we can verify the conservative properties of the numerical solutions with the following approximations of the total entropy, the total energy, and the momentum of the solution 
+
+Sn = ∑
+
+> i,j
+
+πni,j ∆x∆y , En = ∑
+
+> i,j
+
+ρni,j 
+
+( 12 |uni,j |2 + pni,j 
+
+1 − γ
+
+)
+
+∆x∆y , Pn = ∑
+
+> i,j
+
+ρni,j uni,j ∆x∆y . 
+
+25 As a measure of the oscillatory behaviour in the solution, we consider the discrete total variation of the density measured as TV h(ρn) = ∑
+
+> xi
+
+√
+
+(Dxρn)2 + ( Dy ρn)2∆x∆y , 
+
+where Dxρn and Dy ρn are centred finite-difference approximations in the coordinate directions. We also consider diagnostics for the acoustic wave propagation and the turbulent energy cascade behaviour based on spectra of the discrete Fourier transformed pressure and velocity fields. In particular, we computed radially averaged power spectra, defined by the square modulus of the coefficients over the shells Ωb = {k = ( kx, k y ) : b ≤ | k| ≤ b + 1 } as 
+
+P (kb, t n) = 1
+
+|Ωb|
+
+∑
+
+> k∈Ωb
+
+|ˆpn(k)|2 , E(kb, t n) = 12|Ωb|
+
+∑
+
+> k∈Ωb
+
+|ˆun(k)|2 .
+
+These spectral diagnostics are used to assess the effects of the regularization on the acoustic wave propagation and turbulent energy cascades respectively. 
+
+4.1 Smoothed Sod Shock Tube 
+
+In this experiment, we consider a smoothed form of the Sod shock tube test as described in [28]. The TIGRE system (1.4) in one dimension reduces to 
+
+∂t(ρu ) + ∂x
+
+(ρu 2 + p(ρ, s ) + Σ) ) = −π∂ xχ , ∂tρ + ∂x(ρu ) = 0 ,∂tπ + ∂x(πu ) = 0 ,ρ−1Σ − α∂ x
+
+(ρ−1(∂xΣ + π∂ xχ)) = 2 α(∂xu)2 ,χ − βπ −1∂x
+
+(πρ −1(∂xΣ + π∂ xχ)) = β ((π−1∂x(πu )) 2 − (∂xu)2 + u2∂xx log π) .
+
+(4.5) As initial conditions, we use a smoothed, periodicized version of the Sod tube in the form 
+
+ψ(x) = 12 (tanh(( x − xL)/ϵ ) − tanh(( x − xR)/ϵ )) ,ρ0(x) = ρL − (ρL − ρR)ψ(x) , p0(x) = pL − (pL − pR)ψ(x) , u0(x) = 0 .
+
+The parameters of the experiment are taken to be (xL, x R) = (0 .25 , 0.75) , (ρL, ρ R) = (1 , 0.125) ,
+
+(pL, p R) = (1 , 0.1) , and ϵ = 0 .03 . The initial total energy density is determined by the relation (2.24) for the LW-IGR simulation, and the ideal gas law (2.23) is used to determine the initial entropy. We used the constants κ = 1 , γ = 1 .4, and cv = 2 .5 for the LW-TIGRE simulation. As a baseline comparison, we consider the Lax–Friedrichs (LF) scheme defined by 
+
+qn+1  
+
+> i
+
+= 12 (qni+1 + qni−1) − ∆t
+
+2∆ x
+
+(F (qni+1 ) − F (qni−1)) ,
+
+applied to the compressible Euler equations. The LF scheme is prone to a diffusive error, whereas the LW scheme is prone to a dispersive error [54]. It was shown that the IGR regularization dampens the magnitude of the dispersive oscillations near sharp moving fronts [23], which we also observed in the LW-TIGRE scheme. The solutions for LW-IGR and LW-TIGRE are computed using Nx = 500 
+
+grid points and a final integration time of t = 0 .5. The solution at three different snapshot in time is shown in Figure 2, where we compare the density, velocity, and pressure, which are all shared observable quantities from each method. The wave front speeds and pressure of the LW-IGR and LW-TIGRE equation have a slight discrepancy, whereas the LW-TIGRE solution does not develop a cusp singularity in the density compared to the LW-IGR solution. We illustrate how the cusp singularity remains a property of the solution, rather than a numerical artifact by considering a refinement up to a resolution of Nx = 1024 grid points in Figure 2. In Figure 3, we provide the metrics of comparison, where we observe machine precision accuracy of the momentum for both equations, conservation of total entropy for the LW-TIGRE, and conservation of total energy for the LW-IGR equation, which 26 Figure 2 : Top : Smoothed Sod shock tube experiment. The solution (ρ, u, p ) at three different snapshots in time. The wave front speeds and pressure of the LW-IGR and LW-TIGRE equation have a slight discrepancy, whereas the LW-TIGRE solution does not develop a cusp singularity in the density compared to the LW-IGR solution. Bottom : Zoom of the mass density at the final integration time, where we illustrate the permanence of the cusp-singularity under grid refinement. is consistent with the discussion of Section 3.3. This test was also performed by Barham et al. [28], where the cusp-singularity was not resolved, indicating that the incorporation of thermodynamics into the information geometric regularization offers a systematic resolution to this dynamical behaviour. 
+
+4.2 Acoustic Wave Propagation 
+
+In this numerical experiment, we consider the evolution of two localized pressure perturbations in a medium at rest in a two-dimensional periodic domain to investigate the behaviour of a complex acoustic wave propagation. We consider the background density to be constant and the initial velocity field is set to zero. As perturbation, we use two compactly supported profiles, one with radial symmetry and one with a variable profile, defined respectively as 
+
+b1(x, y ) = exp( −(1 − r21 )−1)Ir1<1 , r21 = 1
+
+ϵ2
+
+((x − 0.3) 2 + ( y − 0.4) 2) ,b2(x, y ) = exp( −(1 − q22 )−1)Iq2<1 , q22 = 1
+
+ε(θ)2
+
+((x − 0.7) 2 + ( y − 0.6) 2) ,
+
+27 Figure 3 : Conservation of the momentum (left), entropy (middle), and total energy (right) for the smoothed Sod shock tube experiment. where ϵ = 0 .01 and ε(θ) = 0 .1(1 + 0 .18 cos (4 θ)) with θ = arctan 2( y − 0.6, x − 0.7) . The asymmetry between these two fronts injects an anisotropic structure into the initial condition and angular modes into the spectrum. The initial density and entropy are then defined by ρ0 = 1 + 0 .1( b1 + b2) and 
+
+π0 = 0 .2 + 0 .1( b1 + b2). The pressure perturbations associated with these initial conditions generate acoustic waves that transport the entropy density, simulating an asymmetric collisions between wavefronts. We consider ∆x = ∆ y = 1 /512 and compute the solution to t = 1 , which we show in Figure 4. The solutions are nearly identical, indicating how the acoustic wave propagation for each regularization is consistent. We can further validate this property quantitatively by assessing the pressure power spectrum diagnostics of the two solutions in Figure 6. The regularization exhibited a similar dynamical behaviour with a small discrepancy at the highest wave numbers. As a coarse-grained comparison, we compute also the total spectral mass defined by the total power spectrum and the variance weighted mean wave number 
+
+krms (t) = 
+
+√ ∑ 
+
+> b
+
+k2P (k)
+
+∑ 
+
+> b
+
+P (k) ,
+
+as further indication of the consistency between the acoustic wave propagation dynamics between each regularization. The total spectral mass is observed to oscillate over the simulation, while the 
+
+krms (t) trends towards higher wave numbers in both regularizations. The conservation diagnostics are shown in Figure 5, where we again see an agreement with the properties discussed in Section 3.3, and the total variation of the density is also observed to remain consistent for each regularization. We remark that the signs of the total entropy (LW-IGR) and total energy (LW-TIGRE) evolve differently here from their behaviour in the Sod shock tube test. This behaviour is due to the sign indefinite property of the information geometric correction present in both sets of equations. 
+
+4.3 Kelvin–Helmholtz Instability 
+
+As a final numerical experiment, we consider a Kelvin–Helmholtz instability to assess the interaction of the regularization with vortex-dominated motion. The fluid is initialized using a shear layer with a small transverse perturbation to trigger a vortex-dominated instability. The initial velocity field profile is given by 
+
+u0(x, y ) = 
+
+( 14 tanh 
+
+( δy + wh
+
+)
+
+− 14 tanh 
+
+( δy − wh
+
+)
+
+, A sin(2 πx ) exp 
+
+(
+
+− δy 2
+
+h
+
+)) 
+
+,
+
+with δy = ( y − y0 + 0 .5) mod 1 − 0.5 being a periodic distance from the shear layer centreline 
+
+y0 = 0 .5, and the parameters were set to w = 0 .1, h = 0 .01 , and A = 0 .01 . The density and entropy density are initialized to be uniform ρ0 = 1 and π0 = 0 .2 such that no initial pressure perturbations are introduced. The dynamics are driven entirely by the shear instability, which sheds vortices at the scale of the initial perturbation. The simulation is performed with a grid ∆x = ∆ y = 1 /1024 , and the final integration time is taken to be t = 4 . The solution profiles at t = 4 are shown in Figure 9, where we observe a close similarity between the solutions for the pressure and the velocity field. The density in the LW-IGR, however, exhibits further oscillation along vortex filaments than for the LW-TIGRE solution, which 28 Figure 4 : Final solution profiles of the density, pressure, and magnitude of the velocity for the acoustic wave propagation test. The solutions profiles are observed to be nearly identical, illustrating how the acoustic wave propagation is consistent between both regularizations. 
+
+Figure 5 : Diagnostics for the acoustic wave propagation test. We note that the sign of the total entropy for the LW-IGR and the total energy for the LW-TIGRE solution differ from the behaviour in the smoothed Sod shock tube test. This behaviour is due to the sign indefinite property of the information geometric correction for both sets of equations. can be seen as a difference in total variation indicated in Figure 7. This discrepancy suggests a dynamical similarity with the Sod Shock tube test case where the cusp-singularity formed at pressure front collisions, now in combination with a vortex filament. In this case, the LW-TIGRE exhibits less dispersive error due to wave-vortex dynamics than in the LW-IGR solution, observed empirically in the right panel of figure 7. The reduction in density wave oscillations near vortex filament in LW-TIGRE solution is a desirable property from the standpoint of stability of the numerical method and can be attributed to the additional regularization due to the χ potential. In Figure 10, we show the solution profiles for the potentials and observe balancing effects in the χ potential that possess an opposite sign to the Σ potential. The conservative properties shown in Figure 7 indicate an agreement with the results of Section 3.3, where now the total entropy increases in the LW-IGR solution and the total energy decreases in the LW-TIGRE solution. We further assess the impacts on the regularization on the turbulent energy cascade for this solution in Figure 8, where we observe a similar decay structure in the kinetic energy spectrum. 29 Figure 6 : Spectral diagnostic comparison of the pressure field evolution for the LW-IGR and LW-TIGRE solutions. The mean wave number and total spectral mass (top row) of the pressure fields show similar behaviour for both regularizations, consistent with the evolution of the power spectrum (bottom row). The time evolution in the power spectrum is indicated by the increasing line opacity. 
+
+Figure 7 : Conservation diagnostics for the Kelvin–Helmholtz instability test. The total variation of the mass densities differ, indicating an increase in dispersive error for the LW-IGR solution in comparison to the LW-TIGRE solution. 
+
+# 5 Conclusion and Outlook 
+
+In this work, we have proposed a thermodynamically constrained information geometric regularization (IGR) for compressible fluid flow. This represents an extension of the IGR for barotropic flows [23] in two distinct ways. First, the new regularization incorporates a thermodynamic barrier defined by the relative entropy, modifying the original structure of the IGR equations with an additional regularization potential and entropic pressure contribution to the momentum equation. In doing so, we have resolved an open problem raised by Barham et al. [28] in regularizing the cusp-singularities observed in the IGR equations with a full thermodynamic state (1.1). These effects were validated numerically with experiments in one and two dimensions, where we have demonstrated the effects of the thermodynamic constraint in comparison with the previous IGR regularization. The constraint can be seen as selecting, among all regularized flows, the paths which are minimizing with respect to a thermodynamic length as defined by the Fisher–Rao metric. Second, we have provided a geometric formalism to derive the equations of motion using other barrier functions. This work offers a starting point for a number of lines of investigation and we conclude here with a few ideas that we hope could spur the development of new algorithms and theory at the confluence of infinite-dimensional geometry, mathematical physics, and scientific computing. 30 Figure 8 : Energy cascades of both regularizations for the Kelvin–Helmholtz instability test. 
+
+Figure 9 : Kelvin–Helmholtz instability test case at the final time step. We observe a damping of oscillatory behaviour in the interactions of the vortex motion and the density evolution in the TIGRE formulation in comparison to the IGR equations. The pressure and velocity fields however retain similar large scale features from one another. 
+
+Numerical Solver and Benchmarking 
+
+Developing high-performance numerical solvers for the TIGRE equations, similar to the high-order finite volume techniques for the IGR equations as described in [27, 55], would be important to bench-mark the computational benefits and disadvantages of the approach in a performance-aware setting. The properties of the regularization demonstrated in this work motivate the design of other solver variants that incorporate alternative time-stepping routines and spatial discretizations along with their numerical analysis as interesting directions for future research. Integrating insights from research 31 Figure 10 : The regularization potentials for the Kelvin–Helmholtz instability test case at the final time. The barotropic regularization Σ for both models shows a similar dynamical behaviour. There is a sign difference between Σ and χ for the thermodynamical regularization, indicating a balancing effect between the two potentials. in hyperbolic conservation laws is also an important direction to motivate applications in other scien-tific domains that might benefit from this inviscid regularization strategy. Furthermore, investigating structure-preserving methods, such as those developed for finite elements [56, 57] and summation-by-parts finite difference methods [58, 59] within the context of information geometric mechanics might shed insight into approaches of capturing these regularizing properties at the discrete level. 
+
+Stabilizing High-Order Methods 
+
+There are a variety of compressible flow regimes that do not necessitate shock-capturing methods, such as those arising in atmospheric dynamics. Compressibility in the flow, however, still creates stiffness in the dynamics, and the use of high-order discretizations in these regimes is prone to instabilities; dispersive oscillations and uncontrolled aliasing error can violate fundamental constraints in the solution, triggering breakdown of the numerical solutions even when the dynamics are in a smooth regime. A variety of numerical techniques have been proposed to compensate for these instabilities such as the 2/3 rule and filtering in pseudo-spectral methods [18, 60], split-form and flux-form methods for spectral element and discontinuous Galerkin schemes [61, 62], and positivity-preserving limiters for finite volume schemes [63]. Flux-differencing methods improve the robustness of high-order discretizations due to the enforcement of a discrete entropy inequality [64 –66]. An alternative approach to stabilization is to directly regularize the equations using a hyperviscosity [18], entropy corrections [67], or artificial entropy diffusion [68] for instance. Given the stabilizing effects of the information geometric regularization, an investigation into the use of other Hessian metric geometries as an alternative stabilizing technique for high-order numerical methods would be an interesting line of investigation. The design of barrier functions that are informed by the instabilities of the numerical method, damping spurious aliasing modes through the reformulation of the PDE model would be an interesting approach along this line. 
+
+Thermodynamic Extensions 
+
+In Section 3.1, we motivated the use of the thermodynamic constraint through the relation to entropy production in the flow using an information geometric and a thermodynamic interpretation. While the relative entropy provides a natural and geometrically grounded starting point, extending the information geometric mechanics to more complex thermodynamic settings will require a better conceptualization based on the microscopic properties of gas dynamics and matter under consideration. In richer continuum setting such as reacting flows, multi-species plasmas, and systems undergoing phase transitions, the thermodynamic state space must be extended further and the reference equilibrium can become time-dependent. More fundamentally, near phase transitions the curvature as measured by the Fisher–Rao metric becomes an essential descriptor [69, 70], suggesting 32 curvature invariants of the statistical manifold may play a central role in correctly encoding the barrier structure in these regimes. Incorporating insights from geometric thermodynamics [47, 50, 71, 72] into these richer physical settings could offer a systematic approach to developing regularizations whose structure is more directly constrained by the geometry of the underlying thermodynamic phase space. 
+
+Information Geometric Mechanics 
+
+Our presentation has emphasized the interplay between Riemannian and information geometry underlying the equations of motions via the pullback dual geodesic formulation. Expanding on the information geometric mechanics [23] will require further analytic and geometric formalism to investigate these mixed geometric structures. Leok and Zhang [73] studied these connections in the finite-dimensional setting, where it was observed that information geometry could be viewed as an extension of geometric mechanics via Dirac mechanics on the Pontryagin bundle. A formalization of the Dirac mechanical structures, such as those studied by [74], on the diffeomorphism group and the extended thermodynamic state space could shed light into some more fundamental geometric structures underlying the information geometric mechanics. 
+
+Acknowledgements 
+
+The authors gratefully acknowledge that this research was supported in part by the Pacific Institute for the Mathematical Sciences (S.T. and R.J.S.), the Natural Sciences and Engineering Research Council of Canada under Discovery Grant RGPN-2020-04467 (R.J.S.), and Environment and Climate Change Canada. 
+
+Statement of Author Contributions Seth Taylor : Conceptualization, Methodology, Formal Analysis, Software, Validation, Writing -Original Draft, Writing - Review & Editing. Raymond J. Spiteri : Methodology, Validation, Writing - Original Draft, Writing - Review & Editing, Supervision, Project administration, Funding acquisition. 
+
+Stéphane Gaudreault : Methodology, Validation, Writing - Review & Editing, Supervision, Project administration, Funding acquisition. 
+
+# References                        
+
+> [1] Anderson, J.D., Wendt, J., et al.: Computational fluid dynamics. Springer 206 (1995) [2] Pirozzoli, S.: Numerical methods for high-speed flows. Annual review of fluid mechanics 43 (1), 163–194 (2011) [3] Bauer, P., Thorpe, A., Brunet, G.: The quiet revolution of numerical weather prediction. Nature 525 (7567), 47–55 (2015) [4] Lehner, L., Pretorius, F.: Numerical relativity and astrophysics. Annual Review of Astronomy and Astrophysics 52 (1), 661–694 (2014) [5] Godunov, S.K., Bohachevsky, I.: Finite difference method for numerical computation of discontinuous solutions of the equations of fluid dynamics. Matematičeskij sbornik 47 (3), 271–306 (1959) [6] Roe, P.L.: Approximate Riemann solvers, parameter vectors, and difference schemes. Journal of computational physics 43 (2), 357–372 (1981) [7] Harten, A., Lax, P.D., Leer, B.v.: On upstream differencing and Godunov-type schemes for hyperbolic conservation laws. SIAM review 25 (1), 35–61 (1983) [8] Toro, E.F.: The HLL and HLLC Riemann solvers. Springer, 315–344 (2009) [9] Toro, E.F.: Riemann solvers and numerical methods for fluid dynamics: a practical introduction. Springer Science & Business Media (2013) [10] Van Leer, B.: Towards the ultimate conservative difference scheme. V. A second-order sequel to Godunov’s method. Journal of computational Physics 32 (1), 101–136 (1979) [11] Harten, A., Engquist, B., Osher, S., Chakravarthy, S.R.: Uniformly high order accurate essentially non-oscillatory schemes, III. Journal of computational physics 131 (1), 3–47 (1997) [12] Liu, X.-D., Osher, S., Chan, T.: Weighted essentially non-oscillatory schemes. Journal of computational physics 115 (1), 200–212 (1994) [13] Jiang, G.-S., Shu, C.-W.: Efficient implementation of weighted eno schemes. Journal of computational physics 126 (1), 202–228 (1996)
+
+33 [14] Nessyahu, H., Tadmor, E.: Non-oscillatory central differencing for hyperbolic conservation laws. Journal of computational physics 87 (2), 408–463 (1990) [15] Kurganov, A., Tadmor, E.: New high-resolution central schemes for nonlinear conservation laws and convection–diffusion equations. Journal of computational physics 160 (1), 241–282 (2000) [16] VonNeumann, J., Richtmyer, R.D.: A method for the numerical calculation of hydrodynamic shocks. Journal of applied physics 21 (3), 232–237 (1950) [17] Persson, P.-O., Peraire, J.: Sub-cell shock capturing for discontinuous Galerkin methods. In: 44th AIAA Aerospace Sciences Meeting and Exhibit, p. 112 (2006) [18] Boyd, J.P.: Chebyshev and Fourier Spectral Methods. Courier Corporation, Mineola, New York (2001) [19] Bhagatwala, A., Lele, S.K.: A modified artificial viscosity approach for compressible turbulence simulations. Journal of computational physics 228 (14), 4965–4969 (2009) [20] Wilkins, M.L.: Use of artificial viscosity in multidimensional fluid dynamic calculations. Journal of computational physics 36 (3), 281–303 (1980) [21] Frisch, U., Kurien, S., Pandit, R., Pauls, W., Ray, S.S., Wirth, A., Zhu, J.-Z.: Hyperviscosity, Galerkin truncation, and bottlenecks in turbulence. Physical review letters 101 (14), 144501 (2008) [22] Cook, A.W., Cabot, W.H.: Hyperviscosity for shock-turbulence interactions. Journal of Computational Physics 203 (2), 379–385 (2005) [23] Cao, R., Schäfer, F.: Information geometric regularization of the barotropic Euler equation. arXiv preprint arXiv:2308.14127 (2023) [24] Khesin, B., Misiołek, G.: Shock waves for the Burgers equation and curvatures of diffeomorphism groups. Proceedings of the Steklov Institute of Mathematics 259 (1), 73–81 (2007) [25] Amari, S.-i.: Information geometry and its applications. Springer 194 (2016) [26] Cao, R., Schäfer, F.: Information geometric regularization of unidimensional pressureless Euler equations yields global strong solutions. arXiv preprint arXiv:2411.15121 (2024) [27] Wilfong, B., Radhakrishnan, A., Le Berre, H., Vickers, D., Prathi, T., Tselepidis, N., Dorschner, B., Budiardja, R., Cornille, B., Abbott, S., et al. : Simulating many-engine spacecraft: Exceeding 1 quadrillion degrees of freedom via information geometric regularization. In: Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis, pp. 14–24 (2025) [28] Barham, W., Tran, B.K., Southworth, B.S., Schäfer, F.: Hamiltonian information geometric regularization of the compressible Euler equations. arXiv preprint arXiv:2512.13948 (2025) [29] Khesin, B., Misiołek, G., Modin, K.: Geometric hydrodynamics and infinite-dimensional newton’s equations. Bulletin of the American Mathematical Society 58 (3), 377–442 (2021) [30] Dolzhansky, F.V.: Fundamentals of geophysical hydrodynamics. Springer Science & Business Media 103 
+
+(2012) [31] Ay, N., Jost, J., Vân Lê, H., Schwachhöfer, L.: Information geometry. Springer 64 (2017) [32] Rao, C.R., et al. : Information and the accuracy attainable in the estimation of statistical parameters. Bull. Calcutta Math. Soc 37 (3), 81–91 (1945) [33] Chentsov, N.N.: Statistical decision rules and optimal inference. American Mathematical Society (1982) [34] Amari, S.-i.: Theory of information spaces: A differential geometrical foundation of statistics. Post RAAG Reports (1980) [35] Amari, S.-I.: Differential geometry of curved exponential families-curvatures and information loss. The Annals of Statistics, 357–385 (1982) [36] Lauritzen, S.L.: Statistical manifolds. Differential geometry in statistical inference 10 (2), 163–216 (1987) [37] Pistone, G., Sempi, C.: An infinite-dimensional geometric structure on the space of all the probability measures equivalent to a given one. The annals of statistics, 1543–1561 (1995) [38] Khesin, B., Misiołek, G., Modin, K.: Information geometry of diffeomorphism groups. arXiv preprint arXiv:2411.03265 (2024) [39] Bauer, M., Le Brigant, A., Lu, Y., Maor, C.: The l p-Fisher–Rao metric and Amari–Chentsov α-connections. Calculus of Variations and Partial Differential Equations 63 (2), 56 (2024) [40] Shima, H., Yagi, K.: Geometry of hessian manifolds. Differential geometry and its applications 7(3), 277–290 (1997) [41] Holm, D.D., Marsden, J.E., Ratiu, T.S.: The Euler–Poincaré equations and semidirect products with applications to continuum theories. Advances in Mathematics 137 (1), 1–81 (1998) 
+
+34 [42] Holm, D.D., Schmah, T., Stoica, C.: Geometric mechanics and symmetry: from finite to infinite dimensions. Oxford University Press 12 (2009) [43] Marsden, J.E., Ratiu, T.S., Hermann, R.: Introduction to mechanics and symmetry. SIAM Review 39 (1), 152–152 (1997) [44] Crooks, G.E.: Measuring thermodynamic length. Physical Review Letters 99 (10), 100602 (2007) [45] Feng, E.H., Crooks, G.E.: Far-from-equilibrium measurements of thermodynamic length. Physical Review E—Statistical, Nonlinear, and Soft Matter Physics 79 (1), 012104 (2009) [46] Seifert, U.: Stochastic thermodynamics, fluctuation theorems and molecular machines. Reports on progress in physics 75 (12), 126001 (2012) [47] Van Vu, T., Saito, K.: Thermodynamic unification of optimal transport: Thermodynamic uncertainty relation, minimum dissipation, and thermodynamic speed limits. Physical Review X 13 (1), 011013 (2023) [48] Bauer, M., Bruveris, M., Michor, P.W.: Uniqueness of the Fisher–Rao metric on the space of smooth densities. Bulletin of the London Mathematical Society 48 (3), 499–506 (2016) [49] Benamou, J.-D., Brenier, Y.: A computational fluid mechanics solution to the monge-kantorovich mass transfer problem. Numerische Mathematik 84 (3), 375–393 (2000) [50] Oikawa, S., Nakayama, Y., Ito, S., Sagawa, T., Toyabe, S.: Experimentally achieving minimal dissipation via thermodynamically optimal transport. Nature Communications 16 (1), 10424 (2025) [51] Otto, F.: The geometry of dissipative evolution equations: the porous medium equation (2001) [52] Lott, J., Villani, C.: Ricci curvature for metric-measure spaces via optimal transport. Annals of Mathematics, 903–991 (2009) [53] Li, W.: Hessian metric via transport information geometry. Journal of Mathematical Physics 62 (3) (2021) [54] LeVeque, R.J., Leveque, R.J.: Numerical methods for conservation laws. Springer 132 (1992) [55] Radhakrishnan, A., Wilfong, B., Bryngelson, S.H., Schäfer, F.: Shocks without shock capturing: Informa-tion geometric regularization of finite volume methods for navier–stokes-like problems. arXiv preprint arXiv:2604.06546 (2026) [56] Gawlik, E.S., Gay-Balmaz, F.: A variational finite element discretization of compressible flow. Foundations of Computational Mathematics 21 (4), 961–1001 (2021) [57] Cotter, C.J.: Compatible finite element methods for geophysical fluid dynamics. Acta Numerica 32 ,291–393 (2023) [58] Svärd, M., Nordström, J.: Review of summation-by-parts schemes for initial–boundary-value problems. Journal of Computational Physics 268 , 17–38 (2014) [59] Bach, D., Rueda-Ramírez, A.M., Sonnendrücker, E., Fernández, D.C., Gassner, G.J.: SBP-FDEC: Summation-by-Parts Finite Difference Exterior Calculus. arXiv preprint arXiv:2511.20529 (2025) [60] Hou, T.Y., Li, R.: Computing nearly singular solutions using pseudo-spectral methods. Journal of Computational Physics 226 (1), 379–397 (2007) [61] Kopriva, D.A., Gassner, G.J.: An energy stable discontinuous galerkin spectral element discretization for variable coefficient advection problems. SIAM Journal on Scientific Computing 36 (4), 2076–2099 (2014) [62] Tadmor, E.: Entropy stable schemes. In: Handbook of Numerical Methods for Hyperbolic Problems vol. 17, pp. 467–493. Elsevier, Amsterdam (2016) [63] Hu, X.Y., Adams, N.A., Shu, C.-W.: Positivity-preserving method for high-order conservative schemes solving compressible Euler equations. Journal of Computational Physics 242 , 169–180 (2013) [64] Tadmor, E.: The numerical viscosity of entropy stable schemes for systems of conservation laws. i. Mathematics of Computation 49 (179), 91–103 (1987) [65] Ranocha, H., Schlottke-Lakemper, M., Chan, J., Rueda-Ramírez, A.M., Winters, A.R., Hindenlang, F., Gassner, G.J.: Efficient implementation of modern entropy stable and kinetic energy preserving discontinuous galerkin methods for conservation laws. ACM Transactions on Mathematical Software 
+
+49 (4), 1–30 (2023) [66] Gassner, G.J., Svärd, M., Hindenlang, F.J.: Stability issues of entropy-stable and/or split-form high-order schemes: analysis of linear stability. Journal of Scientific Computing 90 (3), 79 (2022) [67] Abgrall, R.: A general framework to construct schemes satisfying additional conservation relations. application to entropy conservative and entropy dissipative schemes. Journal of Computational Physics 
+
+372 , 640–666 (2018) [68] Chan, J.: An artificial viscosity approach to high order entropy stable discontinuous galerkin methods. arXiv preprint arXiv:2501.16529 (2025) 
+
+35 [69] Ruppeiner, G.: Riemannian geometry in thermodynamic fluctuation theory. Reviews of Modern Physics 
+
+67 (3), 605 (1995) [70] Ruppeiner, G.: Thermodynamic curvature measures interactions. American Journal of Physics 78 (11), 1170–1180 (2010) [71] Zhong, A., DeWeese, M.R.: Beyond linear response: Equivalence between thermodynamic geometry and optimal transport. Physical Review Letters 133 (5), 057102 (2024) [72] Ito, S.: Geometric thermodynamics for the Fokker–Planck equation: stochastic thermodynamic links between information geometry and optimal transport. Information geometry 7, 441–483 (2024) [73] Leok, M., Zhang, J.: Connecting information geometry and geometric mechanics. Entropy 19 (10), 518 (2017) [74] Gay–Balmaz, F., Abella, Á.R., Yoshimura, H.: Infinite-dimensional Lagrange–Dirac systems with bound-ary energy flow ii: Field theories with bundle-valued forms. Journal of Geometry and Physics, 105854 (2026) 
+
+36

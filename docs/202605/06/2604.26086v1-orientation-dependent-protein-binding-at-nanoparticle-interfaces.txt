@@ -1,0 +1,228 @@
+Title: Orientation-Dependent Protein Binding at Nanoparticle Interfaces
+
+URL Source: https://arxiv.org/pdf/2604.26086v1
+
+Published Time: Thu, 30 Apr 2026 00:08:45 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# Orientation-Dependent Protein Binding at Nanoparticle Interfaces 
+
+Vigneshwari Karunakaran Annapoorani 1,2  Ian Rouse 1,2  Vladimir Lobaskin 1,2 
+
+Nicolae-Viorel Buchete 1,2,* 1School of Physics, University College Dublin, Dublin 4, Belfield, Ireland 
+
+> 2
+
+Institute for Discovery, University College Dublin, Dublin 4, Belfield, Ireland 
+
+Corresponding Author 
+
+*E-mail: nicolae-viorel.buchete@ucd.ie 
+
+April 28, 2026 
+
+Abstract 
+
+Accurate quantification of protein–nanoparticle interactions is essential for applica-tions in nanobiotechnology, nanomedicine, and drug delivery. Motivated by recent com-putational and experimental work, we combine coarse-grained united-atom (UA) models with molecular docking to characterize protein adsorption on SiO 2 nanoparticles. We construct orientation-resolved heatmaps in which polar and azimuthal angles uniquely specify the relative protein–nanoparticle pose, and the map amplitude reports binding propensity via the minimum UA adsorption energy or the docking score. Each angular bin corresponds to a distinct docked complex, enabling systematic comparison of binding geometries across models. To relate docking score landscapes to Boltzmann-averaged UA adsorption energetics, we analyze eight birch pollen allergen proteins previously studied experimentally. Similarity between the two orientational distributions is quantified using the Jensen–Shannon divergence (JSD). We find encouraging agreement between the two approaches in several cases, while also identifying limitations and routes for improvement, including optimized angular resolution and iterative refinement of interaction parameters. Overall, this framework provides a quantitative bridge between coarse-grained energetics and docking outputs at protein–nanoparticle interfaces, supporting improved predictive modeling and mechanistic insight into protein–nanoparticle binding landscapes. 
+
+1
+
+> arXiv:2604.26086v1 [physics.bio-ph] 28 Apr 2026
+
+Studies of protein adsorption onto nanoscale materials date back to the early 1960s, initially motivated by liposomes and polymeric nanoparticles and investigated in both ex vivo and in vivo settings. In the late 2000s, the introduction of the “pro-tein corona” concept1 stimulated extensive work on lipid-, carbon-, and metal-based nanomaterials, often emphasizing ex vivo characterization. Subsequent efforts focused on the kinetics of corona formation, and particularly the long-lived “hard” corona. 1, 2 
+
+By 2017, the broader notion of a “biomolec-ular corona” further expanded the scope to additional biological components and reinforced the need for integrated ex vivo and in vivo studies, with direct relevance to targeting, diagnosis, drug delivery, and other therapeutic applications. 3–7 
+
+Engineered nanoparticles (NPs) are now widely explored for biomedical and therapeu-tic use, including drug delivery and molec-ular imaging, making a molecular-level un-derstanding of bio–nano interactions a con-tinuing priority. 4, 7–10 Silica (SiO 2) NPs, in particular, are prevalent across medical, agri-cultural, and environmental contexts, moti-vating careful assessment of exposure and in-terfacial binding mechanisms. To address these challenges, computational approaches spanning hard-sphere and coarse-grained de-scriptions through molecular docking are in-creasingly used to probe the thermodynamics and structural evolution of NP–protein com-plexes. 11–18 A major goal is “corona finger-printing,” 19 which seeks predictive links be-tween NP–protein physicochemical features and downstream biological fate, including cellular uptake. 19 More broadly, combin-ing computational modeling with experimen-tal “green” synthesis and multi-spectroscopic characterization is helping to rationalize how intrinsic material properties govern emer-gent biological interactions and to inform nanosafety assessment. 3, 5, 14, 20–27 
+
+Recent computational studies of NP–biomolecule interactions have increas-ingly combined coarse-grained descriptions with atomistically informed tools, includ-ing the united-atom model (UAM), 16, 17, 28 
+
+and molecular docking approaches such as PatchDock. 29 For example, docking has been applied to probe corona formation on 
+
+CuO and T iO 2 nanoparticles. 30 Despite this progress, experimental data that di-rectly resolve corona formation pathways and interfacial properties remain limited, and improving quantitative corona analysis continues to be an active need. 31 
+
+Whereas protein–protein interactions have been investigated systematically for decades, 32 coarse-grained frameworks tai-lored to protein–NP interactions (PNIs) have emerged more recently. 33 A key conclusion from these efforts is that - analogous to protein–protein interactions - PNIs depend strongly on relative orientation, not solely on intermolecular separation. Atomistically de-tailed methods would therefore be desirable; however, fully atomistic molecular dynamics is often prohibitively expensive for systematic sampling of adsorption orientations, even with high-performance computing. In prac-tice, this makes coarse-grained models (e.g., UAM) and molecular docking among the few feasible routes for efficient, orientation-aware exploration of PNIs. Building on recent work that highlighted both strengths and limitations of UAM-based PNI predictions, we employ molecular docking using Patch-Dock, one of the few docking platforms that explicitly supports NP–protein complexes. We have also shown that PatchDock can be used to compute statistical biophysical descriptors of NP-biomolecule complexes-such as hydrophobic and charged fractions of solvent-accessible surface area (SASA)-for proteins, oligomers, and more complex NP–protein corona structures. 34 However, docking score landscapes and coarse-grained 2adsorption energetics are rarely compared on a consistent quantitative footing. Here, we introduce orientation-resolved PNI heatmaps and use the Jensen–Shannon divergence to directly compare docking-derived landscapes with UAM Boltzmann-averaged adsorption energies for eight allergen proteins on SiO 2
+
+nanoparticles. This framework connects heatmap features to representative adsorp-tion geometries, clarifies when docking can serve as a rapid proxy, and provides aroute to refine both docking protocols and coarse-grained interaction models. The UAM employed here was formulated and validated in recent publications. 35, 36 
+
+Here, the term UAM refers specifically to the coarse-grained protein model introduced by Lobaskin et al. 35, 36 for the quantitative assessment of protein–nanoparticle interac-tions. It should not be confused with other “united-atom” approaches - such as those used in the GROMOS force field - in which hydrogen atoms are treated implicitly and merged with the adjacent carbon atoms. In prior work, Lobaskin and co-workers combined UAM-based in silico predictions with in vitro measurements of corona for-mation, including binding and selectivity across eight proteins on bare and coated SiO 2
+
+NPs. 20 Following that benchmark set, we analyze the birch pollen–related proteins β-lactoglobulin A (PDB ID: 1CJ5), Bet v 2 (1CQA), lysozyme (1DPX), Bet v 4 (1H4B), ovalbumin (1UHG), Bet v 6 (2AS8), Bet v 1 (4A88), and serotransferrin (6JAS), which are shown in Figure 1. To clarify the reference frame and the pro-cedure used to construct the heatmaps, we followed the UAM heatmap methodology de-scribed by Lopez et al. for the coarse-grained united-atom model. 36 The reference-frame definition is summarized in Figure 2. As shown in Fig. 2(A), the protein orientation can be specified by selecting a point on the protein surface and defining the position vec-tor from the protein center of mass (COM) to that point. The direction of this vector is parameterized by two angles, ϕ and θ, in a spherical coordinate representation. A third coordinate, the COM separation, dCOM, sets the distance along this direction. Depending on the nanomaterial geometry, dCOM is de-fined either relative to (B) the surface normal of a slab (protein–slab interaction, PSI) or (C) the center of a NP (protein- nanoparticle interaction, PNI). Figure 2(D) illustrates the corresponding setup used for molecular docking. The NP center is identified, and the relative coordi-nates are expressed in spherical coordinates; the protein is treated as the receptor and the NP as the ligand (optionally represented by a selected subset of NP atoms). We note two practical limitations of docking: the search samples only a subset of possible complexes, and many docking implementations cannot treat an entire NP explicitly. In such cases, a representative slab segment of the NP surface can be used to restrict the search space. Together, these definitions provide a con-sistent and compact description of protein pose and separation, enabling direct con-struction and comparison of orientation-resolved interaction heatmaps. We note that when the NP and the protein are in direct atomic contact (e.g., docked) the separation distance is constrained by the protein sur-face the angles ( θ, ϕ ) are sufficient to de-fine uniquely the interaction pose, and can be used to generate protein-nanoparticle in-teraction (PNI) maps, as illustrated below. As a first step, we performed UAM cal-culations using quartz silica parameters for the NP, a surface potential of -29 mV, and a radius of 5 nm. From these simulations we obtained orientation-specific adsorption ener-gies and constructed ( θ, ϕ ) heatmaps, follow-ing the computational–experimental work-flow previously used for NP–protein corona prediction and analysis and emphasizing 3Figure 1: Protein structures analyzed in this study. Eight birch pollen–related proteins are shown to illustrate their size and conformational diversity: (A) β-lactoglobulin A (PDB ID: 1CJ5), (B) Bet v 2 (1CQA), (C) lysozyme (1DPX), (D) Bet v 4 (1H4B), (E) ovalbumin (1UHG), (F) Bet v 6 (2AS8), (G) Bet v 1 (4A88), and (H) serotransferrin (6JAS). FAIR data practices. 20 
+
+In a second step, we carried out molecular docking as follows. (1) Protein preparation: each protein structure was prepared in a suit-able format for docking (including, where ap-propriate, addition of hydrogen atoms). (2) NP model: a 10 nm-diameter SiO 2 NP model was generated (e.g., using CHARMM-GUI) by specifying the relevant composition and geometric parameters. 37 (3) Docking: dock-ing between the NP and each protein was per-formed with PatchDock. To preserve the NP geometry, the SiO 2 particle was treated as a rigid body, enabling systematic sampling of protein orientations relative to the NP sur-face. 38 (4) Coordinate transformation: for each docked complex, the NP center was de-termined and the relative orientation was ex-pressed via the spherical angles θ and ϕ by transforming Cartesian coordinates to spher-ical coordinates. (5) Angle assignment and scoring: ( θ, ϕ ) values were computed for all docking poses across the eight proteins. (6) Heatmap construction: PNI heatmaps were generated by mapping docking scores onto (θ, ϕ ) bins, allowing preferred orientations to be identified and compared across proteins. To clarify the heatmap interpretation, Fig. 3 shows the docking-derived PNI map for serotransferrin (PDB ID: 6JAS) on a SiO 2
+
+NP, with ϕ on the x-axis, θ on the y-axis, and color indicating the amplitude of the dock-ing score. The strongest-scoring orientation appears as the dark red region. Each bin corresponds to a single representative docked complex. White regions do not imply forbid-den orientations; rather, they indicate bins for which the docking protocol did not re-turn a scored pose (e.g., below the sampling threshold). Next, we constructed ( θ, ϕ ) heatmaps for both the docking and UAM datasets. Figure 4 shows the masked maps of the raw data us-ing a 30 ° bin size. The two columns (“Dock-ing” and “UAM”) indicate the method used, and each row corresponds to a different pro-tein. To enable a direct, like-for-like comparison, we apply the same orientation mask to the corresponding UAM heatmaps. We note that both the docking and UAM approaches evaluated here assume 4Figure 2: Definition of protein–nanomaterial orientation. (A) A protein-fixed spherical coor-dinate system is constructed from C α Cartesian coordinates, with the origin at the protein center of mass (COM α) and axes aligned with the principal inertia axes (longest axis = x). Surface positions are specified by the angles θ, ϕ . The remaining degree of freedom is the separation dCOM, measured relative to (B) the surface normal for a slab or (C) the nanoparticle center. (D) For spherical nanoparticles, each relative protein–NP pose (e.g., a docking result) is uniquely defined by the (dCOM, θ, ϕ ) tuple. When the protein and NP are in atomic contact, the distance is constrained by the protein surface, and the angles, θ, ϕ 
+
+alone uniquely specify the interaction pose used to generate PNI maps. a well-defined, folded protein conformation that remains relatively rigid and does not undergo substantial structural rearrangement upon binding to the nanoparticle (NP) sur-face. In cases where conformational changes do occur after adsorption, the protein refer-ence frame defined above can still be main-tained, provided that a unique structural alignment can be performed between the ini-tial and NP-bound conformations. In prac-tice, we expect that most proteins expe-rience only modest conformational adjust-ments upon NP binding. Consequently, the rigid-protein approximation should not sig-nificantly affect the identification of dominant binding regions in either docking or UAM, thereby enabling a systematic comparison be-tween the two methods. Figure 5 presents line plots of Jensen–Shannon divergence (JSD) val-ues as a function of bin size, illustrating the relationship between the docking heatmap and the Boltzmann-averaged adsorption energy from UAM for eight proteins. JSD quantifies the similarity between probability distributions, with values approaching zero indicating comparable probabilities and values approaching one reflecting distinct distributions. 39–43 We note that the values shown in the PNI maps - both the docking scores and the UAM derived quantities -were normalised prior to constructing their orientational distribution maps. This nor-malisation ensures that the Jensen–Shannon divergence (JSD) can meaningfully capture the similarity between the corresponding PNI landscapes, particularly with respect to the relative positions of their peaks and valleys. For completeness, the Supplementary Ma-terial also includes the Earth Mover’s Dis-tance (EMD), which provides an alternative 5Figure 3: Docking-derived protein–nanoparticle interaction (PNI) map for serotransferrin–SiO 2. The PNI heatmap shows docking scores for serotransferrin (PDB ID: 6JAS) on a bare SiO 2 nanoparticle, with the highest-scoring orientation marked by the dark red pixel. White regions indicate angular orientations ( θ, ϕ ) not sampled by the docking program (i.e., below the scoring threshold). measure of distributional differences, where lower EMD values correspond to greater sim-ilarity. 44 
+
+Across the eight proteins studied here (Fig. 1), we observe that smaller, more globu-lar proteins tend to exhibit greater agree-ment in preferred binding modes between the docking- and UAM-derived PNI heatmaps. To illustrate the corresponding adsorp-tion geometries, we select the highest-scoring docking pose (defined by its ϕ and θ bin) and the strongest-binding UAM orientation and visualize the associated structures. Figure 6 shows this comparison for lysozyme (PDB ID: 1DPX), including the docking and UAM PNI heatmaps, the best-scoring docking pose (highlighted by the red region), and the corre-sponding representative complexes from each method. To sum up, motivated by the growing avail-ability of experimental benchmarks and val-idated coarse-grained descriptions of PNI, we developed a docking-based workflow to construct orientation-resolved PNI heatmaps and to compare them directly with UAM ad-sorption energetics. 20, 45 The approach was applied to eight birch pollen allergen pro-teins, 20 enabling systematic, model-to-model comparison of binding modes across a diverse set of sizes and folds. The PNI heatmaps are conceptually similar to maps used pre-viously for quantifying residue-residue 46, 47 
+
+and residue-backbone 48 interactions in pro-teins, 47–50 and protein-nanomaterial interac-tions. 33, 36 
+
+Protein orientations were parameterized using a protein-fixed spherical coordinate frame in which ( θ, ϕ ) uniquely specify the rel-ative pose, together with the center-of-mass separation dCOM. To ensure a fair compari-son between methods, orientations not sam-pled by the docking protocol were masked and the same mask was applied to the UAM maps. Similarity between the resulting ori-entational distributions was quantified us-ing JSD, which is well-suited for comparing probability-like landscapes. Across the pro-teins considered here, a 30 ° (θ, ϕ ) angular bin size provided the most robust compar-isons; finer binning tended to over-resolve the 6Figure 4: Comparison of docking-based and UAM PNI maps. For the eight birch pollen proteins (Fig. 1), PNI heatmaps computed using protein-NP docking and the united-atom model (UAM) are compared at a 30 ° (θ, ϕ ) bin size. As in Fig. 3, white regions denote orientations not sampled by the docking program; the corresponding bins are masked in the UAM maps to enable direct comparison. landscapes and reduced the stability of the metrics. Consistent with the visual trends in the PNI maps, smaller and more globular proteins generally show higher agreement be-tween docking and UAM-predicted preferred orientations, as quantified by the correspond-ing JSD values (Fig. 5). Differences between the docking-score and UAM energy heatmaps observed in Figs. 4and 5 are expected, given the distinct algo-rithms and physical quantities used by these approaches. Nevertheless, although moder-ate discrepancies emerge at finer angular res-olutions, the coarse-grained landscapes are largely consistent. This convergence indi-cates that both methods capture the domi-nant physical factors governing protein–NP binding. Taken together, these results sup-port the validity of both approaches and re-inforce the robustness of their predictions for preferred protein orientations. Finally, we extracted representative strongest-binding orientations from both approaches to link features in the heatmaps to specific adsorption geometries. Taken together, the combined PNI–JSD framework provides a practical route for relating docking score landscapes to coarse-grained adsorp-tion energetics at protein–NP interfaces, and for identifying when docking can serve as an efficient proxy versus when improved parameterization or sampling is needed. Future work may extend this framework to systematically refine both coarse-grained PNI models and docking protocols. One promising direction is iterative optimization that reduces topological and amplitude dis-crepancies between PNI maps for targeted protein-NP systems, thereby improving con-sistency with experimental data - as more be-comes available - and enhancing agreement across different theoretical approaches. Our study can have applications to improving ac-curacy of in silico modeling of NPIs and NP-protein corona structures with implications in a broad range of fields, from nanomedicine (e.g., designing NP-based drug delivery sys-tems8,9) to nanoinformatics, nanotoxicology, and nanosafety. 4
+
+7Figure 5: Comparison of docking and UAM adsorption landscapes. For the eight proteins (see Figs. 1 and 4), protein–NP docking score maps are compared with UAM Boltzmann-averaged adsorption energy maps as a function of the ( θ, ϕ ) bin size. Similarity between each pair of orientational distributions is quantified using the Jensen–Shannon divergence, where JSD = 0 indicates identical distributions and larger values (approaching 1) reflect increasing dissimilarity. 
+
+Figure 6: Docking and UAM PNI maps for lysozyme – SiO 2. Orientation-resolved PNI heatmaps are shown for the lysozyme protein (PDB ID: 1DPX) interacting with a SiO 2 NP. The strongest-binding orientation is highlighted in dark red (arrows). 8Author Declarations 
+
+## Conflict of Interest 
+
+The authors have no conflicts to disclose. 
+
+# Acknowledgments 
+
+We wish to thank the DJEI/DES/SFI/HEA Irish Centre for High-End Computing (ICHEC) and the Sonic HPC cluster (UCD Research IT) for the provision of computa-tional facilities and support. VKA and N-VB acknowledge the financial support received from the Irish Research Council, and from the European Union’s Horizon 2020 research and innovation program “NanoinformaTIX” (H2020-NMBP-14-2018, grant 814426). VL and IR acknowledge funding from EU Hori-zon 2020 grant No. 814572 (NanoSolveIT) and Horizon Europe grant No. 101092741 (nanoPASS). 
+
+# Supplementary Material 
+
+Supplementary material at the end of this preprint consists of a PDF with thirteen sup-plementary figures (Figs. S1–S13). Supple-mental Figures S1–S3 present PNI heatmaps comparing docking-based and UAM pollen protein–nanoparticle interaction maps at ori-entation bin sizes of 45 ◦ (S1), 60 ◦ (S2), and 90 ◦ (S3), respectively. Supplemental Figures S4–S6 report (i) Jensen–Shannon divergence (S4), (ii) Earth Movers Dis-tance using Boltzmann-averaged UAM ener-gies (S5), and (iii) Earth Movers Distance us-ing arithmetic-averaged UAM energies (S6) for eight pollen proteins, comparing docking-based and UAM adsorption landscapes across orientation bin sizes and quantifying similar-ity between the corresponding orientational distributions. Supplemental Figures S7–S13 present orientation-resolved adsorption maps for the remaining seven pollen-related pro-teins interacting with a SiO 2 nanoparticle, showing PNI heatmaps and indicating the strongest-binding orientation, consistent with the lysozyme–NP results shown in the main text (Figure 6). 9References 
+
+[1] I. Lynch and K. Dawson, “Protein-nanoparticle interactions,” Nano Today ,vol. 3, pp. 40–47, 2008. [2] V. Zhdanov and N.-J. Cho, “Kinet-ics of the formation of a protein corona around nanoparticles,” Mathe-matical Biosciences , vol. 282, pp. 82–90, 2016. [3] C. Marques, P. Maroni, L. Maurizi, O. Jordan, and G. Borchard, “Un-derstanding protein-nanoparticle inter-actions leading to protein corona for-mation: In vitro - in vivo correlation study,” International Journal of Biolog-ical Macromolecules , vol. 256, p. 128339, 2024. [4] G. Mancardi, A. Mikolajczyk, V. An-napoorani, A. Bahl, K. Blekos, J. Burkf, Y. C¸ etin, K. Chairetakis, S. Dutta, L. Escorihuela, et al. , “A computational view on nanomaterial intrinsic and ex-trinsic features for nanosafety and sus-tainability,” Materials Today , vol. 67, pp. 344–370, 2023. [5] T. Cedervall, I. Lynch, S. Lindman, T. Bergg˚ ard, E. Thulin, H. Nilsson, K. A. Dawson, and S. Linse, “Un-derstanding the nanoparticle–protein corona using methods to quantify ex-change rates and affinities of proteins for nanoparticles,” Proceedings of the Na-tional Academy of Sciences , vol. 104, pp. 2050–2055, 2007. [6] C. Leahy, R. Murphy, G. Hummer, E. Rosta, and N.-V. Buchete, “Coarse master equations for binding kinetics of amyloid peptide dimers,” The Journal of Physical Chemistry Letters , vol. 7, pp. 2676–2682, 2016. [7] J. Subbotina, O. McElligott, and V. Lobaskin, “Modelling bionano inter-actions and potential health risks for environmental nanoplastics: the case of functionalized polystyrene,” Environ-mental Science: Nano , vol. 13, pp. 1568– 1587, 2026. [8] N. Buchete, I. Cicha, S. Dutta, and P. Neofytou, “Multiscale physics-based in silico modelling of nanocarrier-assisted intravascular drug delivery,” 
+
+Frontiers in Drug Delivery , vol. 4, p. 1362660, 2024. [9] P. Neofytou and N.-V. Buchete, “Edito-rial: Modelling of intravascular drug de-livery using nanocarriers,” Frontiers in Drug Delivery , vol. 5, 2025. [10] B. Narayan, N.-V. Buchete, and R. El-ber, “Computer simulations of the dis-sociation mechanism of gleevec from abl kinase with milestoning,” The Jour-nal of Physical Chemistry B , vol. 125, pp. 5706–5715, 2021. [11] I. Rouse and V. Lobaskin, “A hard-sphere model of protein corona for-mation on spherical and cylindrical nanoparticles,” Biophysical Journal ,vol. 120, pp. 4457–4471, 2021. [12] P. Amini, I. Rouse, J. Subbotina, and V. Lobaskin, “Multiscale modelling of biomolecular corona formation on metal-lic surfaces,” Beilstein Journal of Nan-otechnology , vol. 15, pp. 215–229, 2024. [13] J. Subbotina, O. McElligott, and V. Lobaskin, “Modelling bionano inter-actions and potential health risks for environmental nanoplastics: the case of functionalized polystyrene,” Environ-mental Science: Nano , 2026. 10 [14] P. Mosaddeghi Amini, J. Subbotina, and V. Lobaskin, “Milk protein adsorption on metallic iron surfaces,” Nanomateri-als , vol. 13, p. 1857, 2023. [15] V. Lobaskin, J. Subbotina, and I. Rouse, “Computational modelling of bionano interface,” Europhysics Letters , vol. 143, p. 57001, 2023. [16] J. Subbotina, P. Kolokathis, A. Tsouma-nis, N. Sidiropoulos, I. Rouse, I. Lynch, V. Lobaskin, and A. Afantitis, “UA-NanoDock: A web-based UnitedAtom multiscale nanodocking tool for predict-ing protein adsorption onto nanoparti-cles,” Journal of Chemical Information and Modeling , vol. 65, pp. 3142–3153, 2025. [17] D. Zouraris, A. Mavrogiorgis, A. Tsoumanis, L. Saarim¨ aki, G. del Giu-dice, A. Federico, A. Serra, D. Greco, I. Rouse, J. Subbotina, et al. , “Comp-SafeNano project: NanoInformatics approaches for safe-by-design nanoma-terials,” Computational and Structural Biotechnology Journal , vol. 29, pp. 13– 28, 2025. [18] J. Subbotina, I. Rouse, and V. Lobaskin, “In silico prediction of protein binding affinities onto core–shell PEGylated no-ble metal nanoparticles for rational de-sign of drug nanocarriers,” Nanoscale ,vol. 15, pp. 13371–13383, 2023. [19] C. Walkey, J. Olsen, F. Song, R. Liu, H. Guo, D. Olsen, Y. Cohen, A. Emili, and W. Chan, “Protein corona finger-printing predicts the cellular interaction of gold and silver nanoparticles,” ACS Nano , vol. 8, pp. 2439–2455, 2014. [20] I. Hasenkopf, R. Mills-Goodlet, L. John-son, I. Rouse, M. Geppert, A. Duschl, D. Maier, V. Lobaskin, I. Lynch, and M. Himly, “Computational predic-tion and experimental analysis of the nanoparticle-protein corona: Showcas-ing an in vitro-in silico workflow provid-ing FAIR data,” Nano Today , vol. 46, p. 101561, 2022. [21] C. Aur´ ıa-Soro, T. Nesma, P. Juanes-Velasco, A. Landeira-Vi˜ nuela, H. Fidalgo-Gomez, V. Acebes-Fernandez, R. Gongora, M. Parra, R. Manzano-Roman, and M. Fuentes, “Interactions of nanoparticles and biosystems: Microenvironment of nanoparticles and biomolecules in nanomedicine,” Nanomaterials , vol. 9, p. 1365, 2019. [22] S. Kumar, I. Yadav, V. Aswal, and J. Kohlbrecher, “Structure and interac-tion of nanoparticle–protein complexes,” 
+
+Langmuir , vol. 34, pp. 5679–5695, 2018. [23] D. Winkler, F. Burden, B. Yan, R. Weissleder, C. Tassa, S. Shaw, and V. Epa, “Modelling and predicting the biological effects of nanomaterials,” SAR and QSAR in Environmental Research ,vol. 25, pp. 161–172, 2014. [24] A. Afantitis, G. Melagraki, A. Tsouma-nis, E. Valsami-Jones, and I. Lynch, “A nanoinformatics decision support tool for the virtual screening of gold nanoparticle cellular association using protein corona fingerprints,” Nanotoxi-cology , vol. 12, pp. 1148–1165, 2018. [25] A. Ammar, S. Bonaretti, L. Winckers, J. Quik, M. Bakker, D. Maier, I. Lynch, J. van Rijn, and E. Willighagen, “A semi-automated workflow for fair ma-turity indicators in the life sciences,” 
+
+Nanomaterials , vol. 10, p. 2068, 2020. 11 [26] M. Avella, F. Bondioli, V. Can-nillo, E. Di Pace, M. Errico, A. Fer-rari, B. Focher, and M. Malinconico, “Poly( ε-caprolactone)-based nanocom-posites: Influence of compatibilization on properties of poly( ε-caprolactone)-silica nanocomposites,” Composites Sci-ence and Technology , vol. 66, pp. 886– 894, 2006. [27] R. Murphy, J. Conlon, T. Mansoor, S. Luca, S. Vaiana, and N.-V. Buchete, “Conformational dynamics of human IAPP monomers,” Biophysical Chem-istry , vol. 167, pp. 1–7, 2012. [28] A. Afantitis, G. Melagraki, P. Isigonis, A. Tsoumanis, D. Varsou, E. Valsami-Jones, A. Papadiamantis, L. Ellis, H. Sarimveis, P. Doganis, et al. , “Nano-SolveIT project: Driving nanoinformat-ics research to develop innovative and integrated tools for in silico nanosafety assessment,” Computational and Struc-tural Biotechnology Journal , vol. 18, pp. 583–602, 2020. [29] D. Schneidman-Duhovny, Y. Inbar, R. Nussinov, and H. Wolfson, “Patch-Dock and SymmDock: servers for rigid and symmetric docking,” Nucleic Acids Research , vol. 33, pp. W363–W367, 2005. [30] S. Chibber and I. Ahmad, “Molecular docking, a tool to determine interaction of CuO and TiO2 nanoparticles with hu-man serum albumin,” Biochemistry and Biophysics Reports , vol. 6, pp. 63–67, 2016. [31] M. Mahmoudi, “The need for improved methodology in protein corona analy-sis,” Nature Communications , vol. 13, p. 49, 2022. [32] B. Lee and F. Richards, “The interpre-tation of protein structures: Estimation of static accessibility,” Journal of Molec-ular Biology , vol. 55, pp. 379–400, 1971. [33] H. Lopez, E. Brandt, A. Mirzoev, D. Zhurkin, A. Lyubartsev, and V. Lobaskin, “Multiscale modelling of bionano interface,” in Modelling the Toxicity of Nanoparticles (L. Tran, M. Ba˜ nares, and R. Rallo, eds.), pp. 173–206, Springer International Publishing, 2017. [34] V. Karunakaran Annapoorani, S. Dutta, O. Ajia, O. Petrisor, V. Lobaskin, and N.-V. Buchete, “Biophysical descriptors of nanoparticle protein coronas,” The Journal of Physical Chemistry Letters ,pp. 11356–11364, 2025. [35] D. Power, I. Rouse, S. Poggio, E. Brandt, H. Lopez, A. Lyubart-sev, and V. Lobaskin, “A multiscale model of protein adsorption on ananoparticle surface,” Modelling and Simulation in Materials Science and Engineering , vol. 27, p. 084003, 2019. [36] H. Lopez and V. Lobaskin, “Coarse-grained model of adsorption of blood plasma proteins onto nanoparticles,” 
+
+The Journal of Chemical Physics ,vol. 143, p. 243138, 2015. [37] R. Best, X. Zhu, J. Shim, P. Lopes, J. Mittal, M. Feig, and A. MacK-erell, “Optimization of the additive CHARMM all-atom protein force field targeting improved sampling of the back-bone ϕ, ψ and side-chain χ1 and χ2 dihe-dral angles,” Journal of Chemical The-ory and Computation , vol. 8, pp. 3257– 3273, 2012. [38] D. Duhovny, R. Nussinov, and H. Wolf-son, “Efficient unbound docking of rigid molecules,” in Proceedings of the 2nd 
+
+12 Workshop on Algorithms in Bioinfor-matics (WABI) , pp. 185–200, Springer, 2002. [39] F. Nielsen, “On the Jensen–Shannon symmetrization of distances relying on abstract means,” Entropy , vol. 21, p. 485, 2019. [40] I. Dagan, L. Lee, and F. Pereira, “Similarity-based methods for word sense disambiguation,” in Proceedings of the 35th Annual Meeting of the As-sociation for Computational Linguistics and Eighth Conference of the European Chapter of the Association for Computa-tional Linguistics , Association for Com-putational Linguistics, 1997. [41] D. Endres and J. Schindelin, “A new metric for probability distributions,” 
+
+IEEE Transactions on Information The-ory , vol. 49, pp. 1858–1860, 2003. [42] F. ¨Osterreicher and I. Vajda, “A new class of metric divergences on probabil-ity spaces and its applicability in statis-tics,” Annals of the Institute of Statis-tical Mathematics , vol. 55, pp. 639–653, 2003. [43] B. Fuglede and F. Topsoe, “Jensen-Shannon divergence and Hilbert space embedding,” in Proceedings of the In-ternational Symposium on Information Theory (ISIT) , p. 31, 2004. [44] Y. Rubner, C. Tomasi, and L. Guibas, “A metric for distributions with appli-cations to image databases,” in Pro-ceedings of the Sixth International Con-ference on Computer Vision (ICCV) ,pp. 59–66, 1998. [45] B. Grotz, M. Geppert, R. Mills-Goodlet, S. Hofer, N. Hofst¨ atter, C. Asam, A. Feinle, K. Kocsis, T. Berger, O. Diwald, et al. , “Biologic effects of nanoparticle-allergen conjugates: time-resolved uptake using an in vitro lung epithelial co-culture model of A549 and THP-1 cells,” Environmental Science: Nano , vol. 5, pp. 2184–2197, 2018. [46] N.-V. Buchete, J. Straub, and D. Thiru-malai, “Orientational potentials ex-tracted from protein structures improve native fold recognition,” Protein Sci-ence , vol. 13, pp. 862–874, 2004. [47] N. Buchete, J. Straub, and D. Thiru-malai, “Orientation-dependent coarse-grained potentials derived by statis-tical analysis of molecular structural databases,” Polymer , vol. 45, pp. 597– 608, 2004. [48] N. Buchete, J. Straub, and D. Thiru-malai, “Continuous anisotropic repre-sentation of coarse-grained potentials for proteins by spherical harmonics synthe-sis,” Journal of Molecular Graphics and Modelling , vol. 22, pp. 441–450, 2004. [49] N. Buchete, J. Straub, and D. Thiru-malai, “Anisotropic coarse-grained statistical potentials improve the ability to identify nativelike protein structures,” The Journal of Chemical Physics , vol. 118, pp. 7658–7671, 2003. [50] N. Buchete, J. Straub, and D. Thiru-malai, “Development of novel statistical potentials for protein fold recognition,” 
+
+Current Opinion in Structural Biology ,vol. 14, pp. 225–232, 2004. 13 1
+
+# Supplemental Material: 
+
+# Orientation -Dependent Protein Binding at 
+
+# Nanoparticle Interfaces 
+
+Vigneshwari Karunakaran Annapoorani 1,2 , Ian Rouse 1,2 ,
+
+Vladimir Lobaskin 1,2 , Nicolae -Viorel Buchete 1,2 * 
+
+> 1
+
+School of Physics, University College Dublin, Dublin 4, Belfield, Ireland 
+
+> 2
+
+Institute for Discovery, University College Dublin, Dublin 4, Belfield, Ireland 
+
+* Correspondence: nicolae‑viorel.buchete@ucd.ie 
+
+April 28 th , 202 62
+
+Figure S 1.  Docking vs UAM PNI maps : raw data, 45 ° bin size. For the eight birch pollen proteins 
+
+(see Fig. 1), PNI heatmaps computed with protein –NP docking (PatchDock) and the united -atom 
+
+model (UAM) are compared at a 30 ° (θ, ϕ) bin size. White regions indicate orientations not scored 
+
+by docking; the corresponding bins are also masked (white) in the UAM maps for direct 
+
+comparison. 
+
+Figure S 2. Docking vs UAM PNI maps : raw data, 60° bin size . For the eight birch pollen proteins 
+
+(see Fig. 1), PNI heatmaps computed with protein –NP docking (PatchDock) and the united -atom 
+
+model (UAM) are compared at a 60° (θ, ϕ) bin size. White regions indicate orientations not scored 
+
+by docking; the corresponding bins are also masked (white) in the UAM maps for direct 
+
+comparison. 3
+
+Figure S 3. Docking vs UAM PNI maps : raw data, 90° bin size . For the eight birch pollen proteins 
+
+(see Fig. 1), PNI heatmaps computed with protein –NP docking (PatchDock) and the united -atom 
+
+model (UAM) are compared at a 90° (θ, ϕ) bin size. White regions indicate orientations not scored 
+
+by docking; the corresponding bins are also masked (white) in the UAM maps for direct 
+
+comparison. 
+
+Figure S 4.  Comparison of docking and UAM adsorption landscapes : Jensen –Shannon 
+
+divergence (JSD), raw data (see Figs. S1 -S3) . For the eight proteins , we compare protein –NP 
+
+docking score maps with UAM raw data adsorption energy maps as a function of the ( θ, ϕ) bin size. 
+
+Similarity between each pair of orientational distributions is quantified by JSD values : JSD = 0 
+
+indicates identical distributions, whereas larger values (approaching 1) indicate increasing 
+
+dissimilarity. 4
+
+Figure S5.  Comparison of docking and UAM adsorption landscapes : Earth Movers 
+
+Distance (EMD) , Boltzmann average s (see Figs. S1 -S3) . For the eight proteins , we 
+
+compare protein –NP docking score maps with UAM Boltzmann -averaged adsorption 
+
+energy maps as a function of the ( θ, ϕ) bin size. Similarity between each pair of 
+
+orientational distributions is quantified by EMD values: EMD = 0 indicates identical 
+
+distributions, whereas larger values indicate greater dissimilarity. 
+
+Figure S6.  Comparison of docking and UAM adsorption landscapes : Earth Movers 
+
+Distance (EMD) , arithmetic average s (see Figs. S1 -S3) . For the eight proteins , we 
+
+compare protein –NP docking score maps with UAM arithmetically -averaged adsorption 
+
+energy maps as a function of the ( θ, ϕ) bin size. Similarity between each pair of 
+
+orientational distributions is quantified by EMD values: EMD = 0 indicates identical 
+
+distributions, whereas larger values indicate increasing dissimilarity. 5
+
+Figure S7.  Docking and UAM PNI maps for β-lactoglobulin A – SiO 2. Orientation -
+
+resolved PNI heat maps are shown for the β-lactoglobulin A (PDB ID: 1CJ5 ) interacting 
+
+with a SiO 2 nanoparticle. The strongest -binding orientation is highlighted in dark red 
+
+(arrows). 
+
+Figure S8.  Docking and UAM PNI maps for Bet v 2 – SiO 2. Orientation -resolved PNI 
+
+heat maps are shown for the Bet v 2 protein (1CQA) interacting with a SiO 2 nanoparticle. 
+
+The strongest -binding orientation is highlighted in dark red (arrows). 6
+
+Figure S9.  Docking and UAM PNI maps for Bet v 1 – SiO 2. Orientation -resolved PNI 
+
+heat maps are shown for the Bet v 1 protein (4A88) interacting with a SiO 2 nanoparticle. 
+
+The strongest -binding orientation is highlighted in dark red (arrows). 
+
+Figure S10.  Docking and UAM PNI maps for serotransferrin – SiO 2. Orientation -
+
+resolved PNI heat maps are shown for serotransferrin (6JAS) interacting with a SiO 2
+
+nanoparticle. The strongest -binding orientation is highlighted in dark red (arrows). 7
+
+Figure S11.  Docking and UAM PNI maps for ovalbumin – SiO 2. Orientation -resolved 
+
+PNI heat maps are shown for ovalbumin (1UHG) interacting with a SiO 2 nanoparticle. The 
+
+strongest -binding orientation is highlighted in dark red (arrows). 
+
+Figure S12.  Docking and UAM PNI maps for Bet v 4 – SiO 2. Orientation -resolved PNI 
+
+heat maps are shown for the Bet v 4 protein (1H4B) interacting with a SiO 2 nanoparticle. 
+
+The strongest -binding orientation is highlighted in dark red (arrows). 8
+
+Figure S13.  Docking and UAM PNI maps for Bet v 6 – SiO 2. Orientation -resolved PNI 
+
+heat maps are shown for the Bet v 6 protein (2AS8) interacting with a SiO 2 nanoparticle. 
+
+The strongest -binding orientation is highlighted in dark red (arrows).

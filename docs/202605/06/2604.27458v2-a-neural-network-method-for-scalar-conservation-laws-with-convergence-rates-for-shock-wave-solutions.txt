@@ -1,0 +1,3841 @@
+Title: A Neural Network Method for Scalar Conservation Laws with Convergence Rates for Shock-Wave Solutions
+
+URL Source: https://arxiv.org/pdf/2604.27458v2
+
+Published Time: Tue, 05 May 2026 01:09:12 GMT
+
+Number of Pages: 40
+
+Markdown Content:
+# A Neural Network Method for Scalar Conservation Laws with Convergence Rates for Shock-Wave Solutions 
+
+Jiachuan Cao 1, Buyang Li 2, Hao Li 2
+
+> 1
+
+Institute for Applied and Numerical Mathematics, Karlsruhe Institute of Technology, Karlsruhe, Germany. 
+
+> 2
+
+Department of Applied Mathematics, The Hong Kong Polytechnic University, Hong Kong. E-mail(s): jiachuan.cao@kit.edu; buyang.li@polyu.edu.hk; hao94.li@polyu.edu.hk; 
+
+Abstract 
+
+We introduce an entropy-compatible neural network method for scalar hyperbolic conservation laws based on a computable surrogate of the Kružkov entropy residual. The proposed loss is designed to enforce weak consistency and entropy admissibility while remaining amenable to rigorous analysis. For piecewise smooth entropy solutions, we construct explicit neural network competitors with provably small loss by combining shock-adapted continuous piecewise linear approximations with representability results for neural networks. These approximation bounds, together with entropy-based stability estimates, yield rigorous L1 error estimates for minimizers of the resulting loss functional. In particular, when the network size scales comparably to the number of degrees of freedom of a space time mesh of size h, we recover the classical O(h1/2) convergence rate in shock-dominated regimes. The analysis also covers solutions containing rarefaction waves and regular shock interactions; in this extended version, we further treat smooth initial data that develop a shock in finite time, for which an L1 estimate of order O(h1/2| ln h|) is obtained. Numerical experiments in one and two space dimensions illustrate the effectiveness of the method and its ability to resolve nonsmooth wave structures accurately. 
+
+Keywords: Hyperbolic conservation laws, entropy solutions, neural networks, PINNs, entropy stability, error estimates. 
+
+MSC Classification: 65M12 , 65M15 , 65M60 , 35L65 , 68T07 
+
+## 1 Introduction 
+
+We study scalar hyperbolic conservation laws (HCLs), which provide a canonical model for transport and wave propagation in applications such as compressible flow, and traffic dynamics. Consider the scalar initial-value problem 
+
+{∂tu + ∇x · f (u) = 0 , (x, t ) ∈ ΩT := Ω × (0 , T ),u(x, 0) = u0(x), x ∈ Ω, (1) where u is the conserved quantity and f : R → Rd is the flux. Even for smooth initial data, shocks may form in finite time, so classical solutions are generally not available globally. One therefore works with weak solutions supplemented by entropy conditions. To simplify the presentation, we assume throughout that Ω is sufficiently large so that supp u(·, t ) ⊂
+
+Ω for all t ∈ [0 , T ]. This allows us to ignore boundary effects. We recall the relevant definitions below. 1
+
+> arXiv:2604.27458v2 [math.NA] 3 May 2026
+
+A function u ∈ L∞(Ω T ) is called a weak solution of (1) with initial data u0 if 
+
+∫
+
+> ΩT
+
+u ∂ tφ + f (u) · ∇ xφ dx dt +
+
+∫
+
+> Ω
+
+u0(x) φ(x, 0) d x = 0 , φ ∈ C∞ 
+
+> c
+
+(Ω × [0 , T )) . (2) Since weak solutions are generally non-unique, to select the physical solution, one imposes an entropy admissibility condition. A standard choice is the Kružkov family ηk(u) = |u − k| = ( u − k) sgn( u − k),
+
+k ∈ R. With ψ′
+
+> k
+
+(u) = η′
+
+> k
+
+(u)f ′(u), the entropy inequalities 
+
+∂tηk(u) + ∇x · ψk(u) ≤ 0, ∀k ∈ R, (3) hold in the distributional sense on ΩT . Equivalently, u is an entropy solution of (1) with initial data 
+
+u0 if, for every nonnegative test function φ ∈ C∞ 
+
+> c
+
+(Ω × [0 , T )) , ∀k ∈ R,
+
+∫ T
+
+> 0
+
+∫
+
+> Ω
+
+(
+
+|u − k| ∂tφ + sgn( u − k) (f (u) − f (k)) · ∇ xφ
+
+)
+
+dx dt +
+
+∫
+
+> Ω
+
+|u0 − k| φ(x, 0) d x ≥ 0, (4) which is just the distributional formulation of the entropy inequalities (3). Over the past several decades, extensive research has focused on developing numerical schemes for hyperbolic conservation laws. Early foundational methods, such as the Lax-Friedrichs and Godunov schemes, offer robust shock-capturing but are limited to first-order accuracy due to numerical diffusion and Godunov’s theorem for linear monotone schemes. Higher-order approaches improve accu-racy in smooth regions but may introduce nonphysical oscillations near discontinuities. To mitigate such oscillations while retaining higher accuracy, total variation diminishing (TVD) and monotone upstream-centered schemes for conservation laws (MUSCL) employ limiters, and further advances led to nonlinear high-resolution methods such as ENO [1], WENO [2, 3], RKDG [4] and entropy-stable method [5]. On the theoretical side, the convergence analysis of numerical schemes can be traced back to Kružkov’s seminal work [6], which established the notion of entropy solutions ensuring uniqueness and stability. Building upon this, Kuznetsov [7] derived the first a priori L∞(L1) error estimate of order O(h1/2) for monotone schemes on uniform grids, with Sanders [8] extending the result to non-uniform Cartesian meshes. Subsequent contributions, such as those by Cockburn and Gremaud [9] and Makridakis and Perthame [10], proposed alternative techniques achieving the same convergence order. Besides, Nessyahu and Tadmor [11] proved that several finite volume schemes, converge at rate O(h) in the Lip ′ norm (the Wasserstein distance), for Lip +-bounded initial data. Another way to prove conver-gence to the entropy solution is DiPerna’s theory of measure-valued function convergence [12], which was first applied by Szepessy in 1989 [13] to the streamline diffusion method and was later applied to finite difference, finite volume, and various space time DG methods. Alongside these classical developments, neural network methods have recently emerged as an alter-native computational approach for PDEs. Representative methods include physics-informed neural networks (PINNs) and their variants [14, 15], the neural network Ritz method [16, 17], operator learn-ing approaches including Fourier neural operator (FNO) [18] and DeepONet [19], and dynamically parametrized neural network methods for time evolving problems [20–22]. Among these, PINNs are particularly natural for solving PDEs by directly penalizing the PDE residual, and their theoretical properties have recently been studied in [23, 24]. Let UNN denote a neural network approximation. For hyperbolic conservation laws, since the standard PINN formulations penalize the strong form equation residual ∂tUNN + ∇x · f (UNN ) in L2 norm, one cannot, in general, expect the PINN loss to remain small for discontinuous solutions; see [25]. This limitation motivates the design of alternative loss functionals [26]. A common remedy is to introduce artificial viscosity. Another alternative is to enforce the PDE in weak form or in finite volume form [27], which are compatible with discontinuous solutions. Since weak solutions are generally nonunique, one must additionally impose an entropy condition to select the physically relevant solution. This has motivated incorporating entropy constraints into the loss [28]. Related rigorous approximation and generalization results for neural network approximations of parametric hyperbolic conservation laws were established in [29]. Moreover, under the assumption that the loss can be made arbitrarily small, [30] derived an error estimate for their neural-network method by invoking the Kružkov-type estimates of Bouchut and Perthame [31]. For scalar HCLs, the Kružkov entropy family becomes particularly important. Specifically, the associated Kružkov entropy residual plays two roles simultaneously. First, it recovers the conservation 2law in the weak sense. Indeed, by taking k ∈ R large or small enough, the full family of Kružkov entropy inequalities (3) recovers the weak formulation (2). Second, for general k ∈ R, (3) enforces entropy admissibility and thereby selects the physically relevant solution, restoring uniqueness and the classical 
+
+L1-stability property. Thus, the Kružkov entropy residual simultaneously measures weak consistency 
+
+and entropy admissibility . This observation is the common starting point of both weak PINNs and the present work. The weak PINN (wPINN) [32] leverages these dual effects by enforcing the entropy inequality in a distributional sense. Schematically, after inserting a neural network ansatz UNN into (4) and temporarily suppressing the initial and boundary terms, one seeks to enforce (3) weakly as: for every nonnegative test function φ ∈ C∞ 
+
+> c
+
+(Ω T ),
+
+−
+
+∫ T
+
+> 0
+
+∫
+
+> Ω
+
+(
+
+ηk(UNN )∂tφ + ψk(UNN ) · ∇ xφ
+
+)
+
+dx dt ≤ o(1) , ∀k ∈ R, (5) where functions φ are subject to suitable normalization constraints, and in practice, are parametrized by auxiliary neural networks, which leads to a min–max optimization problem. The corresponding con-vergence analysis can be established via the doubling of variables argument. In practice, the associated min-max formulation may require ensemble training procedures to improve neural network optimiza-tion robustness, which can increase the computational cost. The modified wPINN in [25] separates weak consistency from entropy admissibility, thereby simplifying the training procedure and making the framework more amenable to systems; a comparable convergence analysis, however, lies beyond the scope of that work. This motivates the following question: can one design a simple but efficient neural network method that still admits error analysis comparable to classical methods for scalar HCL? This work takes a step toward answering this question. Enforcing the full family of Kružkov entropy inequalities (3) weakly as (5) is inevitably expensive and might not be necessary since UNN is at least continuous. Therefore, we propose a novel way to enforce (3) lying between strong and weak enforcement. We introduce a discrete surrogate of the Kružkov entropy residual: 
+
+Lent (UNN ) := sup  
+
+> kh∈Vch
+
+∫
+
+> ΩT
+
+(
+
+∂tUNN + ∇x · f (UNN )
+
+)
+
+sgn( UNN − kh) d x dt, (6) where finite-dimensional function space V ch (defined in Section 2) is chosen rich enough. Formally, since for ∀x ∈ ΩT and k ∈ R,
+
+∂tηk(UNN ) + ∇x · ψk(UNN ) = 
+
+(
+
+∂tUNN + ∇x · f (UNN )
+
+)
+
+sgn( UNN − k) , (7) the integrand in (6) can be interpreted as an entropy residual of the entropy pair (ηk, ψk). We delib-erately replace the scalar entropy parameter k by a space–time function kh in a finite-dimensional space: the loss is still computable and aligns with the discrete stability argument used later, where suitable choices of kh approximate the entropy solution. The integrand in (6) is therefore best viewed as an entropy residual surrogate rather than as the exact Kružkov entropy residual associated with a constant state. The supremum over kh acts as a discrete surrogate for the continuum family k ∈ R
+
+over all the points in ΩT , and its locality/richness determines how effectively (6) probes local entropy inequality violations. In the idealized limit where V ch is sufficiently rich and local (as h → 0), driving 
+
+Lent (UNN ) small is consistent with suppressing violations of the entropy inequalities (3), and hence with steering UNN toward the entropy solution in the sense of (4). Therefore, minimizing (6) is designed to promote both weak consistency and entropy admissibility, which underlies the later entropy-based stability estimate (cf. Remark 1). From the numerical-analysis perspective, our loss is closely related to the notion of numerical entropy production used as an a posteriori smoothness/shock indicator and an adaptivity driver in finite volume schemes [33, 34]. A central ingredient of our analysis is a constructive bridge between finite element approxima-tions and neural networks. We first construct continuous piecewise linear (CPwL) competitors on shock-adapted simplicial meshes producing provably small loss, and we then use representability and approximation results for CPwL functions by neural networks to transfer these constructions to the neural setting. This yields explicit neural network competitors and, consequently, an a priori upper bound on the loss attained by a minimizer of the training problem. Combined with entropy-based stability estimates, this leads to rigorous convergence rates for piecewise smooth entropy solutions 3containing shocks. In particular, when the network size scales comparably to the number of degrees of freedom of a space time mesh of size h, namely O(h−(d+1) ) nonzero parameters up to dimension-dependent constants; see Remark 3, the resulting neural approximation converges in L1 at rate O(h1/2)
+
+in shock-dominated regimes, matching the classical benchmark for monotone schemes. We emphasize, however, that this half-order rate should be interpreted as a consequence of the current proof tech-nique rather than as an intrinsic limitation of the method. Indeed, the explicit neural competitors constructed in Lemma 2 already satisfy a first-order estimate, while the numerical experiments in Sub-section 5.1.4 and Remark 5 exhibit nearly first-order convergence. Taken together, these observations suggest that the practical accuracy of the proposed method may exceed the rate presently guaranteed by the rigorous analysis. Our contributions are summarized as follows. For scalar HCLs, we introduce a Kružkov entropy residual loss functional and prove the existence of neural networks that make this loss functional small. Combining these ingredients with entropy stability arguments, we derive rigorous L1 convergence rates for piecewise smooth entropy solutions containing shocks and rarefaction waves. Section 2 introduces the problem setting and the proposed loss functional. Sections 3-4 develop convergence results for one- and multidimensional settings under piecewise smoothness assump-tions. Section 5 presents numerical experiments. Some proofs and auxiliary approximation results are collected in the appendix. 
+
+## 2 Neural network methods for scalar conservation laws 
+
+In this section, we will introduce our neural network methods for scalar HCLs. 
+
+2.1 Scalar conservation laws and entropy solution 
+
+Let x ∈ Rd denote the spatial variable and t ∈ [0 , T ] the time. Throughout, Ω ⊂ Rd is chosen to be bounded but large enough so that supp u(·, t ) ⊂ Ω for t ∈ [0 , T ]. We set the space time domain as 
+
+ΩT := Ω × (0 , T ), and the space time point as z := ( x, t ). Let f ∈ C2(R; Rd) be the flux and define the associated space time flux 
+
+F(v) := ( f (v), v ) ∈ Rd+1 , ∇ · F(v) = ∂tv + ∇x · f (v),
+
+where ∇ denotes ∇(x,t ), distinguished from ∇x.Entropy solutions may contain shocks. In the analysis of Sections 3-4 we will work under piecewise smoothness assumptions (see Assumptions 1). Let Γ ⊂ ΩT denote a C2 shock hypersurface (a d-dimensional embedded manifold in space time). For z ∈ Γ we denote by nΓ(z) a unit normal vector and define the one-sided traces 
+
+v−(z) := lim  
+
+> ε→0+
+
+v(z − εnΓ(z)) , v+(z) := lim  
+
+> ε→0+
+
+v(z + εnΓ(z)) , JvK := v+ − v−.
+
+In the piecewise smooth setting, (3) implies the pointwise (reformulated) entropy admissibility condition along Γ:
+
+J(F(u) − F(k)) sgn( u − k)K · nΓ(z) ≤ 0, ∀z ∈ Γ, ∀k ∈ R. (8) This inequality is independent of the choice of orientation of nΓ, since changing nΓ swaps the roles of 
+
++ and −. Throughout this paper, we simply assume the entropy solution u has traces satisfying the Rankine-Hugoniot relation and the entropy admissibility condition along the shock curves/surfaces. 
+
+2.2 Notation and setting 
+
+Let Ω ⊂ Rd be the spatial computational domain and ΩT = Ω ×(0 , T ). Let Λh be a conforming partition of ΩT into closed space time cells (either (d + 1) -rectangles/hexahedra or simplices). We assume Λh
+
+is quasi-uniform and shape-regular in the standard finite element sense with mesh size h := max 
+
+> K∈Λh
+
+hK ,
+
+hK := diam ( K). In computations we typically take Λh to be a uniform Cartesian partition. We denote the (space time) skeleton of Λh by ∂Λh := ⋃ 
+
+> K∈Λh
+
+∂K , and for each cell K we write n for the unit outward normal on ∂K .4Define the discontinuous piecewise multilinear space 
+
+Vh := 
+
+{
+
+vh ∈ L∞(Ω T ) : vh|K ∈ Q1(K) ∀K ∈ Λh
+
+}
+
+,
+
+where Q1(K) denotes polynomials of degree at most 1 in each space time variable on K. (For a simplicial partition, replace Q1(K) by P1(K).) For kh ∈ Vh, define the mesh-dependent norm 
+
+∥kh∥W 1,∞
+
+> h
+
+:= max 
+
+> K∈Λh
+
+(
+
+∥kh∥L∞(K) + h ∥∇ kh∥L∞(K)
+
+)
+
+. (9) For a fixed constant c > 0, set 
+
+V ch := {kh ∈ Vh : ∥kh∥W 1,∞
+
+> h
+
+≤ c}.
+
+We refer to kh ∈ Vh as a discontinuous piecewise polynomial (DPwP). In the analysis we also construct auxiliary continuous piecewise linear (CPwL) functions on conforming simplicial refinements of Λh; these refinements may include anisotropic simplices inside thin shock neighborhoods, while remaining conforming globally. For a set of cells Λ ⊂ Λh, #Λ denotes its cardinality and, when no confusion arises, we identify Λ
+
+with the associated union of cells ⋃ 
+
+> K∈Λ
+
+K. Throughout the paper, constants may depend on T , f , and the exact solution u, but are independent of h.
+
+2.3 Neural networks 
+
+We consider scalar-valued feedforward neural networks on the space time domain ΩT ⊂ Rd+1 . For 
+
+z = ( x, t ) ∈ ΩT , the network output is defined by 
+
+Uθ (z) = (AθL ◦ σ ◦ A θL−1 ◦ · · · ◦ σ ◦ A θ
+
+> 1
+
+)(z), Aθℓ (y) = Wℓy + bℓ, ℓ = 1 , . . . , L. (10) where σ = tanh acts componentwise, Wℓ and bℓ denote the weight matrix and bias vector, respectively, and θ := {(Wℓ, b ℓ)}Lℓ=1 collects all trainable parameters. The input dimension is d + 1 , while the output is scalar-valued. We define the loss functional by 
+
+L(θ) := L(uθ ), L(v) := Lent (v) + Lbc (v) + Lreg (v),
+
+Lent (v) := sup  
+
+> kh∈Vch
+
+Jent (v; kh), Jent (v; kh) := 
+
+∫
+
+> ΩT
+
+∇ · F(v) sgn( v − kh) d z,
+
+Lbc (v) := ∥v(·, 0) − u0(·)∥L1(Ω) , Lreg (v) := h
+
+∫
+
+> ΩT
+
+|∇ · F(v)| dz.
+
+(11) In the theoretical analysis, Lent is defined by the exact supremum over V ch ; the sampled approximation used in the numerical experiments is introduced separately in Section 5. For neural network methods, the total error is often decomposed into approximation, optimization, and sampling/quadrature errors; see [35]. Since the present work focuses on the PDE-specific difficulty of approximating entropy solutions to (1), we work in an idealized setting: we assume that the mini-mization problem (11) over the chosen network class attains a minimizer θ∗, and that all integrals in (11) are evaluated exactly. Accordingly, we do not track optimization or quadrature errors below, and focus on the approximation properties of the proposed loss and network class. 
+
+Remark 1 (Stability from the loss function) The sign function in (11) is inherited from the Kružkov entropy 
+
+ηk(u) = |u − k|. For smooth v and constant k, the entropy production is 
+
+Jent (v; k) = 
+
+∫
+
+> ΩT
+
+∇· F(v) sgn( v − k) d z.
+
+Heuristic stability mechanism. To illustrate why controlling Jent leads to L1-stability and error estimate, consider a piecewise C1 entropy solution u with a single C2 shock hypersurface Γ that partitions ΩT into two 
+
+5open sets Ω± 
+
+> T
+
+. Let v ∈ W 1,∞(Ω T ) be a numerical approximation. Since ∇· F(u) = 0 pointwise on Ω± 
+
+> T
+
+and u is compactly supported in Ω, integrating by parts separately on Ω± 
+
+> T
+
+yields the identity 
+
+Jent (v; u) = 
+
+(∫
+
+> Ω−
+> T
+
++
+
+∫
+
+> Ω+
+> T
+
+)
+
+∇· ( (F(v) − F(u)) sgn( v − u) ) dz
+
+=‖v(·, T ) − u(·, T )‖L1(Ω) − ‖ v(·, 0) − u(·, 0) ‖L1(Ω) 
+
+−
+
+∫
+
+> Γ
+
+J(F(v) − F(u)) sgn( v − u)K · nΓ ds, 
+
+(12) where in the first equation we have used 
+
+∇· F(v) sgn( v − u) = ∇· ( (F(v) − F(u)) sgn( v − u) ), (13) since ∇· F(u) = 0 and the distributional contribution from ∇ sgn( v − u) vanishes because F(v) − F(u) = 0 on 
+
+{v = u}. Along Γ, the reformulated entropy admissibility condition (8) holds for all k ∈ R; in particular, it holds pointwise with k = v(z), then the shock contribution in (12) is non-positive. Hence, 
+
+‖v(·, T ) − u(·, T )‖L1(Ω) ≤ ‖ v(·, 0) − u(·, 0) ‖L1(Ω) + Jent (v; u),
+
+which implies that the entropy production controls the growth of the L1 error. 
+
+From the unknown u to computable test functions. In practice, however, u is unknown. We therefore replace it by a rich, bounded class of computable functions kh ∈ V ch , and consider the worst-case quantity 
+
+sup kh∈V ch Jent (v; kh). If V ch is sufficiently rich to approximate u, then controlling this supremum provides a computable surrogate for the ideal but unavailable quantity Jent (v; u). This choice is motivated by the Kružkov theory and provides a computable surrogate for the doubling of variables technique. The constraint kh ∈ V ch
+
+prevents highly oscillatory tests and yields uniform bounds needed in the analysis. 
+
+Throughout the article we repeatedly use the following cellwise identity: For all K ∈ Λh and continuous v, by (13) and divergence theorem, 
+
+∫
+
+> K
+
+∇ · F(v) sgn( v − kh) d z =
+
+∫
+
+> ∂K
+
+(F(v) − F(kh)) sgn( v − kh) · n ds
+
++
+
+∫
+
+> K
+
+∇ · F(kh) sgn( v − kh) d z.
+
+(14) For CPwL v the identity is understood cellwise after a conforming simplicial refinement; interior face contributions cancel due to continuity of v − kh within K.Based on the above discussion, our goal is to show that the minimizer of (11) attains a sufficiently small loss. To this end, we construct a specific neural network with small loss. The construction proceeds in two steps: we first design a CPwL function with small loss, and then invoke the following lemma to guarantee the existence of a tanh neural network that approximates this CPwL function and preserves the loss up to a well-controlled error. 
+
+Lemma 1 Let ΩT ⊂ Rd+1 be bounded and let ˆu : Ω T → R be continuous and piecewise linear on a conforming simplicial partition T with N := # T elements and uniformly bounded patch complexity Npatch (i.e., the number of neighboring elements per node depends only on the spatial dimension d). Assume f ∈ C2(R; Rd) and let Λh be a quasi-uniform background mesh of ΩT with mesh size h and test space V ch as in Section 2. Assume there exist measurable sets Ωr , Ωs ⊂ ΩT such that 
+
+ΩT = Ω r ∪ Ωs, Ωr ∩ Ωs = ∅, |∂Ωs| ≤ CΩ, |Ωs| ≤ CΩh2, (15) and such that ˆu is piecewise linear on Ωr with a shape-regular mesh of size O(h). Then there exists a tanh 
+
+neural network, structured as in (10), with depth O(log( Npatch )) and at most O(N N patch ) neurons in each hidden layer, such that 
+
+L(uˆθ ) ≤ L (ˆ u) + C
+
+(
+
+h +
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz
+
+)
+
+.
+
+The proof of this lemma is presented in the Appendix A. 63 Error estimate for 1D problem with piecewise smooth solution 
+
+This section focuses on the one-dimensional scalar HCL (1) with convex or nonconvex flux (the latter having finitely many inflection points). In this section the flux is scalar, so we write f instead of f .The setting may be viewed as a special d-dimensional homogeneous problem with invariance in d − 1
+
+spatial directions. Accordingly, we keep the dimension parameter d in the general statements, although 
+
+d = 1 is assumed here. In this work, we concentrate on a highly representative class of piecewise regular solutions under the following assumption: 
+
+Assumption 1 (Finite space time decomposition into regular-wave and event pieces) There exists a finite decomposition of ΩT into open, connected pieces {P q }Qq=1 with pairwise disjoint interiors and piecewise C2
+
+boundaries, in the sense that ΩT = ⋃Qq=1 Pq . Each piece is one of the following types: a smooth piece, a regular shock piece, a rarefaction/compound-wave piece, or a shock-shock interaction piece. By finiteness of the decomposition, all constants in the assumptions below may be taken uniformly in q.
+
+(i) Smooth pieces and regular shock pieces. If Pq contains no rarefaction region and no local event, then either u ∈ W 2,∞(Pq ) ∩ C2(Pq ), or Pq contains a single C2 entropy shock curve Γsq = {(x, t ) : x =
+
+γsq (t)} ⊂ P q which divides Pq into two open subregions Pq, − and Pq, +. In the latter case there exist 
+
+uq, ± ∈ W 2,∞(Pq ) ∩ C2(Pq, ±) such that u = uq, ± on Pq, ±, with 
+
+∥uq, −∥W 2,∞(Pq ) + ∥uq, +∥W 2,∞(Pq ) ≤ C∗,
+
+and the left/right traces satisfy the Rankine-Hugoniot condition and entropy condition (8) along Γsq .(ii) Rarefaction and compound-wave pieces. If Pq is a rarefaction piece or a compound-wave piece, then the rarefaction part inside Pq is the union of finitely many pairwise disjoint connected open sets 
+
+Rq = ∪Mq
+
+> m=1
+
+Rq,m , Mq ≥ 1. More precisely, there exist numbers 0 ≤ τq < t + 
+
+> q
+
+≤ T , a point xq ∈ Ω,and for each m = 1 , . . . , M q , two C2 curves Γq,m,i = {(x, t ) : x = γq,m,i (t), t ∈ [τq , t + 
+
+> q
+
+)}, i = 1 , 2,such that γq,m, 1(τq ) = γq,m, 2(τq ) = xq , γq,m, 1(t) < γ q,m, 2(t), t ∈ (τq , t + 
+
+> q
+
+), and such that the open set 
+
+Rq,m := {(x, t ) ∈ P q : τq < t < t + 
+
+> q
+
+, γ q,m, 1(t) < x < γ q,m, 2(t)},c(t − τq ) ≤ γq,m, 2(t) − γq,m, 1(t) ≤ C(t − τq ), t ∈ [τq , t + 
+
+> q
+
+).
+
+Inside the rarefaction region one has u ∈ C2(Rq ), and 
+
+(t − τq ) |∇ u(x, t )| + ( t − τq )2 |∇ 2u(x, t )| ≤ C, (x, t ) ∈ R q .
+
+On each connected component O of Pq \ R q , the solution satisfies the regularity assumptions from item (i). If a shock curve bounds Rq , then on its non-rarefaction side the corresponding one-sided 
+
+W 2,∞ bound from item (i) holds. (iii) Regular interaction pieces. Each shock-shock merging point is contained in a single event piece Pq
+
+centered at (xβ , τ β ), in which exactly two incoming C2 entropy shock curves and one outgoing C2
+
+entropy shock curve meet, and no other local event occurs. On every connected component of the complement of these three curves, the solution belongs to W 2,∞ ∩ C2, with the same uniform bound 
+
+C∗. Any other regular local interaction (for instance, a shock-rarefaction interaction) is isolated in a single event piece and is assumed to satisfy the same piecewise regularity as in items (i)–(ii). (iv) Nondegenerate shock-birth pieces and uniform regularity away from birth. Each shock-formation point is contained in a single event piece Pq which contains no local event other than the shock birth at 
+
+(xq , τ q ). In the neighborhood of (xq , τ q ) near the shock curve x = γbq (t), for x̸ = γbq (t), one has 
+
+|∇ u(x, t )| = O(((t − τq )3 + ( x − xq )2)−1/3), |∇ 2u(x, t )| = O(((t − τq )3 + ( x − xq )2)−5/6).
+
+Finally, there exists a uniform waiting time δ∗ > 0 such that the regular shock piece adjacent to 
+
+γbq starts no earlier than t = τq + δ∗. Consequently, on that adjacent regular shock piece the two one-sided states satisfy the uniform W 2,∞ bound from item (i), with the same constant C∗.
+
+Remark 2 Assumption 1 (iv) is modeled on the classical generic nondegenerate shock-birth theory for one-dimensional scalar conservation laws, see the proof of [36, Thm. 2, Prop. 4.1] and [37, Thm. 1.1]. 
+
+7We assume that the entropy solution consists of a finite number of elementary waves and shock interaction, the corresponding piecewise smoothness patterns are illustrated in Figure 1. In particular, Figure 2 includes both single rarefaction and compound waves (the latter illustrated in the case of flux 
+
+f (u) with three inflection points). 
+
+t
+
+x0
+
+T
+
+(a) Single shock 
+
+t
+
+x0
+
+T
+
+(b) Shock interactions 
+
+t
+
+x0
+
+T
+
+(c) New shock 
+
+t
+
+x0
+
+T
+
+(d) compound wave 
+
+Fig. 1 : Illustration of typical piecewise smooth patterns 
+
+t
+
+x0
+
+T
+
+(a) Single rarefaction wave 
+
+t
+
+x0
+
+T
+
+(b) Compound wave 
+
+Fig. 2 : Thin lines indicate characteristics; thick lines indicate shocks. 
+
+3.1 Single shock waves and shock interactions 
+
+This section establishes the a priori error estimate for the single-shock case. The proof has two main ingredients. First, we construct a neural network competitor with O(h−(d+1) ) neurons whose loss is sufficiently small, which is highly nontrivial. Indeed, we will convert derivatives in the loss into jumps across the shock, which has favorable signs for estimation due to the entropy condition (8). Second, using a DPwP approximation kh of the entropy solution, we convert this loss bound into an error estimate for the NN minimizer uθ∗ .
+
+Lemma 2 Let u be the entropy solution of the scalar conservation law (1) that contains a single shock and satisfies Assumption 1. Then there exists a tanh neural network uˆθ , structured as in (10), with depth O(d + 1) 
+
+and at most O(h−(d+1) ) neurons in each hidden layer, such that 
+
+L(ˆθ) ≲ h. (16) 
+
+Proof Set ε := h2. We first construct a continuous piecewise linear function ˆu on a simplicial partition T of ΩT
+
+with N := # T = O(h−(d+1) ) such that 
+
+‖ˆu(·, 0) − u0(·)‖L1(Ω) ≲ h, 
+
+∫
+
+> ΩT
+
+|∇· F(ˆ u)| dz ≤ C, sup  
+
+> kh∈Vch
+
+Jent (ˆ u; kh) ≲ h, (17) with C independent of h. Then 
+
+L(ˆ u) = max  
+
+> kh∈Vch
+
+Jent (ˆ u; kh) + Lbc (ˆ u) + Lreg (ˆ u) ≲ h. 
+
+8Step 1: Construction of ˆu. Let Γ := {(x, t ) ∈ ΩT : x = γsq (t), 0 ≤ t ≤ T } be the shock curve. Assume first that Γ does not significantly intersect the mesh skeleton ∂Λh in the sense of 
+
+H1({(x, t ) ∈ Γ : dist ((x, t ), ∂ Λh
+
+) < Ch 2})
+
+≲ h, (18) where H1 denotes the one-dimensional Hausdorff (arc-length) measure on Γ. Define a tubular neighborhood 
+
+˜ΛΓ of Γ of width O(ε) whose left and right boundaries ˜Γ−, ˜Γ+, which are piecewise linear and each segment lies in a single mesh cell (cf. Figure 3b). We triangulate each strip ˜ΛΓ by anisotropic triangles whose tangential length is O(h) and normal thickness is O(ε); hence each such triangle has area O(hε ) = O(h3) and there are 
+
+O(h−1) triangles. Then we triangulate ΩT \ ˜ΛΓ in a shape-regular way conforming with triangulation of ˜ΛΓ
+
+with mesh size O(h).Define ˆu by: (i) ˆu equals the nodal P 1 interpolant of u on ΩT \ ˜ΛΓ; (ii) inside ˜ΛΓ, ˆu connects the two traces u± linearly across the normal direction, so that ˆu = u± on ˜Γ± and ˆu is linear on each simplex. Then 
+
+ˆu ∈ L∞(Ω T ) is continuous. The initial trace ˆu(·, 0) can be regarded as a piecewise linear approximation of the piecewise smooth function u0 with a jump discontinuity. In particular, ˆu(·, 0) varies sharply only within an 
+
+O(ε)-neighborhood of each initial discontinuity. Therefore, 
+
+‖ˆu(·, 0) − u0(·)‖L1(Ω) ≲ h + ε ≲ h, 
+
+which gives the first bound in (17). Moreover, on ΩT \ ˜ΛΓ we have u ∈ C2 and ∇ · F(u) = 0 , so standard interpolation estimates yield ∫  
+
+> ΩT\˜ΛΓ
+
+|∇ · F(ˆ u)| ≲ h. Inside ˜ΛΓ, ˆu varies by O(1) across width O(ε), hence 
+
+|∇ ˆu| ≲ ε−1 and |˜ΛΓ| ≲ ε, which gives ∫ 
+
+> ˜ΛΓ
+
+|∇ · F(ˆ u)| ≲ 1. Thus ∫ 
+
+> ΩT
+
+|∇ · F(ˆ u)| ≤ C, proving the second bound in (17). 
+
+(a) Shock and the mesh for DPwP kh
+
+(b) Shock and the mesh for CPwL ˆu (c) A representative cell K in ΛΓ
+
+Fig. 3 : Comparison of the partition Λh and the mesh partition for the CPwL ˆu.
+
+Step 2: Estimate of Jent (ˆ u; kh). Fix kh ∈ V ch and define ΛΓ := {K ∈ Λh : K ∩ Γ 6 = ∅} , as illustrated in Figure 3a. Decompose 
+
+Jent (ˆ u; kh) = ∑
+
+> K∈Λh\ΛΓ
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z + ∑
+
+> K∈ΛΓ
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z.
+
+If K / ∈ ΛΓ, then u is smooth on K and ˆu is its linear interpolant. Combining the fact that ∇· F(u) = 0 and the Lipschitz continuity of the flux f , we obtain 
+
+∑
+
+> K∈Λh\ΛΓ
+
+∫
+
+> K
+
+∇· F(ˆ u) sgn(ˆ u − kh) d z ≤ ∑
+
+> K∈Λh\ΛΓ
+
+∫
+
+> K
+
+∣∣∇· F(ˆ u) − ∇· F(u)∣∣ dz ≲ h. (19) Now let K ∈ ΛΓ. Without loss of generality, we focus on a representative element K ∈ ΛΓ, as in Figure 3c. Decompose K = K− ∪ KΓ ∪ K+ with KΓ := K ∩ ˜ΛΓ and K± := K \ ˜ΛΓ on the two sides. On K− ∪ K+ we use the same interpolation argument. On KΓ we integrate by parts with kh|K ∈ Q1(K):
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z =
+
+∫
+
+> K−∪K+
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z
+
++
+
+∫
+
+> ∂K Γ
+
+(F(ˆ u) − F(kh)) sgn(ˆ u − kh) · n ds +
+
+∫
+
+> KΓ
+
+∇ · F(kh) sgn(ˆ u − kh) d z,
+
+(20) 
+
+9where n denotes the outward unit normal vector on ∂K Γ appearing in the second term on the right-hand side. For the first term on the right-hand side of (20), since u is smooth on K− ∪K+ and ˆu is its linear interpolant, by the same argument as in (19) we deduce that 
+
+∣∣∣∣∣∫
+
+> K−∪K+
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z
+
+∣∣∣∣∣ ≲ |K− ∪ K+| · h ≲ h3. (21) For the third term on the right-hand side of (20), using the bound ‖kh‖W 1,∞
+
+> h
+
+≤ c together with |KΓ| ≲ εh , we obtain ∣∣∣∣∫
+
+> KΓ
+
+∇ · F(kh) sgn(ˆ u − kh) d z
+
+∣∣∣∣ ≲ ε. (22) The next and most important step is to estimate the second term on the right-hand side of (20), which involves the boundary integral of (F(ˆ u) − F(kh)) sgn(ˆ u − kh)·n. As shown in Figure 3c, the region KΓ is a very thin strip whose upper and lower boundaries have thickness of order O(ε). Hence, the dominant contribution of the boundary integral comes from the two lateral sides of KΓ, denoted by (∂K Γ)− and (∂K Γ)+.Since ˆu approximates the exact solution u, the boundaries (∂K Γ)− and (∂K Γ)+ are linear approximations to the shock Γ within K. Using the boundedness of the gradient of kh, the boundary integral over (∂K Γ)− ∪(∂K Γ)+
+
+can be approximately replaced by an integral of the jump across Γ up to a small geometric and interpolation error: ∫
+
+> (∂K Γ)−∪(∂K Γ)+
+
+(F(ˆ u) − F(kh)) sgn(ˆ u − kh) · n ds =
+
+∫
+
+> Γ∩K
+
+J(F(u) − F(kh)) sgn( u − kh)K · nΓ ds
+
++ C
+
+(
+
+h2 + ε + H1({z ∈ Γ : dist (z, ∂K ) < Ch 2})) 
+
+, (23) where the last term on the right-hand side arises from the measure difference between (∂K Γ)− and (∂K Γ)+; this difference becomes significant when the shock Γ is close to the boundary of K. Moreover, by the reformulated entropy condition (8) (applied pointwise with k = kh(z)), the shock integral is non-positive. Therefore, by combining (20)-(23) we obtain for all K ∈ ΛΓ:
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z ≲ h2 + ε + H1({z ∈ Γ : dist (z, ∂K ) < Ch 2})
+
+. (24) Since #Λ Γ ≲ h−1 (for a single C2 shock curve in space time domain), summing (24) yields 
+
+∑
+
+> K∈ΛΓ
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z ≲ h + εh + H1({z ∈ Γ : dist (z, ∂ Λh
+
+) < Ch 2})
+
+. (25) With ε = h2, (18) and (19), we conclude Jent (ˆ u; kh) ≲ h uniformly in kh ∈ V ch , proving the third bound in (17). By identifying the transition region ˜ΛΓ as the singular region, we can apply Lemma 1. From the estimate of Jent (ˆ u; kh), we have ∫ 
+
+> ΩT\˜ΛΓ
+
+∣∣∇· F(ˆ u)∣∣ dz ≤ h, 
+
+which leads to L(ˆθ) = L(uˆθ ) ≤ L (ˆ u) + Ch ≲ h, thus proving (16). From the construction of the piecewise linear function ˆu, its mesh is obtained by a direct simplicial refinement of a structured canonical grid. The corresponding patch complexity satisfies Npatch = O(2 d+1 ), and the total number of mesh elements is O(h−(d+1) ). Hence, by Lemma 1, there exists a neural network of depth O(d + 1) 
+
+with at most O(h−(d+1) ) neurons in each hidden layer. 
+
+Step 3: Treatment of the general geometric case. If condition (18) fails, we apply a small translation argument by choosing a shift δ = O(h) and defining uδ (x, t ) := u(x + δ, t ), which is the exact solution of (1) corresponding to the translated initial data uδ, 0(x) = u0(x + δ) and the shifted shock curve Γδ . For a suitable choice of δ, the translated shock Γδ satisfies (18). Constructing the network approximation for uδ as described above yields a function uθδ whose loss with respect to the translated initial data uδ, 0 is of order O(h). Since 
+
+u0 is piecewise smooth and |δ| ≲ h, it follows that ‖u0 − uδ, 0‖L1 ≲ h. Therefore, evaluating uθδ against the original data changes the loss by at most O(h), and the final estimate L(uθδ ) ≲ h remains valid. This completes the proof. □
+
+Remark 3 (Parameter count) The complexity statement in Lemma 2 is written in terms of neurons in the hidden layers. For the sparse constructive realization used here and in [38], this yields the same scaling for the number of nonzero parameters. More precisely, for the CPwL competitors considered in this paper, one has N := # T = O(h−(d+1) ) and uniformly bounded patch complexity, so the construction of Lemma 1 gives a network with depth O(log Npatch ) = O(d + 1) , width O(N N patch ) = O(h−(d+1) ), and sparse connectivity. Hence the total number of nonzero weights and biases also scales like O(h−(d+1) ). The same scaling applies to the rarefaction, compound-wave, interaction, and shock-formation constructions below. 
+
+10 Then by taking kh as a DPwP approximation of the entropy solution, we derive an error estimate for the NN minimizer uθ∗ .
+
+Theorem 3 (Single shock) Let u be the entropy solution of the scalar conservation law (1) that has discontinuous initial data u0, contains a single shock, and satisfies Assumption 1. Let h be the mesh size of the background mesh Λh. Let uθ∗ be a tanh neural network, structured as in (10) , with depth O(d + 1) and at most O(h−(d+1) )
+
+neurons in each hidden layer, where θ∗ is a minimizer of the loss functional (11) over this class of networks. Then there exists a constant C > 0, independent of h, such that 
+
+‖uθ∗ (·, T ) − u(·, T )‖L1(Ω) ≤ Ch 1/2. (26) 
+
+Proof By Lemma 2 there exists ˆθ (in the same network class) such that L(ˆθ) ≲ h. Since θ∗ minimizes L, we have 
+
+Jent (uθ∗ ; kh) ≤ L (θ∗) ≤ L (ˆθ) ≲ h, ∀kh ∈ V ch . (27) We now choose a particular kh ∈ V ch (denoted ˜uh) adapted to the shock. e
+
+Γ ΓΓj Γ0
+
+Λj Λ0
+
+> e
+
+ΓΓj Ωj
+
+Fig. 4 : Construction of the DPwP ˜uh based on the extended exact solution. Left: The strategy for extending the exact solution. Right: The local cells near ˜Γj .
+
+Step 1: A shifted strip with small ∫ |∇ · F(uθ∗ )|. Let Λ0 := ∪K∈ΛΓ K be the O(h)-width strip of elements intersecting the shock curve Γ, and let Γ0 denote its left boundary (see Figure 4). To control ∫ 
+
+> Λ0
+
+|∇ · F(uθ∗ )|
+
+we use a strip-selection argument. Let L = O(h) denote the strip width and define shifted strips Λj (j = 1, . . . , M ) by shifting 
+
+Λ0 to the left by jL . Let M = O(h−1/2) and denote by Γj the left boundary of Λj . Let ˜Γ( t) := {(x, t ) ∈ ΩT : x = γsq (t) − jL, 0 ≤ t ≤ T } be the shifted copy of the shock curve lying inside Λj (see Figure 4). Since the strips are disjoint, 
+
+> M
+
+∑
+
+> j=1
+
+∫
+
+> Λj
+
+∣∣∇ · F(uθ∗ )∣∣ dz ≤
+
+∫
+
+> ΩT
+
+∣∣∇ · F(uθ∗ )∣∣ dz = h−1Lreg (uθ∗ ) ≤ h−1L(θ∗) ≤ C. 
+
+Hence there exists an index j ∈ { 1, . . . , M } such that 
+
+∫
+
+> Λj
+
+|∇ · F(uθ∗ )| dz ≤ CM . (28) In particular, the region Ωj ⊂ Λj between Γj and ˜Γ satisfies ∫ 
+
+> Ωj
+
+|∇ · F(uθ∗ )| ≲ M −1.
+
+Step 2: Construction of the DPwP test function ˜uh. Since Λh does not align with Γ, we define ˜uh to have its single discontinuity along Γj . Let u+ext be a smooth extension of the right trace of u to the right of Γj
+
+(up to Γj ), agreeing with u on the true right side of Γ. Define ˜uh as the (elementwise) Q1 Lagrange interpolant of u on the left of Γj and of u+ext on the right of Γj . By construction ˜uh ∈ V ch and is continuous across all mesh faces except those lying on Γj .Taking kh = ˜ uh in (27) and using the elementwise integration-by-parts identity (14) yields 
+
+∑
+
+> K∈Λh
+
+(∫ 
+
+> ∂K
+
+(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh) · n ds +
+
+∫
+
+> K
+
+∇ · F(˜ uh) sgn( uθ∗ − ˜uh) d z
+
+)
+
+≲ h. (29) 
+
+11 Step 3: estimate of the volume term. Using | sgn | ≤ 1,
+
+∣∣∣∣∫
+
+> ΩT
+
+∇ · F(˜ uh) sgn( uθ∗ − ˜uh) d z
+
+∣∣∣∣ ≤
+
+∫
+
+> ΩT
+
+∣∣∇ · F(˜ uh)∣∣ dz.
+
+Let Dj := ⋃ji=0 Λi, which satisfies |Dj | ≲ jh ≲ M h . On ΩT \ Dj , ˜uh is the Q1 interpolant of the exact smooth solution u, hence ∫  
+
+> ΩT\Dj
+
+|∇ · F(˜ uh)| dz ≲ h as in Lemma 2. On Dj , ˜uh is the Q1 interpolant of a smooth bounded function ( u+ext ), so |∇ · F(˜ uh)| ≲ 1 there and thus ∫ 
+
+> Dj
+
+|∇ · F(˜ uh)| dz ≲ |Dj | ≲ M h . Therefore, 
+
+∣∣∣∣∫
+
+> ΩT
+
+∇ · F(˜ uh) sgn( uθ∗ − ˜uh) d z
+
+∣∣∣∣ ≲ h + M h. (30) 
+
+Step 4: Reformulation of the boundary term. Since ˜uh is continuous across all faces of ∂Λh except those on Γj , the mesh-skeleton contributions cancel pairwise and we obtain 
+
+∑
+
+> K∈Λh
+
+∫
+
+> ∂K
+
+(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh) · n ds
+
+=
+
+∫
+
+> Ω
+
+|uθ∗ − ˜uh|(x, T ) d x −
+
+∫
+
+> Ω
+
+|uθ∗ − ˜uh|(x, 0) d x −
+
+∫
+
+> Γj
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · nΓj ds. 
+
+(31) 
+
+Step 5: Control of the jump term on Γj via entropy condition. Extend ˜uh from the left of Γj across Λj
+
+by interpolating the exact solution u; denote this extension by ˜u− 
+
+> h
+
+. Denote the original ˜uh by ˜u+ 
+
+> h
+
+. Let Ωj ⊂ Λj
+
+be the region between Γj and ˜Γ. Integration by parts gives 
+
+∫
+
+> Γj
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · nΓj ds
+
+=
+
+∫
+
+> ˜Γ
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · n˜Γ ds + R, |R| ≤ R 1 + R2,
+
+R1 =
+
+∫
+
+> Ωj
+
+(
+
+|∇ · F(uθ∗ )| + |∇ · F(˜ u− 
+
+> h
+
+)| + |∇ · F(˜ u+ 
+
+> h
+
+)|
+
+)
+
+dz,
+
+R2 =
+
+∫  
+
+> ∂Ωj\(Γ j∪˜Γ)
+
+∣∣J(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh)K∣∣ ds. 
+
+(32) For (x, t ) ∈ ˜Γ, we have (x + jL, t ) ∈ Γ, where L = O(h) and j ≤ M . Using the smoothness of u± together with the interpolation error estimate, we obtain 
+
+|˜u− 
+
+> h
+
+(x, t ) − u−(x + jL, t )| ≲ M h, |˜u+ 
+
+> h
+
+(x, t ) − u+(x + jL, t )| ≲ M h. 
+
+Combining this with the entropy condition (8) (applied pointwise with k = uθ∗ (x, t )) gives 
+
+∫
+
+> ˜Γ
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · n˜Γ ds ≲ M h. (33) Moreover, using the boundedness condition (28) together with the boundedness of |∇· F(˜ u− 
+
+> h
+
+)| and |∇· F(˜ u+ 
+
+> h
+
+)|,which follows from the smoothness of ˜u− 
+
+> h
+
+and ˜u+ 
+
+> h
+
+, we obtain 
+
+R1 ≲
+
+∫
+
+> Ωj
+
+|∇ · F(uθ∗ )|dz + |Ωj | ≲ h + M −1. (34) For R2, note that ˜uh ∈ L∞(Ω T ) by construction. Whenever |uθ∗ | > max {| ˜u+ 
+
+> h
+
+|, |˜u− 
+
+> h
+
+|} , the sign remains constant across the interface; that is, sgn 
+
+(
+
+uθ∗ − ˜u+
+
+> h
+
+)
+
+= sgn 
+
+(
+
+uθ∗ − ˜u−
+
+> h
+
+)
+
+. By the continuity of uθ∗ and the Lipschitz continuity of the flux F, we then have 
+
+|J(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh)K| = |JF(uθ∗ ) − F(˜ uh)K| = |JF(˜ uh)K| ≲ |J˜uhK|. (35) If instead min {˜u+ 
+
+> h
+
+, ˜u− 
+
+> h
+
+} ≤ uθ∗ ≤ max {˜u+ 
+
+> h
+
+, ˜u− 
+
+> h
+
+}, then |uθ∗ − ˜uh| is bounded by the jump of ˜uh, which yields 
+
+∣∣J(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh)K∣∣ ≤ 2|F(uθ∗ ) − F(˜ uh)| ≲ |J˜uhK|. (36) Consequently, using the L∞ boundedness of ˜u± 
+
+> h
+
+, and the length |∂Ωj \ (Γ j ∪ ˜Γ) | ≲ h, we obtain 
+
+R2 ≲
+
+∫  
+
+> ∂Ωj\(Γ j∪˜Γ)
+
+|J˜uhK| ds ≲ h. (37) Combining (32)-(37) yields 
+
+∫
+
+> Γj
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · nΓj ds ≲ h + M −1 + M h. (38) 
+
+Step 6: Conclusion and choice of M . Combining (29), (30), (31), and (38) gives 
+
+‖uθ∗ (·, T ) − ˜uh(·, T )‖L1(Ω) ≤ ‖ uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) + C(h + M −1 + M h ).
+
+12 Choose M ∼ h−1/2 to balance M h and M −1, so that 
+
+‖uθ∗ (·, T ) − ˜uh(·, T )‖L1(Ω) ≤ ‖ uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) + Ch 1/2.
+
+Finally, the initial term is controlled by the boundary penalty and the fact that ˜uh differs from u0 only through a shift of the discontinuity by O(M h ):
+
+‖uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) ≤ ‖ uθ∗ (·, 0) − u0(·)‖L1(Ω) + ‖u0 − ˜uh‖L1(Ω) ≲ h + M h ≲ h1/2,
+
+where we used ‖uθ∗ (·, 0) − u0(·)‖L1(Ω) = Lbc (θ∗) ≤ L (θ∗) ≲ h. Moreover, ˜uh approximates u well away from an O(M h )-neighborhood of the shock, and the interpolation error there is of order O(h), so ‖u(·, T ) −
+
+˜uh(·, T )‖L1(Ω) ≲ M h + h ≲ h1/2. By the triangle inequality, 
+
+‖u(·, T ) − uθ∗ (·, T )‖L1(Ω) ≤ ‖ u(·, T ) − ˜uh(·, T )‖L1(Ω) + ‖˜uh(·, T ) − uθ∗ (·, T )‖L1(Ω) ≲ h1/2.
+
+This completes the proof of Theorem 3. □
+
+For the case of shock interactions, we have the following convergence result. 
+
+Theorem 4 (Shock interaction) Let u be the entropy solution of the scalar conservation law (1) that has discontinuous initial data u0, contains a single shock interaction occurring at the terminal time T , and satisfies Assumption 1. Let h be the mesh size of the background mesh Λh. Let uθ∗ be a tanh neural network, structured as in (10) , with depth O(d + 1) and at most O(h−(d+1) ) neurons in each hidden layer, where θ∗ is a minimizer of the loss functional (11) over this class of networks. Then there exists a constant C > 0, independent of h,such that 
+
+‖uθ∗ (·, T ) − u(·, T )‖L1(Ω) ≤ Ch 1/2. (39) 
+
+Proof The proof follows the same overall construction as in Theorem 3, with an additional local analysis near the interaction point (xβ , T ). A complete argument is contained in the proof of the more general higher-dimensional interaction result, Theorem 11; the present statement is a special case of that theorem. □
+
+3.2 Single rarefaction waves and compound waves 
+
+In this section, we extend our analysis to solutions featuring a single rarefaction wave. 
+
+Lemma 5 Let u be the entropy solution of the scalar conservation law (1) that contains a single rarefaction wave and satisfies Assumption 1. Then there exists a tanh neural network uˆθ , structured as in (10), with depth 
+
+O(d + 1) and at most O(h−(d+1) ) neurons in each hidden layer, such that 
+
+L(ˆθ) ≲ h| ln h|. (40) 
+
+Proof Let A0, . . . , A 4 be the partition of ΩT shown in Figure 5a; in particular, 
+
+A0 = [Γ 1(0) − O(h), Γ1(0) + O(h)] × [0 , t 1], A4 = {(x, t ) ∈ ΩT : t ∈ [t1, t 2], Γ1(t) ≤ x ≤ Γ2(t)},
+
+with t1 ' h and t2 ∈ (0 , T ] independent of h. Let {Λi}4 
+
+> i=0
+
+denote the induced decomposition of the background mesh Λh, i.e. Λi := {K ∈ Λh : K ∩ Ai 6 = ∅} .
+
+Step 1: Construction of ˆu. We construct a shape-regular simplicial partition of size O(h) over ΩT that aligns with boundaries of {Λi}4 
+
+> i=0
+
+and define a CPwL ˆu as the linear interpolation of u on this partition. Then 
+
+ˆu ∈ P 1(Th) ∩ C0(Ω T ), ‖∇ ˆu‖L∞(A0) ≲ h−1, and 
+
+‖ˆu(·, 0) − u0‖L1(Ω) ≲ h, 
+
+∫
+
+> ΩT
+
+∣∣∇ · F(ˆ u)∣∣ dz ≲ 1. (41) For any kh ∈ V ch , since | sgn | ≤ 1 we have 
+
+Jent (ˆ u; kh) = 
+
+∫
+
+> ΩT
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z ≤
+
+> 4
+
+∑
+
+> i=0
+
+∑
+
+> K∈Λi
+
+∫
+
+> K
+
+∣∣∇ · F(ˆ u)∣∣ dz. (42) We estimate the right-hand side region by region. 
+
+Smooth regions A1, A2, A3. On Ai with i ∈ { 1, 2, 3}, the solution u is C2 with uniformly bounded derivatives. Since ∇· F(u) = 0 and ˆu is the P 1 interpolant of u, standard interpolation estimates imply that ∇· F(ˆ u) = O(h)
+
+on each K ∈ Λi. Therefore, ∑
+
+> K∈Λi
+
+∫
+
+> K
+
+∣∣∇ · F(ˆ u)∣∣ dz ≲ h, i ∈ { 1, 2, 3}. (43) 
+
+13 Rarefaction fan region A4. Assumption 1(ii) implies |∇ 2u(x, t )| ≲ t−2 on A4. Consequently, on each cell K ⊂ A4
+
+at time level t ∼ tK , ‖∇ · F(ˆ u)‖L∞(K) ≲ h t −2 
+
+> K
+
+. Using that |Γ2(t) − Γ1(t)| ≲ t for a rarefaction fan, we obtain 
+
+∑
+
+> K∈Λ4
+
+∫
+
+> K
+
+∣∣∇ · F(ˆ u)∣∣ dz ≲
+
+∫ t2
+
+> t1
+
+ht2 |Γ2(t) − Γ1(t)| dt ≲ h
+
+∫ t2
+
+> t1
+
+dtt ≲ h| ln h|. (44) 
+
+Tip region A0. In A0 we have ‖∇ ˆu‖L∞(A0) ≲ h−1 and |A0| ≲ h2, hence 
+
+∑
+
+> K∈Λ0
+
+∫
+
+> K
+
+∣∣∇ · F(ˆ u)∣∣ dz ≲ h. (45) Combining (43)-(45) in (42) yields 
+
+sup  
+
+> kh∈Vch
+
+Jent (ˆ u; kh) ≲ h| ln h|.
+
+Together with (41) and the definition (11), we conclude that 
+
+L(ˆ u) ≲ h| ln h|. (46) 
+
+Step 2: Neural network approximation. By setting the singular region to be empty to apply Lemma 1, with ∫
+
+> ΩT
+
+∣∣∇ · F(ˆ u)∣∣ dz ≲ h| ln h|, we obtain that there exists a tanh neural network uˆθ of the stated size such that (40) holds. □
+
+(a) Region partition of ΩT (b) Mesh partition for the DPwP kh
+
+Fig. 5 : Domain decomposition for the Neural Network solution and DPwP. Then we derive an error estimate for the NN minimizer uθ∗ .
+
+Theorem 6 (Single rarefaction) Let u be the entropy solution of the scalar conservation law (1) that has discontinuous initial data u0, contains a single rarefaction wave, and satisfies Assumption 1. Let h be the mesh size of the background mesh Λh. Let uθ∗ be a tanh neural network, structured as in (10) , with depth O(d + 1) 
+
+and at most O(h−(d+1) ) neurons in each hidden layer, where θ∗ is a minimizer of the loss functional (11) over this class of networks. Then there exists a constant C > 0, independent of h, such that 
+
+‖uθ∗ (·, T ) − u(·, T )‖L1(Ω) ≤ Ch | ln h|. (47) 
+
+Proof By Lemma 5 and θ∗ being a minimizer of (11), we have 
+
+Jent (uθ∗ ; kh) ≤ L (θ∗) ≤ L (ˆθ) ≲ h| ln h|, ∀kh ∈ V ch . (48) As before, by taking ˜uh as an approximation to the exact solution u, we derive an error estimate. Based on the space–time decomposition illustrated in Figure 5a and the partition Λh shown in Figure 5b, with Λi corresponding to Ai for i = 0 , 2, 4, we proceed as follows. 
+
+14 First, the exact solution u in A2 ∪ A4 is smoothly extended to Λ2 ∪ Λ4. The function ˜uh is then defined as the continuous piecewise Q1 interpolation of this extended function over Λ2 ∪ Λ4. Over the regions Λ1 ∪ Λ3,
+
+˜uh is taken as the continuous piecewise Q1 interpolation of the exact solution u. Finally, on Λ0, ˜uh is defined as a continuous piecewise Q1 function that remains continuous across the common boundary between Λ0 and 
+
+Λ4. In addition, ˜uh satisfies the bound |˜uh| + h|∇ ˜uh| ≤ C in Λ0, where the constant C is independent of h.By substituting kh = ˜ uh into (48), and noting the continuity of uθ∗ over Λh and the constructed function 
+
+˜uh within Λ0 ∪ Λ2 ∪ Λ4, Λ1, and Λ3, we conclude that 
+
+∑
+
+> K∈Λh
+
+∫
+
+> ∂K
+
+(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh) · n ds
+
+=
+
+∫
+
+> Ω
+
+∣∣uθ∗ − ˜uh
+
+∣∣(x, T ) d x −
+
+∫
+
+> Ω
+
+∣∣uθ∗ − ˜uh
+
+∣∣(x, 0) d x +
+
+∫
+
+> ˜Γ1∪˜Γ2
+
+J(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh)K · n ds. (49) Using the same argument as in (35) and (36) we have 
+
+∣∣J(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh)K · n∣∣ ≤ ∣∣JF(uθ∗ ) − F(˜ uh)K∣∣ ≲ |J˜uhK|. (50) Since ˜uh on each side of ˜Γ1(t) ∪ ˜Γ2(t) is obtained by piecewise Q1 interpolation of either the exact solution 
+
+u or its local smooth extension, and because for z = ( x, t ) ∈ ˜Γ1(t) ∪ ˜Γ2(t) we have dist( z, Γ1 ∪ Γ2) ≲ h, it follows from the continuity of u along Γ1 and Γ2 that the jump of ˜uh over ˜Γ1(t) ∪ ˜Γ2(t) for all t ≥ t1 can be bounded by 
+
+|J˜uhK| ≲ h sup 
+
+> x′∈Bhx
+
+|∇ u(x′, t )| ≲
+
+{ h for t > t 2,ht for t ∈ [t1, t 2].
+
+Denoting by ˜Γ ˜Pi ˜Pj the line segment connecting ˜Pi and ˜Pj , with | ˜P1 ˜P4| + | ˜P2 ˜P3| ≲ h, we have 
+
+∫
+
+> ˜Γ1∪˜Γ2
+
+J(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh)K · n ds
+
+≲
+
+(∫     
+
+> ˜Γ˜P1˜P4∪˜Γ˜P2˜P3
+
++
+
+∫     
+
+> ˜Γ˜P5˜P4∪˜Γ˜P6˜P3
+
++
+
+∫      
+
+> (˜Γ1∪˜Γ2)\(˜Γ˜P1˜P5∪˜Γ˜P2˜P6)
+
+)
+
+|J˜uhK|ds
+
+≲
+
+∫     
+
+> ˜Γ˜P1˜P4∪˜Γ˜P2˜P3
+
+(|˜u+ 
+
+> h
+
+| + |˜u− 
+
+> h
+
+|) ds +
+
+∫     
+
+> ˜Γ˜P5˜P4∪˜Γ˜P6˜P3
+
+ht ds +
+
+∫      
+
+> (˜Γ1∪˜Γ2)\(˜Γ˜P1˜P5∪˜Γ˜P2˜P6)
+
+h ds
+
+≲h| ln h|.
+
+(51) Meanwhile, since ˜uh is a DPwP of the exact solution u, we follow the same reasoning as in the proof of Lemma 5 to obtain 
+
+∣∣∣∣∣∣∑
+
+> K∈Λh
+
+∫
+
+> K
+
+∇ · F(˜ uh) sgn( uθ∗ − ˜uh) d z
+
+∣∣∣∣∣∣ ≤ ∑
+
+> K∈Λh
+
+∫
+
+> K
+
+∣∣∇ · F(˜ uh)∣∣ dz ≲ h| ln h|. (52) Combining this estimate with (48), (49), (51), and (52), we conclude that 
+
+‖uθ∗ (·, T ) − ˜uh(·, T )‖L1(Ω) ≤ ‖ uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) + Ch | ln h|.
+
+Since ˜uh is a piecewise linear approximation of the exact solution u, we obtain (47). 
+
+□
+
+For the case of compound waves, we have the following convergence result. 
+
+Theorem 7 (Single compound wave) Let u be the entropy solution of the scalar conservation law (1) that has discontinuous initial data u0, contains a single compound wave, and satisfies Assumption 1. Let h be the mesh size of the background mesh Λh. Let uθ∗ be a tanh neural network, structured as in (10) , with depth O(d + 1) 
+
+and at most O(h−(d+1) ) neurons in each hidden layer, where θ∗ is a minimizer of the loss functional (11) over this class of networks. Then there exists a constant C > 0, independent of h, such that 
+
+‖uθ∗ (·, T ) − u(·, T )‖L1(Ω) ≤ C(h| ln h|)1/2. (53) 
+
+The proof follows the same strategy as a single shock (Theorem 3) and a single rarefaction (Theorem 6), so we omit the details. 15 3.3 Shock formation with smooth initial data 
+
+In this section, we consider the entropy solution of a scalar conservation law with smooth initial data with a single shock formation at time t∗ > 0, and we establish the convergence of our method. 
+
+Theorem 8 Let u be the entropy solution of the scalar conservation law (1) , which has smooth initial data u0,develops a shock at time τq < T − δ∗, and satisfies Assumption 1. The shock curve γ(t) starts from t = τq .Let h be the mesh size of the background mesh Λh. Let uθ∗ be a tanh neural network, structured as in (10) ,with depth O(d + 1) and at most O(h−(d+1) ) neurons in each hidden layer, where θ∗ is a minimizer of the loss functional (11) over this class of networks. Then there exists a constant C > 0, independent of h, such that 
+
+‖uθ∗ (·, T ) − u(·, T )‖L1(Ω) ≤ Ch 1/2| ln h|. (54) 
+
+The proof follows the techniques used in Theorems 3 and 6 and is given in Appendix A.2. 
+
+3.4 Main result for one-dimensional HCL 
+
+Combining the analysis strategies developed in Sections 3.1 and 3.2, we establish the following global convergence result under the general piecewise smooth setting. 
+
+Theorem 9 (Main result in 1D) Let u be the entropy solution of the scalar conservation law (1) that is piecewise smooth such that Assumption 1 holds. Let h be the mesh size of the background mesh Λh. Let uθ∗ be a tanh 
+
+neural network, structured as in (10) , with depth O(d + 1) and at most O(h−(d+1) ) neurons in each hidden layer, where θ∗ is a minimizer of the loss function (11) over this class of neural networks. Then there exists a constant C > 0, independent of h, such that 
+
+‖uθ∗ (·, T ) − u(·, T )‖L1(Ω) ≤ Ch 1/2| ln h|. (55) 
+
+The proof is obtained by decomposing the entropy solution into finitely many elementary waves (shocks, rarefactions, compound waves) and shock interactions, each of which is handled using the analysis already established in previous subsections. The complete argument is given in Appendix A.3. 
+
+## 4 Error estimate for d-dimensional scalar hyperbolic conservation laws 
+
+We now extend the analysis to several space dimensions. When the entropy solution contains only one shock hypersurface, or one rarefaction region with smooth non-self-intersecting boundary, see for example Figure 6, the arguments of Sections 3.1 and 3.2 carry over verbatim after replacing shock curves by shock hypersurfaces and arc-length by Hd-measure. We therefore focus on the genuinely new situation in several space dimensions: the interaction of several shock hypersurfaces. The main additional difference is the codimension-two intersection set of the shock hypersurfaces; see Figure 7a. The proof below follows the same strategy as the one-dimensional proof in Section 3: first we show the loss can be made sufficiently small, then construct a suitable DPwP function ˜uh to complete the proof. Below, we state the assumptions for a representative class of piecewise smooth solutions with multiple shock interactions. 
+
+Assumption 2 (Piecewise C2 solution with finitely many shock hypersurfaces) Let u be the entropy solution of (1). Assume that there exist finitely many compact C2 hypersurfaces Γi ⊂ ΩT , i = 1 , . . . , N Γ, and define 
+
+Γ := ⋃NΓ 
+
+> i=1
+
+Γi, such that Γ has finite d-dimensional Hausdorff measure. The following conditions are assumed to hold: (i) u ∈ C2 on each connected component of ΩT \ Γ and satisfies ∇ · F(u) = 0 there. Along each Γi, the traces of u satisfy the Rankine-Hugoniot relation and the reformulated entropy condition (8). (ii) For i 6 = j, if Γi ∩ Γj 6 = ∅, then Γi ∩ Γj is a compact C2 (d − 1) -dimensional manifold. Moreover, with 
+
+Σ := ⋃ 
+
+> 1≤i<j ≤NΓ
+
+(Γ i ∩ Γj ), we assume that Σ has finite (d − 1) -dimensional Hausdorff measure. (iii) The intersections are transversal. Equivalently, there exist constants r0 > 0 and csep > 0 such that for every 0 < δ ≤ r0, if S1 and S2 are two distinct connected components of Γ \ Σδ , where Σδ := {z ∈ ΩT :dist( z, Σ) < δ }, then dist( S1, S 2) ≥ csep δ.
+
+16 (a) Single shock wave solution with shock surface Γ
+
+(b) Single rarefaction wave solution with rarefaction boundaries Γ1 and Γ2
+
+Fig. 6 : Solutions in high-dimensional cases with a single shock and rarefaction waves. 
+
+(a) Solution with multiple shock waves (b) Strategy for selecting the kh
+
+Fig. 7 : Schematic diagram of a solution with multiple shock waves in d dimensions. Following a construction similar to that in Lemma 2, we can construct a specific CPwL ˆu, which can be approximated by a tanh neural network uˆθ , such that the loss is sufficiently small. 
+
+Lemma 10 Let u be the entropy solution of the scalar conservation law (1) satisfying Assumption 2. Then there exists a tanh neural network uˆθ , structured as in (10), with depth O(d + 1) and at most O(h−(d+1) )
+
+neurons in each hidden layer, such that 
+
+L(ˆθ) ≲ h. (56) 
+
+The proof of this lemma is deferred to Appendix A.4. From Lemma 10, we know that the minimizer uθ∗ of the loss functional (11) must achieve a loss no greater than that of the network constructed in Lemma 10. Hence, L(θ∗) ≤ L (ˆθ) ≲ h. Based on the stability provided by the Kružkov-type loss adopted here, and following the arguments used in the proof of Theorem 3, we obtain the following theorem. 
+
+Theorem 11 (Multiple shock hypersurfaces) Let u be the entropy solution of (1) satisfying Assumption 2. Let 
+
+h be the mesh size of the background mesh Λh, and let θ∗ be a minimizer of the loss functional (11) over tanh 
+
+networks of the form (10) with depth O(d + 1) and at most O(h−(d+1) ) neurons in each hidden layer. Then there exists a constant C > 0, independent of h, such that 
+
+‖uθ∗ (·, T ) − u(·, T )‖L1(Ω) ≤ Ch 1/2. (57) 
+
+17 Proof The proof is a multidimensional analogue of Theorem 3. The only new point is the treatment of the codimension-two intersection set Σ.Since θ∗ minimizes the loss, 
+
+L(uθ∗ ) ≤ L (uˆθ ) ≲ h. (58) In particular, 
+
+Jent (uθ∗ ; kh) ≲ h, ∀kh ∈ V ch , (59) and ∫
+
+> ΩT
+
+|∇ · F(uθ∗ )| dz ≤ h−1Lreg (uθ∗ ) ≲ 1. (60) 
+
+Step 1: Construction of a DPwP test function. We now choose a suitable DPwP function kh = ˜ uh,following the construction in Section 3.1; a schematic of the strategy for choosing the test function kh is shown in Figure 7b. Since the discontinuity surface of u does not in general coincide with the discontinuity set Γ∗ of the DPwP approximation, the entropy condition cannot be applied directly on Γ∗. As in the one-dimensional case, we therefore transfer the jump terms from Γ∗ to auxiliary surfaces parallel to and close to the true discontinuity surfaces. The main additional difficulty is the presence of the intersection set Σ, where several discontinuity surfaces may meet. To separate these interactions, we remove the tubular neighborhood 
+
+˜Σε = {(x, t ) ∈ ΩT : dist(( x, t ), Σ) ≲ h1/2}. (61) Then Γ \ ˜Σε is a union of disjoint smooth surfaces. Under Assumption 2, if i 6 = j, the translated surfaces Γi \ ˜Σε
+
+and Γj \ ˜Σε, shifted by O(h1/2) along their normals, remain disjoint. For each such component, we construct a local region Ωi between the translated surface ˜Γi and the corresponding background mesh Γ∗ 
+
+> i
+
+, with 
+
+dist( ˜Γi, Γi) ≲ h1/2,
+
+∫
+
+> Ωi
+
+|∇· F(uθ∗ )| dz ≲ h1/2.
+
+Let 
+
+ΩΣ = ⋃
+
+> K⊂˜Σε
+
+K. 
+
+On ΩT \ ΩΣ, we define ˜uh exactly as in Section 3.1: we modify u near each Γi \ ΩΣ so that the jump set aligns with Γ∗ 
+
+> i
+
+\ ΩΣ, and then take the piecewise linear interpolant over Λh. Inside ΩΣ, we define ˜uh ≡ 0. Since Σ
+
+is piecewise C2 with bounded Hd−1-measure, the measure of ΩΣ is small, so its contribution is negligible (see Figure 7a for a schematic illustration of the construction of ˜uh). By the same argument as in the proof of Theorem 3, the above construction satisfies 
+
+‖˜uh(·, t ) − u(·, t )‖L1(Ω) ≲ h1/2, t = 0 , T. (62) 
+
+Step 2: Error identity and conclusion. Taking kh = ˜ uh in (59) and applying the cellwise identity (14), we obtain ∑
+
+> K∈Λh
+
+∫
+
+> ∂K
+
+(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh) · n ds +
+
+∫
+
+> ΩT
+
+∇ · F(˜ uh) sgn( uθ∗ − ˜uh) d z ≲ h. (63) Hence, the contributions over those interior faces across which ˜uh is continuous cancel pairwise. The only remaining face terms are the jumps across Γ∗ := ⋃ 
+
+> i
+
+Γ∗ 
+
+> i
+
+and ∂ΩΣ, which give rise to I1 and I2, respectively. Therefore (63) becomes 
+
+‖uθ∗ (·, T ) − ˜uh(·, T )‖L1(Ω) ≤‖ uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) +
+
+∣∣∣∣∫
+
+> ΩT
+
+∇ · F(˜ uh) sgn( uθ∗ − ˜uh) d z
+
+∣∣∣∣
+
++ I1 + I2 + Ch, 
+
+(64) where 
+
+I1 := ∑
+
+> i
+
+∣∣∣∣∣∫
+
+> Γ∗
+> i
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · nΓ∗ 
+
+> i
+
+ds
+
+∣∣∣∣∣
+
+and 
+
+I2 := ∑
+
+> e⊂∂ΩΣ
+
+∣∣∣∣∫
+
+> e
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · ne ds
+
+∣∣∣∣ .
+
+We first estimate the volume term. Outside ΩΣ, the same argument as in (30) yields 
+
+∫ 
+
+> ΩT\ΩΣ
+
+|∇ · F(˜ uh)| dz ≲ h + h 12 .
+
+Inside ΩΣ we have |∇· F(˜ uh)| ≡ 0. Therefore, 
+
+∣∣∣∣∫
+
+> ΩT
+
+∇ · F(˜ uh) sgn( uθ∗ − ˜uh) d z
+
+∣∣∣∣ ≲ h 12 . (65) 
+
+18 Next, we estimate I1. For each component i, we transfer the integral from Γ∗ 
+
+> i
+
+to the exact shock surface by integrating over the strip enclosed between them. Proceeding as in Step 5 of the proof of Theorem 3 (corresponding to (38)), we obtain 
+
+I1 ≲ h 12 . (66) For I2, the jump integrand is uniformly bounded by the same argument as in (35) and (36): 
+
+∣∣J(F(uθ∗ ) − F(˜ uh)) sgn( uθ∗ − ˜uh)K∣∣ ≲ ∣∣J˜uhK∣∣.
+
+Since ˜uh is uniformly bounded, and noting that ∂ΩΣ has measure of order O(h1/2) (because it approximates the boundary of a tubular neighborhood of radius h1/2), we obtain 
+
+I2 ≲ Hd(∂ΩΣ) ≲ h1/2. (67) This is precisely where the codimension-two nature of Σ is used: the d-dimensional measure of the boundary of a tubular neighborhood of radius h 12 is O(h 12 ), independently of d.Substituting (65)-(67) into (64) yields 
+
+‖uθ∗ (·, T ) − ˜uh(·, T )‖L1(Ω) ≲ ‖uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) + h 12 .
+
+Since ˜uh approximates the exact solution u with estimate in (62), and 
+
+‖uθ∗ (·, 0) − u(·, 0) ‖L1(Ω) ≤ L (uθ∗ ) ≲ h, 
+
+it follows from the triangle inequality that 
+
+∫
+
+> Ω
+
+|uθ∗ − u|(x, T ) d x ≲ h1/2.
+
+This completes the proof of Theorem 11. □
+
+Remark 4 The proof shows that, in several space dimensions, the only additional ingredient beyond the one-dimensional analysis is the excision of a tubular neighborhood of the codimension-two interaction set. Therefore, whenever the discontinuity set consists of finitely many pairwise disjoint smooth hypersurfaces, the arguments of Sections 3.1 and 3.2 apply without change. By combining those local constructions with the present surgery near 
+
+Σ, one can treat finitely many multidimensional rarefaction regions and mixed shock-rarefaction configurations as well. We omit the routine details. 
+
+## 5 Numerical Experiments 
+
+In this section, we present numerical experiments to demonstrate the implementation and performance of the proposed algorithm (Algorithm 1). The algorithm is implemented using the JAX library in Python. Experiments are conducted on various test cases, including standing shocks, moving shocks, rarefaction waves, sine waves for Burgers’ equation, and Riemann problems with non-convex fluxes. Let uθ∗ denote the numerical approximation obtained from Algorithm 1. To evaluate performance, we compute the relative L1 error at the final time T and the space time relative L1 error, defined as 
+
+ETr (θ∗) = 
+
+∫ 
+
+> Ω
+
+|uθ∗ (x, T ) − u(x, T )| dx
+
+∫ 
+
+> Ω
+
+|u(x, T )| dx , Er (θ∗) = 
+
+∫ 
+
+> ΩT
+
+|uθ∗ (x, t ) − u(x, t )| dz
+
+∫ 
+
+> ΩT
+
+|u(x, t )| dz ,
+
+respectively. These metrics assess accuracy at the final time and over the entire space time domain. The integrals are approximated using standard quadrature rules. For the loss function (11), all integrals are approximated by the composite trapezoidal rule on uniform grids. All numerical experiments are carried out with tanh neural networks. The reason is that the loss in (11) involves the differential quantity ∇ · F(uθ ) and is minimized by gradient-based updates in Algorithm 1; the smooth activation makes this derivative-based objective depend more smoothly on the parameters and is therefore better suited to the optimization used here. Hence, the use of tanh 
+
+here is mainly an implementation choice for the training procedure, rather than a limitation of the approximation theory. To approximate the maximization over kh ∈ V ch , we sample test functions by perturbing the piecewise average of uθ ,
+
+(Avg h uθ )|K := 1
+
+|K|
+
+∫
+
+> K
+
+uθ dz = ∑
+
+> α∈I
+
+cKα ℓα, (68) 19 given by 
+
+kh,j |K := (Avg h uθ )|K + ∑
+
+> α∈I
+
+ϵαj ℓα, ϵαj ∼ U (−b, b ), K ∈ Λh, j = 1 , . . . , N pert , (69) where I is the index set for the Lagrange basis of Q1 on K, ℓα denotes the corresponding Lagrange basis function, ϵαj is uniformly distributed, b is a hyperparameter bounding the perturbation, and Npert 
+
+is the number of perturbations generated. In all numerical experiments presented in this work, the 
+
+Algorithm 1 Our algorithm 
+
+Require: Initial u0, hyperparameter Ntrain , Npert , perturbation bound b > 0, learning rate η, neural network uθ
+
+Ensure: Best neural network uθ∗ 
+
+> 1:
+
+Randomly initialize the network parameters θ and generate partition Λh for ΩT . 
+
+> 2:
+
+Initialize best loss Lmin ← ∞  
+
+> 3:
+
+for i = 1 to Ntrain do  
+
+> 4:
+
+Obtain coefficients cKα as in (68) and generate {kh,j }Npert  
+
+> j=1
+
+as in (69)  
+
+> 5:
+
+Compute 
+
+ˆL(θ) := Jent (uθ ; k∗
+
+> h
+
+) + Lbc (uθ ) + Lreg (uθ ), k∗ 
+
+> h
+
+:= arg max 
+
+> j=1 ,...,N pert
+
+Jent (uθ ; kh,j ) 
+
+> 6:
+
+Update θ ← θ − η∇θ ˆL(θ) ▷ In practice, we employ Adam.  
+
+> 7:
+
+if i > 0.9Ntrain and ˆL(θ) < Lmin then  
+
+> 8:
+
+Lmin ← ˆL(θ), θ∗ ← θ 
+
+> 9:
+
+end if  
+
+> 10:
+
+end for 
+
+common hyperparameters for Algorithm 1 are set as follows: perturbation bound b = 5 and learning rate η = 0 .001 . Other hyperparameters, which vary by experiment, are specified in Table 1, where 
+
+lθ denotes the number of neurons in each hidden layer, nθ denotes the number of hidden layers, NT
+
+denotes the number of time strips used for strip by strip training, Nt denotes the number of elements in the temporal direction, and Nx denotes the number of elements in the spatial direction. 
+
+Table 1 : Hyperparameter configurations in the training                                                                                             
+
+> Experiment lθnθNTNtNxNtrain Npert ETr(θ∗)Er(θ∗)
+> Standing shock 64 5132 65 5E3 2E4 0.513% 0.434% Moving shock 64 5332 128 5E3 5E4 0.613% 0.868% Rarefaction wave 64 5132 64 1E4 2E4 0.294% 0.272% Two shocks interaction 64 5264 128 2E4 5E4 0.252% 0.217% Sine wave initial 64 5264 128 5E4 5E4 0.248% 0.205% Cubic flux 64 5232 128 2E4 2E4 0.270% 0.199% Buckley-Leverett equation 64 5232 128 5E4 5E4 0.372% 0.358% Sine flux 64 5232 128 5E4 5E4 0.541% 0.318% 2D Burgers 64 5320 40 22E4 5E4 0.519% 0.493%
+
+5.1 Invisid Burgers equation 
+
+5.1.1 Standing and moving shock 
+
+We consider one-dimensional HCL (1) with convex flux f (u) = u2 
+
+> 2
+
+, i.e. Burgers’ equation in [−1, 1] ×
+
+[0 , 0.5] with initial conditions: 
+
+u0(x) = 
+
+{
+
+1 x ≤ 0
+
+−1 x > 0 , u0(x) = 
+
+{
+
+4 x ≤ 00 x > 0
+
+20 which result in a standing shock located at x = 0 and a shock moving with speed 2, respectively: 
+
+u(x, t ) = 
+
+{
+
+1 x ≤ 0
+
+−1 x > 0 , u(x, t ) = 
+
+{
+
+4 x ≤ 2t
+
+0 x > 2t
+
+With the settings in Table 1 and algorithm 1, Figure 8 shows that the neural network accurately − −  − −                     
+
+> −
+> − 
+> −
+> −
+> 
+> 
+> 
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+
+(a) Standing shock solution up to T = 0 .5.−  −  −  −             
+
+>  
+>  
+>   
+> −
+> 
+> 
+
+(b) NN solution to the standing shock − −                     
+
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+
+(c) Moving shock solution up to T = 0 .5.−  −                 
+
+>  
+>  
+>   
+> 
+> 
+> 
+
+(d) NN solution to a moving shock 
+
+Fig. 8 : Exact solutions and NN solutions for the Burgers’ equation with shocks. captures both the standing and moving shocks, despite the highly nonconvex min–max nature of the training objective. 
+
+5.1.2 Rarefaction wave 
+
+We consider the Burgers’ equation with initial data and exact solution given, 
+
+u0(x) = 
+
+{
+
+−1 x ≤ 01 x > 0 , u(x, t ) = 
+
+
+
+−1 x ≤ − t
+
+xt −t < x ≤ t
+
+1 x > t .
+
+This corresponds to a rarefaction wave. Figure 9 shows the NN solution, and Table 1 reports the final time error. 
+
+5.1.3 Two shocks interaction 
+
+We consider the Burgers’ equation with initial data and exact solution given by, 
+
+u0(x) = 
+
+
+
+0.8 x ≤ 0.3
+
+−0.2 0.3 < x ≤ 0.7
+
+−1.6 x > 0.7
+
+, u(x, t ) = 
+
+
+
+0.8 x ≤ 0.3 + 0 .3t
+
+−0.2 0.3 + 0 .3t < x ≤ 0.7 − 0.9t
+
+−1.6 x > 0.7 − 0.9tt ≤ 13
+
+{
+
+0.8 x ≤ 0.4 − 0.4 (t − 13
+
+)
+
+−1.6 x > 0.4 − 0.4 (t − 13
+
+) t > 13
+
+,
+
+21 − −  − −                     
+
+> −
+> − 
+> −
+> −
+> 
+> 
+> 
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+
+(a) Rarefaction wave up to T = 0 .5−  −  −  −             
+
+>  
+>  
+>   
+> −
+> 
+> 
+
+(b) NN solution to a rarefaction 
+
+Fig. 9 : Exact solutions and NN solutions for the Burgers’ equation with rarefaction. which corresponds to the interaction of two shocks. The NN solutions are plotted in Figure 10. The final time error is reported in Table 1. 00 0 0 0 0 0             
+
+>  
+>  0
+>  0
+> 00
+> 0 
+>   000
+>  000
+>   00
+>  00
+>   00
+>  00
+>   00
+>  00
+>   00
+>  00
+>   00
+>  00
+
+(a) Two shocks interaction up to T = 0 .50 0 0  0  0  0   0  
+
+> 0 00
+> 0 
+> 0 0 
+> 
+> 0
+
+(b) NN solution to two shocks interaction 
+
+Fig. 10 : Exact solutions and NN solutions for the Burgers’ equation with two shocks. 
+
+5.1.4 Sine wave initial datum 
+
+We consider the Burgers’ equation with the initial data u0(x) = − sin( πx ) and zero Dirichlet boundary conditions in the space time domain [−1, 1] × [0 , 1] . The reference solution shows a complex evolution with both steepening and expansion of the sine wave that eventually develops into a shock separating two rarefaction waves. The NN solutions are plotted in Figure 11. The final time error is reported in Table 1. − −  − −                       
+
+> −
+> − 
+> −
+> −
+> 
+> 
+> 
+>  
+>  
+>   
+>  
+>   
+>  
+>   
+>  
+>   
+>  
+>    
+>   
+>   
+>  
+
+(a) Solution for Sine wave initial up to T = 1 −  −  −  −             
+
+>  
+>  
+>  
+>  
+>   
+> − 
+> − 
+> − 
+> − 
+>  
+>  
+>  
+>  
+>  
+
+(b) NN solution 
+
+Fig. 11 : Reference solutions and NN solutions for the Burgers’ equation with sine wave initial. To evaluate the convergence of Algorithm 1, we conduct mesh refinement studies to analyze its convergence behavior, training the neural network until the loss stabilizes and no longer decreases. The final time errors and space time errors are plotted in Figure 12. 22 1 
+
+ 1  1 
+
+   1 
+
+   1 
+
+    1 
+
+ 1 
+
+>  h
+> 1
+
+   
+
+>  
+>   1
+>    
+> h
+>  
+> 
+> h
+> 
+> 
+
+Fig. 12 : space time L1-error and L1-error at T = 1 versus mesh size 
+
+Remark 5 The O(h1/2| ln h|) estimate in Theorem 8 arises from the present stability argument. After replacing the exact shock interface by a mesh-aligned one, we do not have a direct estimate for the resulting interface discrepancy term, and this is why the shifted-interface argument is needed. However, for the explicit competitor 
+
+uˆθ constructed in the proof of Theorem 8, the corresponding term is O(h| ln h|), and hence 
+
+‖uˆθ (·, T ) − u(·, T )‖L1(Ω) ≤ Ch | ln h|.
+
+This suggests that the rigorous O(h1/2| ln h|) bound may not be sharp. The convergence experiments displayed in Figure 12 are consistent with this observation. 
+
+5.2 Scalar conservation laws with non-convex flux 
+
+5.2.1 Cubic flux 
+
+We consider one-dimensional HCL (1) with non-convex flux f (u) = 13 u3 on [−1, 1] with initial data 
+
+u0(x) = 
+
+{
+
+1, x < 0
+
+−1, x ≥ 0 . As the jump uL → uR straddles the inflection point u = 0 , the entropy solution is a compound wave: a rarefaction attached to a shock. The reference solution is computed through the third-order strong stability Runge-Kutta method and fifth-order WENO method on a very fine mesh, which has a shock speed s = 0 .25 and a shock jump from 1 to −0.5 when t > 0. The NN solutions are plotted in Figure 13. The final time error is reported in Table 1. − −  − −                     
+
+> −
+> − 
+> −
+> −
+> 
+> 
+> 
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+
+(a) Solution for HCL with cubic flux up to 
+
+T = 0 .5−  −  −  −             
+
+>  
+>  
+>   
+> −
+> 
+> 
+
+(b) NN solution 
+
+Fig. 13 : Reference solutions and NN solutions for HCL with cubic flux. 
+
+5.2.2 The Buckley-Leverett equation 
+
+Then we consider the Buckley-Leverett equation, i.e. one-dimensional HCL with non-convex flux f (u) = 
+
+u2
+
+u2+ 12 (1 −u)2 on [−1, 1] with initial data u0(x) = 
+
+{
+
+1, x < 00, x ≥ 0 . The entropy solution is also a compound 23 wave consisting partly of a rarefaction wave together with a shock wave. The reference solution is computed through the third-order strong stability Runge-Kutta method and the fifth-order WENO method on a very fine mesh. The NN solutions are plotted in Figure 14. The final time error is reported in Table 1. − −                     
+
+> 
+> 
+> 
+> 
+> 
+>  
+>   
+>  
+>   
+>  
+>   
+>  
+>   
+>  
+>   
+>  
+>   
+>  
+
+(a) Solution for the Buckley-Leverett equation up to T = 0 .5−  −                 
+
+>  
+>  
+>   
+>  
+>  
+>  
+
+(b) NN solution 
+
+Fig. 14 : Reference solutions and NN solutions for the Buckley-Leverett equation. 
+
+5.2.3 Sine flux 
+
+This example lies outside the scope of the short-version theory and is included to illustrate empir-ical performance; the rigorous treatment appears in the extended arXiv version. We consider the one-dimensional HCL with non-convex flux f (u) = sin( πu ) on [−1.5, 1.5] with initial data u0(x) = { 12 , x < 0
+
+52 , x ≥ 0 . The entropy solution is also a compound wave consisting partly of a rarefaction fan together with two shock waves. The reference solution is computed through the third-order strong sta-bility Runge-Kutta method and the fifth-order WENO method on a very fine mesh. The NN solutions are plotted in Figure 15. The final time error is reported in Table 1. − − −                   
+
+> 
+>  
+> 
+> 
+> 
+>  
+> 
+> 
+>    
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+>  
+
+(a) Solution for HCL with sine flux up to 
+
+T = 0 .5−  −  −           
+
+>  
+>  
+>   
+> 
+> 
+
+(b) NN solution 
+
+Fig. 15 : Reference solutions and NN solutions for HCL with sine flux. 
+
+5.3 Two-dimensional Burgers equation 
+
+We consider the two-dimensional Burgers’ equation 
+
+∂tu + ∂x( u2
+
+2 ) + ∂y ( u2
+
+2 ) = 0 
+
+24 with exact solution given by 
+
+u(x, y, t ) = 
+
+{
+
+0 if y ≥ 12 + t
+
+2 otherwise if x ≤ 12 − t
+
+{
+
+−2 if y ≥ 1 − x
+
+2 otherwise if x > 12 − t.
+
+The NN solutions are plotted in Figure 16. The error at the final time T is given in Table 1. 
+
+Fig. 16 : Snapshots of the neural network solution to the 2D Burgers equation up to T = 0 .3.
+
+## 6 Acknowledgements 
+
+The work of the authors is partially supported by the National Natural Science Foundation of China (project no. 12525111) and the CAS AMSS-PolyU Joint Laboratory of Applied Mathematics. 
+
+## References 
+
+[1] Harten, A., Engquist, B., Osher, S., Chakravarthy, S.R.: Uniformly high order accurate essentially non-oscillatory schemes. III. Journal of Computational Physics 71 (2), 231–303 (1987) [2] Liu, X.-D., Osher, S., Chan, T.: Weighted essentially non-oscillatory schemes. Journal of Computational Physics 115 (1), 200–212 (1994) [3] Jiang, G.-S., Shu, C.-W.: Efficient implementation of weighted ENO schemes. Journal of Computational Physics 126 , 202–228 (1996) [4] Cockburn, B., Shu, C.-W.: Runge–Kutta discontinuous Galerkin methods for convection-dominated problems. Journal of Scientific Computing 16 (3), 173–261 (2001) [5] Tadmor, E.: Entropy stable schemes. In: Handbook of Numerical Analysis vol. 17, pp. 467–493. Elsevier, Amsterdam (2016) [6] Kružkov, S.N.: First order quasilinear equations in several independent variables. Mathematics of the USSR-Sbornik 10 (2), 217 (1970) [7] Kuznetsov, N.: Accuracy of some approximate methods for computing the weak solutions of a first-order quasi-linear equation. USSR Computational Mathematics and Mathematical Physics 
+
+16 (6), 105–119 (1976) [8] Sanders, R.: On convergence of monotone finite difference schemes with variable spatial differenc-ing. Mathematics of Computation 40 (161), 91–106 (1983) [9] Cockburn, B., Gremaud, P.-A.: A priori error estimates for numerical methods for scalar con-servation laws. Part I: The general approach. Mathematics of Computation 65 (214), 533–573 (1996) 25 [10] Makridakis, C., Perthame, B.: Optimal rate of convergence for anisotropic vanishing viscosity limit of a scalar balance law. SIAM Journal on Mathematical Analysis 34 (6), 1300–1307 (2003) [11] Nessyahu, H., Tadmor, E.: The convergence rate of approximate solutions for nonlinear scalar conservation laws. SIAM Journal on Numerical Analysis 29 (6), 1505–1519 (1992) [12] DiPerna, R.J.: Measure-valued solutions to conservation laws. Archive for Rational Mechanics and Analysis 88 (3), 223–270 (1985) [13] Szepessy, A.: Convergence of a shock-capturing streamline diffusion finite element method for a scalar conservation law in two space dimensions. Mathematics of Computation 53 (188), 527–545 (1989) [14] Raissi, M., Perdikaris, P., Karniadakis, G.E.: Physics-informed neural networks (PINNs): A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics 378 , 686–707 (2019) [15] Akrivis, G., Makridakis, C.G., Smaragdakis, C.: Runge–Kutta physics informed neural networks: formulation and analysis. Numerische Mathematik 157 (6), 1975–2016 (2025) [16] E, W., Yu, B.: The Deep Ritz method: a deep learning-based numerical algorithm for solving variational problems. Communications in Mathematics and Statistics 6(1), 1–12 (2018) [17] Cai, Z., Doktorova, A., Falgout, R.D., Herrera, C.: Efficient Shallow Ritz Method for One-Dimensional Diffusion-Reaction Problems. SIAM Journal on Scientific Computing, 414–435 (2025) [18] Li, Z., Kovachki, N., Azizzadenesheli, K., Liu, B., Bhattacharya, K., Stuart, A.M., Anandkumar, A.: Fourier neural operator for parametric partial differential equations. In: Advances in Neural Information Processing Systems, vol. 33, pp. 6755–6766 (2020) [19] Lu, L., Jin, P., Pang, G., Zhang, Z., Karniadakis, G.E.: Learning nonlinear operators via DeepONet based on the universal approximation theorem of operators. Nature Machine Intelligence 3, 218– 229 (2021) [20] Du, Y., Zaki, T.A.: Evolutional deep neural network. Physical Review E 104 (4), 045303 (2021) [21] Feischl, M., Lasser, C., Lubich, C., Nick, J.: Regularized dynamical parametric approximation. arXiv preprint arXiv:2403.19234 (2024) [22] Su, H., Zhang, L., Zhao, J.: SPIKE: Stable Physics-Informed Kernel Evolution Method for Solving Hyperbolic Conservation Laws. arXiv preprint arXiv:2510.18266 (2025) [23] De Ryck, T., Mishra, S.: Numerical analysis of physics-informed neural networks and related models in physics-informed machine learning. Acta Numerica 33 , 633–713 (2024) [24] Gazoulis, D., Gkanis, I., Makridakis, C.G.: On the stability and convergence of physics informed neural networks. IMA Journal of Numerical Analysis, 090 (2025) [25] Chaumet, A., Giesselmann, J.: Improving weak pinns for hyperbolic conservation laws: Dual norm computation, boundary conditions and systems. The SMAI Journal of Computational Mathematics 10 , 373–401 (2024) [26] Cai, Z., Choi, J., Liu, M.: Least-squares neural network (LSNN) method for linear advection-reaction equation: Discontinuity interface. SIAM Journal on Scientific Computing 46 (4), 448–478 (2024) [27] Liu, M., Cai, Z.: Least-Squares Neural Network (LSNN) Method for Scalar Hyperbolic Partial Differential Equations. arXiv preprint arXiv:2601.20013 (2026) 26 [28] Patel, R.G., Manickam, I., Trask, N.A., Wood, M.A., Lee, M., Tomas, I., Cyr, E.C.: Ther-modynamically consistent physics-informed neural networks for hyperbolic systems. Journal of Computational Physics 449 , 110754 (2022) [29] De Ryck, T., Mishra, S.: Error analysis for deep neural network approximations of parametric hyperbolic conservation laws. Mathematics of Computation 93 (350), 2643–2677 (2024) [30] Oubarka, I., Kissami, I., Boubekeur, M., Benkhaldoun, F., Madrane, A., Saadi, Z.: Weak and entropy physics-informed neural networks for conservation laws. arXiv preprint arXiv:2603.24819 (2026) [31] Bouchut, F., Perthame, B.: Kruzkov’s estimates for scalar conservation laws revisited. Transactions of the American Mathematical Society 350 (7), 2847–2870 (1998) [32] De Ryck, T., Mishra, S., Molinaro, R.: wPINNs: Weak physics informed neural networks for approximating entropy solutions of hyperbolic conservation laws. SIAM Journal on Numerical Analysis 62 (2), 811–841 (2024) [33] Puppo, G.: Numerical entropy production for central schemes. SIAM Journal on Scientific Computing 25 (4), 1382–1415 (2004) [34] Puppo, G., Semplice, M.: Numerical entropy and adaptivity for finite volume schemes. Commu-nications in Computational Physics 10 (5), 1132–1160 (2011) [35] Mishra, S., Molinaro, R.: Estimates on the generalization error of physics-informed neural networks for approximating pdes. IMA Journal of Numerical Analysis 43 (1), 1–43 (2023) [36] Lebaud, M.-P.: Description de la formation d’un choc dans le p-système. Journal de mathématiques pures et appliquées 73 (6), 523–566 (1994) [37] Yin, H., Zhu, L.: The shock formation and optimal regularities of the resulting shock curves for 1d scalar conservation laws. Nonlinearity 35 (2), 954–997 (2022) [38] Longo, M., Opschoor, J.A., Disch, N., Schwab, C., Zech, J.: De Rham compatible deep neural network FEM. Neural Networks 165 , 721–739 (2023) [39] He, J., Li, L., Xu, J., Zheng, C.: Relu deep neural networks and linear finite elements. Journal of Computational Mathematics 38 (3), 502–527 (2020) 
+
+## A Appendix 
+
+A.1 Neural network approximation 
+
+In this appendix, we adapt the min–max construction underlying the ReLU representability of CPwL finite-element functions on simplicial meshes; see, e.g., [38, 39]. The key point is that nodal hat basis functions admit representations by finitely many binary min and max operations applied to affine functions; see Figure 17. We replace these nonsmooth operations by smooth tanh -based surrogates. For τ > 0, define 
+
+Smin ,τ (r, s ) := r + s
+
+2 − r − s
+
+2 tanh (τ (r − s)), Smax ,τ (r, s ) := r + s
+
+2 + r − s
+
+2 tanh (τ (r − s)). (70) These are smooth approximations of min( r, s ) and max( r, s ).We will repeatedly use the function 
+
+Ψτ (r) := tanh( τ r ) + τ r sech 2(τ r ). (71) 27 Fig. 17 : Finite-element hat basis functions in one and two dimensions. 
+
+Lemma 12 There exist constants C, c > 0, independent of τ , such that 
+
+sup 
+
+> r∈R
+
+|Ψτ (r)| ≤ C, |Ψτ (r) − sgn( r)| ≤ Ce −cτ |r| for all r ∈ R.
+
+Proof Uniform boundedness is immediate. For r > 0,
+
+1 − Ψτ (r) = 1 − tanh( τ r ) − τ r sech 2(τ r ),
+
+and both terms decay exponentially in τ r ; the case r < 0 is analogous. □
+
+Lemma 13 Let Ω ⊂ Rd be a bounded Lipschitz domain, and let 
+
+a(x) = p · x + α, b(x) = q · x + β
+
+be affine on Ω. Define 
+
+mτ := Smin ,τ (a, b ), Mτ := Smax ,τ (a, b ).
+
+Then, as τ → ∞ ,
+
+‖mτ − min( a, b )‖L∞(Ω) + ‖Mτ − max( a, b )‖L∞(Ω) → 0,
+
+and 
+
+‖∇ mτ − ∇ min( a, b )‖L1(Ω) + ‖∇ Mτ − ∇ max( a, b )‖L1(Ω) → 0.
+
+Proof We consider only mτ , the case of Mτ being identical. Set 
+
+d := a − b = ( p − q) · x + ( α − β).
+
+Then 
+
+mτ = a + b
+
+2 − d
+
+2 tanh( τ d ), min( a, b ) = a + b − | d|
+
+2 ,
+
+hence 
+
+mτ − min( a, b ) = 12
+
+(|d| − d tanh( τ d )).
+
+Since d is bounded on Ω and r 7 → | r| − r tanh( τ r ) converges uniformly to 0 on bounded intervals, we obtain 
+
+‖mτ − min( a, b )‖L∞(Ω) → 0.
+
+If p = q, then d is constant and min( a, b ) is affine, so the gradient claim is immediate. Assume therefore 
+
+p 6 = q. Since 
+
+∇mτ = p + q
+
+2 − 12 Ψτ (d)( p − q),
+
+while 
+
+∇ min( a, b ) = p + q
+
+2 − 12 sgn( d)( p − q) a.e. on Ω,
+
+Lemma 12 gives 
+
+|∇ mτ − ∇ min( a, b )| ≤ Ce −cτ |d| |p − q| a.e. in Ω.
+
+Let ν := ( p − q)/|p − q|. Writing x = y + sν , y ∈ ν⊥, we have 
+
+d(y + sν ) = |p − q| s + γ(y)
+
+28 for some affine γ on ν⊥. By Fubini, 
+
+∫
+
+> Ω
+
+|∇ mτ − ∇ min( a, b )| dx ≤ C|p − q|
+
+∫
+
+> ν⊥
+
+∫
+
+> Iy
+
+e−cτ || p−q|s+γ(y)| ds dy, 
+
+where Iy is the slice of Ω in direction ν. With 
+
+t = τ (|p − q|s + γ(y)),
+
+we obtain ∫
+
+> Ω
+
+|∇ mτ − ∇ min( a, b )| dx ≤ Cτ
+
+∫
+
+> ν⊥
+
+∫
+
+> R
+
+e−c|t| dt dy ≤ CΩ
+
+τ → 0.
+
+□
+
+Lemma 14 Let Ω ⊂ Rd be a bounded Lipschitz domain, and let G, H : Ω → R be continuous piecewise affine functions. Define 
+
+Fτ := Smin ,τ (G, H ), F := min( G, H ).
+
+Then 
+
+‖Fτ − F ‖L∞(Ω) → 0, ‖∇ Fτ − ∇ F ‖L1(Ω) → 0 as τ → ∞ .
+
+The same conclusion holds with min and Smin ,τ replaced by max and Smax ,τ .
+
+Proof Take a finite Lipschitz partition Ω = ⋃Nj=1 Ωj such that G and H are affine on each Ωj , say G|Ωj = aj ,
+
+H|Ωj = bj . Then Lemma 13 gives 
+
+‖Smin ,τ (aj , b j ) − min( aj , b j )‖L∞(Ω j ) → 0, ‖∇ Smin ,τ (aj , b j ) − ∇ min( aj , b j )‖L1(Ω j ) → 0
+
+for every j. Summing over j yields the claim. □
+
+Lemma 15 Let Ω ⊂ Rd be a bounded Lipschitz domain. Let F be a finite min–max affine expression on Ω,and let Fτ denote the corresponding τ -smoothed expression. Then 
+
+‖Fτ − F ‖L∞(Ω) → 0, ‖∇ Fτ − ∇ F ‖L1(Ω) → 0 as τ → ∞ .
+
+In particular, 
+
+‖Fτ − F ‖W 1,1(Ω) → 0.
+
+Proof We argue by induction on the number of binary operations. The case of zero operations is trivial. Assume the claim holds for expressions with at most N binary operations, and let 
+
+F = min( G, H ),
+
+where G and H are min–max affine expressions with at most N operations; the case F = max( G, H ) is identical. Let Gτ , H τ be the corresponding smoothed expressions and set 
+
+Fτ := Smin ,τ (Gτ , H τ ).
+
+By the induction hypothesis, 
+
+‖Gτ − G‖L∞ + ‖Hτ − H‖L∞ → 0, ‖∇ Gτ − ∇ G‖L1 + ‖∇ Hτ − ∇ H‖L1 → 0.
+
+Since Smin ,τ (r, s ) is uniformly Lipschitz in (r, s ),
+
+‖Fτ − Smin ,τ (G, H )‖L∞ ≤ C(‖Gτ − G‖L∞ + ‖Hτ − H‖L∞
+
+) → 0.
+
+By Lemma 14, 
+
+‖Smin ,τ (G, H ) − min( G, H )‖L∞ → 0,
+
+hence ‖Fτ − F ‖L∞(Ω) → 0.For the gradients, 
+
+∇Fτ − ∇ F = (∇Fτ − ∇ Smin ,τ (G, H )) + (∇Smin ,τ (G, H ) − ∇ min( G, H )).
+
+The second term tends to 0 in L1 by Lemma 14. For the first, using 
+
+∇Smin ,τ (u, v ) = ∇u + ∇v
+
+2 − 12 Ψτ (u − v)( ∇u − ∇ v),
+
+we obtain 
+
+∇Fτ − ∇ Smin ,τ (G, H ) = ∇Gτ − ∇ G + ∇Hτ − ∇ H
+
+2
+
+29 − 12 Ψτ (Gτ − Hτ )[(∇Gτ − ∇ Hτ ) − (∇G − ∇ H)]
+
+− 12
+
+(Ψτ (Gτ − Hτ ) − Ψτ (G − H))(∇G − ∇ H).
+
+The first two terms converge to 0 in L1 by the induction hypothesis and Lemma 12. It remains to control 
+
+Dτ := (Ψτ (Gτ − Hτ ) − Ψτ (G − H))(∇G − ∇ H).
+
+Let {Kj }Jj=1 be a common finite polyhedral refinement on which both G and H are affine. On each Kj ,
+
+G(x) = pj · x + αj , H(x) = qj · x + βj ,
+
+so that dj := G − H is affine and 
+
+∇G − ∇ H = pj − qj a.e. on Kj .
+
+Set 
+
+ετ := ( Gτ − G) − (Hτ − H), δτ := ‖ετ ‖L∞(Ω) → 0.
+
+If pj = qj , then Dτ = 0 a.e. on Kj . Assume pj 6 = qj , and define 
+
+Eτ,j := {| dj | > 2δτ } ∩ Kj , Nτ,j := {| dj | ≤ 2δτ } ∩ Kj .
+
+On Eτ,j , dj and dj + ετ have the same sign and |dj + ετ | ≥ | dj |/2, hence Lemma 12 gives 
+
+|Ψτ (dj + ετ ) − Ψτ (dj )| ≤ | Ψτ (dj + ετ ) − sgn( dj + ετ )| + |Ψτ (dj ) − sgn( dj )|≤ C
+
+(
+
+e−cτ |dj +ετ | + e−cτ |dj |)
+
+≤ 2Ce − c   
+
+> 2τ|dj|
+
+.
+
+Therefore, ∫
+
+> Eτ,j
+
+|Dτ | dx ≤ 2C|pj − qj |
+
+∫
+
+> Kj
+
+e− c    
+
+> 2τ|dj(x)|
+
+dx → 0,
+
+by the same slicing argument as in Lemma 13. On Nτ,j , using the uniform boundedness of Ψτ ,
+
+∫
+
+> Nτ,j
+
+|Dτ | dx ≤ C|pj − qj | | Nτ,j |.
+
+Let νj := ( pj − qj )/|pj − qj |. Since 
+
+dj (y + sν j ) = |pj − qj | s + γj (y), y ∈ ν⊥ 
+
+> j
+
+,
+
+the section of Nτ,j in direction νj has length at most 4δτ /|pj − qj |. By Fubini, 
+
+|Nτ,j | ≤ 4δτ
+
+|pj − qj | |πν⊥
+
+> j
+
+(Kj )|,
+
+and thus ∫
+
+> Nτ,j
+
+|Dτ | dx ≤ C|πν⊥
+
+> j
+
+(Kj )| δτ → 0.
+
+Hence ∫ 
+
+> Kj
+
+|Dτ | dx → 0 for each j, and summing over the finite partition yields ‖Dτ ‖L1(Ω) → 0. Therefore 
+
+‖∇ Fτ − ∇ F ‖L1(Ω) → 0. □
+
+Proposition 16 (Uniform tanh -approximation of CPwL functions) Let ΩT ⊂ Rn be bounded, and let ˆu :ΩT → R be continuous and piecewise affine over a conforming simplicial partition T with N := # T < ∞.Assume that each vertex of T belongs to at most Npatch simplices, where Npatch depends only on n. Then for every ε ∈ (0 , 1) there exists a tanh neural network uˆθ such that 
+
+‖ˆu − uˆθ ‖L∞(Ω T ) ≤ ε, (72) 
+
+‖∇ ˆu − ∇ uˆθ ‖L1(Ω T ) ≤ ε. (73) Moreover, 
+
+• Depth: L ≤ C1⌈log 2(Npatch )⌉ + C2;• Width: each hidden layer has at most O(Npatch N ) neurons, 
+
+where C1, C 2 are independent of ε and N .
+
+30 Proof By the representability results of [38, 39] (Theorem 3.1 in [39] and Theorem 4.3 in [38]), each nodal hat basis function φj admits a finite min–max affine representation. These constructions may be arranged in binary-tree form, yielding depth 
+
+L ≤ C1dlog 2(Npatch )e + C2
+
+and total width O(Npatch N ).Let {Nj }N 
+
+> j=1
+
+be the nodes of T , with associated hat basis {φj }N
+
+> j=1
+
+. Then N = O(N ) and 
+
+ˆu =
+
+> N
+
+∑
+
+> j=1
+
+ˆu(Nj )φj .
+
+For each j, replace every min and max in the representation of φj by Smin ,τ and Smax ,τ , respectively, and denote the resulting function by φj,τ . Since Smin ,τ and Smax ,τ are compositions of affine maps and tanh , each 
+
+φj,τ is realized by a tanh network with the same asymptotic depth and width bounds. Hence so is 
+
+uˆθ,τ := 
+
+> N
+
+∑
+
+> j=1
+
+ˆu(Nj )φj,τ .
+
+By Lemma 15, 
+
+‖φj,τ − φj ‖L∞(Ω T ) → 0, ‖∇ φj,τ − ∇ φj ‖L1(Ω T ) → 0 for each j. 
+
+Since N < ∞,
+
+‖uˆθ,τ − ˆu‖L∞(Ω T ) ≤
+
+> N
+
+∑
+
+> j=1
+
+|ˆu(Nj )| ‖ φj,τ − φj ‖L∞(Ω T ) → 0,
+
+and similarly, 
+
+‖∇ uˆθ,τ − ∇ ˆu‖L1(Ω T ) ≤
+
+> N
+
+∑
+
+> j=1
+
+|ˆu(Nj )| ‖∇ φj,τ − ∇ φj ‖L1(Ω T ) → 0.
+
+Choosing τ sufficiently large gives (72)–(73). □
+
+Proof of Lemma 1 
+
+Let 
+
+M := max 
+
+{
+
+∥ˆu∥L∞(Ω T ), sup  
+
+> kh∈Vch
+
+∥kh∥L∞(Ω T )
+
+}
+
++ 1 .
+
+By Proposition 16, for any ε ∈ (0 , 1] there exists a tanh neural network uˆθ of depth O(log 2(Npatch )) 
+
+and with O(Npatch N ) neurons in each hidden layer such that 
+
+∥uˆθ − ˆu∥L∞(Ω T ) ≤ ε, ∥∇ uˆθ − ∇ ˆu∥L1(Ω T ) ≤ ε. (74) In particular, since ε ≤ 1,
+
+∥uˆθ ∥L∞(Ω T ) ≤ ∥ ˆu∥L∞(Ω T ) + ε ≤ M. 
+
+Since f ∈ C2(R; Rd), the associated entropy flux F is C2 as well. Hence, on the compact interval [−M, M ], there exists a constant CF > 0 such that for all sufficiently regular v, w with 
+
+∥v∥L∞(Ω T ), ∥w∥L∞(Ω T ) ≤ M ,
+
+|F(v) − F(w)| ≤ CF |v − w| a.e. in ΩT , (75) and 
+
+|∇· F(v) − ∇· F(w)| ≤ CF
+
+(|∇ v − ∇ w| + |v − w| |∇ w|) a.e. in ΩT . (76) We now fix 
+
+ε := C−1 
+
+> F
+
+h2.
+
+We first estimate the boundary contribution. Recalling the definition of Lbc in (11), the pointwise bound in (74) yields 
+
+Lbc (uˆθ ) ≤ ∥ ˆu(0) − u0∥L1(Ω) + |Ω| ∥ uˆθ − ˆu∥L∞(Ω T )
+
+≤ L bc (ˆ u) + Cε ≤ L bc (ˆ u) + Ch 2. (77) 31 Next we consider the term Lreg . Since ˆu is continuous and piecewise affine on the finite partition 
+
+T , we have ∥∇ ˆu∥L1(Ω T ) < ∞. Using (76) with v = uˆθ and w = ˆ u, we obtain 
+
+Lreg (uˆθ ) ≤ h
+
+∫
+
+> ΩT
+
+|∇· F(ˆ u)| dz + h
+
+∫
+
+> ΩT
+
+|∇· F(uˆθ ) − ∇· F(ˆ u)| dz
+
+≤ L reg (ˆ u) + hC F ∥∇ uˆθ − ∇ ˆu∥L1(Ω T ) + hC F ∥uˆθ − ˆu∥L∞(Ω T )∥∇ ˆu∥L1(Ω T )
+
+≤ L reg (ˆ u) + Chε ≤ L reg (ˆ u) + Ch 3. (78) It remains to control the entropy part. Fix any kh ∈ V ch . Write 
+
+Jent (uˆθ ; kh) = 
+
+∫
+
+> Ωr
+
+∇· F(uˆθ ) sgn( uˆθ − kh) d z +
+
+∫
+
+> Ωs
+
+∇· F(uˆθ ) sgn( uˆθ − kh) d z =: I1 + I2.
+
+For the regular region Ωr , using | sgn | ≤ 1 and (76), 
+
+I1 ≤
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz +
+
+∫
+
+> Ωr
+
+|∇· F(uˆθ ) − ∇· F(ˆ u)| dz
+
+≤
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz + CF ∥∇ uˆθ − ∇ ˆu∥L1(Ω T ) + CF ∥uˆθ − ˆu∥L∞(Ω T )∥∇ ˆu∥L1(Ω T )
+
+≤
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz + Cε ≤
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz + Ch 2. (79) For the singular region Ωs, we write 
+
+I2 =
+
+∫
+
+> Ωs
+
+(
+
+∇· F(uˆθ ) sgn( uˆθ − kh) − ∇· F(ˆ u) sgn(ˆ u − kh)
+
+)
+
+dz +
+
+∫
+
+> Ωs
+
+∇· F(ˆ u) sgn(ˆ u − kh) d z
+
+=
+
+∫
+
+> Ωs
+
+(
+
+∇· F(uˆθ ) sgn( uˆθ − kh) − ∇· F(ˆ u) sgn(ˆ u − kh)
+
+)
+
+dz
+
++ Jent (ˆ u; kh) −
+
+∫
+
+> Ωr
+
+∇· F(ˆ u) sgn(ˆ u − kh) d z.
+
+Hence, 
+
+I2 − J ent (ˆ u; kh) ≤
+
+∫
+
+> Ωs
+
+(
+
+∇· F(uˆθ ) sgn( uˆθ − kh) − ∇· F(ˆ u) sgn(ˆ u − kh)
+
+)
+
+dz +
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz. (80) Now apply the cellwise identity (14) on each ˜K := K ∩ Ωs, K ∈ Λh, first with v = uˆθ and then with v = ˆ u. Subtracting the two identities gives 
+
+∫
+
+> Ωs
+
+(
+
+∇· F(uˆθ ) sgn( uˆθ − kh) − ∇· F(ˆ u) sgn(ˆ u − kh)
+
+)
+
+dz = T1 + T2 + T3, (81) where 
+
+T1 := ∑
+
+> K∈Λh
+
+∫ 
+
+> ∂˜K
+
+(F(uˆθ ) − F(ˆ u)) sgn( uˆθ − kh) · n ds, T2 := ∑
+
+> K∈Λh
+
+∫ 
+
+> ∂˜K
+
+(F(ˆ u) − F(kh)) ( sgn( uˆθ − kh) − sgn(ˆ u − kh)) · n ds, T3 := ∑
+
+> K∈Λh
+
+∫
+
+> ˜K
+
+∇· F(kh) (sgn( uˆθ − kh) − sgn(ˆ u − kh)) dz.
+
+32 Using the Lipschitz continuity (75), the bound | sgn | ≤ 1, and the fact ∂ ˜K ⊂ (∂K ∩Ωs)∪(K ∩∂Ωs),we obtain 
+
+|T1| ≤ ∑
+
+> K∈Λh
+
+∫ 
+
+> ∂˜K
+
+|F(uˆθ ) − F(ˆ u)| ds ≤ CF ε ∑
+
+> K∈Λh
+
+|∂ ˜K| ≤ CF ε
+
+( ∑ 
+
+> K∈Λh
+
+|∂K | + |∂Ωs|
+
+)
+
+. (82) By quasi-uniformity of Λh, ∑ 
+
+> K∈Λh
+
+|∂K | ≲ h−1, and from the assumption (15) on Ωs, we have |∂Ωs| ≲
+
+CΩ. Therefore, 
+
+|T1| ≤ Cεh −1 ≤ Ch. (83) For T2, note that 
+
+sgn( uˆθ − kh)̸ = sgn(ˆ u − kh) =⇒ |ˆu − kh| ≤ | uˆθ − ˆu| ≤ ε. 
+
+Hence, on the set where the sign changes, (75) yields 
+
+|F(ˆ u) − F(kh)| ≤ CF |ˆu − kh| ≤ CF ε. 
+
+Therefore, 
+
+|T2| ≤ 2 ∑
+
+> K∈Λh
+
+∫ 
+
+> ∂˜K∩{| ˆu−kh|≤ ε}
+
+|F(ˆ u) − F(kh)| ds
+
+≤ 2CF ε ∑
+
+> K∈Λh
+
+|∂ ˜K| ≤ Cεh −1 ≤ Ch. (84) Finally, since kh ∈ V ch , inverse estimates on the quasi-uniform mesh Λh give 
+
+∥∇ kh∥L∞(K) ≲ h−1 for all K ∈ Λh.
+
+Because ∥kh∥L∞(Ω T ) ≤ M , we also have ∥f ′(kh)∥L∞(Ω T ) ≤ C(M ), and thus 
+
+∥∇· F(kh)∥L∞(Ω T ) ≲ h−1.
+
+Using |Ωs| ≤ CΩh2 in (15), we infer 
+
+|T3| ≤ 2
+
+∫
+
+> Ωs
+
+|∇· F(kh)| dz ≤ Ch −1|Ωs| ≤ Ch. (85) Combining (80)–(85), we obtain 
+
+I2 ≤ J ent (ˆ u; kh) + 
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz + Ch. 
+
+Together with (79), this yields 
+
+Jent (uˆθ ; kh) ≤ J ent (ˆ u; kh) + Ch + C
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz, ∀ kh ∈ V ch ,
+
+after absorbing the O(h2) term into Ch . Taking the supremum over kh ∈ V ch gives 
+
+sup  
+
+> kh∈Vch
+
+Jent (uˆθ ; kh) ≤ sup  
+
+> kh∈Vch
+
+Jent (ˆ u; kh) + Ch + C
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz. (86) Finally, by (77), (78), and (86), 
+
+L(uˆθ ) = Lbc (uˆθ ) + Lreg (uˆθ ) + sup  
+
+> kh∈Vch
+
+Jent (uˆθ ; kh)
+
+33 ≤ L bc (ˆ u) + Lreg (ˆ u) + sup  
+
+> kh∈Vch
+
+Jent (ˆ u; kh) + Ch + C
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz
+
+= L(ˆ u) + Ch + C
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz.
+
+After a harmless redefinition of the constant C, this is precisely the asserted estimate. □
+
+A.2 Proof of Theorem 8 (Shock formation with smooth initial data) 
+
+Proof Let (xq , τ q ) be the unique shock-formation point from Assumption 1(iv), set uq := u(xq , τ q ), aq := f ′(uq ),
+
+γq (t) := xq + aq (t − τq ), and let Γ := {(x, t ) ∈ ΩT : x = γbq (t), τ q < t ≤ T } be the shock curve. Since there is no other local event, u is C2 on each connected component of ΩT \ Γ, satisfies (1) classically there, and its traces across Γ satisfy the Rankine–Hugoniot relation and (8). 
+
+Step 1: local singular bounds and the excision rectangle. Set ˆt := t − τq , ˆx := x − γq (t) = x − xq − aq ˆt,and define G(ˆ t, ˆx) := (|ˆt|3 + ˆ x2)−5/6, H(ˆ t, ˆx) := (|ˆt|3 + ˆ x2)−1/3. By Assumption 1(iv), together with the uniform W 2,∞ regularity away from the birth point, we have 
+
+|∇ 2u(x, t )| ≤ Cf
+
+(G(ˆ t, ˆx) + 1 ) in ΩT \ Γ, (87) and, for the one-sided post-birth states, 
+
+|∇ u±(x, t )| ≤ Cf
+
+(H(ˆ t, ˆx) + 1 ), t > τ q . (88) Define Eh := 
+
+(
+
+[xq − c0h, x q + c0h] × [τq − h, τ q + h]
+
+)
+
+∩ ΩT with c0 > |aq | + sup |v|≤∥ u∥L∞(Ω T ) |f ′(v)| + 1 . If necessary, enlarge this rectangle to the union of the background cells of Λh intersecting it; we still denote the enlarged set by Eh. Then |Eh| ≲ h2 and #{K ∈ Λh : K ⊂ Eh} = O(1) . We claim that on ΩT \ Eh one has either |ˆt| ≥ h or |ˆx| ≥ h. Indeed, if (x, t ) /∈ Eh and |ˆt| < h , then |x − xq | ≥ c0h, and hence 
+
+|ˆx| = |x − xq − aq ˆt| ≥ | x − xq | − | aq || ˆt| ≥ (c0 − | aq |)h ≥ h. 
+
+Therefore, using that the affine change of variables (x, t ) 7 → (ˆ x, ˆt) has Jacobian 1 and that ΩT is bounded, we obtain ∫ 
+
+> ΩT\Eh
+
+G(ˆ t, ˆx) d z ≲
+
+∫ CT
+
+> h
+
+∫ Cx
+
+> 0
+
+(s3 + ξ2)−5/6 dξ ds +
+
+∫ h
+
+> 0
+
+∫ Cx
+
+> h
+
+(s3 + ξ2)−5/6 dξ ds
+
+≲
+
+∫ CT
+
+> h
+
+s−1 ds + h
+
+∫ Cx
+
+> h
+
+ξ−5/3 dξ ≲ | ln h|. (89) Indeed, ∫ r
+
+> 0
+
+(s3 + ξ2)−5/6 dξ = s−1
+
+∫ r/s 3/2
+
+> 0
+
+(1 + η2)−5/6 dη ≲ s−1.
+
+Hence, by (87), ∫ 
+
+> ΩT\Eh
+
+|∇ 2u| dz ≲ | ln h|. (90) Along Γ we have H(ˆ t, ˆx) ≤ | ˆt|−1. Therefore, 
+
+∫
+
+> Γ\Eh
+
+(
+
+|∇ u−| + |∇ u+|
+
+)
+
+ds ≲
+
+∫ Tτq +h
+
+((t − τq )−1 + 1 ) dt ≲ | ln h|. (91) 
+
+Step 2: construction of a CPwL competitor. Set ε := h2. As in Lemma 2, after the same harmless O(h)
+
+translation if necessary, we may assume that the analogue of (18) holds for Γ \ Eh.First build an ε-thin strip ˜ΛΓ around Γ \ Eh, whose two boundaries ˜Γ± are piecewise linear and each segment lies in one background cell of Λh. This strip is triangulated by anisotropic triangles of tangential size 
+
+O(h) and normal thickness O(ε). Next, on ΩT \ (Eh ∪ ˜ΛΓ
+
+), we construct a conforming shape-regular triangular mesh of size O(h) matching both ∂E h and the strip boundaries ˜Γ±. Finally, inside Eh, the curves ˜Γ± meet 
+
+∂E h at two points. These intersection points to the four corners of Eh will be vertices of the triangulation and we triangulate Eh into O(1) triangles, which results in a conforming triangulation of Eh with only O(1) 
+
+elements: the triangles adjacent to ˜ΛΓ ∩ ∂E h are anisotropic of tangential size O(h) and thickness O(ε), while all remaining triangles in Eh are shape-regular with diameter O(h).Let Th denote the resulting conforming simplicial mesh. We define a CPwL ˆu by 
+
+• on ΩT \ (Eh ∪ ˜ΛΓ
+
+), ˆu is the nodal P 1 interpolant of the corresponding smooth branch of u;• on ˜ΛΓ, ˆu connects the two traces linearly across the normal direction as in Lemma 2; 34 • on Eh, ˆu is any bounded CPwL extension matching the boundary nodal values. 
+
+Since u0 is smooth, we have 
+
+‖ˆu(·, 0) − u0‖L1(Ω) ≲ h2. (92) Let Ωs := Eh ∪ ˜ΛΓ and Ωr := Ω T \ Ωs. Then |Ωs| ≲ h2, and ˆu is piecewise linear on Ωr over a shape-regular mesh of size O(h). Moreover, ∫
+
+> Ωr
+
+|∇ · F(ˆ u)| dz ≲ h
+
+∫
+
+> Ωr
+
+|∇ 2u| dz ≲ h| ln h|. (93) On the singular region itself we still have 
+
+h
+
+∫
+
+> Ωs
+
+|∇ · F(ˆ u)| dz ≲ h, 
+
+because |˜ΛΓ| ≲ ε, |Eh| ≲ h2, and ˆu has gradient at most O(ε−1) on area with measure O(ε) and at most 
+
+O(h−1) on area with measure O(h2).We now estimate Jent (ˆ u; kh) for kh ∈ V ch . On cells contained in ΩT \ (Eh ∪ ˜ΛΓ), the exact solution satisfies the PDE classically and ˆu is its linear interpolant, so the standard interpolation estimate yields 
+
+∣∣∣∣∣∣∣∑ 
+
+> K⊂ΩT\(Eh∪˜ΛΓ)
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z
+
+∣∣∣∣∣∣∣
+
+≲ h
+
+∫ 
+
+> ΩT\Eh
+
+|∇ 2u| dz.
+
+For the O(1) cells contained in Eh and not intersecting ˜ΛΓ, we use the cellwise identity (14) 
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z =
+
+∫
+
+> ∂K
+
+(F(ˆ u) − F(kh)) sgn(ˆ u − kh) · n ds +
+
+∫
+
+> K
+
+∇ · F(kh) sgn(ˆ u − kh) d z.
+
+Since ˆu is bounded on Eh, kh ∈ V ch , |∂K | ≲ h, and |K| ≲ h2, the total contribution of these cells is O(h).For cells intersecting ˜ΛΓ, we use exactly the cellwise decomposition (20) from Lemma 2. The boundary term on the strip is treated by the reformulated entropy condition (8), exactly as in Lemma 2. The only difference is that the geometric displacement between the strip boundaries and the true shock contributes 
+
+ε
+
+∫
+
+> Γ\Eh
+
+(
+
+|∇ u−| + |∇ u+|
+
+)
+
+ds ≲ h2| ln h|,
+
+which is absorbed into the generic Ch term. Therefore, 
+
+sup  
+
+> kh∈Vch
+
+Jent (ˆ u; kh) ≲ h
+
+∫ 
+
+> ΩT\Eh
+
+|∇ 2u| dz + h ≲ h| ln h|. (94) Thus, by (92), (94), and (93), 
+
+L(ˆ u) ≲ h| ln h|.
+
+By Lemma 1, there exists a tanh network uˆθ of the stated size such that 
+
+L(uˆθ ) ≤ L (ˆ u) + Ch +
+
+∫
+
+> Ωr
+
+|∇ · F(ˆ u)| dz ≲ h| ln h|.
+
+Since θ∗ minimizes the loss, 
+
+Jent (uθ∗ ; kh) ≤ L (θ∗) ≤ L (uˆθ ) ≲ h| ln h|, ∀kh ∈ V ch . (95) In particular, ∫
+
+> ΩT
+
+|∇ · F(uθ∗ )| dz ≲ | ln h|, ‖uθ∗ (·, 0) − u0‖L1(Ω) ≲ h| ln h|. (96) 
+
+Step 3: construction of a DPwP test function by strip selection. Set th := τq +h, Γh := Γ ∩{ th ≤ t ≤ T }.Since the portion of the shock with t ∈ [τq , t h] lies inside Eh, we only need to treat Γh.Let Λ0 be the union of background cells of Λh intersecting Γh, and let Γ0 denote the left boundary of Λ0.Let L = O(h) be the strip width. For j = 1 , . . . , M , define Λj by shifting Λ0 to the left by jL , and let Γj denote the left boundary of Λj . Let 
+
+˜Γj := {(x, t ) : x = γbq (t) − jL, t ∈ [th, T ]} ⊂ Λj
+
+be the shifted copy of the true shock, and let Ωj ⊂ Λj be the region between Γj and ˜Γj .Since the strips Λj are disjoint and (96) gives 
+
+∫
+
+> ΩT
+
+|∇ · F(uθ∗ )| dz ≲ | ln h|,
+
+there exists an index j ∈ { 1, . . . , M } such that 
+
+∫
+
+> Λj
+
+|∇ · F(uθ∗ )| dz ≲ | ln h|
+
+M . (97) 
+
+35 Choose a smooth extension u+ext of the right trace u+ from the true right side of Γh across the O(M h )-tube around Γh so that 
+
+|∇ u+ext | ≲ H + 1 , |∇ 2u+ext | ≲ G + 1 
+
+there. Since the artificial interface is shifted only to the left, no separate extension u− 
+
+> ext
+
+is needed in the definition of ˜uh. We now define ˜uh ∈ V ch by: 
+
+• on the cells below t = th and outside Eh, ˜uh is the cellwise Q1 interpolant of u;• on the cells above t = th and to the left of Γj , ˜uh is the cellwise Q1 interpolant of u;• on the cells above t = th and to the right of Γj , ˜uh is the cellwise Q1 interpolant of u+ext ;• on Eh, ˜uh is any bounded cellwise Q1 extension matching the boundary nodal values. 
+
+Then ˜uh is continuous across all mesh faces except those belonging to Γj . Taking kh = ˜ uh in (95) and repeating the elementwise integration-by-parts argument from Theorem 3, we obtain 
+
+‖uθ∗ (·, T ) − ˜uh(·, T )‖L1(Ω) ≤ ‖ uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) +
+
+∫
+
+> ΩT
+
+|∇ · F(˜ uh)| dz + Ih + Ch | ln h|, (98) where 
+
+Ih := 
+
+∣∣∣∣∣∫
+
+> Γj
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · nΓj ds
+
+∣∣∣∣∣ .
+
+Let Dj := Eh ∪ ∪ ji=0 Λi. On ΩT \ Dj , the function ˜uh is the cellwise Q1 interpolant of the exact smooth branch of u, hence ∫ 
+
+> ΩT\Dj
+
+|∇ · F(˜ uh)| dz ≲ h
+
+∫ 
+
+> ΩT\Eh
+
+|∇ 2u| dz ≲ h| ln h|.
+
+On Dj \ Eh, the function ˜uh is the Q1 interpolant of the smooth extension u+ext . Exactly as in the proof of Theorem 3, the residual here is controlled by the interpolation error plus the shift error of this one-sided extension. Using (90) and (91), we obtain 
+
+∫ 
+
+> Dj\Eh
+
+|∇ · F(˜ uh)| dz ≲ h
+
+∫ 
+
+> ΩT\Eh
+
+|∇ 2u| dz + jL 
+
+∫
+
+> Γ\Eh
+
+|∇ u+| ds ≲ h| ln h| + M h | ln h|.
+
+On Eh we have ∫
+
+> Eh
+
+|∇ · F(˜ uh)| dz ≲ h. 
+
+Therefore, ∫
+
+> ΩT
+
+|∇ · F(˜ uh)| dz ≲ h| ln h| + M h | ln h| + h. (99) As in Step 5 of Theorem 3, let ˜u+ 
+
+> h
+
+denote the restriction of ˜uh to Ωj and define ˜u− 
+
+> h
+
+on Ωj by extending ˜uh
+
+from the left of Γj through the cellwise Q1 interpolant of the exact solution u. Integration by parts on Ωj gives 
+
+∫
+
+> Γj
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · nΓj ds =
+
+∫
+
+> ˜Γj
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · n˜Γj ds + R, (100) with 
+
+|R| ≲
+
+∫
+
+> Ωj
+
+(
+
+|∇ · F(uθ∗ )| + |∇ · F(˜ u− 
+
+> h
+
+)| + |∇ · F(˜ u+ 
+
+> h
+
+)|
+
+)
+
+dz +
+
+∫   
+
+> ∂Ωj\(Γ j∪˜Γj)
+
+|J˜uhK| ds. (101) By (97), by the same interpolation estimate as above, and exactly as in (37) from Theorem 3, we obtain 
+
+|R| ≲ | ln h|
+
+M + h
+
+∫ 
+
+> ΩT\Eh
+
+|∇ 2u| dz + h ≲ | ln h|
+
+M + h| ln h| + h. (102) We next estimate the shifted-curve integral. For z = ( x, t ) ∈ ˜Γj , let z♯ := ( x + jL, t ) ∈ Γ. Since ˜Γj lies strictly to the left of the true shock, u(z) is well defined and belongs to the left smooth branch. The previous pointwise estimate |˜u± 
+
+> h
+
+(z) − u±(z♯)| ≲ M h is not justified here, since the selected strip still starts at th = τq + h
+
+and the one-sided states are not uniformly W 2,∞ near the birth point. Instead, we estimate the error in L1(˜Γj ).We have 
+
+|˜u− 
+
+> h
+
+(z) − u−(z♯)| ≤ | ˜u− 
+
+> h
+
+(z) − u(z)| + |u(z) − u−(z♯)|,
+
+and 
+
+|˜u+ 
+
+> h
+
+(z) − u+(z♯)| ≤ | ˜u+ 
+
+> h
+
+(z) − u+ext (z)| + |u+ext (z) − u+(z♯)|.
+
+For the interpolation terms, the same cellwise trace-interpolation estimate as in Theorem 3 gives 
+
+∫
+
+> ˜Γj
+
+(
+
+|˜u− 
+
+> h
+
+− u| + |˜u+ 
+
+> h
+
+− u+ext |
+
+)
+
+ds ≲ h
+
+∫ 
+
+> ΩT\Eh
+
+|∇ 2u| dz ≲ h| ln h|
+
+by (90). For the shift terms, since dist( z, z ♯) = jL ≲ M h ,
+
+|u(z) − u−(z♯)| ≲ jL |∇ u−(z♯)|, |u+ext (z) − u+(z♯)| ≲ jL |∇ u+(z♯)|,
+
+36 and therefore 
+
+∫
+
+> ˜Γj
+
+(
+
+|u(z) − u−(z♯)| + |u+ext (z) − u+(z♯)|
+
+)
+
+ds ≲ jL 
+
+∫
+
+> Γ\Eh
+
+(
+
+|∇ u−| + |∇ u+|
+
+)
+
+ds ≲ M h | ln h|
+
+by (91). Hence ∫
+
+> ˜Γj
+
+(
+
+|˜u− 
+
+> h
+
+(z) − u−(z♯)| + |˜u+ 
+
+> h
+
+(z) − u+(z♯)|
+
+)
+
+ds ≲ h| ln h| + M h | ln h|. (103) Applying (8) on the true shock Γ with entropy parameter k = uθ∗ (z) yields 
+
+∫
+
+> ˜Γj
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · n˜Γj ds ≲
+
+∫
+
+> ˜Γj
+
+(
+
+|˜u− 
+
+> h
+
+(z) − u−(z♯)| + |˜u+ 
+
+> h
+
+(z) − u+(z♯)|
+
+)
+
+ds
+
+≲ h| ln h| + M h | ln h|. (104) Combining (100), (102), and (104), we conclude 
+
+Ih ≲ | ln h|
+
+M + h| ln h| + M h | ln h| + h. (105) Substituting (99) and (105) into (98), we obtain 
+
+‖uθ∗ (·, T ) − ˜uh(·, T )‖L1(Ω) ≤ ‖ uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) + C
+
+( | ln h|
+
+M + h| ln h| + M h | ln h| + h
+
+)
+
+.
+
+Step 4: conclusion. Choose M = dh−1/2e. Then 
+
+‖uθ∗ (·, T ) − ˜uh(·, T )‖L1(Ω) ≲ ‖uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) + h1/2| ln h|.
+
+Since u0 is smooth, 
+
+‖˜uh(·, 0) − u0‖L1(Ω) ≲ h, ‖uθ∗ (·, 0) − u0‖L1(Ω) ≲ h| ln h|,
+
+and therefore 
+
+‖uθ∗ (·, 0) − ˜uh(·, 0) ‖L1(Ω) ≲ h| ln h|.
+
+Moreover, since T > τ q is fixed, the one-sided states are W 2,∞ in a neighborhood of Γ ∩ { t = T }, so the shifted-interface construction gives 
+
+‖˜uh(·, T ) − u(·, T )‖L1(Ω) ≲ M h + h ≲ h1/2.
+
+The triangle inequality now yields 
+
+‖uθ∗ (·, T ) − u(·, T )‖L1(Ω) ≲ h1/2| ln h|.
+
+□
+
+A.3 Proof of Theorem 9 (main result in 1D) 
+
+Let {P q }Qq=1 be the finite family from Assumption 1. All local constructions used in the proofs of Theorems 3, 4, 6 and 7 are invariant under translations in (x, t ). Hence they can be transplanted to any piece Pq after translating the event in that piece to the coordinates used in the corresponding local proof. 
+
+Step 1: Construction of a global CPwL competitor. For each non-smooth piece Pq (that is, a regular shock piece, a rarefaction piece, a compound-wave piece, or a regular interaction piece), choose an open set Uq with piecewise C2 boundary such that Uq ⊂ P q and Uq contains the unique wave/event carried by Pq . Since the number of pieces is finite and no piece contains two distinct local events, the sets Uq can be chosen pairwise disjoint. Set Ωreg := Ω T \ ⋃ 
+
+> q
+
+Uq , where the union runs over all non-smooth pieces. By Assumption 1, u ∈ W 2,∞ ∩ C2 on each connected component of Ωreg .On each Uq we choose the local CPwL competitor from the corresponding earlier proof: • on a regular shock piece, the construction from Lemma 2; • on a rarefaction piece, the construction from Lemma 5; • on a compound-wave piece, the local construction as in Theorem 7; • on a regular interaction piece, the local construction as in Theorem 4; • on a shock-birth piece, the local construction as in Theorem 8. On each connected component of Ωreg we take the nodal P 1 interpolant of u.Because every ∂Uq lies in a smooth region, the above local CPwL constructions can be chosen to match the exact nodal values on ∂Uq . After a finite conforming refinement along the boundaries of the Uq ’s, they patch together into a global continuous CPwL function ˆu on a conforming simplicial 37 partition Th of ΩT . Since d = 1 , we have #Th = O(h−(d+1) ), and the patch complexity of Th is uniformly bounded. Let Ωs be the union of the local singular regions appearing in the above constructions, namely the thin shock layers, the rarefaction-tip neighborhoods and the interaction patches, and set Ωr := Ω T \Ωs.Each local singular region has measure O(h2), and there are only finitely many of them; hence |Ωs| ≲ h2.Moreover, ˆu is piecewise linear on Ωr over a shape-regular mesh of size O(h).Summing the local estimates from the preceding one-dimensional constructions yields 
+
+L(ˆ u) ≲ h| ln h|,
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz ≲ h| ln h|.
+
+Indeed, smooth, regular-shock, and regular-interaction pieces contribute O(h), while rarefaction, compound-wave pieces contribute O(h| ln h|).Applying Lemma 1 to ˆu therefore gives a tanh network uˆθ of the stated size such that 
+
+L(uˆθ ) ≤ L (ˆ u) + Ch +
+
+∫
+
+> Ωr
+
+|∇· F(ˆ u)| dz ≲ h| ln h|.
+
+Since θ∗ minimizes the loss, we obtain 
+
+Jent (uθ∗ ; kh) ≤ L (θ∗) ≤ L (uˆθ ) ≲ h| ln h|, ∀ kh ∈ V ch .
+
+Step 2: Construction of a global DPwP test function. We now construct ˜uh ∈ V ch . In every shifted-interface argument we choose the same strip parameter M := ⌈h−1/2⌉. For each non-smooth piece Pq , enlarge Uq (if necessary) to the union of the cells of Λh intersecting it; this changes the measure by at most O(h), which is negligible for the final estimate. For all sufficiently small h these enlarged sets remain pairwise disjoint. On each enlarged Uq we define ˜uh by the local DPwP construction used in the corresponding proof: • on a regular shock piece and on a regular interaction piece, the shifted-interface construction from the proofs of Theorems 3 and 4; • on a rarefaction piece, the fan-adapted DPwP as in Theorem 6; • on a compound-wave piece, the local construction as in Theorem 7; • on a shock-birth piece, the local construction as in Theorem 8. On the remaining cells, namely on ΩT \ ⋃ 
+
+> q
+
+Uq , we take the cellwise Q1 interpolant of u.Since the local DPwP constructions satisfy uniform W 1,∞ 
+
+> h
+
+bounds and agree with the same smooth trace data on the boundaries of the Uq ’s, after enlarging the constant c in the definition of V ch once and for all we obtain a globally well-defined function ˜uh ∈ V ch . Let Γh denote the union of the mesh-aligned jump interfaces of ˜uh; the number of connected components of Γh is bounded independently of h.Taking kh = ˜ uh in the previous bound and applying cellwise identity (14), we get 
+
+∥uθ∗ (·, T ) − ˜uh(·, T )∥L1(Ω) ≤ ∥ uθ∗ (·, 0) − ˜uh(·, 0) ∥L1(Ω) +
+
+∣∣∣∣∫
+
+> ΩT
+
+∇· F(˜ uh) sgn( uθ∗ − ˜uh) d z
+
+∣∣∣∣
+
++
+
+∣∣∣∣∫
+
+> Γh
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · n ds
+
+∣∣∣∣ + Ch | ln h|.
+
+We now sum the local estimates from the proofs of Theorems 3, 4, 6 and 7. On the smooth part of the domain we have the standard interpolation bound O(h). On regular shock and regular interaction, the common choice M = ⌈h−1/2⌉ yields O(h1/2). On rarefaction pieces, the contribution is O(h| ln h|).For compound waves, which exhibit characteristics of both rarefaction and shock waves, we obtain the worst-case estimate O(h1/2| ln h|). We conclude that 
+
+∣∣∣∣∫
+
+> ΩT
+
+∇· F(˜ uh) sgn( uθ∗ − ˜uh) d z
+
+∣∣∣∣ +
+
+∣∣∣∣∫
+
+> Γh
+
+J(F(˜ uh) − F(uθ∗ )) sgn(˜ uh − uθ∗ )K · n ds
+
+∣∣∣∣ ≲ h1/2| ln h|.
+
+Hence 
+
+∥uθ∗ (·, T ) − ˜uh(·, T )∥L1(Ω) ≤ ∥ uθ∗ (·, 0) − ˜uh(·, 0) ∥L1(Ω) + Ch 1/2| ln h|.
+
+38 Step 3: Endpoint estimates and conclusion. By the same local endpoint estimates, with the standard Q1 interpolation estimate on ΩT \ ⋃ 
+
+> q
+
+Uq , we have 
+
+∥˜uh(·, 0) − u0∥L1(Ω) + ∥˜uh(·, T ) − u(·, T )∥L1(Ω) ≲ h1/2| ln h|.
+
+Indeed, smooth, regular-shock, and regular-interaction pieces contribute O(h1/2) or better, rarefaction pieces contribute O(h| ln h|), and compound wave pieces contribute O(h1/2| ln h|).Moreover, 
+
+∥uθ∗ (·, 0) − u0∥L1(Ω) = Lbc (uθ∗ ) ≤ L (θ∗) ≲ h| ln h| ≲ h1/2| ln h|.
+
+Therefore, 
+
+∥uθ∗ (·, 0) − ˜uh(·, 0) ∥L1(Ω) ≤ ∥ uθ∗ (·, 0) − u0∥L1(Ω) + ∥u0 − ˜uh(·, 0) ∥L1(Ω) ≲ h1/2| ln h|.
+
+Combining this with the previous estimate and the triangle inequality, we obtain 
+
+∥uθ∗ (·, T ) − u(·, T )∥L1(Ω) ≤ ∥ uθ∗ (·, T ) − ˜uh(·, T )∥L1(Ω) + ∥˜uh(·, T ) − u(·, T )∥L1(Ω) 
+
+≲ h1/2| ln h|.
+
+□
+
+A.4 Proof of Lemma 10 
+
+As in Section 3.1, we assume that the discontinuity surface Γ does not significantly intersect the mesh skeleton ∂Λh; otherwise, the argument applies after a slight shift of the solution. More precisely, 
+
+Hd({ (x, t ) ∈ Γ : dist(( x, t ), ∂ Λh) ≲ h2}) ≲ h. 
+
+Since any CPwL function admits a neural network approximation by Lemma 1, it suffices to construct a CPwL function whose loss (11) is O(h).Let Σε = {(z, t ) ∈ ΩT : dist(( z, t ), Σ) ≲ h2}, and 
+
+ΛΣ := {K ∈ Λh : K ∩ Σε̸ = ∅} , ΛΓ := {K ∈ Λh \ ΛΣ : K ∩ Γ̸ = ∅} , Λ◦ 
+
+> h
+
+:= Λ h \ (Λ Σ ∪ ΛΓ).
+
+Since each cell has diameter O(h), the union ΩΣ,h := ⋃ 
+
+> K∈ΛΣ
+
+K is contained in a tubular neighborhood of Σ with radius Ch . By the piecewise C2 regularity of Σ and the boundedness of its Hd−1 measure, we obtain 
+
+|ΩΣ,h | ≲ h2, #Λ Σ ≲ h−(d−1) . (106) And followed by the same reason, by applying the boundedness of Hd measure of Γ, we have #Λ Γ ≲
+
+h−d.We now define a continuous piecewise affine function ˆu on a conforming simplicial refinement of Λh.• For K ∈ Λ◦
+
+> h
+
+, the exact solution u is smooth in a neighborhood of K by Assumption 2; we therefore define ˆu on K as the linear nodal interpolant of u.• If K ∈ ΛΓ, let ΓK := K ∩ Γ. As in Lemma 2, choose two planes parallel to the tangent plane of ΓK
+
+and at distance ≃ ε from it. They bound a thin layer KΓ ⊂ K satisfying |KΓ| ≲ εh d. On K \ KΓ
+
+we take the nodal interpolants of the two one-sided traces of u, and on KΓ we connect these traces linearly in the normal direction. • On ΩΣ,h we choose any bounded CPwL extension that matches the traces prescribed on the boundary of neighboring cells. The resulting function ˆu is continuous, piecewise linear, and is defined on a simplicial mesh with 
+
+O(h−(d+1) ) elements. We claim that L(ˆ u) ≲ h. First, note that the initial error can be bounded as 
+
+∥ˆu(·, 0) − u0(·)∥L1(Ω) ≲ h. (107) 39 Second, the Lreg -term satisfies 
+
+h−1Lreg (ˆ u) = 
+
+∫
+
+> ΩT
+
+|∇ · F(ˆ u)| dz ≲ 1. (108) Indeed, outside ΩΣ,h ∪ ⋃ 
+
+> K∈ΛΓ
+
+KΓ the standard interpolation estimate on smooth regions yields a total contribution O(h). The transition layers contribute O(1) because their total measure is O(ε) (since 
+
+|KΓ| ≲ εh d) while |∇ ˆu| ≲ ε−1 there. Finally, on ΩΣ,h we have |∇ ˆu| ≲ h−1, and therefore (106) implies a contribution O(h).It remains to estimate the entropy residual part. Fix kh ∈ V ch and decompose 
+
+∑
+
+> K∈Λh
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z
+
+= ∑
+
+> K∈Λ◦
+> h
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z + ∑
+
+> K∈ΛΓ
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z
+
++ ∑
+
+> K∈ΛΣ
+
+(∫ 
+
+> ∂K
+
+(F(ˆ u) − F(kh)) sgn(ˆ u − kh) · n ds +
+
+∫
+
+> K
+
+∇ · F(kh) sgn(ˆ u − kh) d z
+
+)
+
+,
+
+(109) where we have used the cellwise identity (14) for each K ∈ ΛΣ.The same argument as in Section 3.1 gives 
+
+∑
+
+> K∈Λ◦
+> h
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z + ∑
+
+> K∈ΛΓ
+
+∫
+
+> K
+
+∇ · F(ˆ u) sgn(ˆ u − kh) d z ≲ h. (110) For the remaining term, using the bound sup z∈ΩT |ˆu(z)| ≲ sup z∈ΩT |u(z)|, the piecewise W 1,∞-regularity of kh, and #(Λ Σ) ≲ h−(d−1) , we obtain 
+
+∑
+
+> K∈ΛΣ
+
+(∫ 
+
+> ∂K
+
+(F(ˆ u) − F(kh)) sgn(ˆ u − kh) · n ds +
+
+∫
+
+> K
+
+∇ · F(kh) sgn(ˆ u − kh) d z
+
+)
+
+≲ ∑
+
+> K∈ΛΣ
+
+(∫ 
+
+> ∂K
+
+|F(ˆ u) − F(kh)| ds +
+
+∫
+
+> K
+
+|∇ · F(kh)| dz
+
+)
+
+≲ #(Λ Σ)
+
+(
+
+hd · C(∥ˆu∥L∞ , ∥kh∥L∞ ) + hd+1 · ∥∇ kh∥L∞
+
+)
+
+≲ h. (111) Combining (109)-(111), we find 
+
+sup  
+
+> kh∈Vch
+
+Jent (ˆ u; kh) ≲ h. (112) Together with (107) and (108), this proves 
+
+L(ˆ u) ≲ h. (113) Let Ωs := Ω Σ,h ∪⋃ 
+
+> K∈ΛΓ
+
+KΓ and Ωr := Ω T \Ωs. By construction and (106), |Ωs| ≲ h2. Since Ωr excludes both the transition layers and ΩΣ,h , the standard interpolation estimate yields ∫ 
+
+> Ωr
+
+|∇ · F(ˆ u)| dz ≲ h.Hence Lemma 1 applies and yields a tanh network uˆθ of the stated size such that 
+
+L(uˆθ ) ≤ L (ˆ u) + Ch +
+
+∫
+
+> Ωr
+
+|∇ · F(ˆ u)| dz ≲ h. 
+
+This finishes the proof of Lemma 10. 40

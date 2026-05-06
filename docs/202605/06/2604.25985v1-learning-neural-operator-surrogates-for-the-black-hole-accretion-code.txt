@@ -1,0 +1,416 @@
+Title: Learning Neural Operator Surrogates for the Black Hole Accretion Code
+
+URL Source: https://arxiv.org/pdf/2604.25985v1
+
+Published Time: Thu, 30 Apr 2026 00:06:21 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+# Learning Neural Operator Surrogates for the Black Hole Accretion Code 
+
+# Matthias N¨ agele ∗1, Cedric B¨ os *2 , Chester Tan 2, Christian M. Fromm 1, Ingo Scholtes 2, and Karl Mannheim 1
+
+> 1
+
+Institute for Theoretical Physics and Astrophysics, Julius-Maximilians-Universit¨ at W¨ urzburg, W¨ urzburg, Germany 
+
+> 2
+
+Chair for Machine Learning for Complex Networks, Julius-Maximilians-Universit¨ at W¨ urzburg, W¨ urzburg, Germany 
+
+# April 28 th , 2026 
+
+Abstract 
+
+General-relativistic magnetohydrodynamic (GR-MHD) simulations are essential for studying black hole accretion, relativistic jets, and magnetic reconnection, yet their computational cost severely limits systematic parameter exploration. We investigate neural operator surrogates for two astrophysically relevant simulation scenarios produced by the Black Hole Accretion Code ( BHAC ). First, a Physics Informed Fourier Neural Operator (PINO) is trained on the special-relativistic resistive MHD (SRRMHD) evolution of the Orszag-Tang vortex over a range of resistivities spanning the Sweet-Parker and fast reconnection regimes. By embedding the governing equations as an additional loss term evaluated at finer temporal resolution than the available data supervision, the model learns dynamics at time steps where no simulation data is provided, enabling recovery of plasmoid formation that a data-only baseline trained on the same sparse snapshots fails to reproduce. To our knowledge, the present work is the first application of a physics informed neural operator to special relativistic resistive MHD, and the first to investigate the capability of such models to resolve plasmoid formation in SRRMHD. In a second line of investigation, an OFormer-style Transformer Neural Operator is trained on the evolution of spine-sheath relativistic jets created with BHAC , in special-relativistic MHD (SRMHD). The model is directly applied on the adaptive mesh, highlighting the need for linear attention due to long sequences. The neural surrogate model is capable of capturing most of the major details, especially in early predictions. To our knowledge, this constitutes the first application of a neural operator directly on a high resolution adaptive mesh refinement grid in the context of MHD simulations. 
+
+# 1 Introduction 
+
+General-relativistic magnetohydrodynamic (GR-MHD) simulations are indispensable for understanding high-energy astrophysical phenomena such as black hole accretion and relativistic jet launching [1, 2]. Simulators like the Black Hole Accretion Code ( BHAC ) [3, 4, 5] can resolve these processes at high fidelity [6], but at substantial computational cost – a single simulation may require thousands of CPU-hours, and systematic parameter studies demand hundreds of such runs. This expense limits the scope of explorable parameter spaces and hampers workflows that require rapid forward evaluations. Neural operators offer a promising path toward alleviating this bottleneck. Unlike conventional neu-ral networks, which learn mappings between fixed-dimensional vector spaces, neural operators approximate mappings between function spaces and are therefore invariant to the discretization of their inputs [7]. This property makes them natural candidates for learning surrogate models of PDE-governed systems. Recent work has demonstrated their effectiveness on a range of fluid-dynamical problems [8, 9, 10, 11] – yet their ap-plication to relativistic (resistive) MHD, with strong shocks, stiff source terms, and adaptive mesh refinement (AMR) grids – remains largely unexplored. 
+
+> ∗
+
+These authors contributed equally. 
+
+1
+
+> arXiv:2604.25985v1 [astro-ph.HE] 28 Apr 2026
+
+This work investigates neural operator surrogates for two distinct BHAC simulation scenarios of astrophys-ical interest. First, a physics informed Fourier Neural Operator (PINO) is trained on the special-relativistic resistive 
+
+MHD equations governing the Orszag-Tang vortex, a canonical benchmark for turbulent reconnection and plasmoid formation. This work investigates whether embedding the governing equations into the loss function can improve temporal generalization. Second, an AMR-native neural operator based on the Galerkin Transformer architecture is developed to predict the propagation of relativistic jets directly on the irregular, multi-resolution grids produced by BHAC ,avoiding the information loss inherent in regridding to uniform meshes. Together, these contributions repre-sent a step toward practical, physics-consistent surrogate models for relativistic astrophysical simulations. 
+
+# 2 Numerical Simulations 
+
+The simulations of the Orszag-Tang vortex and the relativistic jets are both performed using the Black Hole Accretion Code ( BHAC ) [3, 4, 5], a general-relativistic magnetohydrodynamic solver built on the MPI-AMRVAC framework [12, 13]. BHAC is widely used to study black hole accretion, jet launching, and magnetic reconnection. BHAC employs Adaptive Mesh Refinement (AMR): the mesh is refined in regions with fine structure in order to adequately represent them, while a coarse grid is used where sufficient. This saves on memory and computation. In practice, a moderate base grid can yield effective resolutions orders of magnitude higher. Despite these efficiencies, the computational cost remains substantial. A single high-resolution run can take thousands of CPU-hours, and parameter studies require many such runs. This motivates the search for surrogate models that can approximate BHAC ’s output at a fraction of the cost – which is where neural operators come in. Moreover, scalable models beyond the regime of the MHD approximation (e.g. to describe kinetic processes on sub-grid scales) may require new approaches. 
+
+# 3 Neural Operator 
+
+In contrast to neural networks, which approximate mappings between vector spaces f : Rn → Rm, neural operators (NO) approximate operators G : U → V , mapping between function spaces [7]. This removes the approximator’s dependence on the input discretization, making the NO invariant to the applied resolution [8]. It has shown great value in building surrogate models for a great variety of PDE systems, e.g. [8, 9]. Two different Neural Operators are investigated for different settings. A Fourier Neural Operator for the Orszag-Tang Vortex and a OFormer-based operator for the relativistic jets. 
+
+# 4 PINO for Resistive MHD 
+
+This section presents a Physics Informed Fourier Neural Operator (PINO), that is trained to predict the evolution of the Orszag-Tang vortex in special-relativistic resistive MHD (SRRMHD). The stiff source terms and fine current-sheet structures that characterize this regime make it both computationally expensive and a challenging test case for surrogate modeling. We investigate whether enforcing the governing equations through a PDE loss improves temporal generalization, up to the plasmoid-forming regime. 
+
+# 4.1 Related Work 
+
+Several recent works have explored neural operators as surrogate models for MHD simulations. Rosofsky & Huerta [10] presented the first application of physics informed neural operators to 2D incompressible MHD, demonstrating accurate predictions for laminar flows with Reynolds numbers Re ≤ 250. Bormanis et al. [14] investigated the Orszag-Tang vortex using physics-constrained convolutional neural networks with hard-coded divergence-free magnetic fields. Duarte et al. [11] trained a purely data-driven FNO surrogate on Orszag-Tang vortices parameterized over viscosity and magnetic diffusivity. Other ML architectures for MHD have also been explored, including hybrid operator-diffusion frameworks for turbulent regimes [15] and Flux Fourier Neural Operators for ideal MHD fluxes [16]. Concurrent to this work, Cheung et al. [17] applied 2physics informed neural networks (PINN) to ideal relativistic MHD; however, that work employs PINNs rather than neural operators and does not treat resistive effects. To our knowledge, the present work is the first application of a physics-informed neural operator to special relativistic resistive MHD, and the first to investigate the capability of such models to resolve plasmoid formation in SRRMHD. 
+
+# 4.2 Numerical Simulation 
+
+The Black Hole Accretion Code ( BHAC ) [3, 4, 5] is used to generate Orszag-Tang vortices at different resistiv-ities. Introducing resistivity into the SRMHD equations results in a stiff source term in Amp` ere’s law which make explicit solvers extremely inefficient. Therefore, an IMEX scheme is used. This means that the ideal MHD part is solved explicitly, while the stiff source term is solved implicitly. [5] Additionally, a entropy-based recovery scheme is employed in BHAC to make inversion more stable. The special-relativistic resistive MHD equations are provided in appendix A.1. 
+
+# 4.3 Oszag-Tang vortex 
+
+The Orszag-Tang vortex [18] is a toy model for turbulent SRRMHD flow. It is well suited for investigating strong shocks and plasmoid formation. The specific setup for the Orszag-Tang vortex is more detailed in appendix A.2. A 2 .5 dimensional Cartesian grid is used, with a periodic spatial domain ( x, y ) ∈ [0 , 2π]2, and 
+
+t ∈ [0 , 10], using natural units. In order to get physically meaningful results, the maximum refinement level needs to be chosen large enough for the simulation to converge. For this, Orszag-Tang vortices at different AMR levels are compared in 
+
+⟨B2⟩ = RR  
+
+> V
+
+B2 dx dy/ RR  
+
+> V
+
+dx dy . Convergence is claimed when ⟨B2⟩(t) does no longer change with successive increase of the AMR level, according to [19]. The investigated resistivity range is η ∈ [10 −4, 10 −3]. For this an AMR level of 5 was found sufficient. Plasmoid development can be observed for η → 10 −4. Those plasmoids form through violent tearing insta-bilities of the current sheets. They are of particular interest to the Astrophysical community because of their conjectured role in powering frequent X-ray and near infrared flares from Sgr A*, our Galaxy’s black hole. [19] Towards η = 10 −3 the current sheets do not get thin enough for plasmoid formation. The investigated resistivity range thus covers both the Sweet–Parker regime as well as the fast reconnection regime. The investigated and predicted quantities for the Orszag-Tang vortex are ( ux, u y , B x, B y , ρ, E z , p ), where subscripts x and y denote the in-plane Cartesian components, u being the velocity, B the magnetic field, ρ
+
+the rest mass density, Ez the z-component of the electric field, and p the pressure. These quantities fully quantify the state of the resistive SRMHD system through the equations in the appendix A.1. 
+
+# 4.4 FNO 
+
+A Fourier Neural Operator (FNO) [8] was chosen for this task because of its unique properties and its success on comparable tasks, e.g. [8, 9, 10, 11]. As a neural operator it is resolution invariant, in both spatial and temporal dimension. Its specific architecture is explained further in the appendix A.3. The simulation data from BHAC is converted to a uniform grid for the Orszag-Tang vortex. The FNO maps the initial conditions and the resistivity parameter η to the full temporal evolution of (ux, u y , B x, B y , ρ, E z , p ) over the 2 + 1 D domain. Crucially, the temporal dimension is treated on equal footing with the spatial dimensions – the Fourier layers operate over the full 2 + 1 D spatiotemporal domain. This allows the network to learn the complete dynamical evolution in a single forward pass rather than autoregressively stepping through time. This has proven to improve the model quality especially at late time steps, but comes at the cost of higher GPU memory requirement. The FNO setup is illustrated in Figure 1, which is later also used to explain the physics informed loss. 
+
+# 4.5 Physics Informed 
+
+Training good surrogate models typically requires large volumes of high-resolution simulation data, which are themselves expensive to generate. Physics informed methods address this limitation by embedding governing 3Figure 1: Illustration of the used setup. The Fourier Neural Operator (FNO) received an initial state and a resistivity η as input. It predicts the Oszag-Tang evolution. The data Loss Ldata is only applied at a few timesteps (red frames), whereas the PDE Loss LP DE is enforced on a much finer temporal resolution (red and black frames). This proves to be effective in helping the model learn at timesteps without data supervision (black frames). equations directly into the learning objective, reducing dependence on labeled data. This work investigates the efficacy of incorporating the governing SRRMHD equations (appendix A.1) into the FNO loss function. Because the FNO predictions ( ux, u y , B x, B y , ρ, E z , p ) fully determine the state of the SRRMHD sys-tem, the governing equations (appendix A.1) can be evaluated directly on the model output. For this spectral derivatives are used. The PDE residuals are then introduced as an additional physics informed loss term 
+
+LP DE , supplementing the data-driven loss Ldata . The implementation is based on the PhysicsNeMo frame-work [20], which was adapted for the present setting. To test the efficacy of this physics loss, the model is trained on a data set with poor temporal resolution, while its performance is tracked on the same data set at 8 × higher temporal resolution. The PDE loss is applied at this same 8 × higher temporal resolution. This setup is illustrated in Figure 1, where the PDE loss acts at 3 × higher temporal resolution for clarity 
+
+# 4.6 Results 
+
+In total 29 simulations are used, where the resistivity η is chosen randomly 1 in the range η ∈ [10 −4, 10 −3]. The data is split into training and validation samples; 23 and 6 samples respectively. The full physical time range of t ∈ [0 , 10] is represented in the simulation by 401 evenly spaced slices. All results presented of the model’s performance are measured on validation samples; meaning interpo-lated, the dynamics at unseen resistivities. Training is done on three NVIDIA L40 in a Distributed Data Parallel (DDP) configuration. 
+
+4.6.1 Data Supervision 
+
+The model’s performance is investigated for pure data supervision. For GPU memory reasons the Orszag-Tang evolution is split into several time domains, each treated independently. 
+
+Time t ∈ [0 , 2.5] : No plasmoids are created in this time domain. Yet strong shocks are exhibited. A spatial resolution of 256 2 is used. The data loss is applied only to every 8th simulated time step, while performance is evaluated at every time step, so that the model’s ability to interpolate to intermediate times can be assessed. The FNO learns the training snapshots well and generalizes accurately to unseen resistivities, yet it performs 
+
+> 1The random selection was checked to ensure reasonably uniform coverage of the full range, including the edges.
+
+4poorly at the intermediate time steps on which it received no data supervision – it does not generalize to higher temporal resolution. This is visible on the left in Figure 2. The fidelity of this is dependent on the resistivity. η → 10 −4 shows slightly larger deviation at t → 2.5 than Figure 2, at η = 5 .59 ·10 −4. This is likely due to numerical resistivity, because the PDE residuals are evaluated on a relatively coarse grid, introducing discretisation errors. 
+
+Figure 2: Domain averaged magnetic energy density ⟨B2⟩ as a function of time at a resistivity of η = 5 .59 ·10 −4.Training without (left) vs. with (right) PDE constraint. The are enforced on an 8 times finer time-grid than the data loss. A clear improvement in the model’s performance can be seen. 
+
+Time t ∈ [9 .5, 10] : This is plasmoid regime. The spatial resolution is increased to 512 2 to better resolve the fine structure of the current sheets, and the current density Jz is computed from the model outputs as a diagnostic. As in the early-time regime, the FNO is trained on every 8th time step and evaluated at all intermediate steps. The results are qualitatively similar: the model reproduces the large-scale structure adequately but fails to capture fine-scale features – in particular, plasmoids are not reliably predicted at unseen time steps. This is illustrated in the central panels of Figure 5, and in the appendix Figure 11 and Figure 12. 
+
+4.6.2 Physics Informed Training 
+
+The most stable method for introducing the PDE loss was found to be as follows. The model is trained with purely data supervision for 100 epochs. Then the PDE loss weight is increased linearly with the epoch count, with the growth rate stepping up at epochs [500 , 700 , 1100]. 
+
+Time t ∈ [0 , 2.5] : The PDE loss is applied at a finer temporal resolution. The data supervision from before is kept, but additionally the PDE loss applied on intervening time steps: each time steps has the PDE loss applied while the data loss is only applied at every 8 th step. The result from this can be seen in the right panel of Figure 2. A clear improvement is visible at time steps without data supervision. Further comparisons of the model’s predictions without and with PDE constraints are shown in Figure 4, and in the appendix Figure 9 and Figure 10. The corresponding loss curves (Figure 3) confirm that: without PDE constraints the loss at time steps without data supervision remains high and even trends upward, whereas it decreases steadily once the PDE loss is included. 5Figure 3: The relative L 2-loss (evaluated on BHAC data) on the time steps without data supervision, without (red) and with (blue) PDE constraint. Without PDE constraints the model fails to generalize well to unseen time steps. For the blue curves the PDE loss is activated at epoch 100. 
+
+Figure 4: Electric field Ez at a timestep without data supervision. Ground truth (left), the model’s interpo-lation without PDE constraints (middle) and the model’s predictions with PDE constraints enforced (right). Including the PDE loss helps the model make better predictions 
+
+Time t ∈ [9 .5, 10] : Again the PDE loss is enforced on a 8 × finer time mesh than the data. A clear improvement is visible in Figure 5, and in the appendix Figure 11 and Figure 12. Plasmoids are formed in the physics informed model predictions, which were not present in the model predictions without physics information. 6Figure 5: Electric current density Jz at a representative timestep without data supervision. η = 1 .08 · 10 −4.Ground truth (left), the model’s interpolation without PDE constraints (middle) and the model’s predictions with PDE constraints enforced (right). Plasmoids are visible in the physics informed model, that were not present in the model without physics information. 
+
+# 4.7 Discussion 
+
+This work demonstrates that incorporating the governing PDEs into the loss function significantly improves the model’s accuracy at time steps lacking data supervision. Most notably, the physics informed model successfully resolves plasmoid structures that the purely data-driven model fails to capture. To our knowledge, this constitutes the first demonstration of a neural operator reproducing plasmoid dynamics in relativistic resistive MHD. The method also shows some limitations. i) Increasingly high training resolutions for finer structures are needed for high fidelity of the PDE loss. This limits the 2 + 1 D spacetime FNO approach in GPU memory. ii) The stiffness in Amp` ere’s law induces dynamics on very short timescales, imposing strict temporal resolution requirements analogous to those in classical solvers: the PDEs must be evaluated at a sufficiently fine time scale for the resulting gradients to remain meaningful. This effect becomes more pronounced at smaller resistivities, constraining the present method in the low-resistivity regime. iii) When choosing a lower training resolution than the highest AMR level in the simulation (the effec-tive resolution), artifacts from downsampling are introduced. These artifacts affect both the standard field representation and the PDE residuals through the derivatives. iv) BHAC is built to satisfy the governing PDEs on conserved variables, whereas this work operates on primitive variables. Evaluating the PDEs on the primitive representation yields high residuals at shock fronts – discontinuities in the solution – meaning the training data itself does not satisfy the imposed PDEs well. Together, limitations iii) and iv) complicate the monitoring of model performance: an increase or decrease in the metrics evaluated on the simulated data may equally indicate an improvement or a degradation of the model’s physical fidelity. Regarding limitation iv), reformulating the physics loss in weak or integral form – as explored for conser-vation laws in wPINNs [21, 22] and IPINNs [23] – offers a promising path forward, since these formulations naturally accommodate discontinuities such as shocks. 
+
+# 5 AMR-native Neural Operator on GR-MHD 
+
+Relativistic jets simulated with BHAC rely on adaptive mesh refinement to efficiently predict their evolution in time and space. This section identifies a neural operator surrogate alternative that can successfully predict the special relativistic magnetohydrodynamic physics. As AMR leads to drastically changing scales and long sequences of sampled tokens, the challenge is to find a NO that bypasses these constraints and still provide competitive performance and runtime advantages compared to the simulation counterparts. 75.1 Related Work 
+
+Modern Computational Fluid Dynamics (CFD) simulations, such as BHAC , KHARMA [24], or OpenFOAM [25, 26], rely on Adaptive Mesh Refinement (AMR) to achieve high precision with computational efficiency. Despite being theoretically resolution invariant, many modern NO approaches cannot be applied directly to these non-uniform AMR meshes. For instance the FNO [8] requires a regular Cartesian grid (cf. section 4). Variations like the Spherical FNO (SFNO) [27] extend this to spherical geometries via generalized Fourier transforms [28], while Geo-FNO [29] attempts to learn grid deformations from irregular grids to a regular latent space where FNOs can operate. Graph Neural Operators (GNO) [30] rooted in Graph Neural Networks [31, 32] construct a radius graph in the ball neighborhood of Euclidean space, making them natively compatible with irregular meshes. The Geometry-informed Neural Operator (GINO) [33] combines a GNO encoder/decoder to bridge irregular input meshes with FNOs as processors in a regular latent space. While FNO processors are generally preferred for their efficiency over similarly scaled GNOs, our pre-study revealed that GINO yields heavily over-smoothed predictions when applied to AMR data. We attribute this to the combination of fixed-radius graph construction necessary for resolution-invariance and the inherent resolution bottleneck of the regular latent grid, which fails to preserve the high-frequency features captured by the refined AMR regions. The application of Nystr¨ om sampling [34, 30] does not alleviate this issue, as the required uniform sampling must be performed prior to ball construction, effectively discarding the AMR’s local density benefits. Furthermore, we argue that the common implementation of a max-k parameter in radius graph construction-either used for efficiency or imposed by CUDA kernel optimization-breaks strict resolution invariance and contributes to the poor scaling on large meshes observed by Zhou et al. [35]. The Codomain Attention Neural Operator (CoDA-NO) [36] faces similar limitations; while it innovates by tokenizing physical variables rather than spatial locations, it still relies on a GINO-like mapping for irregular geometries, inheriting the same spatial bottleneck. Recently, transformer-based approaches have emerged as a robust alternative. Calvello et al. [37] demon-strated that attention [38] and ViT [39] can be extended to the operator framework. To handle irregular domain discretizations without intermediate regular grids, the Universal Physics Transformer (UPT) [40] encodes arbitrary point clouds into a unified latent space where attention is applied, enabling continu-ous space-time querying via a decoder. Similarly, iterations such as the Mesh-Informed Neural Operator (MINO) [41] and the Geometry-Aware Operator Transformer (GAOT) [42], utilize GNO-based tokenizers with cross-attention or ViT processors and with the latter using attention weights to refine the GNO integral transform. Other architectures, such as the Transolver family [43, 44, 35], attempt to bypass GNO scaling difficulties through token ”slicing” to group mesh points into physics-aware tokens, reducing the attention complexity from O(N 2) to linear. Explicitly targeting AMR data, the recent AMR-Transformer [45] directly utilizes the hierarchical multi-way tree structure of AMR meshes as a tokenizer. By coupling this with constraint-aware pruning based on fluid properties, it selectively drops tokens in calm regions to make the standard attention mechanism computationally feasible. However, heuristic token pruning and discrete tree formulations often restrict models from acting as true resolution-invariant continuous operators. To maintain AMR-native resolution without the smoothing effects of regular-grid proxies while scaling to massive token sequences, linear attention mechanisms show the greatest potential. By utilizing a Galerkin-style linear attention [46], OFormer [47] avoids the quadratic Softmax( ·) memory bottleneck while remaining compatible with disparate input and query grids. Based on these considerations and the failures of hybrid models observed in our preliminary work, we present OFormer as a viable AMR-native model and demonstrate its effectiveness on a custom relativistic jet dataset governed by SRMHD. 
+
+# 5.2 Methodology 
+
+The model we use for this is based on the OFormer [47] architecture, which in turn is based on an attention integral based on the Galerkin-style transformer [46]. By removing Softmax( ·) from standard attention [38] and changing the order of matrix multiplication, memory consumption drops to O(nd 2), with n as sequence length and d as the model embedding dimension: 
+
+z = Attn g(y) := 1
+
+n Q
+
+ ˜KT ˜V
+
+
+
+(1) 8where z is the output of Galerkin-style attention Attn g(y) of input y, n is the sequence length, and Q = y·WQ,˜K = Ln( y · WK ), and ˜V = Ln( y · WV ) are the attention matrices with Ln( ·) as layer normalization [48] to mimic the regularizing effect of Softmax( ·). This standard implementation uses the same input and output grid and is only applicable to regular grids as integration weights are not considered. To this end, Li et al. [47] propose the use of an Encoder-Decoder-Style Transformer NO with a generalized, weighted Galerkin-style attention integral. The resulting model is similar to the weighted attention integral and Encoder-Decoder NOs presented by Berner et al. [49]. We formulate self-attention Attn ′ 
+
+> g
+
+(y) as follows, which is necessary to support long sequences like those regularly found with AMR grids: 
+
+z′ = Attn ′
+
+> g
+
+(y) := Q
+
+ ˜KT  ˜V ⊙ w
+
+ 
+
+(2) with wi = viPnj=1 vj as the normalized quadrature weight of the AMR block i with block-volume vi. To map to a different target grid, we also introduce weighted cross-attention Attn g, ×(y×, y ) for the Decoder in a similar way: 
+
+z′× = Attn ′
+
+> g,×
+
+(y×, y ) := Q
+
+ ˜KT
+
+> ×
+
+ ˜V× ⊙ w×
+
+ 
+
+(3) with y× and w× as the output of the Encoder network and the integration weights on the original grid, and the cross-attention matrices ˜K× = Ln( y× · WK, ×) and ˜V× = Ln( y× · WV, ×). For better efficiency, we use root mean squared layer normalization (RMS layer norm) [50] instead of standard layer normalization or instance normalization. Apart from the attention integral transforms, the rest of the Encoder and Decoder network are similar to vanilla transformers without causal masking. Both networks keep the skip connections and the classic two-layer feed-forward multi-layer-perceptron (MLP) with GeLU( ·) [51] as activation function. For positional encoding, we use Rotary Embeddings [52]. The complete Encoder and Decoder layers are also represented in the Appendix in B.3. For the final model, the input to the Encoder is [ fx, p x, g ], the concatenated vector, consisting of input function fx evaluated at coordinates px and potential global features g, is lifted with an MLP before the Encoder layers. The Decoder layers are ingested with a lifted version of [ py , g ] where py are the query positions of the output function, and additionally the latent output of the Encoder ¯fy, × in the cross-attention. Finally, the latent output of the Decoder is projected to the target fy using a final MLP. 
+
+# 5.3 Experiments 
+
+5.3.1 Relativistic Jet Data set 
+
+For testing the effectiveness of different models on AMR grids, we created a custom data set of spine-sheath relativistic jets with BHAC . The data is simulated onto a 2D grid with a base resolution of 256 2 and 4 additional refinement levels, resulting in an effective resolution of 4096 2. This results in a feature vector with six primitive variables, as the remaining BHAC variables can either be computed from these primitives or are 0 in the 2D case; a summary of all available variables can be found in the Appendix in B.2. Additionally, we use the simulation time t and three changing input parameters of the jet as global parameters. The final data set contains 448 simulations with T = 50 consecutive sample pairs ( st−1, s t)∀t ∈ [1 , T ] each, where st
+
+is the sample at time t. Of these 448 simulations, we only use 421 for training and completely isolate 27 random simulations for final evaluation. Additional information on the creation of the data set can be found in the Appendix in B.1. 
+
+5.3.2 Training 
+
+Our model is initialized with an embedding dimension of 128 and 12 Encoder and Decoder layers where each attention uses 8 attention heads with a head dimension of 16. We use a small dropout of 0 .05 to promote generalization and apply additional Nystr¨ om approximation [34, 30] to uniformly sample 150k points during training. The latter can also be seen as a kind of position augmentation as the model quickly needs to learn how to accurately encode positions efficiently. This constant is also chosen because it ensures that the model can be trained on a GPU with 48GB VRAM. 9We train our model with an 80 /20 training/validation split and an effective mini-batch size of 48 for 256 epochs using the relative L 2-loss [53] and the AdamW optimizer [54] with a weight decay of 10 −2. Due to the different magnitudes of the channels, we note that we take the relative L 2-loss per channel first, before applying mean aggregation. Our learning rate is controlled by a cosine learning rate scheduler with linear warmup for 8 epochs, an initial learning rate of 10 −7, a peak learning rate of 10 −4, and a terminal learning rate of 10 −6.Due to the difference in magnitude of the input fields, we apply log( ·) transformation to p and ρ and normalize all data with Z-Standard normalization with statistics calculated on the whole data set, except for the positions that we normalize to a range of [0 , 1] as this makes it easier to rescale them for Rotary Embedding. We train the model with next-timestep-prediction, i.e., the output at time t and query positions pt is produced from the inputs at time t − 1 sampled at positions pt−1.
+
+5.3.3 Results 
+
+We continue with the model achieving the lowest L 2-loss on the evaluation split, which is reached after 204 epochs. The results are produced on the excluded 27 simulations to test the true generalization capabilities of the model and without Nystr¨ om sampling, i.e., taking into account the entire AMR mesh. From the results that are captured in Table 1 we can see that the model is able to successfully learn the overall dynamics of the simulation. The identity baseline that is given as a comparison is notably surpassed, and the model even gets relatively close to the performance of an overfitted model, which serves as an empirical lower bound for the achievable error given the current architecture and problem constraints. More information on the baselines can be found in the Appendix in B.4. Table 1: Error of OFormer against Identity baseline and overfitted OFormer for comparison. Model L2 error L∞ error OFormer 0.245 1.028 Identity 0.372 1.631 
+
+Overfitted OFormer 0 .092 0 .412 
+
+However, we also observe that the performance is not uniform across simulation time. As shown in Figure 6, the prediction error starts low and rises for later time steps. The quality gap between the best and worst performing example for each time step is also increasing, which hints that some simulations can be recreated better than others. 10 Figure 6: Evolving L 2 error of the OFormer on the test set. After low initial errors, the model starts to produce worse predictions for later timesteps when finer details are missed. These metrics are calculated on the 27 test simulations. Looking at an early prediction of ρ shown in Figure 7, we can see that the jet did not fully evolve, yet. This makes it easier for the model to accurately predict the physics of the simulation allowing it to even capture shock waves. 11 Figure 7: Prediction of ρ at an early timestep ( t = 5). The parameters for the jet are dk = 4, vb = 0 .995, 
+
+η = 0 .006. All major details are successfully reconstructed including the top shockwave, while finer details like swirls cannot be recreated perfectly. (L 2 = 0 .212, L ∞ = 0 .697, L 2,ρ = 0 .185) In contrast, later predictions of ρ as shown in Figure 8, lack fine details of swirls or shock waves, which explains the sharp decrease in accuracy for later time steps. As the background medium is accurately computed, we can also validate that the model learns to link positions between different meshes well with the help of positional encoding and adding the position as a feature. We also provide additional examples of jet predictions in the Appendix in B.5, where we continue to see worse results for faster jets. For these, the turbulent jets make up a greater percentage of the sequences, showing that the computation of turbulent medium still shows room for improvement. 12 Figure 8: Prediction of ρ at a later timestep ( t = 40). The parameters for the jet are dk = 4, vb = 0 .995, 
+
+η = 0 .006. Major details are mostly reconstructed while some finer details are missing or oversmoothed. (L 2 = 0 .366, L ∞ = 0 .729, L 2,ρ = 0 .396) 
+
+# 6 Conclusion 
+
+This work presents two distinct approaches for investigating SRMHD evolution with Neural Operators. More specifically they aim at building surrogate models for the Black Hole Accretion Code ( BHAC ). 
+
+i) A Physics-Informed Fourier Neural Operator (PINO) is trained to predict the evolution of resistive 
+
+SRMHD, with the Orszag-Tang vortex serving as the test case. Training is performed on Orszag-Tang vortices spanning resistivities in both the Sweet-Parker and fast reconnection regimes. Data supervision is sparse in the temporal domain, and the governing equations are embedded as an additional loss term imposed at finer temporal resolution. A clear improvement in model performance is observed in the sparsely supervised regime. Notably, the physics informed model successfully predicts plasmoid formation, whereas an otherwise identical data-only baseline fails to do so. This approach suffers from several limitations: GPU memory pressure at high spatial resolutions, the stiffness of Amp` ere’s law in the low-resistivity limit, and downsampling artifacts when training below the effective AMR resolution. Most critically, working in the strong-form formulation is in tension with the shock discontinuities present in the data. 
+
+ii) An OFormer Neural Operator is trained to predict the evolution of Spine-Sheath Relativistic Jets on an AMR grid. We were able to show that the model is successfully learning to natively encode different AMR input and output grids and can evolve SRMHD in time and space. While continuous propagation from an initial step (rollout) and its convergence have not been tested, yet, the success of next-timestep predictions already shows the potential of such simulations. However, our solution also suffers from large memory footprints and long training times which despite linear attention and Nystr¨ om sampling could present itself as a major hurdle when scaling the model in the 13 future. This holds especially true, if the lessons from the PINO are transferred to the OFormer AMR model which could be needed for better capturing finer details. Taken together, these two lines of investigation demonstrate complementary strengths of neural operator surrogates for relativistic MHD. Physics-informed training reduces the dependence on densely sampled sim-ulation data and enables the recovery of physically meaningful structures that purely data-driven models miss. Operating natively on AMR grids, in turn, avoids the information loss of regridding and brings neural surrogates closer to the data representations already used by established solvers. A natural next step is to combine both directions – integrating physics informed losses into the AMR-native framework – to further improve the physical fidelity of the predictions. 
+
+# References 
+
+[1] Event Horizon Telescope Collaboration et al. “First M87 Event Horizon Telescope Results. I. The Shadow of the Supermassive Black Hole”. In: apjl 875.1, L1 (Apr. 2019), p. L1. doi : 10.3847/2041-8213/ab0ec7 . arXiv: 1906.11238 [astro-ph.GA] .[2] Event Horizon Telescope Collaboration et al. “First M87 Event Horizon Telescope Results. V. Physical Origin of the Asymmetric Ring”. In: apjl 875.1, L5 (Apr. 2019), p. L5. doi : 10.3847/2041- 8213/ ab0f43 . arXiv: 1906.11242 [astro-ph.GA] .[3] O. Porth et al. “The Black Hole Accretion Code”. In: Computational Astrophysics and Cosmology 4.1 (2017), p. 1. doi : 10.1186/s40668- 017- 0020- 2 . url : https://doi.org/10.1186/s40668- 017-0020-2 .[4] H. Olivares et al. “Constrained transport and adaptive mesh refinement in the Black Hole Accretion Code”. In: Astronomy & Astrophysics 629 (2019), A61. doi : 10.1051/0004- 6361/201935559 . url :
+
+https://doi.org/10.1051/0004-6361/201935559 .[5] B. Ripperda et al. “General-relativistic Resistive Magnetohydrodynamics with Robust Primitive-variable Recovery for Accretion Disk Simulations”. In: The Astrophysical Journal Supplement Series 244.1 (2019), p. 10. doi : 10.3847/1538-4365/ab3922 . url : https://doi.org/10.3847/1538-4365/ab3922 .[6] Oliver Porth et al. “The Event Horizon General Relativistic Magnetohydrodynamic Code Comparison Project”. In: apjs 243.2, 26 (Aug. 2019), p. 26. doi : 10.3847/1538-4365/ab29fd . arXiv: 1904.04923 [astro-ph.HE] .[7] Nikola Kovachki, Zongyi L, and Burigede Liu et al. Neural Operator: Learning Maps Between Function Spaces . 2021. arXiv: 2108.08481 [cs.LG] . url : https://arxiv.org/abs/2108.08481 .[8] Zongyi Li et al. Fourier Neural Operator for Parametric Partial Differential Equations . 2021. arXiv: 
+
+2010.08895 [cs.LG] . url : https://arxiv.org/abs/2010.08895 .[9] Zongyi Li et al. Physics-Informed Neural Operator for Learning Partial Differential Equations . 2023. arXiv: 2111.03794 [cs.LG] . url : https://arxiv.org/abs/2111.03794 .[10] Shawn G Rosofsky and E A Huerta. “Magnetohydrodynamics with physics informed neural operators”. In: Machine Learning: Science and Technology 4.3 (June 2023), p. 035002. doi : 10 . 1088 / 2632 -2153/ace30a . url : https://doi.org/10.1088/2632-2153/ace30a .[11] Roberta Duarte, Rodrigo Nemmen, and Reinaldo Santos-Lima. Spectral Learning of Magnetized Plasma Dynamics: A Neural Operator Application . 2025. arXiv: 2507 . 01388 [astro-ph.HE] . url : https : //arxiv.org/abs/2507.01388 .[12] Rony Keppens et al. “Parallel, grid-adaptive approaches for relativistic hydro and magnetohydrody-namics”. In: Journal of Computational Physics 231.3 (2012), pp. 718–744. [13] O Porth et al. “MPI-AMRVAC for solar and astrophysics”. In: The Astrophysical Journal Supplement Series 214.1 (2014), p. 4. 14 [14] A. Bormanis, C. A. Leon, and A. Scheinker. “Solving the Orszag–Tang vortex magnetohydrodynamics problem with physics-constrained convolutional neural networks”. In: Physics of Plasmas 31.1 (Jan. 2024), p. 012101. issn : 1070-664X. doi : 10 . 1063 / 5 . 0172075 . eprint: https : / / pubs . aip . org / aip / pop / article - pdf / doi / 10 . 1063 / 5 . 0172075 / 19722111 / 012101 _ 1 _ 5 . 0172075 . pdf . url :
+
+https://doi.org/10.1063/5.0172075 .[15] Semih Kacmaz, E A Huerta, and Roland Haas. “Resolving turbulent magnetohydrodynamics: a hy-brid operator-diffusion framework”. In: Machine Learning: Science and Technology 6.3 (Sept. 2025), p. 035057. issn : 2632-2153. doi : 10.1088/2632-2153/ae054c . url : http://dx.doi.org/10.1088/ 2632-2153/ae054c .[16] Taeyoung Kim, Youngsoo Ha, and Myungjoo Kang. Neural Operators Learn the Local Physics of Mag-netohydrodynamics . 2024. arXiv: 2404.16015 [physics.comp-ph] . url : https://arxiv.org/abs/ 2404.16015 .[17] Corwin Cheung et al. Reconstructing Relativistic Magnetohydrodynamics with Physics-Informed Neural Networks . 2025. arXiv: 2512.23057 [physics.comp-ph] . url : https://arxiv.org/abs/2512.23057 .[18] Steven A. Orszag and Cha-Mei Tang. “Small-scale structure of two-dimensional magnetohydrodynamic turbulence”. In: Journal of Fluid Mechanics 90.1 (1979), pp. 129–143. doi : 10.1017/S002211207900210X .[19] Bart Ripperda, Fabio Bacchini, and Alexander A. Philippov. “Magnetic Reconnection and Hot Spot Formation in Black Hole Accretion Disks”. In: The Astrophysical Journal 900.2 (Sept. 2020), p. 100. 
+
+issn : 1538-4357. doi : 10 . 3847 / 1538 - 4357 / ababab . url : http : / / dx . doi . org / 10 . 3847 / 1538 -4357/ababab .[20] PhysicsNeMo Contributors. NVIDIA PhysicsNeMo: An open-source framework for physics-based deep learning in science and engineering . Version 1.2.0. Feb. 2023. url : https://github.com/NVIDIA/ physicsnemo .[21] Tim De Ryck, Siddhartha Mishra, and Roberto Molinaro. wPINNs: Weak Physics informed neural networks for approximating entropy solutions of hyperbolic conservation laws . 2022. arXiv: 2207.08483 [math.NA] . url : https://arxiv.org/abs/2207.08483 .[22] Jassem Abbasi et al. “Challenges and advancements in modeling shock fronts with physics-informed neu-ral networks: A review and benchmarking study”. In: Neurocomputing 657 (2025), p. 131440. issn : 0925-2312. doi : https://doi.org/10.1016/j.neucom.2025.131440 . url : https://www.sciencedirect. com/science/article/pii/S0925231225021125 .[23] Manvendra P. Rajvanshi and David I Ketcheson. “INTEGRAL PINNS FOR HYPERBOLIC CON-SERVATION LAWS”. In: ICLR 2024 Workshop on AI4DifferentialEquations In Science . 2024. url :
+
+https://openreview.net/forum?id=Uuu6HWe6dF .[24] Ben S Prather. “Kharma: Flexible, portable performance for grmhd”. In: New Frontiers in GRMHD Simulations . Springer, 2025, pp. 167–201. [25] Hrvoje Jasak, Aleksandar Jemcov, Zeljko Tukovic, et al. “OpenFOAM: A C++ library for complex physics simulations”. In: International workshop on coupled methods in numerical dynamics . Vol. 1000. Dubrovnik, Croatia). 2007, pp. 1–20. [26] Hrvoje Jasak. “Dynamic mesh handling in OpenFOAM”. In: 47th AIAA aerospace sciences meeting including the new horizons forum and aerospace exposition . 2009, p. 341. [27] Boris Bonev et al. “Spherical fourier neural operators: Learning stable dynamics on the sphere”. In: 
+
+International conference on machine learning . PMLR. 2023, pp. 2806–2823. [28] James R Driscoll and Dennis M Healy. “Computing Fourier transforms and convolutions on the 2-sphere”. In: Advances in applied mathematics 15.2 (1994), pp. 202–250. [29] Zongyi Li et al. “Fourier neural operator with learned deformations for pdes on general geometries”. In: Journal of Machine Learning Research 24.388 (2023), pp. 1–26. [30] Zongyi Li et al. “Neural operator: Graph kernel network for partial differential equations”. In: arXiv preprint arXiv:2003.03485 (2020). 15 [31] Franco Scarselli et al. “The graph neural network model”. In: IEEE transactions on neural networks 
+
+20.1 (2008), pp. 61–80. [32] Thomas N Kipf and Max Welling. “Semi-supervised classification with graph convolutional networks”. In: arXiv preprint arXiv:1609.02907 (2016). [33] Zongyi Li et al. “Geometry-informed neural operator for large-scale 3d pdes”. In: Advances in Neural Information Processing Systems 36 (2023), pp. 35836–35854. [34] Evert J Nystr¨ om. “ ¨Uber die praktische Aufl¨ osung von Integralgleichungen mit Anwendungen auf Randwertaufgaben”. In: Acta Mathematica (1930). [35] Hang Zhou et al. “Transolver-3: Scaling Up Transformer Solvers to Industrial-Scale Geometries”. In: 
+
+arXiv preprint arXiv:2602.04940 (2026). [36] Ashiqur Rahman et al. “Pretraining codomain attention neural operators for solving multiphysics pdes”. In: Advances in Neural Information Processing Systems 37 (2024), pp. 104035–104064. [37] Edoardo Calvello et al. “Continuum attention for neural operators”. In: Journal of Machine Learning Research 26.300 (2025), pp. 1–52. [38] Ashish Vaswani et al. “Attention is all you need”. In: Advances in neural information processing systems 
+
+30 (2017). [39] Alexey Dosovitskiy et al. “An image is worth 16x16 words: Transformers for image recognition at scale”. In: arXiv preprint arXiv:2010.11929 (2020). [40] Benedikt Alkin et al. “Universal physics transformers: A framework for efficiently scaling neural oper-ators”. In: Advances in Neural Information Processing Systems 37 (2024), pp. 25152–25194. [41] Yaozhong Shi et al. “Mesh-informed neural operator: A transformer generative approach”. In: arXiv preprint arXiv:2506.16656 (2025). [42] Shizheng Wen et al. “Geometry aware operator transformer as an efficient and accurate neural surrogate for pdes on arbitrary domains”. In: arXiv preprint arXiv:2505.18781 (2025). [43] Haixu Wu et al. “Transolver: A fast transformer solver for pdes on general geometries”. In: arXiv preprint arXiv:2402.02366 (2024). [44] Huakun Luo et al. “Transolver++: An accurate neural solver for pdes on million-scale geometries”. In: 
+
+arXiv preprint arXiv:2502.02414 (2025). [45] Zeyi Xu et al. “AMR-Transformer: enabling efficient long-range interaction for complex neural fluid sim-ulation”. In: Proceedings of the Computer Vision and Pattern Recognition Conference . 2025, pp. 5804– 5813. [46] Shuhao Cao. “Choose a transformer: Fourier or galerkin”. In: Advances in neural information processing systems 34 (2021), pp. 24924–24940. [47] Zijie Li, Kazem Meidani, and Amir Barati Farimani. “Transformer for partial differential equations’ operator learning”. In: arXiv preprint arXiv:2205.13671 (2022). [48] Jimmy Lei Ba, Jamie Ryan Kiros, and Geoffrey E Hinton. “Layer normalization”. In: arXiv preprint arXiv:1607.06450 (2016). [49] Julius Berner et al. “Principled approaches for extending neural architectures to function spaces for operator learning”. In: arXiv preprint arXiv:2506.10973 (2025). [50] Biao Zhang and Rico Sennrich. “Root mean square layer normalization”. In: Advances in neural infor-mation processing systems 32 (2019). [51] Dan Hendrycks and Kevin Gimpel. “Gaussian error linear units (gelus)”. In: arXiv preprint arXiv:1606.08415 
+
+(2016). [52] Jianlin Su et al. “Roformer: Enhanced transformer with rotary position embedding”. In: Neurocomput-ing 568 (2024), p. 127063. [53] Nikola Kovachki et al. “Neural operator: Learning maps between function spaces with applications to pdes”. In: Journal of Machine Learning Research 24.89 (2023), pp. 1–97. 16 [54] Ilya Loshchilov and Frank Hutter. “Decoupled weight decay regularization”. In: arXiv preprint arXiv:1711.05101 
+
+(2017). [55] Serguei S. Komissarov. “Multidimensional numerical scheme for resistive relativistic magnetohydrody-namics: Multidimensional numerical scheme for resistive relativistic MHD”. In: Monthly Notices of the Royal Astronomical Society 382.3 (Nov. 2007), pp. 995–1004. issn : 0035-8711. doi : 10.1111/j.1365-2966.2007.12448.x . url : http://dx.doi.org/10.1111/j.1365-2966.2007.12448.x .[56] Valentin Duruisseaux, Jean Kossaifi, and Anima Anandkumar. Fourier Neural Operators Explained: A Practical Perspective . 2026. arXiv: 2512.01421 [cs.LG] . url : https://arxiv.org/abs/2512.01421 .[57] Serguei S Komissarov, Oliver Porth, and Maxim Lyutikov. “Stationary relativistic jets”. In: Computa-tional astrophysics and cosmology 2.1 (2015), p. 9. [58] Christian M Fromm et al. “Radiative signatures of Parsec-Scale magnetised jets”. In: Galaxies 5.4 (2017), p. 73. 
+
+# Appendix A Details about the PINO for resistive SRMHD 
+
+# A.1 Special-Relativistic Resistive MHD equations 
+
+Maxwell’s equations 
+
+∇ · B = 0 (4) 
+
+∂tB + ∇ × E = 0 (5) 
+
+∇ · E = q (6) 
+
+−∂tE + ∇ × B = J (7) Ohm’s law in the general inertial frame is given by 
+
+J = γη [E + v × B − (E · v) v] + q v, (8) with γ being the Lorentz factor and v the velocity as measured by the inertial observer, and u = γ v the spatial part of the 4-velocity. The energy and momentum conservation laws are 
+
+∂te + ∇ · S = 0 , (9) 
+
+∂tP + ∇ · Π = 0 , (10) with the energy density 
+
+e = 12 (E2 + B2) + wγ 2 − p, (11) and the energy flux density S and and the momentum density PS = P = E × B + w γ 2 v, (12) and the stress tensor 
+
+Π = −EE − BB + w γ 2 vv +
+
+ 12 (E2 + B2) + p
+
+
+
+g. (13) 
+
+g is the metric tensor of space. The relativistic enthalpy per unit volume as measured in the rest frame of the fluid is 
+
+w = ρ + Γ p
+
+Γ − 1 , (14) with Γ being the adiabatic index. The continuity equation is 
+
+∂tρ γ + ∇ · (ρ γ v) = 0 . (15) These equations close the system. [55] 17 A.2 Orszag-Tang vortex 
+
+The Orszag-Tang vortex [18] is a toy model for turbulent special-relativistic resisitve MHD flow. It exhibits strong shocks as well as plasmoid formation. The following section is based on [19]. The used setup is a relativistic ideal gas with an adiabatic index of Γ = 43 , an initial uniform pressure 
+
+p = 10 and initial rest mass density ρ = 1. A 2 .5-dimensional grid ( x, y, z ) is used. The magnetic field B = ∇ × A is initialized by a vector potential 
+
+A = (0 , 0, A z )
+
+Az = 12 cos (2 x) + cos ( y). (16) The initial velocity field v = ( vx, v y , 0) is defined as 
+
+v = ( −vmax sin( y), v max sin( x), 0) , (17) with vmax = 0 .99 c/ √2. This ensures the maximum speed is limited by the speed of light. The physical domain is set to ( x, y ) ∈ [0 , 2π]2 with periodic boundary conditions. The time domain is set to t ∈ [0 , 10], assuming natural units. 
+
+# A.3 FNO 
+
+The architecture of the Fourier Neural Operator is as follows (based on [56]). The input a is lifted using a neural network P. This produces a latent state vi, where i indexes the model layer. This is passed both through a linear transform Wi and the Fourier kernel. In the latter the state is Fourier transformed and a learnable linear transformation Ri applied and the higher frequency modes truncated. The results from both branches are added and an activation function σ is multiplied. 
+
+Q ◦ σ (WL + KL) ◦ . . . ◦ σ (W1 + K1) ◦ P , (18) With the Fourier kernel operator K
+
+(Ki(ϕ)vi)( x) = F−1 Ri · (Fvi)(x). (19) In total the learnable entities of the FNO are P, Q, Wi, Ri.FNO assumes periodicity in the in- and output, which conveniently is the case for the Orszag-Tang vortex.The temporal domain is padded to compensate for its inherent non-periodicity. 
+
+# A.4 PINO results 
+
+Figure 9: Slice of By at y = 3 .129 showing the model’s performance at a timestep without data supervision, without (left) vs. with (right) PDE constraints. 18 Figure 10: By from BHAC (left) with the model’s performance at a timestep without data supervision, without (middle) vs. with (right) PDE constraints. 
+
+A.4.1 Plasmoid regime 
+
+Figure 11: Electric current density Jz at a timestep without data supervision, at resistivity η = 1 .25 · 10 −4.Ground truth (left), the model’s interpolation without PDE constraints (middle) and the model’s predictions with PDE constraints enforced (right). Plasmoids are visible in the physics informed model, that were not present in the model without physics information. 19 Figure 12: Electric current density Jz at a timestep without data supervision, at resistivity η = 5 .59 · 10 −4.Ground truth (left), the model’s interpolation without PDE constraints (middle) and the model’s predictions with PDE constraints enforced (right). A clear improvement in accuracy is seen from the physics informed model to the model without physics information. 
+
+# B Details about the AMR-native Neural Operator 
+
+# B.1 Spine-Sheath Relativistic Jet Dataset 
+
+In order to investigate the propagation of relativistic jets with different initial conditions, i.e. injection velocity, density contrast with respect to the ambient medium and pressure ration, we build a large 2D library of propagating relativistic jets. In the following, we provide details on the numerical setup. 
+
+B.1.1 Numerical Model 
+
+The simulations presented in this work are performed using BHAC [3, 4, 5], solving the equations of ideal spe-cial relativistic magnetohydrodynamics (SRMHD) using adaptive mesh refinement and cylindrical geometry, appropriate to describe the transverse structure of relativistic jets. This drop in physical resistivity leads to a change in the MHD equations presented in subsection A.1. Equation 8 reduces to 
+
+E + v × B = 0 . (20) This removes the dependence of J from E in Equation 7 and E stops being an independent dynamical variable. The numerical grid covers a range of 100 × 200 jet radii, Rj in radial and z-direction. We make full use of the AMR capabilities of BHAC code and use a base grid of 256 × 256 pixels with four additional levels of AMR. This leads to an effective resolution of 4096 × 4096 pixels corresponding to a solution of ∼ 40 cells per jet radii in radial and ∼ 20 cells per jet radii in z-direction. 
+
+Jet Injection Conditions: At the jet inlet, we prescribe radial profiles based on a core-envelope config-uration of [55, 57, 58]. The initial state is defined by the gas pressure p(r) and the co-moving azimuthal magnetic field bϕ = Bϕ/Γ. The pressure profile is specified as 
+
+p(r) = 
+
+
+
+dkp0
+
+h
+
+α + 2
+
+> βm
+
+ 1 − (r/r m)2i
+
+, r < r m,αd kp0, rm < r < r j ,p0, r > r j ,
+
+(21) where rm denotes the radius of the jet core and rj the total jet-radius and dk the pressure mismatch between the jet and the ambient medium. The azimuthal magnetic field follows 
+
+bϕ(r) = 
+
+
+
+bm(r/r m), r < r m,bm(rm/r ), rm < r < r j ,
+
+0, r > r j ,
+
+(22) 20 ensuring a continuous magnetic structure across the core-sheath transition. Here, we define 
+
+βm = 2p0
+
+b2
+
+> m
+
+, α = 1 − 1
+
+βm
+
+ rm
+
+rj
+
+2
+
+, (23) 
+
+B.1.2 Velocity and Density 
+
+The magnetic and pressure profiles described above can be combined with arbitrary velocity and density distributions. In this work, we adopt a radial profile for the bulk Lorentz factor of the form Γ( r) = Γ 0 [1 − (r/r j )μ] + ( r/r j )μ, (24) where Γ 0 denotes the Lorentz factor on the jet axis. For sufficiently large values of μ (specifically μ > 8), this prescription produces an almost uniform Lorentz factor within the jet, while the surrounding medium remains stationary. The mass density is initialized according to 
+
+ρ(r) = 
+
+(
+
+ηρ a, r < r j ,ρa, r > r j , (25) where ρa is the ambient density at the jet nozzle and η defines the jet-to-ambient density contrast. The ambient medium is assumed to be constant in density and pressure. If not mentioned otherwise, the ambient density is set to ρa = 1 and the ambient pressure to p0. We close our system of equations using an ideal equation of state with an adiabatic index of ˆ γ = 4 /3. In addition to the adiabatic index we fix the jet’s outer radius to rj = 1 Rj and the jet’s core to rm = 0 .27 Rj . Furthermore, to ensure the same ambient pressure for all models we use fixed values for βm = 0 .6 and βm = 0 .138 which leads to an ambient pressure of p0 = 0 .02484 given in code units. The open parameters for our model library are therefore the jet velocity, the jet density ratio, η, and the over-pressure parameter, dk. We sample the velocity and density ratio logarithmically over eight grid points, while for the over-pressure we choose seven points on a linear scale. The boundaries are 0 .5 ≤ v ≤ 0.995, 
+
+−3 ≤ η ≤ − 0.3, and 1 ≤ dk ≤ 4. In total, our library consists of 448 high-resolution simulations of propagating relativistic jets. During the run of each simulation we write out a snapshot every 10 time units while the total run time for each model is 500 time units. Therefore, the resulting data set consists of 22400 SRMHD snapshot pairs. 
+
+# B.2 BHAC Fields for Relativistic Jets 
+
+Primitive Variables 
+
+Primitive variables are the physical variables included in BHAC snapshots that govern the current state of the simulation, i.e., no other variables are needed to continue the simulation except for potentially global parameters. Table 2: Principle measures in BHAC snapshots and presence in data set. 
+
+Variable Name Symbol Included? Encoded? 
+
+Gas Pressure p yes yes, log( p)Radial Spatial Velocity u1 = γ · v1 yes no Spatial Velocity in z u2 = γ · v2 yes no Spatial Velocity in ϕ u3 = γ · v3 yes no Azimuthal Magnetic Field in r b1 no, constantly 0 no Azimuthal Magnetic Field in z b2 no, constantly 0 no Azimuthal Magnetic Field in ϕ b3 yes no Ambient pressure ρ yes yes, log( ρ)21 Auxiliary variables 
+
+Auxiliary variables are either helper variables or are computable from primitive and global parameters and are therefore not directly needed for continuing the simulation. Currently, none of these variables are used in the simulator. Table 3: Auxiliary measures in BHAC snapshots and presence in data set. 
+
+Variable Name Symbol Included? Encoded? 
+
+Fluid Entropy s no no Tracer Variable of Jet tr1 no no Lorentz factor Γ no no Relativistic Enthalpy ξ no no Magnetic Energy Density B2 no no Magnetic Field Divergence ⃗ ∇⃗ b no no 
+
+Global Parameters 
+
+Global parameters define the simulation environment and the initial conditions of the jet. Currently, only changing parameters are included in the simulation as constants can be learned by the simulating model. Table 4: Global parameters in BHAC snapshots present in data set. 
+
+Variable Name Symbol 
+
+Simulation Time t
+
+Fluid injection velocity vb
+
+Jet density ratio η
+
+Pressure mismatch jet/ambient medium dk
+
+22 B.3 Model Architecture 
+
+Figure 13: Depiction of the Encoder layer (left) and Decoder layer (right) of the OFormer architecture. The overall architecture stays close to vanilla transformer layers with pre-normalization, but replaces the attention with a Galerkin-style linear attention. 
+
+# B.4 Identity baseline and overfitted OFormer 
+
+As the problem requires an AMR grid, calculating the identity function is not trivially possible. However, the AMR grid in this instance does not change drastically, thus we find the common points between the input and output and calculate the loss between the input and output queried at these points. The overfitted model was trained for 6000 epochs on one simulation which is equivalent to 30000 steps. All other parameters are chosen to be equal to the non-overfitted model. The last model was then evaluated on the same data set it was trained on, producing the overfitted OFormer baseline. 23 B.5 Additional Prediction Results 
+
+Figure 14: Prediction of ρ at t = 20. The parameters for the jet are dk = 4, vb = 0 .995, η = 0 .006. (L 2 = 0 .303, L ∞ = 0 .680, L 2,ρ = 0 .279) 
+
+Figure 15: Prediction of ρ at t = 50. The parameters for the jet are dk = 2, vb = 0 .672, η = 0 .002. (L 2 = 0 .395, L ∞ = 0 .722, L 2,ρ = 0 .2540) 24 Figure 16: Prediction of b3 at t = 50. The parameters for the jet are dk = 2, vb = 0 .672, η = 0 .002. (L 2 = 0 .395, L ∞ = 0 .722, L 2,b 3 = 0 .3446) 
+
+Figure 17: Prediction of u2 at t = 50. The parameters for the jet are dk = 2, vb = 0 .672, η = 0 .002. (L 2 = 0 .395, L ∞ = 0 .722, L 2,u 2 = 0 .2091) 25
