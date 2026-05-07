@@ -1,0 +1,502 @@
+Title: Learning the Helmholtz equation operator with DeepONet for non-parametric 2D geometries
+
+URL Source: https://arxiv.org/pdf/2605.00760v1
+
+Published Time: Mon, 04 May 2026 01:06:58 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+# Learning the Helmholtz equation operator with DeepONet for non-parametric 2D geometries 
+
+Rodolphe Barlogis a, Ferhat Tamssaouet b, Quentin Falcoz a, Stéphane Grieu a
+
+> aPROMES-CNRS, Université Perpignan Via Domitia (UPVD), Perpignan, France
+> bLAAS-CNRS, Université de Toulouse (UT), Toulouse, France
+
+Abstract 
+
+This paper deals with solving the 2D Helmholtz equation on non-parametric domains, leveraging a physics-informed neural operator network — the Deep-ONet framework. We consider a 2D square domain with an inclusion of arbitrary boundary geometry at its center. It acts as a scatterer for an incom-ing harmonic wave. The aim is to learn the operator linking the geometry of the scatterer to the resulting scattered field. A signed distance function to the boundary of the inner inclusion evaluated in several points on the domain is used to encode its geometry. It serves as input for the branch part of the DeepONet architecture and local information as the input for the trunk part. This approach enables the encoding of arbitrary geometries, whether they are parameterized or not. The evaluation of the model on unseen geometries was compared to its finite element method (FEM) equivalent to test its generalization capabilities. The trained network weights implicitly embed the local physics and their interaction with the domain geometry. If the training space sufficiently covers the target evaluation space, the model can generalize accordingly. Furthermore, it can be refined to extend to another region of interest without retraining from scratch. This framework also avoids the need to remesh the domain for each geometry. The proposed approach delivers a computationally lighter surrogate model than FEM alternatives and avoids relying on FEM generated training data. 
+
+Keywords: DeepONet, Neural Operators, Physics-informed, Helmholtz equation, Scattering 
+
+> arXiv:2605.00760v1 [cs.LG] 1 May 2026
+
+1. Introduction 
+
+For problems governed by partial differential equations (PDE), difficulty is that data are rarely available in large quantities at low cost. In most cases, generating training data requires either expensive experiments or repeated high-fidelity numerical simulations for many geometries, source terms, and boundary conditions. This makes the construction of large datasets com-putationally demanding, and motivates the search for lightweight surrogate models that can alleviate both data and computational burdens. This need is especially acute when repeated evaluations across multiple geometries are required, since traditional FEM solvers may then become a severe bottleneck. In this case, operator learning, especially when combined with automatic differentiation, provides a natural framework for addressing PDE-driven problems. Rather than approximating pointwise input–output mappings, neural operators aim to learn the underlying solution operator itself, i.e., a mapping from functional inputs—such as distributed forces, boundary conditions, or geometric descriptors—to full solution fields. This paradigm is particularly well suited for problems where the input space is inherently infinite-dimensional. In the present work, we adopt this perspective to learn the operator that maps the geometry of a domain to the corresponding solution fields of the Helmholtz equation. 
+
+1.1. Related works 
+
+The present work follows a growing body of research investigating the use of neural operators to recover PDE solutions as a function of geometry. A central challenge in this line of research lies in the representation of geometry and its integration into operator learning frameworks. Nair et al. (2024) propose a physics- and geometry-informed Deep Opera-tor Network (DeepONet) for the efficient simulation of acoustic scattering (obstacles) by arbitrarily shaped rigid obstacles. Their approach combines a physics-informed training strategy, where the Helmholtz equation and bound-ary conditions are enforced directly in the loss function, with a non-uniform rational B-spline (NURBS) parameterization of the geometry. In this frame-work, geometric information is encoded in the branch network through a compact set of NURBS control points, while spatial coordinates are processed by the trunk network. This low-dimensional parametrization alleviates the curse of dimensionality typically associated with geometric inputs and con-tributes to training stability. The architecture relies on ResNet blocks for 2both the branch and trunk networks. Applied to two-dimensional rigid body acoustic scattering, it learns a solution operator that maps scatterer geometry to the corresponding pressure field. Numerical results demonstrate high accuracy for both circular and arbitrary shapes that were not seen during training (within the NURBS family and over the range of parameters chosen for the control points), with relative 
+
+L2 errors typically below 15% and R2 scores exceeding 0.97 when compared to finite element (FE) solutions. However, performance degrades for geometries exhibiting sharp features, highlighting an intrinsic limitation of spline-based representations. Indeed, while NURBS provide a flexible and widely adopted framework for geometric modeling, they inherently produce smooth curves and surfaces, making them less suitable for capturing discontinuities, corners, or highly non-smooth features. Additionally, the computation of boundary normals—required to enforce interface conditions—is not explicitly detailed in this study, which raises practical questions regarding implementation. This line of work has been pursued in Nair et al. (2025) with configu-rations involving multiple scatterers. The authors leverage the linearity of the Helmholtz equation to superimpose the scattered fields generated by individual obstacles. Specifically, the domain is decomposed according to the number of scatterers, and each subdomain is associated with a network whose output represents the contribution of the corresponding scatterer to the total scattered field. The total scattered field, obtained as the sum of these partial fields, is then inserted into the residual of the Helmholtz equa-tion to evaluate the loss function. The resulting gradients are subsequently backpropagated so as to train all subnetworks simultaneously. However, the proposed methodology does not seem to allow for generalization. It is able to learn a specific forward problem, but the model must be retrained whenever a different domain or new scatterers are considered. Moreover, this approach relies on linear superposition and may not directly extend to nonlinear PDEs. A different perspective is proposed by Fang et al. (2023), who introduce a physics-informed neural operator framework based on boundary integral formulations. Instead of learning over the full domain, the method restricts the learning process to the boundary, where unknown potentials are inferred. By reformulating PDEs as boundary integral equations (BIEs), the learning process focuses on unknown boundary potentials while implicitly satisfying the governing equations inside and outside of the domain. Using boundary integral representations, the proposed method reduces the dimensionality of the learning problem from O(N d) to O(N d−1), where d is the spatial 3dimension. This results in significantly lower training cost compared to conventional physics-informed neural networks (PINNs), which require dense interior collocation points. The approach is implemented using a neural operator architecture based on Nonlinear Manifold Decoders (NOMAD), which learns a mapping from geometric parameters and boundary observations to boundary potentials. An advantage of the method is its ability to handle complex and parameterized geometries as well as unbounded domains. Once the boundary potentials are inferred, solutions can be evaluated anywhere in the domain, including the far field, via the integral representations. The authors demonstrate the effectiveness of the approach on several benchmark problems, including the 2D Laplace equation, the 2D bi-harmonic equation, and the 3D Helmholtz scattering problem, achieving low relative errors (below 5%) when compared to boundary element method (BEM) reference solutions. To sum it up, the authors propose a boundary-integral neural operator framework that shifts learning from the full domain to the boundary, reducing computational cost while preserving accuracy on complex geometries and unbounded problems. Overall, this work establishes a connection between classical boundary integral methods and operator learning. Several recent contributions focuse on enhancing the geometric aware-ness of neural operators. Kim et al. (2026) introduce PRT-DeepONet, a geometry-aware deep operator network designed to efficiently predict pore-scale concentration fields in heterogeneous porous media governed by advec-tion–diffusion–reaction equations. Instead of relying solely on a convolutional encoder to extract geometric features from binary pore images, the authors add to the trunk network a geodesic distance function (GDF). Trained on lattice Boltzmann simulations covering a wide range of transport and reaction regimes, PRT-DeepONet achieves significantly improved geometric fidelity compared to vanilla DeepONet and Porous-DeepONet baselines. The GDF follows the same idea as the signed distance function (SDF) introduced in the present paper (Section 2.2). This method relies on supervised learning from simulation data, thus inheriting the cost of dataset generation. Similarly, Peyvan et al. (2025) intend to propose a fast geometry dependent surrogate model for flow field problem in order to ease the development of hypersonic and supersonic vehicles. Geometry is encoded in parametric descriptor, which serves as input of the branch network. The network is trained on high-fidelity discontinuous Galerkin spectral-element (DGSEM) simulations. In the same vein, He et al. (2024) propose full-field solutions on variable three-dimensional parameterized geometries. In addition to standard 4spatial coordinates, the authors augment each query point with a signed distance function (SDF) evaluated with respect to the external surface of the geometry. The branch input consists of a parameterization of the geometric features. In this work, the objective is to predict the three-dimensional stress field. However, the model is not trained solely by minimizing the residual of the governing stress-equilibrium equations; it also relies on reference data generated by FEM simulations. The approach should therefore be regarded as a supervised, data-driven learning framework rather than a purely physics-informed one. Moreover, unlike our proposed approach, the branch input used to encode the geometry is directly based on its defining parameters. As a result, the range of geometries that can be covered is inherently limited. Beyond parametric representations, Lee et al. (2025) introduce Geo-DeepONet: a class of geometry-aware hybrid iterative solvers that combine classical numerical methods with neural operator preconditioners to solve parametric PDEs on arbitrary unstructured domains. The main contribution is the introduction of Geo-DeepONet, a geometry-aware Deep Operator Net-work designed to generalize across unstructured meshes without retraining. Unlike standard DeepONets, which encode spatial information only through coordinates, Geo-DeepONet explicitly incorporates mesh connectivity infor-mation extracted from finite-element discretizations. This is achieved through a graph-based trunk network. It processes nodal coordinates together with the adjacency matrix of the mesh, thereby embedding geometric and topological information directly into the operator representation. Finally, Park and Kang (2025) propose Point-DeepONet, a hybrid operator-learning architecture that integrates PointNet Qi et al. (2017), a neural network designed to process unordered point clouds via pointwise feature extraction and symmetric aggregation, into the DeepONet framework, thereby enabling high-fidelity surrogate modeling for nonlinear structural analysis on non-parametric three-dimensional geometries. The geometric representation proposed in this work is based on a similar idea. The difference is that, in our approach, the geometry is encoded by evaluating a signed distance function (SDF) at points located away from the geometric boundary itself. Points evaluated do not need to cover the whole space, it is way lighter for the branch part. Moreover, in their framework, FEM simulation data are again required to guide the learning process. Without these data, the model would not be able to learn an operator, since the network would have almost no effective training signal to distinguish the responses associated with different geometries. 51.2. On the advantages of PINNs for modeling 
+
+The main appeal of physics-informed surrogate models, as opposed to full finite element simulations, lies in their potential for fast inference. This benefit, however, should not be confused with training efficiency. PINN training is computationally demanding because the governing equation residual and its derivatives must be evaluated at each collocation points, by means of automatic differentiation, and convergence may require a large number of iteration steps. In a systematic comparison with FEM, Grossmann et al. (2024). concluded that PINNs did not outperform the finite element method in terms of solution time and accuracy, although they could be faster during the evaluation stage once training was completed. This can be explained by the fact that the inference stage of a feedforward neural network has computational complexity O
+
+PLl=1 nl−1nl
+
+
+
+, where L is the number of layers and nl is the number of neurons in layer l. In other words, the dominant cost arises from the matrix-vector products performed between successive layers. These operations are highly parallelizable and therefore particularly well adapted to GPU execution. In comparison, FEM can exhibits a similar complexity, it depends on several factors, including the strategy used to assemble the algebraic system, the sparsity pattern of the matrix, and the linear solver considered. Further-more, while FEM computations can also benefit from parallelization, they are generally less directly amenable to efficient large-scale parallel execution than neural-network inference. Consequently, the initial training cost is worthwhile when it can be amor-tized across many evaluations of the learned model, as is the case in repeated-query scenarios such as design exploration, optimization, or inverse problem. Another advantage of such models is that the network weights implicitly encode the imposed physical constraints. Moreover, a model that has already been trained can in some cases be fine-tuned rather than retrained from scratch, provided that the new problem remains sufficiently close to the original one in terms of geometry or physical conditions. Recent work, such as proposed by Takao and Ii (2026) on fine-tuning PINNs reports improved convergence when the pretrained model is sufficiently similar to the target configuration 
+
+1.3. Contributions of this work 
+
+Overall, most existing works rely, at least partially, on supervised learning using high-fidelity simulation data to learn an operator. In contrast, the 6present work aims to learn the Helmholtz solution operator solely from the governing equations. A comparable approach is explored by Nair et al. (2024), discussed in the previous subsection. The main difference lies in the geometry encoding, and consequently in the range of geometries that can be represented. The main contributions of this paper are: 
+
+• Representation of non-parametric geometries through a signed distance function (SDF) encoding, 
+
+• Learning without FEM-generated data, relying solely on a physics-based loss function (i.e., effectively unsupervised), 
+
+• Competitive evaluation against FEM solutions, with advantages such as fast inference and no need for remeshing, 
+
+• Demonstration of generalization capabilities within a certain range of geometries. 
+
+1.4. Paper outline 
+
+Now that related work has been reviewed, the proposed methodology is presented in Section 2. This is followed by numerical experiments and validation in Section 3, before devoting a final section to conclusions and future perspectives (Section 4). 
+
+2. Methodology 
+
+The aim is to learn the field scattered by a scatterer as a function of the domain geometry. To this end, the governing wave equation, the domain, and the physical parameters governing the problem are defined, as they provide the information required for training the model. The objective is to obtain a lightweight surrogate model with fast inference, whose predictions depend explicitly on the domain geometry. For this purpose, a PINN-DeepONet approach is proposed. 
+
+2.1. The scattering problem 
+
+This paper considers wave propagation in an elastic material. For isotropic solids, the governing motion model is given by the vector Navier equation : 
+
+ρ ∂2um
+
+∂t 2 = μ ∆um + ( λ + μ) ∇(∇ · um), (1) 7where λ and μ are the Lamé parameters characterizing the isotropic material: 
+
+λ governs compressibility, while μ is the shear modulus that controls deviatoric deformation. Here, um denotes the displacement field in subdomain Ωm. This equation can be derived from a more general wave equation. To simplify the problem, we restrict our attention to horizontally polarized shear (SH) waves, in which the displacement takes the form um(x, y, t ) = (0 , 0, w m(x, y, t )) . This choice decouples out-of-plane motion from in-plane longitudinal (P) and shear (SV) waves, avoiding mode conversion at interfaces. Under the time-harmonic assumption wm(x, y, t ) = ℜ(Wm(x, y )e−iωt ), and partitioning the domain into two subregions Ω0 (the surrounding medium) and Ω1 (the inclusion), the problem reduces to the Helmholtz equation in each region: 
+
+∇ ·  μm∇Wm
+
+ + ρmω2Wm = 0 , in Ωm, m ∈ { 0, 1}. (2) Linearity of the equations is exploited to decompose the total field into an incident part Winc (propagating from infinity) and a scattered part Ws.In particular, the incident field is taken as a plane wave 
+
+Winc = |Winc | e ik 0(d·x), (3) where |Winc | is the incident wave amplitude, d the propagation direction vector, and k0 the wavenumber in Ω0. As Ω1 is considered as a hole (void) so μ1 = 0 ,
+
+λ1 = 0 and ρ1 = 0 , implying that the incident wave is entirely reflected (there is no transmitted part nor absorbed) at the boundary: Γ = ∂Ω1. Therefore, to satisfy the continuity conditions, the following conditions are imposed at the interface Γ = ∂Ω0 ∩ ∂Ω1:
+
+
+
+W0 = Winc + Ws, in Ω0,μ0 ∂n
+
+ Winc + Ws
+
+ = 0 , in Γ
+
+(4) where ∂n denotes the normal derivative on Γ. The latter condition enforces zero flux through the rigid boundary. On the outer boundary of the domain (the perimeter of the unit square), an absorbing (non-reflecting) boundary condition is imposed on the scattered field Ws.Figure 4 shows the two-dimensional computational domain used in our experiments. The inclusion is chosen to have a concave shape to promote both constructive and destructive wave interference, causing the scattered field to remain relatively localized. This shape was also chosen to be symmetric in 8order to reduce the amount of distinct geometric information that must be learned, since we treat this as a proof of concept. For the same reason, the different geometries considered during training correspond to the same base geometry, simply rotated by a given angle.    
+
+> Figure 1: 2D Domain with inclusion and absorbing outer borders. Highlight the incident wave field Winc and the scattered field Ws
+
+2.2. A PINN DeepOnet Framework 
+
+Physics-Informed Neural Networks (PINNs) is a technical concept revi-talized by the seminal paper of Raissi et al. Raissi et al. (2019) that aims to integrate physical laws directly into the deep learning architecture. It proposes to leverage AD Baydin et al. (2018) in order to compute the partial derivatives of neural network output with respect to its input coordinates (such as space and time). By backpropagating derivatives through the com-putational graph, PINNs can evaluate the residual of PDE at any given point. This residual is then incorporated into the loss function as a regularization term, penalizing solutions that violate the underlying physics. This same foundational principle, using AD to enforce physical constraints, is also a key component in the training of Deep Operator Networks (DeepONets) and other neural operator frameworks. DeepONets Lu et al. (2021a) are specialized neural architectures designed to learn mapping between infinite-dimensional function spaces, effectively approximating both linear and nonlinear operators. The architecture is composed of two distinct sub-networks: a branch net and a trunk net, as illustrated in Figure 2. In the context of this study, which aims to map geometries to the resulting solution fields of the Helmholtz equation, the network’s inputs are partitioned by scale: 9Local geometry information 
+
+> x, y, sdf(x,y), nx(x,y), ny(x,y)
+> Output
+> Penalize residual
+> Automatic
+> differentiation
+> Trunk net
+> Branch net
+> Global geometry information
+> SDF evaluation in several points
+> Back propagation
+
+Figure 2: Schematic representation of the physics-informed DeepONet solving an Helmholtz problem. Highlight the decomposition of total wave field into the incident field Winc and the scattered field Ws
+
+• The branch net processes "global" information, encoding the overall geometric configuration or boundary conditions. 
+
+• The trunk net processes "local" information, typically the continuous coordinates (x, y, z ) where the solution is evaluated. The final output is generated by computing a dot product between the latent representations of both networks, allowing the model to generalize across varying geometries rather than being limited to a single domain. 
+
+Evaluate a signed distance function ϕ as the input of the branch net. To encode the fracture geometry, the signed distance function ϕ is sampled at multiple points (ξi, η i)Ni=1 throughout the domain, as illustrated in Figure 3. The vector of values ϕ(ξi, η i) constitutes the input of the DeepONet branch network, where ϕ(x, y ) denotes the radial distance from (x, y ) on the domain to the boundary of the inclusion (negative inside, positive outside). Since each geometry must be represented by a unique encoding, the mapping must be injective. This requires selecting a sufficient number of sampling points to encode and discriminate among the geometries of interest. 10 Figure 3: 2D domain with an inclusion. ϕ is evaluated in specific points around to distinguish different geometries. It serves as input of the branch net. 
+
+Future work may investigate how both the number and the spatial distribution of these points can be optimized in order to cover a broader class of shapes. The trunk network receives local information at the query point (x, y ). Its input vector includes (x, y ), the local SDF value ϕ(x, y ), and the components of its gradient  ϕx(x, y ), ϕ y(x, y ). In particular, the gradient ∇ϕ(x, y ) yields the normal direction to the boundary when (x, y ) ∈ Γ, which is used in enforcing the continuity of flux (zero traction) at the inclusion. Thus, the network has access to both global geometric features (via the SDF samples in the branch input) and local geometric features (via ϕ(x, y ) and ∇ϕ(x, y ) in the trunk input). Both branch and trunk inputs are processed by separate neural networks whose outputs are combined (element-wise or by inner product) to produce the final scalar output. Empirically, this separation improves generalization. In the present setting, the DeepONet output, which is the scalar field W (x, y ),is constrained to satisfy the Helmholtz equation. Thanks to automatic differentiation, we compute the spatial derivatives needed to evaluate the PDE residual at arbitrary points. During training, the loss function penalizes these Helmholtz residuals (and any boundary/interface condition violations) to guide the learning process with backpropagation. Instead of introducing a volumetric source term in the PDE (which can cause large gradients and training instability), an incident wave is analytically incorporated and the network is trained to predict the scattered field Ws
+
+only. This is achieved by imposing the incident wave as an external condition (effectively, a Sommerfeld radiation condition at infinity). By focusing on the homogeneous Helmholtz equation for Ws, we avoid the difficulties associated 11 with a localized source in the PINN loss function. 
+
+3. Results 
+
+This section presents the hyperparameters setup, the training results, and a quantitative validation against FEM reference solutions. 
+
+3.1. Setup and assumptions 
+
+The domain is the 2D square [0 , 1] × [0 , 1] , divided into two homogeneous regions: the exterior Ω0, which is filled with an elastic material (characterized by the Lamé coefficients λ0, μ 0 and a density ρ0), and the interior inclusion 
+
+Ω1, which is a void (so that λ1 = μ1 = 0 and ρ1 = 0 ). The incident wave Winc 
+
+is a time-harmonic SH plane wave of frequency ω. Its displacement field is 
+
+uinc (x, t ) = (0 , 0, w inc (x, t )) , winc (x, t ) = ℜ |Winc |ei(ks d·x−ωt ) , (5) where |Winc | is the incident wave amplitude, d the propagation direction, and ks the shear wavenumber in Ω0. We assume the inclusion boundary is perfectly rigid, so the incident wave is fully reflected. The outer boundary of the square is treated as absorbing for the scattered field Ws.Figure 4 shows the two-dimensional computational domain used in our experiments. The inclusion is chosen to have a concave shape to promote both constructive and destructive wave interference, causing the scattered field to remain relatively localized. This shape was also chosen to be symmetric in order to reduce the amount of distinct geometric information that must be learned, since we treat this as a proof of concept. For the same reason, the different geometries considered during training correspond to the same base geometry, simply rotated by a given angle. For the sake of simplicity, and to facilitate both the handling of the geometry and to achieve symmetry, the inclusion boundary (plotted in Figure 4) is described in parametric form. It is given by the polar equation: 
+
+R(θ) = 0 .2
+
+h
+
+1 + 0 .08 cos(2 θ) + 0 .23 cos(3 θ) + 0 .11 cos(5 θ)
+
+i
+
+,x(θ) = 0 .5 + R(θ) cos( θ),y(θ) = 0 .5 + R(θ) sin( θ).
+
+(6) for θ ∈ [0 , 2π).12 Figure 4: 2D Domain used for experiment. Highlight the incident wave field Winc and the scattered field Ws
+
+ϕ, the radial distance, can be retrieved from the parametrization equation and can be written: 
+
+ϕ(x, y ) = r −R(θ), r = p(x − xc)2 + ( y − yc)2, θ = atan2( y −yc, x −xc),
+
+(7) where (xc, y c) = (0 .5, 0.5) is the center of the inclusion and R(θ) is given by the polar formula given in Equation 6. This parametrization is also convenient because it prevents the spatial gradients from varying too abruptly in certain regions. The geometry features a concave region that interacts with the wavefront in a way that facilitates both constructive and destructive interference. As a result, the scattered field remains relatively localized rather than becoming overly diffuse. However, the effect of this choice on convergence has not been quantitatively assessed. At least from a qualitative standpoint, it makes the different fields easier to distinguish in the visualizations. As described earlier, a sufficient number of sampling points is required to discriminate the geometries of interest. In the experiments, five rotated variants of the base geometry are considered, and N = 10 sampling points are used as shown in 5, which is sufficient to distinguish among them. Collocation points are distributed throughout the domain; these are the points at which the network is evaluated during training. They are sampled uniformly, with a total of 15,000 points, and then filtered to retain only those lying in Ω0, i.e. those for which ϕ > 0. In addition, within a thin band around the boundary defined by ϕ, namely ∆ϕ = 0 .01 , an extra 50% of collocation points is added. At these points, the residual of the Helmholtz equation is penalized. 20,000 additional points are introduced on the outer boundaries of the domain, while 13 0.0 0.2 0.4 0.6 0.8 1.0 
+
+> x
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> y
+> Domain [0,1]x[0,1]
+> Hole
+> Hole boundary
+> Points for sdf evaluation
+
+Figure 5: Symmetrical geometry encoded with ϕ evaluated in ten different points. It serves as input of the branch net. 
+
+2,000 points per geometry are distributed along the corresponding boundaries characterized by ϕ = 0 . The numbers of collocation points and boundary points were chosen empirically so as to maintain a numerical balance among the different loss terms being enforced. More optimal configurations are likely possible. The training set consists of five geometries, obtained by rotating the base geometry by five distinct angles: −30 ◦, −10 ◦, 0◦, 10 ◦, and 30 ◦.This work relies on the DeepONet framework implemented by DeepXDE Lu et al. (2021b), using TensorFlow as the computational backend. The optimizer used in this work is the standard Adam algorithm. As described in the methodology section, the loss function is the mean squared error (MSE) designed to penalize the residual of the Helmholtz equation together with the associated boundary conditions. Both the branch net and the trunk net are standard fully connected neural networks, since architectural possibilities exploration is not the focus of this study. For both part, architectures with four layers and roughly one hundred neurons per layer were found empirically to yield convergence. This choice remains empirical, and further optimization is likely possible. For the equation parameters, μ0 = 1 and ρ0 = 1 are chosen, with no intention of matching any specific existing material. The frequency of the harmonic source, and thus the angular frequency ω, is selected to remain 14 relatively low. The goal is to keep the different terms in the equation balanced, since ω2 can very quickly dominate the residual. In real applications, however, shorter wavelengths are of greater interest, as defects are typically at least of the same order of magnitude. Investigating whether training remains convergent as the frequency increases therefore appears to be one of the most promising directions for future work. Figure 6 shows the evolution of the training losses over iterations. The total loss, as well as its individual components associated with the PDE residual, the inner boundary condition, and the outer absorbing boundary condition, all decrease steadily, indicating convergence of the training procedure. 
+
+> Figure 6: Evolution of the training losses over iterations. Individual contributions from the PDE residual, the inner boundary condition ( Γ), and the outer absorbing boundary condition ( Γout ) are shown separately.
+
+3.2. Finite element simulations for validation 
+
+To assess both the accuracy and the generalization ability of the trained model, it is evaluated for geometries corresponding to every integer angle between −60 ◦ and +60 ◦. For each of these angles, the predicted values over the domain are compared with the corresponding FEM simulation results, which serve as the reference solution. The points used to compute errors are the mesh nodes from the FEM simulation; the trained model is thus evaluated at these same locations. 15 Validation is carried out by comparing the network predictions against FEM reference solutions computed for identical configurations: same geometry, absorbing boundary conditions on the outer boundary, material parameters, and incident wave amplitude and direction. The FEM simulations were carried out using the open-source FreeFem++ library Hecht (2012). The weak formulation of the Helmholtz problem solved by FreeFem++ reads: 
+
+Z
+
+> Ω0
+
+
+
+ρ0 ω2 Ws v − μ0 ∇Ws · ∇ v
+
+
+
+dΩ +
+
+Z
+
+> Γout
+
+i μ 0 k0 Ws v dΓ 
+
+−
+
+Z
+
+> Γ
+
+μ0 i k 0 (d · n) Winc v dΓ = 0 .
+
+(8) To ease the parametrization of the domain meshing, Gmsh has been used Geuzaine and Remacle (2009). For this simulated example, the mesh consists of ≈ 2820 nodes, with slight variations depending on the geometry. It is refined along the inner inclusion boundary Γ.   
+
+> (a) Incident wave (b) Scattered field amplitude (c) Total field amplitude
+> Figure 7: FEM solution of the Helmholtz problem (Incidence angle: 0◦)
+
+Figure 7 shows, side by side, the incident wave, the scattered field ampli-tude, and the total field amplitude for an incidence angle of 0◦. Physically, 
+
+|W | represents the local oscillation amplitude, and therefore indicates where interference effects amplify or cancel the signal. The localized character of the scattered field, concentrated near the concavity, is consistent with the qualitative behavior expected for this type of geometry. Figure 8 qualitatively illustrates the absolute pointwise error between the trained model predictions and the FEM reference solutions for the angles 16 (a) Rotation angle 0◦ (b) Rotation angle +30 ◦ (c) Rotation angle +60 ◦    
+
+> Figure 8: Absolute pointwise error between the trained model predictions and the FEM reference solutions, for three incidence angles. The +60 ◦case lies outside the training range, i.e., [−30 ◦,+30 ◦].
+
+0◦, +30 ◦, and +60 ◦. From a qualitative standpoint, the +60 ◦ configuration, which lies farthest from the training geometries, exhibits the largest error. In Figure 9, subfigures a and b show the normalized sum of absolute point-wise differences between the trained model and the FEM solution, reported relative to the FEM values. The first considers points over the entire domain 
+
+Ω0, while the second focuses on a subregion around the concavity (shown in Figure 10), where the error is most concentrated. Once the model is applied to geometries outside the range spanned by the training set, i.e. [−30 ◦, +30 ◦], the error rises sharply. By contrast, it remains controlled for angles within this interval. The error is larger on the face directly exposed to the incoming wave, particularly in the concave region ( D2) , where interference effects are deliberately enhanced. One possible explanation is that the network output is biased toward lower values overall, making it more difficult for the model to reproduce localized peaks of larger amplitude. Subfigure 9c illustrates the model’s generalization capability by comparing each evaluated geometry against every training geometry. This confirms that the model does not merely memorize training configurations, but interpolates meaningfully across the space of geometries. 
+
+4. Conclusion and perspectives 
+
+This paper demonstrates the feasibility of learning the Helmholtz solution operator for non-parametric 2D geometries using a physics-informed Deep-ONet framework. The proposed approach aims to reconstruct the scattered field generated by a scatterer, with the Helmholtz equation serving as the 17 sole training guide. During training, the model is presented with the same scatterer under several orientations relative to the incident wave. Its capacity to generalize is subsequently evaluated on unseen angles not included in the training set. The predictive accuracy of the learned model is finally assessed through comparison with FEM simulations. Several natural extensions of this work are now outlined. The main advantage of such surrogate models lies in their speed compared with FEM simulations. This makes them particularly useful in optimization loops, for instance when solving inverse problems: once the surrogate model has been trained, a large number of candidate geometries can be evaluated at a much lower computational cost, without recomputing the solution field from scratch for each configuration. This is the most direct continuation of the present work. With the present setting, the linearity of the Helmholtz equation can be leveraged to address configurations involving multiple inclusions, following the superposition idea introduced by Nair et al. (2025). Unlike their approach, which is limited to a fixed configuration and does not generalize across different domains, the framework proposed in this paper is designed to be geometry-aware. A first model is trained according to the procedure described here, restricted to a single inclusion. The learned weights are then reused to initialize a second model aimed at handling multiple inclusions; in this way, the second model only has to learn the interactions between the individual scattered fields. Another direction for future work concerns the encoding of the geometry. The proposed approach makes it possible to represent an infinite variety of geometries, unlike in Nair et al. (2024). However, since computational resources remain limited, the number and placement of points at which the SDF is evaluated should be chosen systematically, so as to capture the widest possible diversity of geometries, rather than being fixed heuristically as in the present paper. As is common in machine learning research, empirical assessment remains essential. A wide range of questions therefore remains open regarding which layer types, network depths, and architectural choices may best promote con-vergence. It is also important to investigate how the training process evolves, or potentially degrades, when the frequency of the harmonic source, and thus its wavenumber, increases, and when fewer collocation and boundary points are used. It is also worth investigating whether adding further constraints could help improve convergence. Starting from the Helmholtz equation, one 18 can derive the flux density J(W ) = W μ ∇W − W μ ∇W , which satisfies the conservation law ∇ · J(W ) = 0 . Enforcing this relation by penalizing its residual is not equivalent to enforcing the Helmholtz equation itself. Although flux conservation carries less information than the full governing equation, it could still be beneficial as an auxiliary training constraint. In particular, it is possible to impose this conservation law without imposing the Helmholtz equation, whereas the converse is not true. Regarding the physical modeling itself, several extensions toward more realistic configurations are worth exploring. A natural first step would be to no longer treat the inclusion as a void, but rather as a second elastic material characterized by nonzero parameters μ1 and ρ1, which would introduce trans-mission across the interface in addition to reflection. A related question is whether it may be preferable to approximate the reflection/transmission law directly, rather than explicitly solving the field inside the inclusion. Further realism could also be achieved by incorporating volumetric and surface ab-sorption. Finally, extending the framework to three dimensions would require carefully examining the implications for wave polarization and the associated boundary conditions. 
+
+5. Acknowledgement 
+
+This work benefited from French state aid managed by the National Research Agency under France 2030 with the reference "ANR-22-PESP-0005". This work benefited from the GPU computing resources provided by the LAAS laboratory in Toulouse. 
+
+References 
+
+Atilim Gunes Baydin, Barak A Pearlmutter, Alexey Andreyevich Radul, and Jeffrey Mark Siskind. Automatic differentiation in machine learning: a survey. Journal of machine learning research , 18(153):1–43, 2018. Zhiwei Fang, Sifan Wang, and Paris Perdikaris. Learning Only On Bound-aries: a Physics-Informed Neural operator for Solving Parametric Par-tial Differential Equations in Complex Geometries, August 2023. URL 
+
+http://arxiv.org/abs/2308.12939 . arXiv:2308.12939 [cs]. 19 Christophe Geuzaine and Jean-François Remacle. Gmsh: A 3-D finite element mesh generator with built-in pre- and post-processing facilities. Interna-tional Journal for Numerical Methods in Engineering , 79(11):1309–1331, 2009. ISSN 1097-0207. doi: 10.1002/nme.2579. Tamara G. Grossmann, Urszula Julia Komorowska, Jonas Latz, and Carola-Bibiane Schönlieb. Can physics-informed neural networks beat the finite element method? IMA Journal of Applied Mathematics , 89(1):143–174, May 2024. ISSN 0272-4960. doi: 10.1093/imamat/hxae011. Junyan He, Seid Koric, Diab Abueidda, Ali Najafi, and Iwona Jasiuk. Geom-DeepONet: A point-cloud-based deep operator network for field predic-tions on 3D parameterized geometries. Computer Methods in Applied Mechanics and Engineering , 429:117130, September 2024. ISSN 0045-7825. doi: 10.1016/j.cma.2024.117130. URL https://www.sciencedirect.com/ science/article/pii/S0045782524003864 .F. Hecht. New development in freefem++. J. Numer. Math. , 20(3-4):251–265, 2012. ISSN 1570-2820. URL https://freefem.org/ .Yehoon Kim, Ho-rim Kim, and Heewon Jung. PRT-DeepONet: Geometry-aware neural operator for efficient prediction of pore-scale concentra-tion fields. Computers & Geosciences , 208:106098, February 2026. ISSN 0098-3004. doi: 10.1016/j.cageo.2025.106098. URL https://www. sciencedirect.com/science/article/pii/S0098300425002481 .Youngkyu Lee, Francesc Levrero Florencio, Jay Pathak, and George Em Karniadakis. Hybrid Iterative Solvers with Geometry-Aware Neural Pre-conditioners for Parametric PDEs, December 2025. URL http://arxiv. org/abs/2512.14596 . arXiv:2512.14596 [cs]. Lu Lu, Pengzhan Jin, and George Em Karniadakis. DeepONet: Learning nonlinear operators for identifying differential equations based on the universal approximation theorem of operators. Nature Machine Intelligence ,3(3):218–229, March 2021a. ISSN 2522-5839. Lu Lu, Xuhui Meng, Zhiping Mao, and George Em Karniadakis. DeepXDE: A deep learning library for solving differential equations. SIAM Review , 63 (1):208–228, 2021b. 20 Siddharth Nair, Timothy F. Walsh, Greg Pickrell, and Fabio Semperlotti. Physics and geometry informed neural operator network with application to acoustic scattering, June 2024. URL http://arxiv.org/abs/2406.03407 .arXiv:2406.03407 [cs]. Siddharth Nair, Timothy F. Walsh, Greg Pickrell, and Fabio Semper-lotti. Multiple scattering simulation via physics-informed neural net-works. Engineering with Computers , 41(1):31–50, February 2025. ISSN 0177-0667, 1435-5663. doi: 10.1007/s00366-024-02038-3. URL http: //arxiv.org/abs/2403.04094 . arXiv:2403.04094 [physics]. Jangseop Park and Namwoo Kang. Point-Deeponet: A Deep Operator Network Integrating Pointnet for Nonlinear Analysis of Non-Parametric 3d Geometries and Load Conditions, April 2025. URL https://papers. ssrn.com/abstract=5206877 .Ahmad Peyvan, Varun Kumar, and George Em Karniadakis. Fusion-DeepONet: A Data-Efficient Neural Operator for Geometry-Dependent Hypersonic and Supersonic Flows, May 2025. URL http://arxiv.org/ abs/2501.01934 . arXiv:2501.01934 [cs]. Charles R Qi, Hao Su, Kaichun Mo, and Leonidas J Guibas. Pointnet: Deep learning on point sets for 3d classification and segmentation. In Proceedings of the IEEE conference on computer vision and pattern recognition , pages 652–660, 2017. M. Raissi, P. Perdikaris, and G. E. Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics , 378:686–707, February 2019. ISSN 0021-9991. Ryuta Takao and Satoshi Ii. Fine-tuning physics-informed neural networks for cavity flows using coordinate transformation. Computers & Fluids , 306: 106957, February 2026. ISSN 0045-7930. doi: 10.1016/j.compfluid.2025. 106957. 21 -60° 
+
+-50° 
+
+-40° 
+
+-30° 
+
+-20° 
+
+-10° 
+
+0° 
+
+10° 
+
+20° 
+
+30° 
+
+40° 
+
+50° 
+
+60° 
+
+0.60 
+
+0.65 
+
+0.70 
+
+0.75 
+
+0.80 
+
+0.85 
+
+0.90 
+
+0.95 
+
+1.00 
+
+1.05 
+
+1.10 
+
+1.15 
+
+1.20 
+
+1.25 
+
+1.30 
+
+-30° 
+
+7.651e-01 
+
+-10° 
+
+8.953e-01 
+
+0° 
+
+9.099e-01 
+
+10° 
+
+8.821e-01 
+
+30° 
+
+7.820e-01 
+
+Trained model output error 
+
+|angle| <= 30° 
+
+|angle| > 30° 
+
+Angles used for training 
+
+> |Ws, pinn  Ws, fem ||Ws, fem |
+
+(a) Error on the whole domain Ω0-60° 
+
+-50° 
+
+-40° 
+
+-30° 
+
+-20° 
+
+-10° 
+
+0° 
+
+10° 
+
+20° 
+
+30° 
+
+40° 
+
+50° 
+
+60° 
+
+0.60 
+
+0.65 
+
+0.70 
+
+0.75 
+
+0.80 
+
+0.85 
+
+0.90 
+
+0.95 
+
+1.00 
+
+1.05 
+
+1.10 
+
+1.15 
+
+1.20 
+
+1.25 
+
+1.30 
+
+-30° 
+
+8.017e-01 
+
+-10° 
+
+8.107e-01 
+
+0° 
+
+7.906e-01 
+
+10° 
+
+7.165e-01 
+
+30° 
+
+8.171e-01 
+
+Trained model output error 
+
+|angle| <= 30° 
+
+|angle| > 30° 
+
+Angles used for training  
+
+> |Ws, pinn  Ws, fem ||Ws, fem |
+
+(b) Error on the subdomain D2-60° 
+
+-50° 
+
+-40° 
+
+-30° 
+
+-20° 
+
+-10° 
+
+0° 
+
+10° 
+
+20° 
+
+30° 
+
+40° 
+
+50° 
+
+60° 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+0.40 
+
+0.45 
+
+0.50 
+
+0.55 
+
+0.60 
+
+0.65 
+
+0.70 
+
+0.75 
+
+0.80 
+
+0.85 
+
+0.90 
+
+0.95 
+
+PINN(angle) vs FEM(-30°) 
+
+PINN(angle) vs FEM(-10°) 
+
+PINN(angle) vs FEM(0°) 
+
+PINN(angle) vs FEM(10°) 
+
+PINN(angle) vs FEM(30°) 
+
+Point with pinn = ref 
+
+|angle| <= 30° 
+
+|angle| > 30° 
+
+> |Ws, pinn ( ) Ws, fem ( ref )| |Ws, fem ( ref )|
+
+(c) Normalized error with respect to each training geometry 
+
+Figure 9: Normalized pointwise error between the trained model predictions and the FEM reference solutions, as a function of the incidence angle. The vertical dashed lines at ±30 ◦
+
+delimit the training range. 
+
+22 0.0 0.2 0.4 0.6 0.8 1.0   
+
+> x
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> y
+> Zone of interest 21
+> Hole in
+> 1
+
+Figure 10: Subdomain of interest D2 used to compute the localized error near the concavity. 
+
+23

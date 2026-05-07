@@ -1,0 +1,973 @@
+Title: 2605.00068v1.pdf
+
+URL Source: https://arxiv.org/pdf/2605.00068v1
+
+Published Time: Mon, 04 May 2026 00:02:44 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+Human-in-the-Loop Meta Bayesian Optimization for Fusion Energy and Scientific Applications 
+
+# Ricardo Luna Gutierrez 1† , Sahand Ghorbanpour 1† , Ejaz Rahman 2† , Varchas Gopalaswamy 2†
+
+# Riccardo Betti 2† , Vineet Gundecha 1† , Aarne Lees 2† , Soumyendu Sarkar 1†∗ 
+
+> 1
+
+# Hewlett Packard Enterprise 2University of Rochester 
+
+> 1
+
+# {rluna, sahand.ghorbanpour, vineet.gundecha, soumyendu.sarkar }@hpe.com 
+
+> 2
+
+# {reja, vgop, betti, alees }@lle.rochester.edu 
+
+# Abstract 
+
+Inertial Confinement Fusion (ICF) holds transfor-mative promise for sustainable, near-limitless clean energy, yet remains constrained by prohibitively high costs and limited experimental opportuni-ties. This paper presents Human-in-the-Loop Meta Bayesian Optimization (HL-MBO), a framework that integrates expert knowledge with few-shot, uncertainty-aware machine learning to accelerate discovery in data-scarce, high-stakes scientific do-mains. HL-MBO introduces a meta-learned sur-rogate model with an expert-informed acquisition function to recommend candidate experiments. To foster trust and enable informed decisions, HL-MBO also provides interpretable explanations of its suggestions. We show HL-MBO outperforms current BO methods on ICF energy yield optimiza-tion, as well as benchmarks in molecular optimiza-tion and critical temperature maximization for su-perconducting materials. 
+
+# 1 Introduction 
+
+The global community faces an existential challenge: the need to meet increasing energy demands while rapidly de-carbonizing to mitigate the effects of climate change. Inertial Confinement Fusion (ICF) represents a transformative solu-tion to this crisis, offering a path to a near-limitless, carbon-neutral power source without the long-lived radioactive waste or risks associated with traditional nuclear fission. 
+
+However, ICF experimental facilities are among the most complex and expensive machines ever built. Consequently, experiments are extremely costly and researchers are limited to only a few shots annually. For this reason, there is an ur-gent need for highly efficient optimization methods that can maximize the insights gained from every single experiment, effectively accelerating the timeline to a clean energy future. Bayesian Optimization (BO) has shown promise in op-timizing expensive black-box functions, using a surrogate model and acquisition function (AF) to guide experimental sampling  [Feurer et al. , 2015;  Snoek et al. , 2012;  Wang et 
+
+> ∗Corresponding author. †These authors contributed equally.
+
+al. , 2023].  However, BO faces skepticism due to its black-box nature and insufficient sample efficiency for complex tasks like ICF  [Betti and Hurricane,  2016;  Lees et al. , 2021; 
+
+Gopalaswamy et al. , 2019,  2024]. 
+
+Recent research incorporates human expertise into BO through human-in-the-loop methods, preference learning and explainability  [Colella et al. , 2020;  A V et al. , 2022;  Gupta 
+
+et al. , 2023;  Hvarfner et al. , 2022;  Adachi et al. , 2024]. 
+
+While promising, these methods are limited to single-task optimization, requiring the process to restart for each new task. To address new optimization tasks’ sample efficiency and leverage accumulated knowledge, Meta-Learning within Bayesian Optimization (Meta-BO) has garnered increasing interest  [Bai et al. , 2023]. 
+
+In Meta-BO, the surrogate model and/or AF are trained us-ing Meta-Learning techniques on a set of source tasks, en-abling rapid adaptation to new, unseen problems. Despite the promising transfer learning capabilities of Meta-BO, funda-mental challenges remain unaddressed for expensive scien-tific experiments. The trustworthiness and explainability of Meta-BO decisions, necessary for adoption in high-stakes do-mains, have received little attention. Furthermore, the princi-pled integration of valuable expert knowledge to potentially amplify optimization performance within Meta-BO remains an open problem. 
+
+To address these limitations, we introduce HL-MBO ,an explainable human-in-the-loop framework for Meta-Bayesian Optimization. Developed through a direct partner-ship between AI researchers and ICF physicists, HL-MBO integrates expert knowledge with few-shot, uncertainty-aware machine learning to accelerate discovery in data-scarce, high-stakes scientific domains. Built with interpretability in mind, HL-MBO provides insights into its decision-making process, helping to foster trust and expert engagement. An overview of the framework is presented in Figure  1.  We summarize our main contributions as follows: 
+
+• We propose HL-MBO, the first framework that inte-grates human-in-the-loop and Meta-BO. We demon-strate how this framework achieves superior perfor-mance against state-of-the-art (SOTA) human-aided BO and Meta-BO methods in high-stakes applications such as ICF. 
+
+• We propose a new formulation for an expert-informed 
+
+AF, which integrates both preference learning and ex-i=1     
+
+> nni=1 nn
+> Figure 1: Refinements proposed in HL-MBO over standard Bayesian Optimization. HL-MBO trains a meta-surrogate using related source tasks and integrates a preference model to incorporate expert knowledge. During online black-box optimization the meta-surrogate and preference model are used in conjunction with an AF to optimize the target function (scientific experiment), providing explanations to support decision-making.
+
+perts’ hypotheses, and study the effect that human ex-pertise can have over the optimization process. 
+
+• We implement a comprehensive explainable frame-work for Meta-BO, leveraging uncertainty quantifica-tion, Shapley values and LIME to provide users with insights into the model’s decision-making process and foster trust. 
+
+# 2 Background 
+
+2.1 Challenges of Yield Optimization for ICF 
+
+Inertial Confinement Fusion (ICF) achieves nuclear fusion by using lasers to compress and heat a deuterium-tritium fuel pellet to extreme temperatures and pressures, overcoming 
+
+2.2 Meta Bayesian Optimization 
+
+Bayesian Optimization (BO) is a technique that considers an objective function f as a black-box and aims to find the global optimum by sequentially selecting points to evalu-ate based on the information obtained from previous evalu-ations  [Garnett,  2023 ]. Meta-Bayesian Optimization (Meta-BO) approaches aim to improve the optimization of new unseen target black-box functions by leveraging knowledge from a set of N related source tasks (functions) F [Maraval 
+
+et al. , 2023].  We assume the model has access to this knowl-
+
+edge as datasets D1, , DN . Each dataset Dn consist of en
+
+evaluations of fn(x) ∈ F for all n ∈ {1, ..., N }, such as 
+
+electrostatic repulsion between nuclei and releasing energy  Dn = {(xi , y i )}en , where yi = fn(xi ). 
+
+[Betti and Hurricane,  2016].  Energy yield is highly sensitive to the laser pulse shape (LP) , which drives ignition within 3 ns and is controlled by five critical parameters. 
+
+ICF experiments are extremely costly due to the sophisti-cated laser systems and harsh operating conditions. More-over, access to ICF-capable facilities is limited, with only 5–10 shots typically conducted per day and just a few ex-perimental days available each year. 
+
+Although simulators can generate data to train surrogate models or warm-start optimization, discrepancies between simulated and real outcomes often arise due to the system’s complexity. As a result, there is a strong need for methods that can leverage simulation data but still be able to quickly adapt on the fly to compensate for these discrepancies. 
+
+In single-task scenarios, GPs have traditionally been the primary tool for constructing surrogate models. However, in the context of Meta-BO, recent studies highlight the superi-ority of uncertainty-aware meta-learning approaches, such as Neural Processes (NPs)  [Garnelo et al. , 2018].  NPs are a class of models that combine the expressive function approxima-tion capabilities of neural networks with the stochastic prop-erties of GPs. Trained following a meta-learning framework, NPs enable rapid adaptation to new functions at test time  [Jha 
+
+et al. , 2023].  Given a dataset of input-output context samples 
+
+Dc and an unlabeled set of l target locations XT = {xi}l
+
+in which we would like to make predictions, NPs generate a distribution p(·|X T , Dc) that approximates the true posterior over the target labels YT .π S
+
+σ π S
+
+> n
+
+# 3 HL-MBO 
+
+HL-MBO is an explainable meta-learning human-in-the-loop framework that improves the efficiency and trustworthiness of black-box optimization. HL-MBO accelerates the opti-mization of high-stakes experiments by synthesizing histor-ical task data with real-time expert insights, ensuring rapid convergence even in data-scarce environments. 
+
+The methodology presented here was developed through direct and iterative discussions between AI researchers and ICF physicists to ensure the framework addresses real-world experimental problems. Moreover, central to our approach is an expert-guided AF where the ICF experts acted as domain leads. 
+
+3.1 Preference Learning 
+
+Traditional Meta-BO approaches overlook the valuable in-sight that human experts can provide. In resource-intensive scientific applications such as ICF, effectively leveraging this expert knowledge is critical to increase experimental effi-ciency. To address this problem, HL-MBO incorporates a preference model built on binary preference learning  [Adachi 
+
+et al. , 2024;  Bradley and Terry,  1952;  Lun Chau et al. , 2022a]. 
+
+We construct a preference dataset by presenting experts with pairs of candidate points, {x1, x 2}, and asking them which point is more likely to be a better candidate for experimen-tal evaluation. Specifically, experts label each pair based on 
+
+their preferences. This process is repeated M times, result-
+
+x2 refer to features 1 and 2, respectively. Instead of per-forming a selection of pairs across the entire search space, we constrain the selection to points that fall within these de-
+
+fined hypotheses. This constraint applies exclusively dur-ing Dpref construction, without interfering with online black-box optimization’s flexibility to explore beyond hypothesis boundaries. This minimizes influence on the optimization process while improving preference data collection efficiency and quality. 
+
+3.3 Meta Training 
+
+A key shortcoming of prior human-aided BO techniques is their inability to exploit the rich information contained within historical experimental data or simulations  [Gupta et al. ,
+
+2023;  Hvarfner et al. , 2022;  Adachi et al. , 2024;  Souza et al. ,
+
+2021;  Ramachandran et al. , 2020;  Chakraborty et al. , 2024; 
+
+Akata et al. , 2020;  Venkatesh et al. , 2022].  In this work, in parallel with constructing the preference model, we train a Meta-BO model using a set of related source tasks and TNPs. TNPs are particularly well suited for this setting as they pro-vide a robust method for uncertainty-aware meta-learning by leveraging sequence modeling, enabling sample efficient op-
+
+timization. We consider each set Dn ∈ {D 1, , DN } con-
+
+taining en evaluations as an ordered training sequence. A ran-
+
+dom subset of each training sequence is selected as the con-text set, comprising context pairs ( x1: m, y 1: m), which serve as few-shot conditioning for the transformer model. Subse-
+
+ing in a dataset Dpref = {xi , xi , yi }M , where ypref is 1 if  quently, the TNPs autoregressively model the predictive like-    
+
+> 12pref i=1
+
+lihood of the remaining ( en − m) target points and optimize 
+
+x1 is favored over x2, and 0 otherwise. Dpref is then used to build a binary preference function g, which follows a likeli-hood model: P(ypref , |x1, x 2) = S(ypref ; g(x1, x 2)). Where 
+
+the objective: 
+
+L(θ) = Ex1: e ,y 1: e ,m [log pθ(ym+1: en | x1: en , y 1: m)] . (1) 
+
+S(y ; z) := zypref (1 − z)1−ypref represents a Bernoulli like-
+
+> pref
+
+lihood and g(x1, x 2) represents the user’s preference level for x1 compared to x2. To model function g, we em-ploy Dirichlet-based GPs  [Adachi et al. , 2024;  Milios et 
+
+al. , 2018]  combined with skew-symmetric data augmentation 
+
+[Lun Chau et al. , 2022b].  Following this approach allows us to estimate a preference model π as GPs that generate a distri-bution pπ(·|X T , Dc) that approximates an expert aligned pos-terior given a set of target locations XT and context samples 
+
+Dc.
+
+3.2 Experts’ hypotheses 
+
+Typically, the set of pair candidate points {x1, x 2} presented to human experts is randomly selected  [Adachi et al. , 2024]. 
+
+However, this random process is impractical and faces re-
+
+sistance from human experts in complex tasks due to the large number of samples that require labeling. A more ef-
+
+During each training iteration, the indices n (dataset) and 
+
+m (context-target split) are picked uniformly to define the division of the samples into context and target points. For the transformer architecture in TNPs, we adopt the GPT-style model described in  Nguyen and Grover  [2022]. 
+
+3.4 Acquisition Function 
+
+In expert-aided BO, we aim to find the point in the parame-ter space that leads to the best performance while considering experts’ preferences. CoExBO  [Adachi et al. , 2024]  estab-lished a principled approach by combining GP-based surro-gate model S and preference model π through a UCB acqui-sition function αS,π as: 
+
+αS,π (x) := μS,π (x) + σS,π (x) (2) 
+
+ficient approach would be to reduce the sampling space to  σ2 (x) σ2 (x)
+
+high-quality zones and reduce the number of samples re-quiring labeling by improving sample quality. To achieve 
+
+μS,π (x) := S,π μ
+
+S 2(x) π
+
+(x) + S,π μS
+
+σ2 (x) (x) (3) 
+
+that, we explore the concept of experts’ hypotheses  [Cisse  2
+
+> S,π
+
+S 2(x)σ2 (x)
+
+(x) :=  S 2(x) + σ2 (x) (4) 
+
+et al. , 2024]  in the scope of preference learning. Experts’ π S
+
+hypotheses can be defined as subsets H ⊂ X of the over- S 2(x) := σ2 (x) + γt 2σ2 (x), (5) 
+
+all search space, where experts identify a range of val- π π S
+
+ues considered promising. For instance, in a 2D problem where μS, σ2 and μπ, σ2 are the predicted mean and vari- 
+
+> Sπ
+
+(two features), a hypothesis might be specified as H =
+
+{x ∈ X | 0.1 < x1 < 0.7, 0.5 < x2 < 0.9} , where x1 and 
+
+ance (uncertainty) of the surrogate model S and the prefer-ence model π, respectively. The parameter γ is a decay factor S
+
+and t represents the current time step in the optimization pro-cess. γ ensures that the information provided by π decays, so the impact of π is high at the start of the optimization but allows S to take over at later stages. As demonstrated by 
+
+Adachi et al.  [2024],  this formulation offers a no-harm guar-antee, where even in a worst-case scenario the preference-influenced AF achieves convergence rates comparable to or better than those of standard BO AFs. 
+
+While CoExBO demonstrated strong single-task perfor-mance, it cannot leverage knowledge transfer from prior experiments or simulations, a crucial limitation for expen-sive scientific optimization where historical data from related tasks is available. Additionally, empirical studies have shown Expected Improvement (EI) often outperforms UCB in prac-tical optimization scenarios  [Merrill et al. , 2021]. 
+
+To address these limitations, we introduce a meta-learned TNP surrogate S to replace the standard GP-based surrogate used in traditional approaches. This enables knowledge trans-fer from related source tasks. Second, we formulate a new human-aided AF based on Expected Improvement to better exploit the improvement-based criterion. Our EI-based for-mulation αS,π (x) is defined as: 
+
+αS,π (x) = ( μS,π (x) − f (x+) − ξ)Φ( Z) + σS,π (x)ϕ(Z)
+
+(6) 
+
+μS,π (x) − f (x+) − ξ
+
+Moreover, we incorporate two widely used explainability methods: Shapley values (SHAP)  [Shapley,  1952;  Lundberg 
+
+and Lee,  2017]  and Local Interpretable Model-Agnostic Ex-planations (LIME)  [Rodemann et al. , 2024;  Ribeiro et al. ,
+
+2016]. 
+
+Figure  2 (b) provides an example of the explanation gen-erated by SHAP and LIME for the user. ”X1” and ”X2” denote the two candidate points proposed by αS and αS,π ,respectively. For each candidate point, the bars represent the Shapley or LIME attribution value of the features in re-lation to their respective AF score, TNPs’ predicted mean and TNPs’ uncertainty at proposed location. The divergence in feature attributions across methods offers human experts complementary perspectives on the model’s reasoning. Pro-viding these diverse explanations empowers experts to iden-tify truly influential features with greater confidence, facilitat-ing precise and targeted interventions in the optimization pro-cess. Furthermore, this multi-faceted explainability enables experts to critically analyze and potentially discard candidate solutions when the observed feature importance deviates sub-stantially from their domain knowledge or expected behavior, fostering a more robust and reliable optimization loop. In our collaboration, ICF experts utilized these attributions to ver-ify if suggested laser pulse parameters aligned with known physical sensitivities, allowing them to confidently override or accept model-predicted ”shots” based on domain intuition. 
+
+3.6 Explainable Expert Guided Optimization 
+
+Z = σS,π 
+
+, (7) 
+
+(x) Given a trained meta-surrogate model S, a preference model 
+
+π, a target function ftarget , and a context dataset Dc which 
+
+where f (x+) is the best observed value so far, Φ( ·) is the cumulative distribution function (CDF) and ϕ(·) is the prob-
+
+ability density function (PDF) of Z [Tacq,  2010].  The pa-rameter ξ is a small positive hyperparameter that encourages exploration. Crucially, we preserve the no-harm guarantee by 
+
+contains a set of I initial input-output samples which have been evaluated on ftarget , we start the optimization process by generating a pair of candidate points x1 and x2 where: 
+
+x1 = argmax αS(x) x2 = argmax αS,π (x)
+
+retaining the proven uncertainty combination structure from  x∈X x∈X
+
+Equations  3-4  (see Technical Appendix C), but introduce a principled extension by replacing the underlying components 
+
+Given these candidates, we provide explanations about them and the expert selects between both options. Subsequently, 
+
+μS and σ2 with the predictive mean and variance derived  this newly selected input-output pair {xi, y i} is appended to S the dataset D , D ← D ∪{ x , y }. D is used as context for 
+
+from our meta-trained TNP. This enables meta-learning ca- c c c i i c
+
+pabilities while maintaining theoretical convergence guaran-tees. 
+
+To provide users with flexible optimization strategies, HL-MBO also offers a preference-free AF αS(x) that applies standard Expected Improvement over the meta-surrogate alone ( μS and σ2 ), enabling pure data-driven optimization. 
+
+3.5 Explainability 
+
+To assist human experts in making informed decisions dur-ing the optimization process, we provide explanations of the model predictions. First, we present visual representations of the TNPs’ predicted experimental output (TNPs Mean) and its uncertainty levels, along with the AF values for the pro-posed HL-MBO candidates. Presenting uncertainty is partic-ularly important because it highlights the confidence level of the model in its predictions. Figure  2(a)  shows an example of these representations for general applications. We include representations for the specific task of ICF energy yield opti-mization in Section B of the Technical Appendix. 
+
+the surrogate to adapt its predicted posterior over the current function ftarget and a new pair of candidate points is generated. Since we are using TNPs, this adaptation does not require any gradient updates and only a forward pass with the new con-text Dc as input is necessary. This iterative process continues until a budget of points to evaluate B is reached. HL-MBO’s overall optimization process is shown in Algorithm  1. 
+
+# 4 Experiments 
+
+We evaluate HL-MBO across diverse domains to address three research questions: (1) performance on optimizing black-box tasks, (2) the influence of expert preferences, and 
+
+(3) the impact of experts’ hypotheses. 
+
+For ICF , we evaluate HL-MBO in the task of energy yield optimization, where we optimize 5 critical parameters of a LP in order to maximize energy generation. 
+
+Moreover, to demonstrate generalization across domains we make use of the HPO-B benchmark  [Pineda Arango et 
+
+al. , 2021]  a popular hyperparameter optimization benchmark pref   
+
+> t
+> t
+> SHAP Explanation LIME Explanation
+
+(a) (b) 
+
+> Figure 2: (a) Visual representation of the expected experimental output (TNPs’ Mean) and the associated uncertainty of the prediction for both candidate points proposed. (b) Feature attribution using SHAP and LIME on the ICF optimization task over 5 features, for the two candidate points proposed by HL-MBO. Each bar represents contribution with respect to the BO metrics (AF, Expected Output, Uncertainty Estimation).
+
+Algorithm 1 HL-MBO algorithm 
+
+Input: Meta-surrogate S, preference model π, target func-tion ftarget , initial samples I, budget B. 
+
+> 1:
+
+Initialize Dc ← I input-output pairs.  
+
+> 2:
+
+for i = 1 to B do  
+
+> 3:
+
+Obtain posterior p(·| Dc) from S and π. 
+
+> 4:
+
+Propose candidates {x1, x 2} using αS and αS,π . 
+
+> 5:
+
+Present candidates with explanations to expert.  
+
+> 6:
+
+Expert selects xp ∈ {x1, x 2}, evaluate ftarget (xp) = 
+
+all cases, the methods were evaluated on a set of test tasks that have not been seen during training. 
+
+For ICF , the ICF experts actively formulated hypothe-ses and selected from the candidate experiment pairs. For the HPO-B, superconductor and PMO tasks, we simulate human decision making for selecting candidate points pro-posed by the AFs αS, αS,π and constructing Dpref , by em-ploying the synthetic human selection method outlined in 
+
+Adachi et al.  [2024].  In this simulation, user selection is 
+
+modeled as fhuman (x1) >f human (x2), where fhuman (x) := 
+
+yp. ftarget (x) + ϵpref and ϵpref ∼ N(x; 0 , σ2 ). For hypoth- 
+
+> 7:
+
+Update Dc ← Dc ∪ {xp, y p}. 
+
+> 8:
+
+end for 
+
+esis selection, we simulate expert knowledge by dividing the search space into slices of size M = 100 and choos-ing the slice that contains the optima. For our experiments 
+
+used to evaluate Meta-BO approaches. We selected 3 dif- 2 
+
+> pref
+
+= 0 .1. 
+
+ferent datasets for this evaluation; Ranger (6D), SVM (8D), and XGBoost (16D), covering problems from 6 to 16 input dimensions (hyperparameters to optimize). 
+
+Additionally, we evaluate HL-MBO in the real-world high dimensional tasks of critical temperature maximization for 
+
+Superconductor (86D) materials and practical molecular op-timization (PMO) (2048D)  [Gao et al. , 2022;  Trabucco et al. ,
+
+2022]. 
+
+Additional experimental details and dataset descriptions can be found in the Technical Appendix. 
+
+4.1 HL-MBO Performance 
+
+To answer the first question, we compare HL-MBO against CoExBO and πBO  [Hvarfner et al. , 2022;  Adachi et al. ,
+
+2024],  SOTA approaches for human-in-the-loop BO, NAP 
+
+[Maraval et al. , 2023],  the SOTA for Meta-BO, and a stan-dard TNP+EI  [Nguyen and Grover,  2022].  Moreover, to eval-uate the isolated impact of our proposed AF, we design a new baseline, a meta-learning version of CoExBO (MCoExBO). MCoExBO uses the same UCB-based AF proposed in Co-ExBO; however, the single-task GPs are replaced by TNPs. Both HL-MBO and MCoExBO were meta-trained in the same training sets. Similarly, for fairness of comparison, the GPs used by CoExBO were initialized with training data. For 
+
+We set I = 1 for all tasks to emulate a real-world setting where sampling is costly. We evaluated all methods using 25 random seeds for the HPO-B and superconductor tasks and 5 random seeds for the ICF and PMO tasks. 
+
+As is common in BO literature, we evaluate performance in terms of simple regret, defined as Rt = f (x∗) − f (x+), where x+ is the best input point found up to and including time step t [Volpp et al. , 2020;  Maraval et al. , 2023].  Given 
+
+that, on average, a maximum of 10 shots can be fired dur-ing an ICF experiment day, we set our optimization budget 
+
+B = 10 for the ICF evaluations. Figure  3 presents the re-sults of this evaluation. HL-MBO significantly outperforms all baselines, achieving the lowest regret with the fewest op-timization steps. For ICF, HL-MBO reaches the optimum in 4 samples compared to 9 for the other methods, achieving a 44% improvement in sample efficiency. 
+
+As shown by MCoExBO, replacing the GP-based surrogate with TNPs improves optimization performance. However, us-ing TNPs alone is insufficient, as MCoExBO does not match the performance of HL-MBO. This highlights the effective-ness of our AF formulation in driving superior optimization outcomes. 
+
+A more granular analysis of HL-MBO’s success in the ICF domain is provided in Technical Appendix B. 
+
+σ10 0 10 0         
+
+> 10 1
+> 10 1
+> 10 1
+> 10 1
+> 10 1
+> 10 010 0
+> 10 1
+> kT
+> i=0
+
+yk                                             
+
+> Regret Evaluation (Distance from optima)
+> 10 0ICF
+> 10 0
+> PMO
+> 10 0
+> Superconductor
+> 10 0ICF
+> Hypothesis Evaluation
+> PMO
+> 10 010 0
+> Superconductor
+> 10 1
+> 10 110 1
+> 10 1
+> 10 1
+> 6×
+> 4×
+> 3×
+> 0510
+> Steps
+> Ranger
+> 010 20
+> Steps
+> SVM
+> 010 20
+> Steps
+> XGBoost
+> 10 1
+> 6 ×
+> 4 ×
+> 3 ×
+> 0510
+> Steps
+> Ranger
+> 010 20
+> Steps
+> SVM
+> 010 20
+> Steps
+> XGBoost
+> 2×
+> 010 20
+> Steps
+> 010 20
+> Steps
+> 10 1
+> 010 20
+> Steps
+> 2 ×
+> 010 20
+> Steps
+> 010 20
+> Steps
+> 10 1
+> 010 20
+> Steps
+
+Figure 3: Results of the comparison between HL-MBO and the base-lines. The lower the better. The shaded areas represent a ±1 stan-dard deviations. HL-MBO outperforms the baselines on all 6 bench-marks. Moreover, we can observe that HL-MBO is able to achieve the best sample efficiency in the scientific applications of ICF, PMO and Superconductor. 
+
+4.2 Robustness Analysis 
+
+Hypothesis Evaluation In this ablation, we explore the influ-ence of experts’ hypotheses on the performance of HL-MBO. For this experiment, we assume access to the target func-tion ftarget and consider three experimental settings: Expert Hypothesis (EH), Random Hypothesis (RH), and Adversarial Hypothesis (AH). To construct these hypotheses, we parti-tion the search space XT in K slices of size M . For each 
+
+Figure 4: Results of the comparison between different hypothesis. Expert and Adversarial represent the best-case and worst-case sce-narios, respectively, for sampling in the preference learning initial-ization. Random, represents uniform sampling. 
+
+value xp that yields the highest output yp from the candidate pairs {x1, x 2} affects HL-MBO’s performance. We evaluate the performance of HL-MBO on different experts’ accuracy thresholds: 50%, 75% and 100%. To conduct this analysis, we assume access to the target function, which allows us to 
+
+evaluate all pairs of inputs in Dpref and generate the corre-sponding datasets for each accuracy level. For all three cases we consider a good hypothesis. Figure  5 shows the results 
+
+slice k ∈ K, we evaluate all input values xi ∈ X k and gen- of this evaluation. In most cases, 75% and 100% accuracy 
+
+erate datasets Dk = {(xi , yi )}M . The Expert Hypothesis  levels, which represent some level of knowledge about the k k i=1 
+
+represents an optimal scenario. We construct it by selecting the slices that contain the optima. On the other hand, the Adversarial Hypothesis simulates the worst-case scenario, we 
+
+black-box function by the expert, show better performance than random selection (50%), emphasizing the crucial role of expert input in the optimization process. Moreover, we can 
+
+choose the slice k where the cumulative sum Vk = PM i
+
+is the lowest. For the Random Hypothesis, we uniformly sample from XT . We also added CoExBO and NAP for com-parison. 
+
+Figure  4 presents the results of this ablation study. De-spite the Adversarial Hypothesis impacting HL-MBO’s per-formance, it still outperforms CoExBO and matches NAP’s performance in most tasks, highlighting HL-MBO’s robust-ness. Moreover, the Random Hypothesis surpasses NAP on average across the six different tasks, demonstrating the HL-MBO’s ability to maintain strong performance even without access to an optimal hypothesis. 
+
+Accuracy Evaluation: We study the effect of correctness in experts’ selections when building dataset Dpref . Specif-ically, we assess how the accuracy in selecting the input 
+
+see that in most cases even 75% offers significant benefits. 
+
+Exploration Hyperparameter Evaluation: We investi-gate the influence of the parameter ξ which governs the bal-ance between exploration and exploitation in our EI-based AF. Higher values of ξ encourage more exploration. The re-sults of this evaluation are shown in Figure  6.  Across all do-mains, smaller values of ξ within the range of 0 .1 and 0 .3generally yield better performance compared to 0 .5. How-ever, domains such as Ranger and SVM require a higher level of exploration, as ξ = 0.3 obtains the best performance. These findings highlight that the optimal value of ξ is domain-specific and must be carefully tuned to suit the problem at hand. Following standard practices, we use validation sets to fine-tune ξ for our experiments.                                              
+
+> HF
+> CoExBO
+> MCoExBO
+> NAP
+> EI
+> BO
+> CoExBO
+> NAP
+> Regret  (log  scale)
+> Regret  (log  scale) 10 010 0
+> 10 1
+> Accuracy Evaluation Exploration Rate Evaluation
+> 10 0ICF
+> 10 0
+> PMO
+> 10 0
+> Superconductor 10 0ICF
+> 10 0
+> PMO
+> 10 0
+> Superconductor
+> 10 110 1
+> 10 1
+> 10 1
+> 10 1
+> 0510
+> Steps
+> Ranger
+> 010 20
+> Steps
+> SVM
+> 010 20
+> Steps
+> XGBoost
+> 10 1
+> 0510
+> Steps
+> Ranger
+> 010 20
+> Steps
+> SVM
+> 010 20
+> Steps
+> XGBoost
+> 6 × 6 ×
+> 4 × 4 ×
+> 3 × 3 ×
+> 2 ×
+> 10 12 ×
+> 10 1
+> 010 20
+> Steps
+> 010 20
+> Steps
+> 010 20
+> Steps
+> 010 20
+> Steps
+> 010 20
+> Steps
+> 010 20
+> Steps
+
+Figure 5: Results showing the accuracy of experts in selecting the better point from each presented pair during preference model con-struction. 50% accuracy indicates random choice. 
+
+# 5 Related Work 
+
+Human-aided and Explainable BO. While no prior work has integrated few-shot meta-learning into human-aided ex-plainable BO as proposed in this paper, recent efforts have advanced both explainable and human-in-the-loop BO. 
+
+One methodology is to incorporate human knowledge into BO by encoding it as a prior over the input space  [Hvarfner 
+
+et al. , 2022;  Souza et al. , 2021;  Ramachandran et al. , 2020; 
+
+Cisse et al. , 2024;  Hvarfner et al. , 2024],  guiding the search toward promising regions. However, this requires users to precisely express their expertise, which becomes challenging in high-dimensional spaces  [Mikkola et al. , 2021]. 
+
+Another strategy engages humans during optimization, al-lowing them to reject or label points based on intuition or ex-pertise  [Gupta et al. , 2023;  Adachi et al. , 2024;  Chakraborty 
+
+et al. , 2024;  Akata et al. , 2020;  Venkatesh et al. , 2022;  Borji 
+
+and Itti,  2013].  This interactive strategy enables more adap-tive exploration of the search space and presents the expert with a simpler avenue to integrate their knowledge. 
+
+Methods for explainable BO have also emerged, provid-ing insight into BO decisions to improve user understanding 
+
+[Adachi et al. , 2024;  Rodemann et al. , 2024;  Chakraborty et 
+
+al. , 2023;  Li and Adams,  2020].  These approaches aim to improve user understanding of the decision-making process, providing insight during or after optimization to support a more informed evaluation of candidate solutions. 
+
+Optimization for ICF. Standard BO has been applied to target design and experimental optimization in ICF  [Chung et 
+
+al. , 2020;  Vazirani et al. , 2024;  Hatfield et al. , 2019;  Li et al. ,
+
+2023;  Vazirani et al. , 2023].  Additionally, surrogate models built from ICF simulations or historical data have been used for efficient experimental optimization  [Chung et al. , 2020; 
+
+Humbird and Peterson,  2022;  Wu et al. , 2022;  Gaffney et al. ,
+
+Figure 6: Results of the comparison between different values of ξ,which controls the level of exploration in HL-MBO’s AF. 
+
+2024;  Ben Tayeb et al. , 2024;  Vander Wal et al. , 2023].  How-ever, these approaches have yet to explore meta-learning or human-aided strategies to enhance trustworthiness and per-formance. 
+
+# 6 Conclusion 
+
+We presented HL-MBO, an explainable human-in-the-loop Meta Bayesian Optimization approach. We evaluated our method across three different hyperparameter optimization tasks and the real-world tasks of energy yield optimization in ICF, practical molecular optimization, and critical temper-ature maximization for superconductor materials. Our results showed that HL-MBO surpasses current SOTA for human-AI collaboration and Meta-BO. Moreover, we assessed the im-pact of experts’ knowledge on Meta-BO and showed that its integration is beneficial. 
+
+Our work can have a significant impact on real-world sci-entific applications where experiments are costly but expert knowledge is available. In a critical domain like ICF, we demonstrate that HL-MBO outperforms all baselines. Ad-vancing research in this direction, brings us closer to the goal of developing nearly limitless clean energy, which could have profound environmental and societal benefits. 
+
+6.1 Limitations 
+
+Meta-BO requires access to a set of related source tasks which might not be available in some cases. Moreover, train-ing TNPs can be computationally expensive. While effective, eliciting precise and comprehensive hypotheses from domain experts in complex, high-dimensional real-world settings is challenging, suggesting avenues for future research into in-teractive or automated elicitation methods. Furthermore, our method requires input from human experts, which might not be available in all cases.        
+
+> 100% 75% 50% 0.1 0.3 0.5
+> 10 010 0
+> 10 1
+> Regret  (log  scale)
+> Regret  (log  scale)
+
+# References 
+
+Arun Kumar A V, Santu Rana, Alistair Shilton, and Svetha Venkatesh. Human-ai collaborative bayesian optimisation. In Advances in Neural Information Processing Systems ,volume 35, pages 16233–16245. Curran Associates, Inc., 2022. 
+
+Masaki Adachi, Brady Planden, et al. Looping in the hu-man: Collaborative and explainable bayesian optimization. In International Conference on Artificial Intelligence and Statistics , pages 505–513. PMLR, 2024. 
+
+Zeynep Akata, Dan Balliet, et al. A research agenda for hy-brid intelligence: augmenting human intellect with collab-orative, adaptive, responsible, and explainable artificial in-telligence. Computer , 53(8):18–28, 2020. 
+
+Tianyi Bai, Yang Li, Yu Shen, Xinyi Zhang, Wentao Zhang, and Bin Cui. Transfer learning for bayesian optimization: A survey, 2023. 
+
+M. Ben Tayeb, V. Tikhonchuk, and J.-L. Feugeas. Icf tar-get optimization using generative ai. Physics of Plasmas ,31(10):103903, 10 2024. 
+
+R. Betti and O. A. Hurricane. Inertial-confinement fusion with lasers. Nature Physics , 12(5):435–448, 2016. 
+
+Ali Borji and Laurent Itti. Bayesian optimization explains human active search. Advances in neural information pro-cessing systems , 26, 2013. 
+
+Rarlph Allan Bradley and Milton E. Terry. Rank analysis of incomplete block desings: The method of paired compar-isons. Biometrika , 39(3-4):324–345, 12 1952. 
+
+Tanmay Chakraborty, Christian Wirth, and Christin Seifert. Post-hoc rule based explanations for black box bayesian optimization. In European Conference on Artificial Intelli-gence , pages 320–337. Springer, 2023. 
+
+Tanmay Chakraborty, Christin Seifert, and Christian Wirth. Explainable bayesian optimization. arXiv preprint arXiv:2401.13334 , 2024. 
+
+Youngseog Chung, Ian Char, et al. Offline contextual bayesian optimization for nuclear fusion, 2020. 
+
+Abdoulatif Cisse, Xenophon Evangelopoulos, Sam Car-ruthers, Vladimir V. Gusev, and Andrew I. Cooper. Hypbo: Accelerating black-box scientific experiments using ex-perts’ hypotheses, 2024. 
+
+Fabio Colella, Pedram Daee, Jussi Jokinen, Antti Oulasvirta, and Samuel Kaski. Human strategic steering improves per-formance of interactive optimization. In Proceedings of the 28th ACM Conference on User Modeling, Adaptation and Personalization , UMAP ’20. ACM, July 2020. 
+
+Matthias Feurer, Aaron Klein, Katharina Eggensperger, Jost Springenberg, Manuel Blum, and Frank Hutter. Efficient and robust automated machine learning. In Advances in Neural Information Processing Systems , volume 28. Cur-ran Associates, Inc., 2015. 
+
+Jim A. Gaffney, Kelli Humbird, Andrea Kritcher, Michael Kruse, Eugene Kur, Bogdan Kustowski, Ryan Nora, and 
+
+Brian Spears. Data-driven prediction of scaling and igni-tion of inertial confinement fusion experiments. Physics of Plasmas , 31(9):092702, 2024. 
+
+Wenhao Gao, Tianfan Fu, Jimeng Sun, and Connor Co-ley. Sample efficiency matters: a benchmark for practical molecular optimization. Advances in Neural Information Processing Systems , 35:21342–21357, 2022. 
+
+Marta Garnelo, Dan Rosenbaum, Chris J. Maddison, Tiago Ramalho, David Saxton, Murray Shanahan, Yee Whye Teh, Danilo J. Rezende, and S. M. Ali Eslami. Conditional neural processes. In Proceedings of The 25th International Conference on Artificial Intelligence and Statistics , 2018. 
+
+Roman Garnett. Bayesian Optimization . Cambridge Univer-sity Press, 2023. 
+
+V Gopalaswamy, R Betti, et al. Tripled yield in direct-drive laser fusion through statistical modelling. Nature ,565(7741):581–586, January 2019. 
+
+V Gopalaswamy, C A Williams, et al. Demonstration of a hy-drodynamically equivalent burning plasma in direct-drive inertial confinement fusion. Nature Physics , 20(5):751– 757, May 2024. 
+
+Sunil Gupta, Alistair Shilton, Arun Kumar A V au2, Shan-non Ryan, Majid Abdolshah, Hung Le, Santu Rana, Julian Berk, Mahad Rashid, and Svetha Venkatesh. Bo-muse: A human expert and ai teaming framework for accelerated experimental design, 2023. 
+
+P. W. Hatfield, S. J. Rose, and R. H. H. Scott. The blind implosion-maker: Automated inertial confinement fusion experiment design. Physics of Plasmas , 26(6), June 2019. 
+
+K. D. Humbird and J. L. Peterson. Transfer learning driven design optimization for inertial confinement fusion. 
+
+Physics of Plasmas , 29(10), October 2022. 
+
+Carl Hvarfner, Danny Stoll, Artur Souza, Luigi Nardi, Marius Lindauer, and Frank Hutter. $ \pi$BO: Augmenting acqui-sition functions with user beliefs for bayesian optimization. In International Conference on Learning Representations ,2022. 
+
+Carl Hvarfner, Frank Hutter, and Luigi Nardi. A general framework for user-guided bayesian optimization. In The Twelfth International Conference on Learning Representa-tions , 2024. 
+
+Saurav Jha, Dong Gong, Xuesong Wang, Richard E. Turner, and Lina Yao. The neural process family: Survey, applica-tions and perspectives, 2023. 
+
+A. Lees, R. Betti, et al. Experimentally inferred fusion yield dependencies of omega inertial confinement fusion implo-sions. Phys. Rev. Lett. , 127:105001, Aug 2021. 
+
+Michael Y Li and Ryan P Adams. Explainability constraints for bayesian optimization. In 6th ICML Workshop on Au-tomated Machine Learning , 2020. 
+
+Z. Li, Z. Q. Zhao, X. H. Yang, G. B. Zhang, Y. Y. Ma, H. Xu, 
+
+F. Y. Wu, F. Q. Shao, and J. Zhang. Hybrid optimization of laser-driven fusion targets and laser profiles, 2023. Siu Lun Chau, Javier Gonzalez, and Dino Sejdinovic. Learn-ing inconsistent preferences with gaussian processes. In 
+
+Proceedings of The 25th International Conference on Arti-ficial Intelligence and Statistics , volume 151 of Proceed-ings of Machine Learning Research , pages 2266–2281. PMLR, 28–30 Mar 2022. 
+
+Siu Lun Chau, Javier Gonzalez, and Dino Sejdinovic. Learn-ing inconsistent preferences with gaussian processes. In 
+
+Proceedings of The 25th International Conference on Arti-ficial Intelligence and Statistics , volume 151 of Proceed-ings of Machine Learning Research , pages 2266–2281. PMLR, 28–30 Mar 2022. 
+
+Scott M Lundberg and Su-In Lee. A unified approach to in-terpreting model predictions. In Advances in Neural Infor-mation Processing Systems 30 , pages 4765–4774. Curran Associates, Inc., 2017. 
+
+Alexandre Maraval, Matthieu Zimmer, Antoine Grosnit, and Haitham Bou Ammar. End-to-end meta-bayesian optimi-sation with transformer neural processes, 2023. 
+
+Erich Merrill, Alan Fern, Xiaoli Fern, and Nima Dolatnia. An empirical study of bayesian optimization: Acquisition versus partition. Journal of Machine Learning Research ,22(4):1–25, 2021. 
+
+Petrus Mikkola, Osvaldo A Martin, et al. Prior knowledge elicitation: The past, present, and future. arXiv preprint arXiv:2112.01380 , 2112, 2021. 
+
+Dimitrios Milios, Raffaello Camoriano, Pietro Michiardi, Lorenzo Rosasco, and Maurizio Filippone. Dirichlet-based gaussian processes for large-scale calibrated classification, 2018. 
+
+Tung Nguyen and Aditya Grover. Transformer neural pro-cesses: Uncertainty-aware meta learning via sequence modeling. In Proceedings of the 39th International Confer-ence on Machine Learning , volume 162 of Proceedings of Machine Learning Research , pages 16569–16594. PMLR, 17–23 Jul 2022. 
+
+Sebastian Pineda Arango, Hadi Jomaa, Martin Wistuba, and Josif Grabocka. Hpo-b: A large-scale reproducible bench-mark for black-box hpo based on openml. In Proceed-ings of the Neural Information Processing Systems Track on Datasets and Benchmarks , volume 1, 2021. 
+
+Anil Ramachandran, Sunil Gupta, Santu Rana, Cheng Li, and Svetha Venkatesh. Incorporating expert prior in bayesian optimisation via space warping. Knowledge-Based Sys-tems , 195:105663, 2020. 
+
+Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin. ”why should i trust you?”: Explaining the predictions of any classifier, 2016. 
+
+Julian Rodemann, Federico Croppi, Philipp Arens, Yusuf Sale, Julia Herbinger, Bernd Bischl, Eyke Hu¨llermeier, Thomas Augustin, Conor J. Walsh, and Giuseppe Casalic-chio. Explaining bayesian optimization by shapley values facilitates human-ai collaboration, 2024. 
+
+Lloyd S. Shapley. A Value for N-Person Games . RAND Cor-poration, Santa Monica, CA, 1952. 
+
+Jasper Snoek, Hugo Larochelle, and Ryan P Adams. Practical bayesian optimization of machine learning algorithms. In 
+
+Advances in Neural Information Processing Systems , vol-ume 25. Curran Associates, Inc., 2012. 
+
+Artur Souza, Luigi Nardi, Leonardo B Oliveira, Kunle Oluko-tun, Marius Lindauer, and Frank Hutter. Bayesian opti-mization with a prior for the optimum. In Machine Learn-ing and Knowledge Discovery in Databases. Research Track: European Conference, ECML PKDD 2021, Bilbao, Spain, September 13–17, 2021, Proceedings, Part III 21 ,
+
+pages 265–296. Springer, 2021. 
+
+J. Tacq. The normal distribution and its applications. In Inter-national Encyclopedia of Education (Third Edition) , pages 467–473. Elsevier, Oxford, third edition edition, 2010. 
+
+Brandon Trabucco, Xinyang Geng, Aviral Kumar, and Sergey Levine. Design-bench: Benchmarks for data-driven offline model-based optimization. CoRR , abs/2202.08450, 2022. 
+
+Michael D. Vander Wal, Ryan G. McClarren, and Kelli D. Humbird. Transfer learning as a method to reproduce high-fidelity non-local thermodynamic equilibrium opacities in simulations. Journal of Plasma Physics , 89(1):895890103, 2023. 
+
+N. N. Vazirani, M. J. Grosskopf, D. J. Stark, P. A. Bradley, 
+
+B. M. Haines, E. N. Loomis, S. L. England, and W. A. Scales. Coupling multi-fidelity xrage with machine learn-ing for graded inner shell design optimization in double shell capsules. Physics of Plasmas , 30(6):062704, 06 2023. 
+
+Nomita N. Vazirani, Ryan Sacks, Brian M. Haines, Michael J. Grosskopf, David J. Stark, and Paul A. Bradley. Bayesian batch optimization for molybdenum versus tungsten iner-tial confinement fusion double shell target design. Statisti-cal Analysis and Data Mining: An ASA Data Science Jour-nal , 17(3):e11698, 2024. 
+
+Arun Kumar Anjanapura Venkatesh, Santu Rana, Alistair Shilton, and Svetha Venkatesh. Human-ai collaborative bayesian optimisation. In Advances in Neural Information Processing Systems , 2022. 
+
+Michael Volpp, Lukas P. Fro¨hlich, Kirsten Fischer, Andreas Doerr, Stefan Falkner, Frank Hutter, and Christian Daniel. Meta-learning acquisition functions for transfer learning in bayesian optimization, 2020. 
+
+Xilu Wang, Yaochu Jin, Sebastian Schmitt, and Markus Ol-hofer. Recent advances in bayesian optimization. ACM Comput. Surv. , 55(13s), jul 2023. 
+
+Fuyuan Wu, Xiaohu Yang, Yanyun Ma, Qi Zhang, Zhe Zhang, Xiaohui Yuan, Hao Liu, Zhengdong Liu, Jiayong Zhong, Jian Zheng, and et al. Machine-learning guided op-timization of laser pulses for direct-drive implosions. High Power Laser Science and Engineering , 10:e12, 2022. A Experimental Details 
+
+# Technical Appendix 
+
+validation and test tasks were used in totality as defined the 
+
+For HL-MBO and MCoExBO the autoregressive version of TNPs (TNPs-A)  [Nguyen and Grover,  2022]  is used for all experiments. We follow the hyperparameters recommended in the original paper, as presented in Table  1.  For the learn-ing rate, a Cosine annealing scheduler was used. We used Adam as optimizer  Kingma and Ba  [2017].  For selecting the value of ξ, we evaluated the approach using a validation set in small set of values ξ ∈ {0.1, 0.3, 0.5} and selected the best performer as shown in Table  2.  For seeding, we used the na-tive ”random” python library. 
+
+For CoExBO and MCoExBO, the proposed values in the original CoExBO work for the exploration-exploitation weight, were used  [Adachi et al. , 2024].  For HL-MBO, Co-ExBO and MCoExBO a value of γ = 0 .1. CoExBO code can be found in  https://github.com/ma921/CoExBO. 
+
+For πBO, we constructed the required priors for each task by computing the mean and standard deviation of the optima across all training tasks. πBO code can be found in  https: 
+
+//github.com/piboauthors/PiBO-Hypermapper. 
+
+Computation for training and evaluation was performed on a server with a AMD EPYC 7542 32-Core CPU and two H-100 GPUs for 380 hours at around 60% capacity, excluding 
+
+πBO. For πBO, evaluations required around 510 hours of CPU computing, using the code provided by the authors. This might be due to being GPs and CPU based which struggled with the high-dimensional problems.                    
+
+> TNPs’ Hyperparameters
+> Model dimension 64
+> Embedding layers 4
+> Feed forward dimension 128
+> Attention heads 8
+> Transformer layers 6
+> Dropout 0.0
+> Learning rate 5e−5
+> Table 1: Hyperparameters used by the TNPs for all experiments.
+> HL-MBO AF Hyperparameters
+> Task ξ
+> ICF 0.1
+> PMO 0.1
+> Superconductor 0.1
+> Ranger 0.3
+> SVM 0.3
+> XGBoost 0.1
+> Table 2: Hyperparameter ξused for each task in for HL-MBO’s evaluation.
+
+A.1 Task Datasets 
+
+For the HPO-B tasks we used the Meta-Dataset for XG-Boost, SVM and Ranger provided in  https://github.com/ 
+
+machinelearningnuremberg/HPO-B.  We used the training, 
+
+benchmark in our experiments. 
+
+To create the ICF dataset , the LOTUS library was used to generate laser pulse shapes based on an ad-hoc parametriza-tion  [Ejaz et al. , 2024].  Laser power and time values derived from this parametrization served as inputs for LILAC  [Delet-
+
+trez et al. , 1987],  a physics-based laser fusion simulator. For a given fusion fuel target, the laser pulse shape determines ex-perimental outcomes (e.g., neutron yield), affecting both the compression of the target and the growth of hydrodynamic in-stabilities  [Williams et al. , 2021].  To construct the response surface, 5 laser parameters from the front end of the pulse shape representation were varied, generating 50k samples us-ing Latin hypercube sampling while respecting the laser sys-tem’s design constraints. These laser pulse shapes were then used in LILAC simulations with a fixed fusion fuel target. Post-processing of simulation results provided neutron yield values, which were used to build the response surface with respect to the 5 laser parameters. Two source tasks, one val-idation and one test task were created by altering the physics models in the simulator, specifically the equation of state, which impacts shock propagation in the fusion fuel materi-als and changes the response surface. This perturbation to the physics model allowed us to simulated the divergence be-tween simulation and real experiments, giving us a pathway to evaluate the method in a realistic manner. 
+
+For PMO and Superconductor , we use datasets from 
+
+[Gao et al. , 2022]  and  [Trabucco et al. , 2022],  respectively. To obtain the PMO data we used the tdc python library  Huang 
+
+et al.  [2021]  and osimertinib as an oracle. For the Supercon-ductor tasks, we use the dataset as provided in  https://github. 
+
+com/brandontrabucco/design-bench/tree/new-api.  To create distinct source, validation and test tasks, we partitioned the datasets by sub-sampling them, generating 6 training tasks, 3 test tasks, and 2 validation tasks. We ensured that there was no overlap between the samples used in the source tasks, val-idation and test tasks. By separating the data in this way, we simulate conditions where the model must generalize to new, unseen tasks during evaluation while being trained only on related but distinct source tasks. 
+
+# B Understanding HL-MBO’s Performance in ICF 
+
+For ICF the model predictions, uncertainties and AF can be better visualize using a 2D heatmap, where the search space can be sliced and presented in parameter pairs. In this case, we present the ”Energy Yield” as the intensity in the heatmap over two of the most influential laser pulse shape optimization parameters ”Foot Power” and ”Picket Power. This gives the ICF scientist a clearer understanding of the surrogate insights and lets them better understand why those experiments are being proposed by the AFs. Moreover, this allows us to better analyze the performance of the models as shown in the next subsections. π
+
+> Figure 1: Illustration of an surrogate predictions, uncertainty and AFs value. Such visualizations provide ICF practitioners with insights to select the candidate most likely to succeed. The numbering represent the order in which samples were taken.
+
+B.1 HL-MBO’s Surrogate Predictions 
+
+To understand the superior performance achieved by our method, we examine the predictions made by its surrogate model and assess how well it adapts. To perform this evalua-tion, we compare the real target function with HL-MBO pre-dictions. For HL-MBO, first we evaluate its initial predictions when using one context point (1 sample), so the information provided to the surrogate comes only from the first evaluation sample. Moreover, we assess how HL-MBO adapts by query-ing it after three samples have been collected from the target function (3 Samples). Figure  2 shows the results of the eval-uation. From these results, we can see that HL-MBO effec-tively uses information from source tasks to identify regions with a higher likelihood of finding optimal solutions. Fur-thermore, after incorporating just a few samples, HL-MBO accurately adjusts its predictions to match the target function closely.    
+
+> Figure 2: HL-MBO’s meta-learned surrogate predictions: (top) without only one context point; (bottom) after three context points; (right) the optimization target function. We can observe that our approach achieves quick adaptation with high sample efficiency, closely approximating the true function in just three samples. This property is ideal for the limited ICF experiments possible on a shot day.
+
+B.2 HL-MBO vs NAP Adaptation 
+
+To gain deeper insight into the superior performance of HL-MBO over NAP, we compare their surrogate predic-tions against the state-of-the-art Meta-BO approach, which has demonstrated strong results in optimizing ICF objectives 
+
+[Gundecha et al. , 2024].  Figure  3 presents the outcomes of this comparison. For each trajectory, we trace the candidates proposed by the respective methods. The results show that our surrogate produces predictions that are not only more ac-curate and smoother but also yield surrogate outputs that are easier to interpret.       
+
+> Figure 3: MBO’s meta-learned surrogate prediction against NAP’s surrogate prediction. MBO’s predictions are more accurate, smoother and interpretable.
+
+# C No-Harm Guarantee 
+
+A critical design requirement for human-in-the-loop opti-mization is robustness to imperfect expert knowledge. As shown in CoExBO  Adachi et al.  [2024],  we the decay pa-rameter γ provides a no-harm guarantee : even with adver-sarial expert preferences, HL-MBO converges asymptotically at least as well as standard BO. 
+
+The decay mechanism in Equation 5 ensures that expert influence diminishes over time while the meta-surrogate’s in-fluence grows. The key insight lies in the behavior of S 2(x)as t → ∞ :π    
+
+> π
+> Si
+> π
+> ππS
+> πS
+> π
+
+S 2(x) = σ2 (x) + γt 2σ2 (x) (1) 
+
+# D Explainability Approaches 
+
+D.1 Shapley Values 
+
+As t → ∞, since γ > 0, we have γt 2 → ∞, which causes 
+
+S 2(x) → ∞.
+
+This growth in S 2(x) changes the weighting in the com-
+
+bined mean. From Equation 2, we can derive the weights by 
+
+The Shapley value ϕj for feature j is defined as the average marginal contribution of feature j across all possible permu-tations of features in x as: 
+
+substituting Equation 3:  ϕj = L
+
+> S⊆J\{ j}
+
+|S|!( |J| − |S| − 1)!  [v
+
+|J|! x, S (S ∪ j) − vx, S (S)] 
+
+σ2 (x) S 2(x)σ2 (x) 1
+
+wπ(x, t ) = S,π = π S · (2)  where J is the set of all the features, S is a subset of fea-
+
+S 2(x) S 2(x) + σ2 (x) S 2(x)   
+
+> ππSπ
+
+σ2 (x) tures that does not include feature j and, vx, S(S) is a func-tion which measures the contribution that features S have to 
+
+= S
+
+S 2(x) + σ2 (x) (3)  the prediction S(x). 
+
+> π
+
+σ2 (x)
+
+> S
+
+S 2(x)σ2 (x) 1 In this work, to calculate Shapley values, we utilize Ker-nelExplainer from SHAP  [Lundberg and Lee,  2017]. 
+
+wS(x, t ) = S,π = π S · (4) σ2 (x) S 2(x) + σ2 (x) σ2 (x)   
+
+> SπSS
+
+S 2(x)
+
+=
+
+S 2(x) + σ2 (x) (5) 
+
+D.2 LIME 
+
+Given an input x ∈ Rd, LIME proceeds as follows: Perturbation Sampling: Generate a set of perturbed in-
+
+Note that wπ(x, t ) + wS(x, t ) = 1, confirming these are  stances {x′}N around x by randomly modifying the fea-
+
+proper probability weights.  i
+
+tures of x. i=1 
+
+No-Harm Mechanism: As t → ∞ and S 2(x) = σ2 (x)+ Prediction Querying: Evaluate the black-box model S on 
+
+γt 2σ2 (x) → ∞: π π
+
+σ2 (x)
+
+each perturbed sample to obtain predictions S(x′). 
+
+Weighting by Proximity: Assign a proximity weight 
+
+πx(x′) to each perturbed instance, typically using an expo-
+
+lim w (x, t ) = lim S (6) i ′   
+
+> t→∞ πt→∞
+
+S 2(x) + σ2 (x) nential kernel based on the distance between x and xi. 
+
+> πS
+
+σ2 (x) Local Surrogate Modeling: Fit an interpretable model 
+
+= lim  S = 0 g ∈ G (e.g., a sparse linear model) to the weighted dataset  
+
+> t→∞
+
+σ2 (x) + γt 2σ2 (x) + σ2 (x) {(x′, S(x′), πx(x′)) } by minimizing the objective:   
+
+> πSS
+
+S 2(x)
+
+(7)  i i i
+
+arg min L(S, g, πx) + Ω( g),
+
+> g∈G
+
+lim wS(x, t ) = lim π (8)   
+
+> t→∞ t→∞
+
+S 2(x) + σ2 (x) where L is a loss function that captures how well g approx- 
+
+> πS
+
+σ2 (x) + γt 2σ2 (x) imates S locally, and Ω( g) is a complexity penalty that en-courages interpretability. = lim  π S = 1t→∞ σ2 (x) + γt 2σ2 (x) + σ2 (x) Explanation Extraction: The coefficients of g serve as fea-  
+
+> πSS
+
+(9)  ture attributions, quantifying each feature’s contribution to 
+
+Therefore, the combined mean asymptotically approaches the meta-surrogate mean: 
+
+lim μS,π (x) = lim [ wπ(x, t )μπ(x) + wS(x, t )μS(x)] 
+
+S(x). 
+
+LIME is model-agnostic, requiring only black-box access to S, and is applicable across a variety of data modalities, in-cluding tabular, textual, and image data  [Ribeiro et al. , 2016]. t→∞  t→∞ 
+
+(10) 
+
+= 0 · μπ(x) + 1 · μS(x) = μS(x) (11) 
+
+This shows that regardless of the quality of expert preferences μπ(x), the acquisition function eventually be-haves identically to standard Meta-BO using only the meta-surrogate S. The decay parameter γ acts as a safety mecha-nism that ensures: 
+
+1. Early benefit: When t is small, γt 2 is small, so wπ(x, t )is significant, allowing expert knowledge to influence decisions 
+
+2. Long-term safety: When t is large, γt 2 dominates 
+
+S 2(x), making wπ(x, t ) → 0
+
+3. Quadratic decay: The quadratic form γt 2 provides smooth but decisive transition from expert-guided to data-driven optimization 
+
+# References 
+
+Masaki Adachi, Brady Planden, et al. Looping in the hu-man: Collaborative and explainable bayesian optimization. In International Conference on Artificial Intelligence and Statistics , pages 505–513. PMLR, 2024. 
+
+J. Delettrez, R. Epstein, M. C. Richardson, P. A. Jaanimagi, and B. L. Henke. Effect of laser illumination nonuni-formity on the analysis of time-resolved x-ray measure-ments in uv spherical transport experiments. Phys. Rev. A, 36:3926–3934, Oct 1987. 
+
+R. Ejaz, V. Gopalaswamy, A. Lees, C. Kanan, D. Cao, and 
+
+R. Betti. Deep learning-based predictive models for laser direct drive at the omega laser facility. Physics of Plasmas ,31(5), 5 2024. Wenhao Gao, Tianfan Fu, Jimeng Sun, and Connor Co-ley. Sample efficiency matters: a benchmark for practical molecular optimization. Advances in Neural Information Processing Systems , 35:21342–21357, 2022. 
+
+Vineet Gundecha, Ricardo Luna Gutierrez, Sahand Ghor-banpour, Rahman Ejaz, Varchas Gopalaswamy, Riccardo Betti, Avisek Naug, Paolo Faraboschi, and Soumyendu Sarkar. Meta-learned bayesian optimization for energy yield in inertial confinement fusion, 2024. 
+
+Kexin Huang, Tianfan Fu, Wenhao Gao, Yue Zhao, Yusuf Roohani, Jure Leskovec, Connor W Coley, Cao Xiao, Ji-meng Sun, and Marinka Zitnik. Therapeutics data com-mons: Machine learning datasets and tasks for drug discov-ery and development. Proceedings of Neural Information Processing Systems, NeurIPS Datasets and Benchmarks ,2021. 
+
+Diederik P. Kingma and Jimmy Ba. Adam: A method for stochastic optimization, 2017. 
+
+Scott M Lundberg and Su-In Lee. A unified approach to in-terpreting model predictions. In Advances in Neural Infor-mation Processing Systems 30 , pages 4765–4774. Curran Associates, Inc., 2017. 
+
+Tung Nguyen and Aditya Grover. Transformer neural pro-cesses: Uncertainty-aware meta learning via sequence modeling. In Proceedings of the 39th International Confer-ence on Machine Learning , volume 162 of Proceedings of Machine Learning Research , pages 16569–16594. PMLR, 17–23 Jul 2022. 
+
+Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin. ”why should i trust you?”: Explaining the predictions of any classifier, 2016. 
+
+Brandon Trabucco, Xinyang Geng, Aviral Kumar, and Sergey Levine. Design-bench: Benchmarks for data-driven offline model-based optimization. CoRR , abs/2202.08450, 2022. 
+
+C. A. Williams, R. Betti, V. Gopalaswamy, and A. Lees. High yields in direct-drive inertial confinement fusion using thin-ice DT liner targets. Physics of Plasmas ,28(12):122708, 12 2021.

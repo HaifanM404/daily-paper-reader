@@ -1,0 +1,139 @@
+Title: Isotropic Fourier Neural Operators
+
+URL Source: https://arxiv.org/pdf/2605.02597v1
+
+Published Time: Tue, 05 May 2026 02:04:16 GMT
+
+Number of Pages: 5
+
+Markdown Content:
+## Isotropic Fourier Neural Operators 
+
+Michael F. Staddon 
+
+Independent Researcher 
+
+Fourier Neural Operators are deep learning models that learn mappings between function spaces and can be used to learn and solve partial differential equations (PDEs), in some cases signifi-cantly faster than traditional PDE solvers. Within the model are Fourier layers, which apply linear transformations directly to the Fourier modes, with parameters depending on the wave numbers. However, most physical systems are isotropic, with the results being independent of the coordinate system chosen, but the linear transformations do not necessarily respect these symmetries. We propose a modification to the linear transformations that ensures spatial symmetries are respected, called the Isotropic Fourier Neural Operator, which both improves model performance and reduces the number of parameters by up to a factor of 16 in 2D and 96 in 3D. 
+
+I. INTRODUCTION 
+
+Partial differential equations (PDEs) are used to model a range of problems across the sciences, engineering, and economics, such as fluid dynamics [1] and weather fore-casting [2], traffic flow [3, 4], animal patterning [5], and financial options pricing [6, 7]. Often these do not have known analytic solutions (the Navier-Stokes problem fa-mously so [8]) and must be approximated through nu-merical solvers. While traditional solvers like finite ele-ment and finite difference methods can solve equations to a desired precision [9], more recently deep learning models like neural operators have been used to signifi-cantly speed up computation [10–12]. Additionally, in cases where even the PDE is unknown, such as complex biological systems, neural operators may learn the dy-namics from given data samples. Fourier Neural Operators (FNOs) [10] have been par-ticularly effective and widespread for solving PDEs. FNOs learn to map between function spaces by apply-ing linear transformations directly on the Fourier modes rather than working in physical space, allowing for a resolution-invariant model that can adapt to super res-olution data during prediction. FNOs and its variants, such as the Spherical Fourier Neural Operator [11], have been successfully applied to a range of problems such as climate modelling [13], medical imaging [14], and nuclear fusion [15]. Several modifications to the basic architec-ture have been proposed that focus on improving model accuracy and generalisability, or reducing the number of parameters and improving efficiency. Reducing the number of parameters of the model helps to reduce the memory requirement of models and reduce training and inference time. Modifications like the Fac-torized Fourier Neural Operators (F-FNOs) [16] or De-composed Fourier Neural Operators (D-FNOs) [17] re-duce the model complexity by factorising the parameters, for example, by having parameters only for the Fourier transform for the x frequencies and y frequencies sepa-rately, changing the scaling with the number of modes m
+
+from O(m2) to O(m). Alternatively, low rank decompo-sitions can decompose the kernel tensor into the product of several smaller tensors and keeping only the most in-formative, with the Multigrid Tensorized Fourier Neural Operator capable of reducing parameters by a factor of 150 while maintaining model accuracy [18]. At the same time, changes to the internal architecture or training of the FNO that incorporate knowledge of the PDEs or space itself can be used to improve model ac-curacy. Physics-Informed Neural Operators [19] use the same approach as Physics Informed Neural Networks [20– 22], in which the loss function is composed of the L2 pre-diction error and a PDE constraint, an L2 error between the models predicted PDEs and the expected known PDEs. At a more fundamental level, one can incorpo-rate symmetries of the system itself into the FNO. In many problems, the system being modelled is isotropic, with the choice of axis being arbitrary. Transforming the input, such as swapping the x and y coordinates, should result in an output with the same transformation. Radial Fourier Neural Operators (R-FNOs) [23] accomplish this by making the kernel depend only on the magnitude of the frequency, while Group Equivariant Fourier Neural Operators (G-FNOs) [24] use group convolutions within the FNO to preserve rotational and reflectional symme-tries of space. In this paper, we develop an Isotropic Fourier Neural Operator (Iso-FNO) which both improves model perfor-mance while significantly reducing the number of param-eters. We show how symmetries constrain the parame-ters within the Fourier kernel that transforms the Fourier modes, and thus can generate the full kernel from a much smaller set of parameters. For 2D systems this reduces the parameters by approximately a factor of 16, while 3D systems it is a factor of 96. At the same time, the model shows improved performance compared to the standard FNO when measured on test data. These symmetries are general and can be combined with other model types for further improvements in memory and performance. 
+
+II. FOURIER NEURAL OPERATORS 
+
+The original outlining of the Fourier Neural Operator (FNO) uses the following architecture (Fig. 1a): given an input function a(x) with n channels lift the input 
+
+> arXiv:2605.02597v1 [cs.LG] 4 May 2026
+
+2data into a higher dimensional space with tensor P , apply several Fourier layers, L1...L n, and project down into the output space with tensor Q:
+
+u(x) = Q ◦ L L ◦ ... ◦ L 2 ◦ L 1 ◦ P (a)( x). (1) For example, one might have an input function a with pressure and temperature channels and wish to predict vorticity v. In this expression, P and Q are the lifting and projection networks, which are linear transforms acting on the channel dimension of the input. Ll represents Fourier layer l (Fig. 1b) where 
+
+Ll(v)( x) = σ(W l + F−1(Rl · F (v)))( x), (2) where σ is a non-linear activation function, in our case ReLU, W l is a tensor, F and F−1 are the Fourier and in-verse Fourier transforms respectively, and Rl is a tensor that acts linearly on the Fourier modes of the input func-tion v(x). Each complex-valued Fourier kernel Rl only acts on the first m modes, filtering out higher frequency modes. This allows the model to work on different resolu-tions and can predict super-resolution results from lower resolution training, and for uniform grids the fast Fourier transform is used to speed up the Fourier operations. · · · · · · a(x) P 1 l L Q u(x)
+
+> v(x)
+> R
+> W
+> 1
+> +
+
+Riso R                     
+
+> (a)
+> (b)
+> (c)
+> FIG. 1. Isotropic Fourier Neural Operator. (a) The full model architecture. Lift the input to a higher dimensional channel space by neural network P. Apply LFourier layers. Project down to output channel space by neural network Q.(b) Fourier layer architecture. On top: Fourier transform the input, apply linear transform Ron the lowest nmodes, apply the inverse Fourier transform. On the bottom: apply linear transform W. Finally, add the top and bottom branches and apply non-linear activation function σ. (c) Isotropic Fourier Kernel. The Fourier kernel Ris generated using symmetries of space from an upper right triangular tensor Riso . Starting from the left, the original parameters are used to generate the full parameters through reflections representing transpo-sition, reflection in y, and reflection in x.
+
+The model has hyper-parameters for the number of channels to lift into, dv , the number of Fourier modes to use, m, and the number of Fourier layers, L, with the majority of parameters being contained in the Fourier kernel when a large number of modes are used. Thus the number of parameters scales with the square of the number of Fourier modes multiplied by the number of channels squared, O(d2 
+
+> v
+
+m2L). When problems require a higher number of modes to be accurate, the number of parameters in the model increases quadratically which can dramatically increase model size and training time.  
+
+> III. ISOTROPIC FOURIER NEURAL OPERATORS
+
+This paper proposes modifying the Fourier layer to re-spect common symmetries in 2D space, which we name the Isotropic Fourier Neural Operator (Iso-FNO). These symmetries include reflections in x and y, swapping x and 
+
+y and 90 ◦ rotations, and whose transformations are de-scribed by the dihedral group of order 4, D4. By spatial symmetry, we require that the output of the neural oper-ator transforms in the same way as the input; if we rotate or reflect our input then the corresponding output is also rotated or reflected compared to the original. Since only the Fourier layers involve spatial components, we enforce the parameters of the Fourier kernel R to respect these symmetries, which leads to a 16-fold reduction in the number of parameters in 2 dimensions, and 96-fold in 3D dimensions. First, consider reflections of the input space in x.Within the Fourier layer, anything transforming aFourier mode ei(kx +ly ) must transform ei(−kx +ly ) the same way. Thus we require that (ignoring the channel indices for simplicity) Rk,l = R−k,l , reducing the number of free parameters by around half. Additionally, if we are Fourier transforming a real valued function and want a real valued output then we must have Rk,l ei(kx +ly ) =(R−k,l ei(−kx +ly ))∗ such that the imaginary components cancel out. This implies that Rk,l = R−k,l = R∗−k,l ,meaning all parameters are real valued. Thus we remove all complex values from R compared to the original FNO, again reducing the number of parameters by half. Similar logic may be applied for reflections in y, requiring that 
+
+Rk,l = Rk, −l and for transpositions, swapping x and y,requiring that Rk,l = Rl,k . Each of these requirements reduces the number of free parameters by approximately half, resulting in 1/16th of the number of parameters in the standard FNO, while capturing the isotropy of the system and making the constrained kernel equivariant under the D4 group. In the isotropic Fourier Neural operator (Iso-FNO), we start with a kernel tensor which is upper diagonal and only has parameters in the left and top halves of the tensor Riso , and generate the full Fourier kernel tensor through a series of transpositions and reflections (Fig. 1c). This new Fourier kernel ensures D4 group equivariance without needing computationally expensive group convolutions like in the G-FNO [24]. Such a sys-tem is generalisable to 3 dimensions, where we expect a 96 factor reduction; an extra 2 from reflections in 
+
+z and and extra factor of 3 because the permutation group of 3 elements, (our coordinates x, y, and z) has 3size 6. Model code is available at https://github.com/ mstaddon/iso-fno 
+
+Note that in practice the Isotropic FNO reduces pa-rameters by a factor of around 8 compared to the original implementation of the FNO , because the FNO uses the real valued FFT, which only needs the positive modes of one of the dimensions, since the values corresponding to the negative modes must be complex conjugates of the positives mode values as mentioned earlier. Additionally, inference time remains the same for both models since the networks are applying the same tensor calculations with the Fourier modes, where R is generated from the smaller 
+
+Riso in the Iso-FNO, but the memory size of the model is reduced. 
+
+IV. RESULTS 
+
+To test the effectiveness of the Isotropic FNO, we use the 2D Darcy flow which describes the flow of fluid through a porous medium. We model flow within a unit box and no slip boundary conditions: 
+
+−∇ · (a(x)∇u(x)) = f (x), x ∈ (0 , 1) 2 (3) 
+
+u(x) = 0 , x ∈ ∂(0 , 1) 2 (4) where a(x) is the diffusion coefficient, u(x) is the flow speed, and f (x) is the forcing function. The example takes a(x) as the input, with constant forcing f (x) = 1, and aims to learn the flow u(x). For model training and evaluation we use 1000 training instances and 200 testing instances, originally generated by Li et al [10] using a finite difference scheme. We use data with a 128 x 128 resolution. Each model is trained using cosine annealing over 100 epochs with a batch size of 20 and an initial learning rate equal to 0 .001. For each model we use a maximum of 16 modes and 32 channels and aim to minimise the L2 error between predicted and actual flows. As expected, the non-isotropic FNO has 4.2 million parameters while the isotropic FNO has only 0.57 million, a 7.4-fold reduction. Our training results are shown in Fig. 2. Over the training period, the non-isotropic model has an L2 error about 30% lower than the isotropic model and 15% H2 error (Table I). However, performance is reversed on the test data, with the isotropic model having 30% lower L2 error and 15% lower H2 error than the non-isotropic model. This is likely because the isotropic FNO has fewer parameters with which to overfit the training data, while also using symmetry to better generalise to out of sam-ple data. From the model predictions (Fig. 3) we can see that both FNO and Iso-FNO can predict the target function fairly well. When the input function and target are flipped in the x direction, the FNO’s prediction is significantly different from its original prediction flipped and has a high error, while the Iso-FNO is equal to its original prediction flipped. Additionally, we measure the error for the two models when using training data but with data flipped in the x 0 25 50 75 100     
+
+> Training Epoch
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> 0.04
+> 0.05
+> L2 Error
+> FNO Train
+> FNO Test
+> Iso-FNO Train
+> Iso-FNO Test
+> 025 50 75 100
+> Training Epoch
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> 0.04
+> 0.05
+> H2 Error
+> FNO Train
+> FNO Test
+> Iso-FNO Train
+> Iso-FNO Test
+
+FIG. 2. L2 error and H2 error for FNO and Iso-FNO against training epoch for the training and test datasets. 
+
+FIG. 3. FNO and Iso-FNO model predictions on the Darcy Flow problem. Columns: The input function a, white has val-ues of 0 and black has values of 1, representing the diffusion coefficient. The ground truth u, the flow with no slip bound-ary conditions, lighter colours are higher values. The FNO prediction uf no and the Iso-FNO prediction uiso . Rows: The original data in training, and the data flipped in the x-axis. 
+
+and y directions, or swapping x and y. The non-isotropic FNO performs as badly on the transformed training data as on the test data, as shown in Fig. 3, while the isotropic FNO generalises to it by the symmetry constraints within the Fourier kernel (Fig. 4, Table I). Train Train 
+
+> Transposed
+> Train
+> Flipped x
+> Train
+> Flipped y
+> Test
+> 0.000
+> 0.005
+> 0.010
+> 0.015
+> 0.020
+> 0.025
+> L2 Error
+> FNO
+> Iso-FNO
+
+FIG. 4. L2 error for FNO and Iso-FNO on the training data, the training data transposed or mirrored, and the test data. 4
+
+FNO Iso-FNO Parameters (m) 4.202 0.565 Train L2 0.00309 0.00436 Test L2 0.01798 0.01410 Train H2 0.01532 0.01763 Test H2 0.03072 0.02648 Transpose L2 0.01811 0.00436 Flip-x L2 0.01778 0.00436 Flip-y L2 0.01802 0.00436 TABLE I. Model parameters and errors. 
+
+V. DISCUSSION 
+
+In this paper, we demonstrate how spatial symmetries can be used to reduce the number of model parame-ters by a factor of 16 while improving its performance on test data. We show these results for 2-dimensional data, though it can be extended to 3 dimensions using the same logic, or applied to more modern variants such as the Multigrid Tensorized Fourier Neural Operator [18] or the Spherical Fourier Neural Operators [11], which are often used for geophysical or weather modelling, though with more difficulty in the relation between the Spherical Harmonic modes. Here we have demonstrated how sym-metries can be used when applied to scalar field inputs. Many problems involve vector or pseudo-vector inputs or outputs, like fluid velocity or vorticity respectively. The ideas presented in this model could be extended to work with different types of fields which may have differ-ent symmetry requirements. Alternatively, some mod-els use time as a third dimension to the input, u(x, y, t )which again requires different constraints such as gener-ating the Fourier kernel from symmetries in x and y but not t. A more general model could be developed that incorporates different symmetries requirements for each channel and generate the appropriate constraints dynam-ically. Overall, these ideas demonstrate how symmetry can be incorporated into Neural Operators to reduce the model parameters while improving performance, and can be adapted into more complex and efficient formulations of the Fourier Neural Operators that have been devel-oped recently [12] to further boost performance and re-duce model size. 
+
+[1] R. Temam, Navier–Stokes equations: theory and numer-ical analysis , Vol. 343 (American Mathematical Society, 2024). [2] E. Kalnay, Atmospheric modeling, data assimilation and predictability (Cambridge university press, 2003). [3] M. J. Lighthill and G. B. Whitham, On kinematic waves ii. a theory of traffic flow on long crowded roads, Proceed-ings of the royal society of london. series a. mathematical and physical sciences 229 , 317 (1955). [4] P. I. Richards, Shock waves on the highway, Operations research 4, 42 (1956). [5] A. M. Turing, The chemical basis of morphogenesis, Bul-letin of mathematical biology 52 , 153 (1990). [6] F. Black and M. Scholes, The pricing of options and cor-porate liabilities, Journal of political economy 81 , 637 (1973). [7] R. C. Merton et al. , Theory of rational option pricing, The Bell Journal of Economics and Management Science (1973). [8] C. L. Fefferman, Existence and smoothness of the navier-stokes equation, The millennium prize problems 57 , 22 (2006). [9] L. Lapidus and G. F. Pinder, Numerical solution of partial differential equations in science and engineering 
+
+(John Wiley & Sons, 1999). [10] Z. Li, N. Kovachki, K. Azizzadenesheli, B. Liu, K. Bhat-tacharya, A. Stuart, and A. Anandkumar, Fourier neu-ral operator for parametric partial differential equations, arXiv preprint arXiv:2010.08895 (2020). [11] B. Bonev, T. Kurth, C. Hundt, J. Pathak, M. Baust, K. Kashinath, and A. Anandkumar, Spherical fourier neural operators: Learning stable dynamics on the sphere, in International conference on machine learning 
+
+(PMLR, 2023) pp. 2806–2823. [12] V. Duruisseaux, J. Kossaifi, and A. Anandkumar, Fourier neural operators explained: A practical perspective, arXiv preprint arXiv:2512.01421 (2025). [13] O. Watt-Meyer, B. Henn, J. McGibbon, S. K. Clark, A. Kwa, W. A. Perkins, E. Wu, L. Harris, and C. S. Bretherton, Ace2: accurately learning subseasonal to decadal atmospheric variability and forced responses, npj Climate and Atmospheric Science 8, 205 (2025). [14] H. Dai, M. Penwarden, R. M. Kirby, and S. Joshi, Neural operator learning for ultrasound tomography inversion, arXiv preprint arXiv:2304.03297 (2023). [15] V. Gopakumar, S. Pamela, L. Zanisi, Z. Li, A. Gray, D. Brennand, N. Bhatia, G. Stathopoulos, M. Kusner, M. Peter Deisenroth, et al. , Plasma surrogate modelling using fourier neural operators, Nuclear Fusion 64 , 056025 (2024). [16] A. Tran, A. Mathews, L. Xie, and C. S. Ong, Factorized fourier neural operators, arXiv preprint arXiv:2111.13802 (2021). [17] K. Li and W. Ye, D-fno: A decomposed fourier neural op-erator for large-scale parametric partial differential equa-tions, Computer Methods in Applied Mechanics and En-gineering 436 , 117732 (2025). [18] J. Kossaifi, N. Kovachki, K. Azizzadenesheli, and A. Anandkumar, Multi-grid tensorized fourier neu-ral operator for high-resolution pdes, arXiv preprint arXiv:2310.00120 (2023). [19] Z. Li, H. Zheng, N. Kovachki, D. Jin, H. Chen, B. Liu, K. Azizzadenesheli, and A. Anandkumar, Physics-informed neural operator for learning partial differen-tial equations, ACM/IMS Journal of Data Science 1, 1 (2024). [20] M. Raissi, Z. Wang, M. S. Triantafyllou, and G. E. Karni-adakis, Deep learning of vortex-induced vibrations, Jour-5
+
+nal of fluid mechanics 861 , 119 (2019). [21] S. Cai, Z. Mao, Z. Wang, M. Yin, and G. E. Kar-niadakis, Physics-informed neural networks (pinns) for fluid mechanics: A review, Acta Mechanica Sinica 37 ,1727 (2021). [22] A. White, N. Kilbertus, M. Gelbrecht, and N. Boers, Sta-bilized neural differential equations for learning dynamics with explicit constraints, Advances in Neural Information Processing Systems 36 , 12929 (2023). [23] P. Shen, M. Herbst, and V. Viswanathan, Rotation equiv-ariant operators for machine learning on scalar and vector fields, arXiv preprint arXiv:2108.09541 (2021). [24] J. Helwig, X. Zhang, C. Fu, J. Kurtin, S. Wojtowytsch, and S. Ji, Group equivariant fourier neural opera-tors for partial differential equations, arXiv preprint arXiv:2306.05697 (2023).
