@@ -6,166 +6,163 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-05-07
-- 运行时间：2026-05-07 20:55:28 UTC
+- 最新运行日期：2026-05-08
+- 运行时间：2026-05-08 20:49:54 UTC
 - 运行状态：成功
-- 本次总论文数：48
-- 精读区：36
+- 本次总论文数：47
+- 精读区：35
 - 速读区：12
 
 ### 今日简报（AI）
-今日精选 48 篇前沿论文，深度聚焦物理信息神经算子在湍流模拟与元学习优化中的突破。
-重点关注基于 PINO 的 LESnets 墙约束湍流模拟，以及通过组合元学习解决 PINNs 任务异构性的满分佳作。
-建议优先研读神经算子与流体力学结合的跨界成果，探索复杂物理系统的高效智能建模路径。
-- 详情：[/202605/07/README](/202605/07/README)
+今日深度研读 47 篇前沿论文，重点攻克了二阶全非线性 PDE 与局部高强度源项的求解难题。
+满分力作展示了自适应 Deep Ritz 框架与小波 PINN 在处理复杂物理场时卓越的精度与鲁棒性。
+建议优先关注自适应机制在物理信息神经网络中的应用，以提升模型在极端物理工况下的表现。
+- 详情：[/202605/08/README](/202605/08/README)
 
 ### 精读区论文标签
-1. [Large-eddy simulation nets (LESnets) based on physics-informed neural operator for wall-bounded turbulence](/202605/07/2604.26621v1-large-eddy-simulation-nets-lesnets-based-on-physics-informed-neural-operator-for-wall-bounded-turbulence)  
+1. [An adaptive Deep Ritz framework for second-order fully nonlinear partial differential equations](/202605/08/2604.27731v1-an-adaptive-deep-ritz-framework-for-second-order-fully-nonlinear-partial-differential-equations)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的物理信息神经算子
-2. [Compositional Meta-Learning for Mitigating Task Heterogeneity in Physics-Informed Neural Networks](/202605/07/2604.26999v1-compositional-meta-learning-for-mitigating-task-heterogeneity-in-physics-informed-neural-networks)  
+   evidence：作为PINN替代方案的Deep Ritz框架，用于求解非线性PDE
+2. [An adaptive wavelet-based PINN for problems with localized high-magnitude source](/202605/08/2604.28180v1-an-adaptive-wavelet-based-pinn-for-problems-with-localized-high-magnitude-source)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的物理信息神经网络
-3. [An adaptive wavelet-based PINN for problems with localized high-magnitude source](/202605/07/2604.28180v1-an-adaptive-wavelet-based-pinn-for-problems-with-localized-high-magnitude-source)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解微分方程的自适应小波物理信息神经网络
-4. [PILIR: Physics-Informed Local Implicit Representation](/202605/07/2605.00385v1-pilir-physics-informed-local-implicit-representation)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的物理信息神经网络
-5. [Learning the Helmholtz equation operator with DeepONet for non-parametric 2D geometries](/202605/07/2605.00760v1-learning-the-helmholtz-equation-operator-with-deeponet-for-non-parametric-2d-geometries)  
-   标签：评分：10.0/10、query:pde-llm
-   evidence：使用DeepONet学习亥姆霍兹方程算子
-6. [Alikhanov-XfPINNs: Adaptive Physics-Informed Learning for Nonlinear Fractional PDEs on Nonuniform Meshes](/202605/07/2605.01305v1-alikhanov-xfpinns-adaptive-physics-informed-learning-for-nonlinear-fractional-pdes-on-nonuniform-meshes)  
+   evidence：用于微分方程的自适应小波物理信息神经网络
+3. [Alikhanov-XfPINNs: Adaptive Physics-Informed Learning for Nonlinear Fractional PDEs on Nonuniform Meshes](/202605/08/2605.01305v1-alikhanov-xfpinns-adaptive-physics-informed-learning-for-nonlinear-fractional-pdes-on-nonuniform-meshes)  
    标签：评分：10.0/10、query:pde-llm
    evidence：用于非线性分数阶偏微分方程的物理信息神经网络
-7. [A physics-informed neural network approach to solve the spatially inhomogeneous electron Boltzmann equation](/202605/07/2605.04307v1-a-physics-informed-neural-network-approach-to-solve-the-spatially-inhomogeneous-electron-boltzmann-equation)  
+4. [Chebyshev-Augmented One-Shot Transfer Learning for PINNs on Nonlinear Differential Equations](/202605/08/2605.01634v1-chebyshev-augmented-one-shot-transfer-learning-for-pinns-on-nonlinear-differential-equations)  
+   标签：评分：10.0/10、query:pde-llm
+   evidence：用于非线性微分方程的物理信息神经网络
+5. [A physics-informed neural network approach to solve the spatially inhomogeneous electron Boltzmann equation](/202605/08/2605.04307v1-a-physics-informed-neural-network-approach-to-solve-the-spatially-inhomogeneous-electron-boltzmann-equation)  
    标签：评分：10.0/10、query:pde-llm
    evidence：物理信息神经网络求解玻尔兹曼方程
-8. [Structure-Preserving and Pressure-Robust PINNs for Incompressible Oseen Problems](/202605/07/2605.04427v1-structure-preserving-and-pressure-robust-pinns-for-incompressible-oseen-problems)  
+6. [Structure-Preserving and Pressure-Robust PINNs for Incompressible Oseen Problems](/202605/08/2605.04427v1-structure-preserving-and-pressure-robust-pinns-for-incompressible-oseen-problems)  
    标签：评分：10.0/10、query:pde-llm
-   evidence：用于Oseen方程的物理信息神经网络
-9. [Do Larger Models Really Win in Drug Discovery? A Benchmark Assessment of Model Scaling in AI-Driven Molecular Property and Activity Prediction](/202605/07/2604.26498v1-do-larger-models-really-win-in-drug-discovery-a-benchmark-assessment-of-model-scaling-in-ai-driven-molecular-property-and-activity-prediction)  
-   标签：评分：9.0/10、query:ddi
-   evidence：使用AI模型进行分子属性和活性预测的基准评估
-10. [Hybrid Fourier Neural Operator-Lattice Boltzmann Method](/202605/07/2604.27158v1-hybrid-fourier-neural-operator-lattice-boltzmann-method)  
+   evidence：用于Oseen方程的一致性PINN框架
+7. [Differentiable Chemistry in PINNs for Solving Parameterized and Stiff Reaction Systems](/202605/08/2605.04708v1-differentiable-chemistry-in-pinns-for-solving-parameterized-and-stiff-reaction-systems)  
+   标签：评分：10.0/10、query:pde-llm
+   evidence：物理信息神经网络中的可微化学
+8. [Adaptive anisotropic composite quadratures for residual minimisation in neural PDE approximations](/202605/08/2605.00308v1-adaptive-anisotropic-composite-quadratures-for-residual-minimisation-in-neural-pde-approximations)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于加速流体动力学模拟的傅里叶神经算子
-11. [A Study on the Performance of Distributed Training of Data-driven CFD Simulations](/202605/07/2604.27431v1-a-study-on-the-performance-of-distributed-training-of-data-driven-cfd-simulations)  
+   evidence：神经网络PDE逼近的求积方法
+9. [Conformalized Quantum DeepONet Ensembles for Scalable Operator Learning with Distribution-Free Uncertainty](/202605/08/2605.00330v1-conformalized-quantum-deeponet-ensembles-for-scalable-operator-learning-with-distribution-free-uncertainty)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于求解偏微分方程的数据驱动方法和AI技术
-12. [An adaptive Deep Ritz framework for second-order fully nonlinear partial differential equations](/202605/07/2604.27731v1-an-adaptive-deep-ritz-framework-for-second-order-fully-nonlinear-partial-differential-equations)  
+   evidence：用于高维动力系统的可扩展算子学习
+10. [PILIR: Physics-Informed Local Implicit Representation](/202605/08/2605.00385v1-pilir-physics-informed-local-implicit-representation)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于非线性偏微分方程的Deep Ritz框架
-13. [Adaptive anisotropic composite quadratures for residual minimisation in neural PDE approximations](/202605/07/2605.00308v1-adaptive-anisotropic-composite-quadratures-for-residual-minimisation-in-neural-pde-approximations)  
+   evidence：用于求解偏微分方程的物理信息神经网络
+11. [Deep-Picard Iteration for Space-time Fractional Diffusion PDEs](/202605/08/2605.00456v1-deep-picard-iteration-for-space-time-fractional-diffusion-pdes)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：神经偏微分方程近似中残差最小化的自适应求积
-14. [Deep-Picard Iteration for Space-time Fractional Diffusion PDEs](/202605/07/2605.00456v1-deep-picard-iteration-for-space-time-fractional-diffusion-pdes)  
+   evidence：用于分数阶扩散偏微分方程的神经网络框架
+12. [Learning the Helmholtz equation operator with DeepONet for non-parametric 2D geometries](/202605/08/2605.00760v1-learning-the-helmholtz-equation-operator-with-deeponet-for-non-parametric-2d-geometries)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于高维非线性时空分数阶扩散方程的神经网络回归
-15. [HyCOP: Hybrid Composition Operators for Interpretable Learning of PDEs](/202605/07/2605.00820v1-hycop-hybrid-composition-operators-for-interpretable-learning-of-pdes)  
+   evidence：使用DeepONet求解亥姆霍兹方程算子
+13. [HyCOP: Hybrid Composition Operators for Interpretable Learning of PDEs](/202605/08/2605.00820v1-hycop-hybrid-composition-operators-for-interpretable-learning-of-pdes)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：学习参数化偏微分方程解算子的模块化框架
-16. [An ALE-Consistent Graph Neural Operator-Transformer Framework for Fluid-Structure Interaction](/202605/07/2605.00937v1-an-ale-consistent-graph-neural-operator-transformer-framework-for-fluid-structure-interaction)  
+   evidence：通过组合模块学习参数化PDE解算子
+14. [An ALE-Consistent Graph Neural Operator-Transformer Framework for Fluid-Structure Interaction](/202605/08/2605.00937v1-an-ale-consistent-graph-neural-operator-transformer-framework-for-fluid-structure-interaction)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于流固耦合的图神经算子和Transformer
-17. [Chebyshev-Augmented One-Shot Transfer Learning for PINNs on Nonlinear Differential Equations](/202605/07/2605.01634v1-chebyshev-augmented-one-shot-transfer-learning-for-pinns-on-nonlinear-differential-equations)  
+   evidence：用于流体动力学的图神经网络算子和Transformer
+15. [Online Safety Filter for Deformable Object Manipulation with Horizon Agnostic Neural Operators](/202605/08/2605.01069v1-online-safety-filter-for-deformable-object-manipulation-with-horizon-agnostic-neural-operators)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：针对非线性微分方程的PINN迁移学习
-18. [Benchmarking Single-Pose Docking, Consensus Rescoring, and Supervised ML on the LIT-PCBA Library: A Critical Evaluation of DiffDock, AutoDock-GPU, GNINA, and DiffDock-NMDN](/202605/07/2605.01681v2-benchmarking-single-pose-docking-consensus-rescoring-and-supervised-ml-on-the-lit-pcba-library-a-critical-evaluation-of-diffdock-autodock-gpu-gnina-and-diffdock-nmdn)  
-   标签：评分：9.0/10、query:ddi
-   evidence：配体-靶点对的监督机器学习与对接
-19. [Learning Koopman operators for coupled systems via information on governing equations of subsystems](/202605/07/2605.01835v1-learning-koopman-operators-for-coupled-systems-via-information-on-governing-equations-of-subsystems)  
+   evidence：神经算子学习PDE动力学
+16. [Beyond Data-Physics Consistency: A Cross-Correlated Physics-Informed Neural Network for Robust Inverse Scattering](/202605/08/2605.01851v1-beyond-data-physics-consistency-a-cross-correlated-physics-informed-neural-network-for-robust-inverse-scattering)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：学习耦合非线性动力系统的Koopman算子
-20. [Beyond Data-Physics Consistency: A Cross-Correlated Physics-Informed Neural Network for Robust Inverse Scattering](/202605/07/2605.01851v1-beyond-data-physics-consistency-a-cross-correlated-physics-informed-neural-network-for-robust-inverse-scattering)  
+   evidence：用于麦克斯韦方程组的物理信息神经网络
+17. [Variational Matrix-Learning Fourier Networks for Parametric Multiphysics Surrogates](/202605/08/2605.02280v1-variational-matrix-learning-fourier-networks-for-parametric-multiphysics-surrogates)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于求解逆散射中麦克斯韦方程组的PINN
-21. [Variational Matrix-Learning Fourier Networks for Parametric Multiphysics Surrogates](/202605/07/2605.02280v1-variational-matrix-learning-fourier-networks-for-parametric-multiphysics-surrogates)  
+   evidence：用于PDE主导多物理场的傅里叶网络
+18. [Physics-Informed Neural Learning for State Reconstruction and Parameter Identification in Coupled Greenhouse Climate Dynamics](/202605/08/2605.02524v1-physics-informed-neural-learning-for-state-reconstruction-and-parameter-identification-in-coupled-greenhouse-climate-dynamics)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：偏微分方程的科学机器学习
-22. [A Variational Kolosov--Muskhelishvili Network for Elasticity and Fracture](/202605/07/2605.02310v1-a-variational-kolosov--muskhelishvili-network-for-elasticity-and-fracture)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于弹性力学偏微分方程的变分物理信息神经网络
-23. [Physics-Informed Neural Learning for State Reconstruction and Parameter Identification in Coupled Greenhouse Climate Dynamics](/202605/07/2605.02524v1-physics-informed-neural-learning-for-state-reconstruction-and-parameter-identification-in-coupled-greenhouse-climate-dynamics)  
-   标签：评分：9.0/10、query:pde-llm
-   evidence：用于动力学约束的耦合物理信息神经学习
-24. [Isotropic Fourier Neural Operators](/202605/07/2605.02597v1-isotropic-fourier-neural-operators)  
+   evidence：用于动力学约束的物理信息神经网络
+19. [Isotropic Fourier Neural Operators](/202605/08/2605.02597v1-isotropic-fourier-neural-operators)  
    标签：评分：9.0/10、query:pde-llm
    evidence：用于求解偏微分方程的傅里叶神经算子
-25. [An explainable hypothesis-driven approach to Drug-Induced Liver Injury with HADES](/202605/07/2605.02669v2-an-explainable-hypothesis-driven-approach-to-drug-induced-liver-injury-with-hades)  
+20. [An explainable hypothesis-driven approach to Drug-Induced Liver Injury with HADES](/202605/08/2605.02669v2-an-explainable-hypothesis-driven-approach-to-drug-induced-liver-injury-with-hades)  
    标签：评分：9.0/10、query:ddi
-   evidence：用于药物诱导损伤预测和机制假设的智能体系统
-26. [ISAAC: Auditing Causal Reasoning in Deep Models for Drug-Target Interaction](/202605/07/2605.02962v1-isaac-auditing-causal-reasoning-in-deep-models-for-drug-target-interaction)  
+   evidence：药物诱导损伤的计算预测器与分子级预测
+21. [ISAAC: Auditing Causal Reasoning in Deep Models for Drug-Target Interaction](/202605/08/2605.02962v1-isaac-auditing-causal-reasoning-in-deep-models-for-drug-target-interaction)  
    标签：评分：9.0/10、query:ddi
-   evidence：审计药物-靶点相互作用的深度模型
-27. [Posterior-First Neural PDE Simulation: Inferring Hidden Problem State from a Single Field](/202605/07/2605.03247v1-posterior-first-neural-pde-simulation-inferring-hidden-problem-state-from-a-single-field)  
+   evidence：药物-靶点相互作用的深度学习模型
+22. [Phy2-ExposNet: A Physics-Informed Neural Network for EMF Exposure Mapping in Complex Urban Environments](/202605/08/2605.03207v1-phy2-exposnet-a-physics-informed-neural-network-for-emf-exposure-mapping-in-complex-urban-environments)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：通过推断隐藏问题状态进行神经PDE模拟
-28. [Meta-Inverse Physics-Informed Neural Networks for High-Dimensional Ordinary Differential Equations](/202605/07/2605.03511v1-meta-inverse-physics-informed-neural-networks-for-high-dimensional-ordinary-differential-equations)  
+   evidence：用于场映射的物理信息神经网络
+23. [Posterior-First Neural PDE Simulation: Inferring Hidden Problem State from a Single Field](/202605/08/2605.03247v1-posterior-first-neural-pde-simulation-inferring-hidden-problem-state-from-a-single-field)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于微分方程的元逆物理信息神经网络
-29. [Random test functions, $H^{-1}$ norm equivalence, and stochastic variational physics-informed neural networks](/202605/07/2605.03542v1-random-test-functions-h-1-norm-equivalence-and-stochastic-variational-physics-informed-neural-networks)  
+   evidence：神经偏微分方程模拟
+24. [Random test functions, $H^{-1}$ norm equivalence, and stochastic variational physics-informed neural networks](/202605/08/2605.03542v1-random-test-functions-h-1-norm-equivalence-and-stochastic-variational-physics-informed-neural-networks)  
    标签：评分：9.0/10、query:pde-llm
    evidence：用于偏微分方程的随机变分物理信息神经网络
-30. [PerFlow: Physics-Embedded Rectified Flow for Efficient Reconstruction and Uncertainty Quantification of Spatiotemporal Dynamics](/202605/07/2605.03548v1-perflow-physics-embedded-rectified-flow-for-efficient-reconstruction-and-uncertainty-quantification-of-spatiotemporal-dynamics)  
+25. [Simultaneous CNN Approximation on Manifolds with Applications to Boundary Value Problems](/202605/08/2605.04126v1-simultaneous-cnn-approximation-on-manifolds-with-applications-to-boundary-value-problems)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：物理嵌入流用于PDE重建
-31. [Simultaneous CNN Approximation on Manifolds with Applications to Boundary Value Problems](/202605/07/2605.04126v1-simultaneous-cnn-approximation-on-manifolds-with-applications-to-boundary-value-problems)  
+   evidence：用于边界值问题的物理信息CNN框架
+26. [From Video-to-PDE: Data-Driven Discovery of Nonlinear Dye Plume Dynamics](/202605/08/2605.04535v1-from-video-to-pde-data-driven-discovery-of-nonlinear-dye-plume-dynamics)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：流形上边值问题的物理信息CNN框架
-32. [Benchmarking open-source tools for in silico antiviral drug discovery](/202605/07/2605.04265v1-benchmarking-open-source-tools-for-in-silico-antiviral-drug-discovery)  
-   标签：评分：9.0/10、query:ddi
-   evidence：用于抗病毒药物研发的计算工具和人工智能系统
-33. [From Video-to-PDE: Data-Driven Discovery of Nonlinear Dye Plume Dynamics](/202605/07/2605.04535v1-from-video-to-pde-data-driven-discovery-of-nonlinear-dye-plume-dynamics)  
+   evidence：从视频中数据驱动地发现非线性动力学和传输规律
+27. [A Physics-Constrained Learning Framework for Wave Propagation in Complex Poroelastic Multilayered Media](/202605/08/2605.04596v1-a-physics-constrained-learning-framework-for-wave-propagation-in-complex-poroelastic-multilayered-media)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：从视频中数据驱动地发现非线性偏微分方程
-34. [Differentiable Chemistry in PINNs for Solving Parameterized and Stiff Reaction Systems](/202605/07/2605.04708v1-differentiable-chemistry-in-pinns-for-solving-parameterized-and-stiff-reaction-systems)  
+   evidence：波动方程的物理约束学习
+28. [Replay-Based Continual Learning for Physics-Informed Neural Operators](/202605/08/2605.04832v1-replay-based-continual-learning-for-physics-informed-neural-operators)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：用于反应系统的物理信息神经网络
-35. [Replay-Based Continual Learning for Physics-Informed Neural Operators](/202605/07/2605.04832v1-replay-based-continual-learning-for-physics-informed-neural-operators)  
+   evidence：物理信息神经网络算子的持续学习
+29. [Hybrid Iterative Neural Low-Regularity Integrator for Nonlinear Dispersive Equations](/202605/08/2605.04853v1-hybrid-iterative-neural-low-regularity-integrator-for-nonlinear-dispersive-equations)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：物理信息神经算子的持续学习
-36. [Hybrid Iterative Neural Low-Regularity Integrator for Nonlinear Dispersive Equations](/202605/07/2605.04853v1-hybrid-iterative-neural-low-regularity-integrator-for-nonlinear-dispersive-equations)  
+   evidence：用于非线性色散偏微分方程的神经算子
+30. [Variational Smoothing and Inference for SDEs from Sparse Data with Dynamic Neural Flows](/202605/08/2605.05606v1-variational-smoothing-and-inference-for-sdes-from-sparse-data-with-dynamic-neural-flows)  
    标签：评分：9.0/10、query:pde-llm
-   evidence：使用神经算子增强偏微分方程数值求解器的混合框架
+   evidence：训练神经网络以满足控制PDE，从而进行SDE推断
+31. [Do Neural Operators Forget Geometry? The Forgetting Hypothesis in Deep Operator Learning](/202605/08/2605.05862v1-do-neural-operators-forget-geometry-the-forgetting-hypothesis-in-deep-operator-learning)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：深度算子学习架构分析
+32. [Lattice fermion formulation via Physics-Informed Neural Networks: Ginsparg-Wilson relation and Overlap fermions](/202605/08/2605.06022v1-lattice-fermion-formulation-via-physics-informed-neural-networks-ginsparg-wilson-relation-and-overlap-fermions)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：用于狄拉克算子的物理信息神经网络
+33. [Adaptive Coordinate Transforms for Neural Operators](/202605/08/2605.06203v1-adaptive-coordinate-transforms-for-neural-operators)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：偏微分方程神经算子的自适应坐标变换
+34. [INEUS: Iterative Neural Solver for High-Dimensional PIDEs](/202605/08/2605.06281v1-ineus-iterative-neural-solver-for-high-dimensional-pides)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：高维偏微分积分方程的迭代神经求解器
+35. [AI CFD Scientist: Toward Open-Ended Computational Fluid Dynamics Discovery with Physics-Aware AI Agents](/202605/08/2605.06607v1-ai-cfd-scientist-toward-open-ended-computational-fluid-dynamics-discovery-with-physics-aware-ai-agents)  
+   标签：评分：9.0/10、query:pde-llm
+   evidence：基于大语言模型的计算流体力学代理与物理验证
 
 ### 速读区论文标签
-1. [Co-Learning Port-Hamiltonian Systems and Optimal Energy-Shaping Control](/202605/07/2604.26172v2-co-learning-port-hamiltonian-systems-and-optimal-energy-shaping-control)  
+1. [Machine Collective Intelligence for Explainable Scientific Discovery](/202605/08/2604.27297v1-machine-collective-intelligence-for-explainable-scientific-discovery)  
    标签：评分：8.0/10、query:pde-llm
-   evidence：端口-哈密顿系统与控制的物理信息学习
-2. [Reduced-order modeling of a viscoelastic turbulent jet with hybrid machine learning models](/202605/07/2604.26240v1-reduced-order-modeling-of-a-viscoelastic-turbulent-jet-with-hybrid-machine-learning-models)  
+   evidence：使用推理智能体自主发现控制方程
+2. [DeepPropNet: an operator learning-based predictor for thermal plasma properties](/202605/08/2604.27298v1-deeppropnet-an-operator-learning-based-predictor-for-thermal-plasma-properties)  
    标签：评分：8.0/10、query:pde-llm
-   evidence：用于加速数值模拟的混合机器学习模型
-3. [Machine Collective Intelligence for Explainable Scientific Discovery](/202605/07/2604.27297v1-machine-collective-intelligence-for-explainable-scientific-discovery)  
+   evidence：基于算子学习的物理属性预测器
+3. [A Dirac-Frenkel-Onsager principle: Instantaneous residual minimization with gauge momentum for nonlinear parametrizations of PDE solutions](/202605/08/2605.00284v1-a-dirac-frenkel-onsager-principle-instantaneous-residual-minimization-with-gauge-momentum-for-nonlinear-parametrizations-of-pde-solutions)  
    标签：评分：8.0/10、query:pde-llm
-   evidence：用于发现控制方程的AI
-4. [A Neural Network Method for Scalar Conservation Laws with Convergence Rates for Shock-Wave Solutions](/202605/07/2604.27458v2-a-neural-network-method-for-scalar-conservation-laws-with-convergence-rates-for-shock-wave-solutions)  
+   evidence：偏微分方程解的最小化
+4. [Differentiable Multiphysics Co-Optimization via Implicit Neural Representations: A Transient Hamburger-Cooking Benchmark](/202605/08/2605.01040v1-differentiable-multiphysics-co-optimization-via-implicit-neural-representations-a-transient-hamburger-cooking-benchmark)  
    标签：评分：8.0/10、query:pde-llm
-   evidence：守恒律的神经网络方法
-5. [Fitting Large Nonlinear Mixed Effects Models Using Variational Expectation Maximization](/202605/07/2604.26160v1-fitting-large-nonlinear-mixed-effects-models-using-variational-expectation-maximization)  
+   evidence：使用隐式神经表示的可微多物理场求解器
+5. [OptimusKG: Unifying biomedical knowledge in a modern multimodal graph](/202605/08/2604.27269v1-optimuskg-unifying-biomedical-knowledge-in-a-modern-multimodal-graph)  
    标签：评分：7.0/10、query:ddi
-   evidence：药理计量学与纵向数据分析
-6. [Structure-Aware Tensorial Model Reduction](/202605/07/2604.26280v1-structure-aware-tensorial-model-reduction)  
+   evidence：包含关系类型的生物医学知识图谱
+6. [Hyper-Dimensional Fingerprints as Molecular Representations](/202605/08/2604.27810v1-hyper-dimensional-fingerprints-as-molecular-representations)  
+   标签：评分：7.0/10、query:ddi
+   evidence：用于属性预测的分子表示
+7. [A Comparative Study of QSPR Methods on a Unique Multitask PAMPA dataset](/202605/08/2605.00508v1-a-comparative-study-of-qspr-methods-on-a-unique-multitask-pampa-dataset)  
+   标签：评分：7.0/10、query:ddi
+   evidence：药物候选分子的QSPR方法
+8. [Deep Variational Inference Symbolic Regression](/202605/08/2605.01067v1-deep-variational-inference-symbolic-regression)  
    标签：评分：7.0/10、query:pde-llm
-   evidence：参数化偏微分方程的降阶模型
-7. [Stochastic Scaling Limits and Synchronization by Noise in Deep Transformer Models](/202605/07/2604.26898v1-stochastic-scaling-limits-and-synchronization-by-noise-in-deep-transformer-models)  
-   标签：评分：7.0/10、query:pde-llm
-   evidence：描述Transformer Token演化的随机偏微分方程
-8. [Data-driven discovery of polynomial ODEs with provably bounded solutions](/202605/07/2604.26933v1-data-driven-discovery-of-polynomial-odes-with-provably-bounded-solutions)  
-   标签：评分：7.0/10、query:pde-llm
-   evidence：数据驱动的项式常微分方程发现
-9. [SciHorizon-DataEVA: An Agentic System for AI-Readiness Evaluation of Heterogeneous Scientific Data](/202605/07/2604.26645v1-scihorizon-dataeva-an-agentic-system-for-ai-readiness-evaluation-of-heterogeneous-scientific-data)  
+   evidence：用于发现显式方程的符号回归
+9. [A Systematic Review of Recent Advancements in PINN Augmented Deep Learning and Mathematical Modeling for Efficient Portfolio Management](/202605/08/2604.27610v1-a-systematic-review-of-recent-advancements-in-pinn-augmented-deep-learning-and-mathematical-modeling-for-efficient-portfolio-management)  
    标签：评分：6.0/10、query:pde-llm
-   evidence：科学机器学习中 AI 就绪性评估的智能体系统
-10. [Robust Model-Based Iteration for Passive Gamma Emission Tomography](/202605/07/2604.26745v1-robust-model-based-iteration-for-passive-gamma-emission-tomography)  
+   evidence：物理信息神经网络增强深度学习建模
+10. [Consistent Diffusion Language Models](/202605/08/2605.00161v1-consistent-diffusion-language-models)  
    标签：评分：6.0/10、query:pde-llm
-   evidence：学习算子在非线性逆问题求解器中优化更新
-11. [Thermodynamically Constrained Information Geometric Regularization for Compressible Flows](/202605/07/2604.27286v1-thermodynamically-constrained-information-geometric-regularization-for-compressible-flows)  
+   evidence：扩散语言模型与概率流常微分方程
+11. [Prediction of Alzheimer's Disease Risk Factors from Retinal Images via Deep Learning: Development and Validation of Biologically Relevant Morphological Associations in the UK Biobank](/202605/08/2605.00665v1-prediction-of-alzheimers-disease-risk-factors-from-retinal-images-via-deep-learning-development-and-validation-of-biologically-relevant-morphological-associations-in-the-uk-biobank)  
+   标签：评分：6.0/10、query:ddi
+   evidence：深度学习用于生物学相关关联预测
+12. [Equation-Free Digital Twins for Nonlinear Structural Dynamics](/202605/08/2605.00950v1-equation-free-digital-twins-for-nonlinear-structural-dynamics)  
    标签：评分：6.0/10、query:pde-llm
-   evidence：可压缩流方程的信息几何正则化
-12. [Human-in-the-Loop Meta Bayesian Optimization for Fusion Energy and Scientific Applications](/202605/07/2605.00068v1-human-in-the-loop-meta-bayesian-optimization-for-fusion-energy-and-scientific-applications)  
-   标签：评分：6.0/10、query:pde-llm
-   evidence：用于聚变能发现的科学机器学习
+   evidence：算子理论用于非线性结构动力学
 
 
 <div class="dpr-home-promo-card">

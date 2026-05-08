@@ -1,0 +1,509 @@
+Title: A Comparative Study of QSPR Methods on a Unique Multitask PAMPA dataset
+
+URL Source: https://arxiv.org/pdf/2605.00508v1
+
+Published Time: Mon, 04 May 2026 00:48:04 GMT
+
+Number of Pages: 56
+
+Markdown Content:
+# A Comparative Study of QSPR Methods on a Unique Multitask PAMPA dataset 
+
+# András Formanek, ∗,†,‡ Anna Vincze, ¶,§,∥ Richárd Bicsak, ¶ György T. Balogh, ¶,§,∥
+
+# Yves Moreau, † and Ádám Arany †
+
+†Department of Electrical Engineering (ESAT), STADIUS Center for Dynamical Systems, Signal Processing and Data Analytics, KU Leuven, 3001 Leuven, Belgium 
+
+‡Department of Artificial Intelligence and Systems Engineering, Faculty of Electrical Engineering and Informatics, Budapest University of Technology and Economics, Műegyetem rkp. 3, H-1111 Budapest, Hungary 
+
+¶Department of Chemical and Environmental Process Engineering, Faculty of Chemical Technology and Biotechnology, Budapest University of Technology and Economics, Műegyetem rkp. 3, H-1111 Budapest, Hungary 
+
+§Center for Pharmacology and Drug Research & Development, Semmelweis University, Üllői Str. 26, H-1085 Budapest, Hungary 
+
+∥Department of Pharmaceutical Chemistry, Semmelweis University, Faculty of Pharmaceutical Sciences, Hőgyes Endre Street 7-9, H-1092 Budapest, Hungary 
+
+E-mail: aformane@esat.kuleuven.be 
+
+1
+
+> arXiv:2605.00508v1 [cs.LG] 1 May 2026
+
+Abstract 
+
+We present a unique, multitask dataset comprising 143 drug and drug candidate molecules, each evaluated on in vitro, parallel artificial-membrane permeability assays (PAMPA) using six different model membranes. Using this resource, we systematically assess the effectiveness of various molecular descriptors and regression models in pre-dicting passive membrane permeability. The studied models range from simple linear regression to a modern pre-trained transformer architecture. Particular attention is given to the trade-off between predictive performance and model interpretability, high-lighting the challenges introduced by machine learning approaches. To our knowledge, this is the most comprehensive study on simultaneous modeling of multiple organ-specific PAMPA membranes to date, offering novel insights into membrane-specific permeability profiles. We found that expert-designed physico-chemical property descriptors are more fit-ting for a limited sample size permeabilty study than deep learning based representa-tions. 
+
+# Introduction 
+
+Testing the ability of a drug to penetrate cell membranes is a key step of early drug discov-ery, as distribution to the pharmaceutically relevant organs, tissues, or cells is a prerequisite for therapeutic effect. Drug molecules may pass through biological membranes via active or passive transport, and the contribution of these mechanisms often varies according to the route of administration. 1 As a primary mechanism, passive transport is considered the most common route of intestinal absorption 2 and blood-brain barrier penetration 3 for lipophilic small molecules. Drug discovery relies on both computational models ( in silico ) and exper-imental ( in vitro ) assays to assess the membrane permeability of drug candidates. The in vitro Parallel Artificial Membrane Permeability Assay (PAMPA), 4 which is best suited for high-throughput drug penetration screening, was introduced three decades ago and has since 2been successfully incorporated into pharmaceutical research and development as an effective tool. 5 In this technique, a porous polymer filter is sandwiched between two multi-well mi-crotiter plates. Here, the artificial lipid membrane is fabricated by coating the polymer filter with a phospholipid (PL) solution, thus creating a cell membrane-mimicking surface between the two (donor and acceptor) aqueous compartments. The major advantages of PAMPA are the high versatility in the possible membrane compositions combined with robustness and low cost. Since the first such setup using egg lecithin as artificial membrane, 4 a number of variants were introduced ranging from simplified, PL-free/solvent-based assays (with sol-vents like hexadecane, 6 dodecane 7) , others using well-defined single PLs, 8 or PLs combined with cholesterol, 9 all the way to natural PL mixtures extracted from animal tissues (brain polar lipid extract of porcine origin, modeling the blood brain barrier 10 )In 2006, Polli et al. investigated the effect of lipid composition on permeability across different PAMPA membranes. 11 They investigated five compounds on six glycerophospho-lipids with various acyl chains and head group charges. However, the narrow selection of compounds limited the generalizability of their conclusions. A previous study attempted to compare commercially available ‘total’ and ‘polar’ extracts of animal brain, heart and liver by testing 32 diverse drugs in PAMPA, and evaluate the dataset with the use of pharmacokinetic descriptors. 12 To continue exploring the effects of phospholipids, our study includes 143 drug-like small molecules (including approved drugs) with 6 different PAMPA setups, featuring one solvent model (dodecane), two single lipids carrying different net charges (phosphatidyl-choline - neutral, phosphatidylserine - negative), and three natural polar lipid extracts (brain, heart, and liver). Dodecane, a hydrocarbon, is the most used PL-solving agent in PAMPA assays, as it may closely mimic the bilayer’s hydrocarbon domain in membranes. 13 In some cases it even proved to be the most predictive model used as a single-component artificial membrane. 7 In a previous study Müller et al. investigated the effects of various phospholipid to dodecane ratios in BBB-PAMPA, showing that a lower dodecane ratio is needed to achieve a lipid-3driven transport in a tissue-specific assay. 14 Based on this evidence, dodecane acts as an individual barrier, therefore it has been chosen for our comparative study. To date, of all the published PAMPA setups, BBB-PAMPA has been the most applied and cited in vitro assay thanks to the commercial availability of Brain Polar Lipid Extract (BPLE). 10 
+
+Based on the data available for total and polar lipid extracts, polar lipid extracts are richer in glycerophospholipids, which have been robustly used in PAMPA assays for decades. 12 
+
+Therefore, along with brain polar extract, the polar extracts of heart and liver were also investigated in this study. Phosphatidylcholine (PC) was chosen as one of the single lipids investigated, as it is one of the main components of biological membranes, and the membrane component used for our corneal-specific PAMPA model. 15 To make our study more diverse, negatively charged phosphatidylserine (PS) was chosen as another single lipid species. As a significant component of brain polar lipid extract, PS presumably plays a key role in brain-specific permeability. Quantitative Structure Property Relationship (QSPR) mathematically links the structure of molecules with physical or chemical properties. This computational approach relies on the following three 16,17 essential components: 1. In vitro datasets, such as those obtained from PAMPA assays, which provide the experimental foundation for modeling. 2. Molecular descriptors that capture the structural and/or physicochemical characteris-tics of compounds. 3. Modeling techniques, ranging from simple linear regression models to advanced ma-chine learning techniques, such as neural networks, to establish predictive relationships. The success of QSPR depends on the synergy between these components: new in vitro data that extends the knowledge base, identification of the most informative descriptors, and modern ML techniques that can model complex, nonlinear relationships between descriptors and target properties. 4Since the goal of the modeling exercise is to later accurately predict the property of in-terest for new molecules, a realistic assessment of the true predictive power of the model must be established. 17,18 Rigorous validation, both internal (e.g., cross-validation within the training dataset) and external (using independent dataset), ensures the robustness and generalizability of these models. The integration of these elements enables more accurate predictions, supporting applications in drug discovery 19,20 (e.g., predicting ADMET prop-erties), material science, 21,22 and environmental chemistry, 23,24 while reducing reliance on resource-intensive trial-and-error methods. Encouraging collaborative efforts to publish new experimental datasets, refine molecular descriptors, and explore innovative algorithms can steadily improve the predictive capabilities of QSPR, reinforcing its role as a valuable tool for studying and predicting molecular properties. 
+
+# Materials and Methods 
+
+# Materials 
+
+Analytical grade solvents like acetonitrile, hexane, dodecane, and chloroform were purchased from Merck KGaA (Darmstadt, Germany). Most of the active pharmaceutical ingredients (APIs) were purchased from Merck KGaA (Darmstadt, Germany) and Mcule.com Ltd (Bu-dapest, Hungary), while some of them (compounds PGY0072, PGY0216, HK275, HK363, HK416, HK814, HK990, VB253, MOE0448; see SMILES codes in the Supporting Infor-mation) were provided by Egis Pharmaceuticals Plc (Budapest, Hungary). Heart (H) and liver (L) polar lipid extracts of bovine origin, brain polar lipid extract (BBB), and L-α-phosphatidylserine (PS) of porcine origin were purchased from Avanti Polar Lipids Inc. (Alabaster, AL, USA). 1 L-α-phosphatidylcholine (PC) was purchased from Merck KGaA (Darmstadt, Germany). Phosphate buffered saline (0.01 M) was prepared from a premixed powder also purchased from Merck KGaA (Darmstadt, Germany). For all experiments, in-
+
+> 1https://avantilipids.com/product-category/natural-lipids/extracts
+
+5cluding HPLC analysis, water was provided by a Millipore-MilliQ water purification system. 
+
+# In vitro permeability assay (PAMPA) 
+
+In vitro PAMPA measurements were carried out as follows. For each plate, 16 mg PL or PL extract were weighted and dissolved in 600 μL solvent mixture of chloroform, hexane, and dodecane (5:70:25 v/v %) at 0◦C, and filter membranes of the donor wells were coated with 5 μL lipid solution, or dodecane alone. The acceptor wells contained phosphate buffered saline (PBS, pH 7.4; 0.01 M sodium phosphate, 0.138 M sodium chloride; 0.0027 M potassium chloride), and the APIs were dissolved in the same medium (donor wells). After 4 hours incubation at 35 ◦C, all samples were analyzed by HPLC-DAD. The membrane retention (MR, Equation 1 ) and effective permeability ( Pe, Equation 2) of the APIs were calculated as follows: 25 
+
+MR = 1 − CD(t)
+
+CD(0) − VAcA(t)
+
+VDcD(0) (1) Pe = −2.303 
+
+A · (t − τss ) · 11 + rv
+
+· log 
+
+
+
+−rv + 1 + rv
+
+1 − MR · cD(t)
+
+CD(0) 
+
+
+
+(2) where A is the filter area (0.3 cm 2), VD and VA are the volumes in the donor (0.15 cm 3)and acceptor phase (0.3 cm 3), t is the incubation time (s), τss is the time to reach steady-state (s), cD(t) is the concentration of the compound in the donor phase at time point t
+
+(mol/cm 3), CD(0) is the concentration of the compound in the donor phase at time point zero (mol/cm 3), cA(t) is the concentration of the compound in the acceptor phase at time point t (mol/cm 3), rv is the aqueous compartment volume ratio ( VD/V A). 
+
+# HPLC analysis 
+
+The samples were analyzed using an Agilent 1100 HPLC system equipped with a solvent mixer and quaternary pump, autosampler, column thermostat, and a DAD detector module (Agilent Technologies Inc., Santa Clara, CA, USA). As a stationary phase, a Kinetex C18 6column (3 × 30 mm, 2.6 μm) was used; the temperature was kept at 45 ◦C. Two mobile phase solvents were used in a 3.6 minute-long gradient program: water, containing 0.1 v/v %
+
+formic acid (A) and AcN:water 95:5, containing 0.1 v/v % formic acid (B). At the start of the gradient program, the column was flushed with eluent 2% B for 0.3 min and then it reached 
+
+100% B within 1.5 min, 100% B was kept for another 0.6 min, and then B dropped to 
+
+2% . Chromatograms were collected and processed with the ChemStation software (Version B.04.03.); peaks were integrated either at wavelength 220 nm or 254 nm based on spectral characteristics. 
+
+# Compound library 
+
+The final data set consists of 143 compounds collected from 3 different sources. One batch consists of 16 compounds selected to be handled together. Every such compound was mea-sured on 6 targets (described below) with 3 repeats on the same plate (2 targets per plate), resulting in 3 physical 96-well plates for each batch. The first 7 batch of measurements (112 molecules) were executed on a diversity selected subset of the BUTE: Biomimetic Technologies Research Group’s in-house dataset of drug-like molecules created by maximizing Tanimoto distance between ECFP representation of the selected compounds. After the measurement results of the first 6 plates were at hand, we used experimental design techniques to select additional samples from the compound set provided by Mcule.com Ltd. 26 This is a large curated database containing commercially available compounds. In our case, the list consisted of 52,591 possible molecules, 9,333 of which passed simple tests of drug-likeness and exhibited detectable chromophores, an essential feature for UV-based detection, in our analytical setup. RDKit and Percepta 27,28 descriptors (described below) were computed for these and the 21 most important descriptors were chosen by fitting linear models (linear regression, lasso, ridge, PLS) with forward feature selection on the single targets and the 1st PCA component. Using only these chosen 21 descriptors, 32 of the 9,333 molecules were chosen to 7be purchased by D-optimal diversity selection. Because of the unavailability of some selected compounds and solubility issues, we replaced them with new ones, offered by SU: Department of Pharmaceutical Chemistry research group, using the same D-optimal diversity selection algorithm as before. 
+
+# Dataset 
+
+All molecules are initially represented by their SMILES 29,30 (Simplified Molecular Input Line Entry System). Although the SMILES of a molecule is not unique, RDKit offers a canonical version. Removal of salts (low molecular weight counter ions) and a general standardization of the molecules was carried out using RDKit version 2023.09.6 according to Algorithm 1 in Supporting Information. 
+
+Derived descriptors 
+
+Based on the desalted SMILES, five different numerical representations of the compounds were derived with various sizes and levels of interpretability. 
+
+Percepta by ACD/Labs 28 can be used for predicting various molecular properties and generating chemical descriptors for compounds. It is widely used in cheminformatics and computational drug discovery 31–34 for its accuracy in predicting a range of physicochemical, ADME, and toxicity properties, such as logP, logD, logS, pK a, Caco-2, which are highly relevant in the context of the present study. 35 In our research, 57 such properties have been computed for all molecules. After filtering and preprocessing, 38 of those descriptors were kept in the dataset. A full list is available in the Supporting Information. The precomputed Percepta descriptors are also available in the Supporting Information file ‘percepta.csv’. 
+
+RDKit is a popular open-source cheminformatics library 27 also widely used in computa-tional chemistry and drug discovery. 31,36–38 It provides tools for performing cheminformatics tasks, such as calculating molecular descriptors, such as molecular weight, topological polar surface area (TPSA), number of rotatable bonds, and basic physicochemical properties, such 8as logP. These descriptors are easy to interpret. In our research, 96 such properties have been computed for all molecules. A full list of these properties is available in the Support-ing Information. The precomputed RDKit descriptors are also available in the Supporting Information file ‘rdkit.csv’. 
+
+ECFP (Extended-Connectivity Fingerprints 39 ), also known as circular fingerprints or Morgan fingerprints, is a widely-used molecular representation 20,40–42 that encodes chemical structures into fixed-length binary vectors, suitable for machine learning models. ECFP6 focuses on local molecular environments, with a radius of 3 and is invariant to rotation and translation. The ECFP6 input space is high-dimensional but vastly sparse. In our paper, we folded 43 the fingerprint to 2,000. The precomputed ECFP descriptors are also available in the Supporting Information file ‘ecfp.csv’. The lists contain the column indices of the ones in the raw vectors. 
+
+CDDD (Continuous and Data-Driven molecular Descriptors 44 ) was developed to over-come some limitations of traditional fingerprints, such as ECFP. The descriptor vectors are generated as the inner representation of a sequence-to-sequence autoencoder neural network that is pretrained on a large chemical dataset in an unsupervised manner. This method generates continuous, fixed-length (512 dimensional) vectors, which encode molecular infor-mation in a way that is expected to be more suitable than discrete fingerprints for machine learning tasks involving search by similarity or clustering. CDDD captures complex molec-ular relationships for deep learning models to better capture and predict compound activity behaviors. The precomputed CDDD descriptors are also available in the Supporting Infor-mation file ‘cddd.csv’. 
+
+MolBERT 45 is also a fixed length (768 in this case) latent representation of an autoen-coder neural network model trained on vast amounts of molecular SMILES data. Unlike CDDD, it uses a BERT-like transformer 46 architecture to learn contextualized represen-tations of molecules by predicting masked atoms or substructures within SMILES strings. MolBERT aims at bringing the advantages of Natural Language Processing models into the 9molecular domain, helping to advance virtual screening, lead optimization, and other tasks in computational drug discovery. The precomputed MolBERT descriptors are also available in the Supporting Information file ‘MolBERT.csv’. 
+
+Measurement matrix 
+
+The Supporting Information File ’all_plate_measurements.csv’ contains the raw data of all 143 compounds, repeated 3 times (resulting in 429 measurement rows). The column names correspond to the molecules, the plate number of the experiment, and 18 columns of measurement values {MR, P e, logP e } × {BBB, Liver, Heart, Dodecane, Phosphatidylserine, Phosphatidylcholine}. The file ’all_plate_desalted_smiles_measurements_folds.csv’ only contains the average values of measurements and in an additional column the standardized and desalted SMILES descriptors of the compounds. In our study, the logP e values are of primary interest, so that all the regression models and PCA analyses are applied to the corresponding 6-column submatrix only. 
+
+# Modeling 
+
+We selected a wide range of machine learning (ML) regression models for our analysis and executed an exhaustive hyperparameter search. We used the Scikit-learn 47 (version 1.2.2) Python library to train classical ML models on the data set. The modeling classes were as follows (for hyperparameters see Supporting Information): 
+
+• DecisionTreeRegressor : decision tree regressor (DTR) 
+
+• RandomForestRegressor : random forest regressor (RFR) ensemble of 1,000 DTR models 
+
+• ElasticNet : linear regression implementation with L1 (Lasso) and L2 (Ridge) type regularization. 10 • MultiTaskElasticNet : joint optimization of the ElasticNet to multiple targets 
+
+• BayesianRidge : fits a Bayesian Linear Regression with Ridge ( L2 type) regularization 
+
+• PLSRegression : Partial least-squares regression 48 commonly used 33 cross-decomposition algorithm in chemoinformatics 
+
+• SVR : Epsilon-Support Vector Regression model 
+
+• XGBoost : parallel (regression) tree gradient boosting model 49,50 
+
+• MLP : finally, the SparseChem 51 model is a Multi-Layer Perceptron ( MLP ) imple-mentation specialized for sparse input and output matrices, developed, among others, for ML in chemistry tasks, such as Drug-Target Interaction (DTI) prediction. From an interpretability point of view, MLP models are considered black boxes, but their prediction superiority (as we also show later) gives them a leading role in modern chemistry and drug discovery research. 
+
+# Experiments and results 
+
+# Principal Component Analysis of membrane profiles 
+
+We applied Principal Component Analysis (PCA) to the matrix containing the measured logP e values for all molecules on the six membranes (BBB, L, H, DOD, PS, PC). The re-sults of the PCA analysis are shown in Figure 1. Each dot represents a compound, colored according to their charge state at pH 7.4. The red color represents anionic (mainly acids), blue cationic (mainly bases), green zwitter ionic (mainly amphoteric compounds), and yellow neutral compounds (mainly compounds without ionizable moieties). The six arrows corre-spond to the membranes, and they show the main directions where molecules, that cross the given membrane, lie. 11 Figure 1: 3D and 2D plots of the first 3 principal components of the matrix containing the measured logP e values for all molecules on all 6 membranes. Colors are based on charge: red - anionic, blue - cationic, green - zwitter ionic, yellow - neutral. We can see that the first principal component (PCA 0) is a good indicator of the per-meability in general. Although, there is no perfect trend, the cations (bases) and neutral compounds are mainly located in the same domain where the loading vectors point at, mean-ing that they have generally better permeability. Meanwhile anions (acids) and zwitterions (amphoteric compounds) primarily populate the other end of the P CA 0 domain, as they are generally less likely to penetrate biological membranes via passive transport. This can be ex-plained by the fact that biological membranes are net neutral or partially negatively charged at physiological pH. The selectivity effects of various membranes appear in the further prin-cipal components. The first three principal components explain 65 .88% , 10 .67% and 7.98% 
+
+of the variance respectively. This indicates that, although there is a strong common factor 12 in the permeability of different membranes, there is also value in modeling the membrane differences. It has to be mentioned that during the experiments with PS we experienced recurring inconsistencies in solution preparation, which resulted in a poorly predictable dataset. Based on this experience, PS may not have been the best choice for this research. Future investi-gations should consider using different negatively charged PLs such as phosphatidylinositol or cardiolipin. 
+
+# QSPR modelling 
+
+We performed exhaustive QSPR analysis for PAMPA membrane permeability (logP e) across the different membranes using various molecule representations and regression models. We split the dataset randomly into 5 equal size folds, the first of which is held out for external testing purposes. Our scaffold analysis shows that the final compound set consists of 139 unique scaffolds. (For overlapping scaffolds see Supplementary Table S6.) Therefore, random splitting is sufficiently conservative. The regression models were all tuned using 4-fold cross-validation (CV) using 3 folds as train and 1 fold as validation. The train and validation metrics are averaged over the 4 cross-validation folds. In addition, the MLP trainings were repeated 5 times within each CV setup, with different random initial weights, using early stopping with a maximum of 200 epochs. The random forest trainings were repeated 3 times. For other machine learning methods, the results are deterministic, therefore repeats were not meaningful. In all cases, we optimized for Root Mean Squared Error (RMSE) during training and within each model category we chose the optimal set of hyperparameters with the highest coefficient of determination on the validation set ( R2 valid). In case of multitask learning, the training was done on the average score of the 6 tasks, but model selection was done based on individual task validation performance. We call the models with the best validation R 2 (after hyperparameter search) the tuned 
+
+13 Figure 2: Hierarchical scatter plot by input representation and target. Best validation R 2
+
+of each model class and input-target pair. Hyperparameter search was done in 4-fold cross-validation. For MLPs, the average of 5 repeats with random initialization is considered. 
+
+models (for each model class and input-target pair). In Figure 2, we visualize the validation R2 of these models by model class (in different colors and shapes) grouped by input-target pairs (in columns). As we can see the MLP models (blue dots) dominate all other model classes. Furthermore, it is remarkable that the usefulness of feature representations is independent of the regression model class. The feature representations in decreasing order of their descriptive power are Percepta, CDDD, MolBERT, RDKit, and ECFP. In addition, independently of the model class, the best predictable target is PCA 0, which was previously established to be a common factor of the permeability of the various membranes. As the MLP model trained on Percepta features dominates all other options for all target membranes, first, we present these results in Table 1, and later show results of other noteworthy setups, emphasizing different aspects of the QSPR with respect to other model classes and input representations. In Table 1, we show the tuned models with the overall best validation performance for each target. In all cases this was an MLP model trained on Percepta features in a multitask setting (6 targets). For corresponding hyperparameters, see Table S1 in the Supporting Information. 14 To avoid spurious conclusions, because of the large number of examined regression models, we only evaluate on the external test set a limited set of tuned models . First, those models that have validation R 2 higher than 0.5 in Table 1 (bold). The results of which are presented later in Table 5. Table 1: Overall best tuned models on the validation set for each target after hyperparameter search with 4 folds cross-validation. The results of 5 repeats are used to calculate the metrics. For hyperparameters of the trained models see Table S1 in the Supporting Information. target corr train corr valid R2 train R2 valid 
+
+BBB 0.8062 (0.0172) 0.7979 (0.0073) 0.6343 (0.0300) 0.6169 (0.0106) 
+
+DOD 0.6717 (0.0133) 0.7636 (0.0169) 0.3883 (0.0462) 0.5599 (0.0197) 
+
+L 0.7282 (0.0111) 0.7526 (0.0252) 0.4918 (0.0065) 0.5493 (0.0308) 
+
+H 0.7267 (0.0138) 0.7167 (0.0211) 0.4964 (0.0204) 0.5069 (0.0215) 
+
+P C 0.6497 (0.0396) 0.6912 (0.0169) 0.3905 (0.0513) 0.4653 (0.0240) 
+
+P S 0.6401 (0.0488) 0.6653 (0.0184) 0.3659 (0.0874) 0.4231 (0.0214) 
+
+PCA 0 0.7862 (0.0230) 0.8165 (0.0183) 0.5946 (0.0405) 0.6542 (0.0243) 
+
+P CA 1 0.6765 (0.0501) 0.6205 (0.0179) 0.4406 (0.0662) 0.3733 (0.0192) 
+
+P CA 2 0.4968 (0.0282) 0.5109 (0.0327) 0.2207 (0.0254) 0.1763 (0.0202) Table 2 shows the best non-neural network models for each target. The Percepta repre-sentation is still the most informative in all cases. Contrary to the clear dominance of the MLP in the previous case, there is no clear ordering of model classes here, although, less powerful models are generally dominated by their more flexible variants. Furthermore, it is noteworthy that in Table 1 train and validation values are consistently closer to each other than in Table 2. This may seem counterintuitive at first glance. According to conventional wisdom, neural network models are more complex therefore should suffer more from overfit-ting. However, in the light of Supporting Information Table S1 the result is understandable. Dropout combined with weight decay serves as a powerful regularization, reducing effective model complexity so that the MLP models can avoid overfitting. In Table 2 only the valida-tion R 2 of the Random Forest Regressor model for PCA 0 and the XGBoost model for BBB is over 0.5, and therefore chosen for testing. To discuss the usefulness of input feature representations, we show in Table 3 the best MLP models for each representation. BBB and PCA 0 are chosen as targets, because gener-15 Table 2: Best classical ML models for each target after hyperparameter search with 4 folds cross-validation. For hyperparameters of the trained models see Table S2 in the Supporting Information. target model corr train corr valid r2 train r2 valid 
+
+L RFR 0.8636 0.7291 0.7317 0.4969 
+
+P S SVR 0.8783 0.5833 0.7360 0.2964 
+
+DOD MTEN 0.7647 0.6845 0.5674 0.4110 
+
+P C XGB 0.8364 0.5602 0.6526 0.3057 
+
+H MTEN 0.7609 0.6474 0.5707 0.3698 
+
+BBB XGB 1.0000 0.7417 1.0000 0.5258 
+
+P CA 0 RFR 0.9699 0.7646 0.9159 0.5633 
+
+P CA 1 SVR 0.8945 0.5427 0.7460 0.2591 
+
+P CA 2 SVR 0.5115 0.3208 0.2467 -0.0553 ally, these two are the best learnable tasks. Predicting PCA components serves the purpose to demonstrate how well universal features of membrane permeability versus organ selectiv-ity can be predicted. Our focus is to examine the possibility for a tissue specific PAMPA model. On the other hand the majority of the existing literature do not contain studies of tissue specificity, therefore using the PCA 0 component allows us to link closer to existing literature while still emphasizing our focus on selectivity. Finally, in Table 4 the best non-neural network PCA 0 models are shown for each input feature representation. This data also supports the observation based on Figure 2 about the general order of predictive power of the input representations. We can ascertain that in our setting ECFP, which is a widely accepted gold standard in QSAR modeling, consistently underperformed the other input representations. This can be explained with the high dimensionality of ECFP compared to the number of molecules in our training set, as the number of training samples is an order of magnitude smaller than the number of features (the dimensionality of the ECFP representation). While the pretrained neural network model CDDD performs well, it cannot reach its full potential as a chemistry foundational model. It is clear that one cannot avoid making a sufficient number of experiments even if one relies on a pretrained model. CDDD outperforms molBERT, a transformer-based foundational model. Similarly as above, our observation is 16 Table 3: Predicting 1st PCA component of six membranes and the Blood-Brain Barrier penetration using different input representations. Best MLP tuned models are shown. The results of 5 repeats are used to calculate the metrics. For hyperparameters of the trained models see Table S3 in the Supporting Information. representation target corr train corr valid r2 train r2 valid 
+
+percepta P CA 0 0.7862 (0.0230) 0.8165 (0.0183) 0.5946 (0.0405) 0.6542 (0.0243) 
+
+cddd P CA 0 0.8501 (0.0153) 0.7300 (0.0134) 0.6914 (0.0310) 0.5079 (0.0185) 
+
+molBERT P CA 0 0.6990 (0.0129) 0.6455 (0.0223) 0.4324 (0.0221) 0.3868 (0.0155) rdkit P CA 0 0.5586 (0.0462) 0.6242 (0.0138) 0.2977 (0.0473) 0.3702 (0.0155) ecfp P CA 0 0.7436 (0.0661) 0.5422 (0.0249) 0.4636 (0.0935) 0.2591 (0.0180) 
+
+percepta BBB 0.8062 (0.0172) 0.7979 (0.0073) 0.6343 (0.0300) 0.6169 (0.0106) 
+
+cddd BBB 0.7205 (0.0802) 0.7043 (0.0169) 0.5058 (0.1007) 0.4735 (0.0208) 
+
+rdkit BBB 0.6090 (0.0400) 0.6512 (0.0153) 0.3572 (0.0579) 0.3955 (0.0210) molBERT BBB 0.5548 (0.0372) 0.6291 (0.0165) 0.2773 (0.0461) 0.3714 (0.0085) ecfp BBB 0.6951 (0.0404) 0.5454 (0.0256) 0.4170 (0.0444) 0.2635 (0.0288) that sufficient training sample sizes is still needed. We do not see evidence for particularly good few-shot performance. Note that MolBERT is on par with RDKit, which only contains explainable physico-chemical and structural parameters. We hypothesize that the main reason of the dominance of Percepta over RDKit is the lack of protonation models in the latter (i.e., the inability to predict pK a values, and any downstream pH dependent physicochemical parameters like logD). The tuned models with validation R2 > 0.5 in Table 3 were already chosen previously, but to gain more insight on the other input representations, we selected further models from this Table by relaxing the threshold requirement. Table 4: Predicting 1st PCA component using different input representations. Best non-neural network tuned models are shown. For hyperparameters of the trained models see Table S4 in the Supporting Information. input representation model corr train corr valid r2 train r2 valid percepta RFR 0.9699 0.7646 0.9159 0.5633 cddd MTEN 0.9488 0.6455 0.8558 0.3828 molBERT SVR 0.9559 0.6119 0.9098 0.3170 rdkit XGB 0.9999 0.5905 0.9970 0.3043 ecfp DTR 0.5737 0.3965 0.3322 0.0958 17 Results on the external test compound set 
+
+To ensure sufficiently high statistical power, we chose to evaluate only a limited number of cases on the external test set based on the validation R 2 values of the tuned models presented above (Tables 1, 2, 3, 4). As was already outlined in the previous section, we first chose the overall best performing models, followed by the best non-MLP models all with validation R2 > 0.5. At this point all chosen models were still trained on Perceptra. To learn about the other input representations, we added the best performing models based on Table 3 by relaxing the threshold requirement. For visual explanation of the selections see Figure S1 in the Supporting Information. All but two of the models selected according to these criteria were multitask MLPs. These were evaluated on the test compounds, which were excluded from the entire tuning procedure described above. In Table 5, we show the R 2 values of the evaluation on the external test compound set. For the corresponding correlation values, see the Supporting Information. Table 5: Performance of the selected models, that correspond to various research questions, evaluated on the test set. Ordered according to the validation R2 values. input target model R2 train R2 valid R2 test percepta PCA 0 MLP 0.5769 (0.0415) 0.6435 (0.0142) 0.4842 (0.0243) percepta BBB MLP 0.6342 (0.0300) 0.6169 (0.0106) 0.4689 (0.0198) percepta DOD MLP 0.3883 (0.0461) 0.5599 (0.0196) 0.3781 (0.1204) percepta PCA 0 RFR 0.9149 (0.0015) 0.5581 (0.0040) 0.4691 (0.0013) percepta L MLP 0.4918 (0.0065) 0.5493 (0.0307) -0.1530 (0.0859) percepta BBB XGB 1.0000 ( n.a. ) 0.5258 ( n.a. ) 0.5398 ( n.a. ) percepta H MLP 0.4964 (0.0203) 0.5069 (0.0214) 0.1712 (0.0641) cddd PCA 0 MLP 0.6795 (0.0532) 0.5036 (0.0185) 0.5491 (0.0492) cddd BBB MLP 0.5058 (0.1007) 0.4734 (0.0208) 0.2447 (0.0235) molBERT PCA 0 MLP 0.4517 (0.0180) 0.3908 (0.0115) 0.2541 (0.0458) rdkit BBB MLP 0.5923 (0.0258) 0.3565 (0.0373) 0.1727 (0.0444) Overall, the orderings according to the validation R2 values are quite comparable to what we see in the external test set, but the values themselves are almost always significantly reduced. In light of the results shown in Table 5, we can conclude that the cross-validation scheme is applicable for hyperparameter selection, but we would also like to emphasize that 18 the use of an external test set is crucial and crossvalidation during training is not enough to characterize the generalizability of the regression models. This latter remark is especially important in the case of datasets with a moderate number of molecules, such as this one. Therefore, our decision to exclude models with low validation results from the final evaluation was justified. We selected the best single-task linear models and 3 membrane specific MLP models for further interpretability analysis. 
+
+# Discussion 
+
+# Comparision of single-tak vs. multi-task scenarios 
+
+In case of the MLP, XGB, ElasticNet and PLSRegressor model classes we have results for both single-task and multi-task training. Choosing the best model for each input represen-tation (5 possibilies) and tasks (6 possibilities), gives us 30 tuned models both for single-and multi-task. This results in 120 single-multi pairs given the 4 model classes. In Figure 3 we can see that in 105 of the 120 cases the multi-task models outperform the corresponding single-task models. 
+
+# Explainable feature importance 
+
+The best single-task linear (ElasticNet) tuned models were selected to examine explainable feature importance. A summary of performance metrics of these models can be seen in Table S7 of the Supplementary material. The coefficients of the single-task linear models provide an interpretable feature impor-tance metric over the also interpretable physchem features. We present a heatmap of these feature importances across each target and 4-fold cross validation held out set in Figure 4. We can conclude that, with respect to the targets, the tuned models provide consistent im-portance vectors: the 4-row-blocks are consistent in Figure 4. In general, derived features 19 Figure 3: Comparison of the best performing (maximal R 2 valid) single-task and multi-task models for all tasks and input representation pairs. 
+
+corresponding to higher level permeability predictors are selected with high weights for all tasks (e.g.: Bioavailability, Maximum passive absorbtion, Caco-2 permeability). These use physchem properties like logP, logD and pKa, and this explains why otherwise expected features are not used by our model (explaining away effect due to colinearity). As expected the features selected by the P CA 0 models also include the above mentioned higher level derived features. The later PCA components utilize noticeably different features. 
+
+# Physicochemical profiles of the best-fit models 
+
+Based on Table 5 the overall best performing membrane specific MLP models (H, BBB, DOD) were further analyzed by collecting the 10 best (high-⋆) and 10 worst (low-⋆) penetrating molecules across the corresponding membranes. Thus, roughly 15% of the dataset was further investigated. In Figure 5 the distribution of the physicochemical characteristics of these compounds are depicted using violin plots. It is worth noting that many low-penetrating compounds are shared between the membranes, whereas high-penetrating compounds appeared to be unique for the specific membranes (See Figure 5, Venn diagram). Based on these results, we 20 Figure 4: Feature importance (coefficients) of best single-task linear models (Elastic Net) by percepta feature for each inner validation loop of the 4-fold cross validation. 
+
+Figure 5: Venn diagrams (left) and violin plots (middle and right) of the 10 lowest (left respectively) and the 10 highest (right respectively) penetrating compounds on heart (H)-, brain (BBB)-specific membrane and dodecane (DOD). Violin plots show the distribution of the compounds with respect to their physicochemical properties. 
+
+propose interpretable selectivity criteria for the top-performing compounds. The logP value of the high-DOD compounds were higher than for the other membranes (logP > 3.5), on the other hand, no such trend was found for logD7.4 values. Dodecane, being a hydrophobic, is incapable of proton-dissociation thus it is not surprising that the 21 lipophilicity of the non-ionized form of the molecules is a definitive parameter for this mem-brane. The TPSA cut-off for blood-brain barrier penetration is known to be 90 Å 2.52–54 In our analysis low-BBB and low-H compounds tend to fall into a higher TPSA-region. Most of the lowest BBB-compounds (and low-Hs) followed this pattern, however, for DOD no such rule was recognizable. The Solvent Accessible Surface Area (SASA) gives a measure of the contact area be-tween the molecule and solvent, typically measured by simulating the contact between the van der Waals surface of the molecule and a sphere representing the van der Waals radius of the solvent. 55 It is mostly used for estimating protein-ligand interactions. 56,57 Generally, when a molecule has a higher SASA value, it is more exposed to the solvent (or membrane lipids), thus being more prone to participate in various molecular interactions. Although here the high-penetrators for all membranes presented the same median value, this value also became a sharp border: high-BBB compounds typically scattered in the “upper re-gion” (SASA>120 Å 2), while for dodecane they scattered in the “lower region” (SASA<120 Å2). SASA can also be helpful in predicting hydrophopic/hydrophilic balance critical for membrane partitioning. 58 These results point towards the presence of some intramolecular interactions enabled by elevated SASA mostly governing the passive transport through the brain-specific phospholipids (containing both hydrophobic and hydrophilic moieties) in con-trast to the penetration through the hydrophobic dodecane. Finally, high-H compounds are present both in the upper and lower SASA region. 
+
+# Conclusion 
+
+Our results highlight several key findings regarding the predictability of membrane perme-ability across various molecular representations and membranes. The most accurate predic-tions were achieved for the first principal component (PCA 0) of the permeability measure-ments, suggesting that this component captures the dominant and most learnable variance 22 across the studied compounds and membranes. Only carrying out experiments on multiple membranes allows us to study PCA 0 and conclude its higher predictability than any mem-brane permeability alone. This sheds light on the value of our unique multitask dataset. The models for PCA 1 and PCA 2 yielded positive validation R2 values, suggesting the presence of predictable differences between membrane types. However, their low magni-tudes point to the limited predictive power under the current setup. The feature importance values extracted from linear models further confirm the differences between assays. Repre-sentations that yield high accuracy in general may still perform poorly for particular cases like liver membrane permeability. This further underlines the distinct characteristics of dif-ferent membrane profiles and the challenge of developing truly generalizable models. In the particular case of the PS membrane we experienced difficulties during both in vitro , and in silico modeling, therefore we suggest exploring other possible negatively charged PAMPA membranes. For this study, we decided to focus on 6 artificial membranes, and completed the full mea-surement matrix with the same molecules to examine separate and joint modeling. Although the decision to include several membranes on a fixed budget meant that the effective number of molecules measured is lower than in other similar studies, the overall size of the published dataset is, to our knowledge, one of the largest non-sparse multimembrane datasets. Exam-ining the performance differences between corresponding single- and multi-task models, we see that multi-task dominate, both in the case of MLP models and in classical ML models. Another notable finding is that, the traditional expert-designed Percepta features almost always outperform the high-dimensional representations derived from pre-trained models: CDDD and MolBERT. Furthermore, since their internal structure is inherently difficult to interpret, their use offers little practical benefit in this context. This leads us to advise caution when using high-dimensional molecular representations in low-sample-size scenarios. The particularly poor performance of the also high-dimensional ECFP, a widely accepted gold standard, further supports this claim and highlights the risks of overfitting in such 23 settings. Furthermore, we observed that the set of highly penetrating molecules in case of different membranes show less simmilarity, then those of the lowest penetrating ones, and some phisic-ocamical properties correlate with the differences between the highly penetrating molecules. Finally, we hypothesize that the gap between Percepta and RDKit features are partly attributable to RDKit’s lack of a pK a prediction model, which limits its ability to capture pH-dependent protonation states. Note that, even though the training of MolBERT involved physicocemical descriptors from RDKit as auxiliary tasks, it was never trained with pKa supervision. This could be a critical shortcoming for modeling permeability, as ionization can significantly influence a compound’s membrane-crossing behavior. 
+
+# Author Contributions 
+
+Conceptualization: Gy.B., A.A. Funding acquisition, and Resources: Gy.B., A.A, Y.M. Methodology, and Data interpretation: A.F., A.V., Gy.B., A.A. Planning and carrying out of wet lab measurements: A.V., R.B. Investigation: A.F., A.V., R.B., A.A. Data curation, Formal analysis, Visualization, and Validation: A.F., A.V. Software and Modeling,: A.F. Writing - original draft: A.F., A.V., A.A. Writing - review and editing: Y.M., Gy.B. 
+
+# Acknowledgement 
+
+The authors thank would like to thank founding of the following: (1) CELSA - Active Learning (CELSA/21/019, Projectcode: 3E210628); (2) Leuven.AI - KU Leuven institute for AI, B-3000, Leuven, Belgium; (3) Marie Skłodowska-Curie grant agreement No. 956832; We thank to Balázs Volk for providing some of the compounds for the study. 24 Conflict of interest statement 
+
+The authors declare no competing financial interests. 25 Data and Software Availability 
+
+All source codes of the project are available at https://github.com/Formandras/pampa_qsar. Additionally, the following files are available free of charge. Essential for reproducibility using our code: 
+
+• cddd.csv: precalculated CDDD descriptors for all molecules. Full matrix of compound IDs, CV-fold of compund and one colomn for each CDDD feature. 
+
+• ecfp.csv: precalculated ECFP descriptors for all molecules. Compound IDs, and CV-fold listed for all compunds. Due to the sparse nature 3rd column only contains the list of indices active input features for each molecule. 
+
+• molBERT.csv: precalculated MolBERT descriptors for all molecules. Full matrix of compound IDs, CV-fold of compund and one colomn for each MolBERT feature. 
+
+• percepta.csv: precalculated Percepta descriptors for all molecules. Full matrix of com-pound IDs, CV-fold, and all percepta features corresponding to the column names. 
+
+• percepta_columns.json: normalisation values (er column) for Percepta features 
+
+• rdkit.csv: precalculated RDKit descriptors for all molecules. Full matrix of compound IDs, CV-fold, and all RDKit features corresponding to the column names. 
+
+• rdkit_columns.json: normalisation values (er column) for RDKit features 
+
+• all_plate_measurements.csv: datamatrix containing all repeats for all molecules on all targets. 
+
+• all_desalted_smiles_measurements_folds.csv: precalculated merged datamatrix of all information contained in all_plate_measurements_mean.csv and all_plate_desalted_smiles.csv Descriptors generated using external software, raw measurement matrices and middle steps to prepare essential files above: 26 • CELSA_No1_Pe_MR.xlsx: Raw measurement data of Plate 1. 
+
+• CELSA_No2_Pe_MR.xlsx: Raw measurement data of Plate 2. 
+
+• CELSA_No3_Pe_MR.xlsx: Raw measurement data of Plate 3. 
+
+• CELSA_No4_Pe_MR.xlsx: Raw measurement data of Plate 4. 
+
+• CELSA_No5_Pe_MR.xlsx: Raw measurement data of Plate 5. 
+
+• CELSA_No6_Pe_MR.xlsx: Raw measurement data of Plate 6. 
+
+• CELSA_No7_Pe_MR.xlsx: Raw measurement data of Plate 7. 
+
+• CELSA_No8_Pe_MR.xlsx: Raw measurement data of Plate 8. 
+
+• CELSA_No9_Pe_MR.xlsx: Raw measurement data of Plate 9. 
+
+• all_plate_desalted_smiles.csv: precalculated datamatrix containing wet lab experi-mental notes of the molecules and the desalted, canonical SMILES 
+
+• all_plate_measurements_mean.csv: precalculated datamatrix containing average val-ues of repeated measurements from all_plate_measurements.csv 
+
+• all_plate_percepta_raw.csv: Percepta output to generate all_plate_percepta.csv 
+
+• all_plate_percepta.csv: cleared view of all_plate_percepta_raw.csv before transfor-mation to training compatible percepta.csv 
+
+• CELSA_Mcule_BTRG_egyesitett.xlsx: in-house dataset of drug-like molecules of the BUTE: Biomimetic Technologies Research Group 
+
+• "Molekulabank SE GYTK GYKI.xlsx": in-house dataset of drug-like molecules of the SU: Department of Pharmaceutical Chemistry 27 Abbreviations 
+
+ADME absorption, distribution, metabolism and excretion API Active Pharmaceutical Ingredients BERT Bidirectional Encoder Representations from Transformers BPLE Brain Polar Lipid Extract Caco-2 passive permeability across Caco-2 cell monolayers CDDD Continuous and Data-Driven molecular Descriptors CNS Central Nervous System CV Cross-Validation BBB blood–brain barrier DOD Dodecane DTR Decision Tree Regressor ECFP extended-connectivity fingerprints ECFP6 extended-connectivity fingerprints calculated with a radius of 3 HPLC High-performance liquid chromatography HPLE Heart Polar Lipid Extracts LogD distribution coefficient of ionized species of a chemical compound between the lipid and aqueous phases LogP partition coefficient of an ionized species molecule between aqueous and lipophilic phases LogP e log of effective permeability LogS aqueous solubility of an ionized species of molecule LPLE Liver Polar Lipid Extracts MR Membrane Retention MLP Multi Layer Percepton MTEN MultiTaskElasticNet PAMPA parallel artificial membrane permeability assay 28 PC Phosphatidylcholine PCA Principal Component Analysis PCA 0 First Principal Component PCA 1 Second Principal Component PCA 2 Third Principal Component Pe effective permeability pK a -log 10 of the proton dissociation constant PL phospholipid PLD Partial least-squares PS Phosphatidylserine QSPR Quantitative Structure Property Relationship 
+
+R2 Coefficient of Determination RFR Random Forest Regressor RMSE Root Mean Squared Error SMILES Simplified Molecular Input Line Entry System SVR Support Vector Regression 
+
+# Supporting Information Available 
+
+• PamPaper_supporting.pdf: PDF file containing most of the supporting figures, tables and lists. 
+
+• all_plate_desalted_smiles_folds_with_scaffolds.csv: the calculated scaffold for each molecule, using the ‘MakeScaffoldGeneric’ function of the ‘Chem.Scaffolds.MurckoScaffold’ library of RDKit. 
+
+• applicability_Percepta_BBB_MLP_fold_1234-combined.pdf: example applicability domain (AD) exploration using residual plots (scatter plot of the squared error vs. input features) for BBB ElasticNet trained on Percepta features. 29 References 
+
+(1) Sugano, K.; Kansy, M.; Artursson, P.; Avdeef, A.; Bendels, S.; Di, L.; Ecker, G. F.; Faller, B.; Fischer, H.; Gerebtzoff, G.; others Coexistence of passive and carrier-mediated processes in drug transport. Nature reviews Drug discovery 2010 , 9, 597–614. (2) Tannergren, C.; Bergendal, A.; Lennernas, H.; Abrahamsson, B. Toward an increased understanding of the barriers to colonic drug absorption in humans: implications for early controlled release candidate assessment. Molecular pharmaceutics 2009 , 6, 60–73. (3) Di, L.; Artursson, P.; Avdeef, A.; Ecker, G. F.; Faller, B.; Fischer, H.; Houston, J. B.; Kansy, M.; Kerns, E. H.; Krämer, S. D.; others Evidence-based approach to assess passive diffusion and carrier-mediated drug transport. Drug discovery today 2012 , 17 ,905–912. (4) Kansy, M.; Senner, F.; Gubernator, K. Physicochemical high throughput screening: parallel artificial membrane permeation assay in the description of passive absorption processes. Journal of medicinal chemistry 1998 , 41 , 1007–1010. (5) Jacobsen, A.-C.; Visentin, S.; Butnarasu, C.; Stein, P. C.; di Cagno, M. P. Commer-cially available cell-free permeability tests for industrial drug development: increased sustainability through reduction of in vivo studies. Pharmaceutics 2023 , 15 , 592. (6) Wohnsland, F.; Faller, B. High-throughput permeability pH profile and high-throughput alkane/water log P with artificial membranes. Journal of medicinal chem-istry 2001 , 44 , 923–930. (7) Enikő, B.; Attila, B.; Katalin, B. B.; Judit, M.; Kiserdei, É.; Tamás, V.; Bálint, S.; Attila, M.; Halász, A.; Dohányos, Z.; others In vitro dissolution–permeation evaluation of an electrospun cyclodextrin-based formulation of aripiprazole using μFlux ™. 2015 ,30 (8) Avdeef, A.; Strafford, M.; Block, E.; Balogh, M. P.; Chambliss, W.; Khan, I. Drug absorption in vitro model: filter-immobilized artificial membranes: 2. Studies of the permeability properties of lactones in Piper methysticum Forst. European journal of pharmaceutical sciences 2001 , 14 , 271–280. (9) Sugano, K.; Hamada, H.; Machida, M.; Ushio, H.; Saitoh, K.; Terada, K. Optimized conditions of bio-mimetic artificial membrane permeation assay. International Journal of Pharmaceutics 2001 , 228 , 181–188. (10) Di, L.; Kerns, E. H.; Fan, K.; McConnell, O. J.; Carter, G. T. High throughput artificial membrane permeability assay for blood–brain barrier. European journal of medicinal chemistry 2003 , 38 , 223–232. (11) Seo, P. R.; Teksin, Z. S.; Kao, J. P.; Polli, J. E. Lipid composition effect on permeability across PAMPA. European journal of pharmaceutical sciences 2006 , 29 , 259–268. (12) Vincze, A.; Dékány, G.; Bicsak, R.; Formanek, A.; Moreau, Y.; Koplányi, G.; Takács, G.; Katona, G.; Balogh-Weiser, D.; Arany, Á.; others Natural Lipid Extracts as an Artificial Membrane for Drug Permeability Assay: In Vitro and In Silico Char-acterization. Pharmaceutics 2023 , 15 , 899. (13) Mayer, P. T.; Anderson, B. D. Transport across 1, 9-decadiene precisely mimics the chemical selectivity of the barrier domain in egg lecithin bilayers. Journal of pharma-ceutical sciences 2002 , 91 , 640–646. (14) Müller, J.; Esső, K.; Dargó, G.; Könczöl, Á.; Balogh, G. T. Tuning the predictive capacity of the PAMPA-BBB model. European Journal of Pharmaceutical Sciences 
+
+2015 , 79 , 53–60. (15) Dargó, G.; Vincze, A.; Müller, J.; Kiss, H. J.; Nagy, Z. Z.; Balogh, G. T. Corneal-PAMPA: A novel, non-cell-based assay for prediction of corneal drug permeability. 
+
+European Journal of Pharmaceutical Sciences 2019 , 128 , 232–239. 31 (16) Boczar, D.; Michalska, K. A review of machine learning and QSAR/QSPR Predictions for complexes of organic molecules with cyclodextrins. Molecules 2024 , 29 , 3159. (17) Hu, J.; Zhang, X.; Wang, Z. A review on progress in QSPR studies for surfactants. 
+
+International journal of molecular sciences 2010 , 11 , 1020–1047. (18) Fourches, D.; Muratov, E.; Tropsha, A. Trust, but verify: on the importance of chem-ical structure curation in cheminformatics and QSAR modeling research. Journal of chemical information and modeling 2010 , 50 , 1189. (19) Quantitative structure-activity relationship (QSAR) models and their applicability do-main analysis on HIV-1 protease inhibitors by machine learning methods. Chemometrics and Intelligent Laboratory Systems 2020 , 196 , 103888. (20) Oldenhof, M.; Ács, G.; Pejó, B.; Schuffenhauer, A.; Holway, N.; Sturm, N.; Dieck-mann, A.; Fortmeier, O.; Boniface, E.; Mayer, C.; others Industry-scale orchestrated federated learning for drug discovery. Proceedings of the AAAI Conference on Artificial Intelligence. 2023; pp 15576–15584. (21) Ding, Y.; Chen, M.; Guo, C.; Zhang, P.; Wang, J. Molecular fingerprint-based machine learning assisted QSAR model development for prediction of ionic liquid properties. 
+
+Journal of Molecular Liquids 2021 , 326 , 115212. (22) Quadri, T. W.; Olasunkanmi, L. O.; Akpan, E. D.; Fayemi, O. E.; Lee, H.-S.; Lgaz, H.; Verma, C.; Guo, L.; Kaya, S.; Ebenso, E. E. Development of QSAR-based (MLR/ANN) predictive models for effective design of pyridazine corrosion inhibitors. Materials Today Communications 2022 , 30 , 103163. (23) Thomas, P. C.; Bicherel, P.; Bauer, F. J. How in silico and QSAR approaches can increase confidence in environmental hazard and risk assessment. Integrated Environ-mental Assessment and Management 2019 , 15 , 40–50. 32 (24) Nolte, T. M.; Ragas, A. M. A review of quantitative structure–property relationships for the fate of ionizable organic chemicals in water matrices and identification of knowledge gaps. Environmental Science: Processes & Impacts 2017 , 19 , 221–246. (25) Avdeef, A. Permeability Equations. Absorption and Drug Development: Solubility, Per-meability, and Charge State; Avdeef, A., Ed 2012 , 465–481. (26) Kiss, R.; Sandor, M.; Szalai, F. A. http://Mcule. com: a public web service for drug discovery. Journal of cheminformatics 2012 , 4, P17. (27) Landrum, G. Rdkit documentation. Release 2013 , 1, 4. (28) ACD/Labs Percepta. https://www.acdlabs.com/products/percepta-platform/ .(29) Weininger, D. SMILES, a chemical language and information system. 1. Introduction to methodology and encoding rules. Journal of chemical information and computer sciences 1988 , 28 , 31–36. (30) Bjerrum, E. J. SMILES enumeration as data augmentation for neural network modeling of molecules. arXiv preprint arXiv:1703.07076 2017 ,(31) Cornelissen, F. M.; Markert, G.; Deutsch, G.; Antonara, M.; Faaij, N.; Bartelink, I.; Noske, D.; Vandertop, W. P.; Bender, A.; Westerman, B. A. Explaining blood–brain barrier permeability of small molecules by integrated analysis of different transport mechanisms. Journal of Medicinal Chemistry 2023 , 66 , 7253–7267. (32) Shi, Q.; Carrillo, J.-C.; Penman, M. G.; Manton, J.; Fioravanzo, E.; Powrie, R. H.; Elcombe, C. R.; Borsboom-Patel, T.; Tian, Y.; Shen, H.; others Assessment of the intestinal absorption of higher olefins by the everted gut sac model in combination with in silico new approach methodologies. Chemical Research in Toxicology 2022 , 35 ,1383–1392. 33 (33) Vincze, A.; Dargó, G.; Rácz, A.; Balogh, G. T. A corneal-PAMPA-based in silico model for predicting corneal permeability. Journal of Pharmaceutical and Biomedical Analysis 
+
+2021 , 203 , 114218. (34) Ribeiro, A. R.; Schmidt, T. C. Determination of acid dissociation constants (pKa) of cephalosporin antibiotics: Computational and experimental approaches. Chemosphere 
+
+2017 , 169 , 524–533. (35) Tran, T. T. V.; Tayara, H.; Chong, K. T. Recent studies of artificial intelligence on in silico drug absorption. Journal of Chemical Information and Modeling 2023 , 63 ,6198–6211. (36) Oldenhof, M.; Arany, A.; Moreau, Y.; Simm, J. ChemGrapher: optical graph recog-nition of chemical compounds by deep learning. Journal of chemical information and modeling 2020 , 60 , 4506–4517. (37) Orosz, Á.; Héberger, K.; Rácz, A. Comparison of descriptor-and fingerprint sets in machine learning models for ADME-Tox targets. Frontiers in Chemistry 2022 , 10 ,852893. (38) Tan, X.; Liu, Q.; Fang, Y.; Zhu, Y.; Chen, F.; Zeng, W.; Ouyang, D.; Dong, J. Predict-ing Peptide Permeability Across Diverse Barriers: A Systematic Investigation. Molec-ular Pharmaceutics 2024 , 21 , 4116–4127. (39) Rogers, D.; Hahn, M. Extended-connectivity fingerprints. Journal of chemical informa-tion and modeling 2010 , 50 , 742–754. (40) Gao, H.; Zhong, S.; Zhang, W.; Igou, T.; Berger, E.; Reid, E.; Zhao, Y.; Lam-beth, D.; Gan, L.; Afolabi, M. A.; others Revolutionizing membrane design using machine learning-bayesian optimization. Environmental Science & Technology 2021 ,
+
+56 , 2572–2581. 34 (41) Di Lascio, E.; Gerebtzoff, G.; Rodríguez-Pérez, R. Systematic evaluation of local and global machine learning models for the prediction of ADME properties. Molecular phar-maceutics 2023 , 20 , 1758–1767. (42) Sawada, R.; Kotera, M.; Yamanishi, Y. Benchmarking a Wide Range of Chemical Descriptors for Drug-Target Interaction Prediction Using a Chemogenomic Approach. 
+
+Molecular informatics 2014 , 33 , 719–731. (43) Le, T.; Winter, R.; Noé, F.; Clevert, D.-A. Neuraldecipher–reverse-engineering extended-connectivity fingerprints (ECFPs) to their molecular structures. Chemical science 2020 , 11 , 10378–10389. (44) Winter, R.; Montanari, F.; Noé, F.; Clevert, D.-A. Learning continuous and data-driven molecular descriptors by translating equivalent chemical representations. Chemical sci-ence 2019 , 10 , 1692–1701. (45) Fabian, B.; Edlich, T.; Gaspar, H.; Segler, M.; Meyers, J.; Fiscato, M.; Ahmed, M. Molecular representation learning with language models and domain-relevant auxiliary tasks. arXiv preprint arXiv:2011.13230 2020 ,(46) Devlin, J.; Chang, M.-W.; Lee, K.; Toutanova, K. Bert: Pre-training of deep bidirec-tional transformers for language understanding. Proceedings of the 2019 conference of the North American chapter of the association for computational linguistics: human language technologies, volume 1 (long and short papers). 2019; pp 4171–4186. (47) Pedregosa, F. et al. Scikit-learn: Machine Learning in Python. Journal of Machine Learning Research 2011 , 12 , 2825–2830. (48) Geladi, P.; Kowalski, B. R. Partial least-squares regression: a tutorial. Analytica chimica acta 1986 , 185 , 1–17. 35 (49) Chen, T.; Guestrin, C. Xgboost: A scalable tree boosting system. Proceedings of the 22nd acm sigkdd international conference on knowledge discovery and data mining. 2016; pp 785–794. (50) Contributors, X. XGBoost Python Package. https://xgboost.readthedocs.io/en/ stable/python/index.html , 2026-02-16. (51) Arany, A.; Simm, J.; Oldenhof, M.; Moreau, Y. SparseChem: Fast and accurate machine learning model for small molecules. arXiv preprint arXiv:2203.04676 2022 ,(52) Thai, N. Q.; Theodorakis, P. E.; Li, M. S. Fast estimation of the blood–brain bar-rier permeability by pulling a ligand through a lipid membrane. Journal of chemical information and modeling 2020 , 60 , 3057–3067. (53) Cornelissen, F. M.; Markert, G.; Deutsch, G.; Antonara, M.; Faaij, N.; Bartelink, I.; Noske, D.; Vandertop, W. P.; Bender, A.; Westerman, B. A. Explaining blood–brain barrier permeability of small molecules by integrated analysis of different transport mechanisms. Journal of Medicinal Chemistry 2023 , 66 , 7253–7267. (54) van de Waterbeemd, H.; Camenisch, G.; Folkers, G.; Chretien, J. R.; Raevsky, O. A. Estimation of blood-brain barrier crossing of drugs using molecular size and shape, and H-bonding descriptors. Journal of drug targeting 1998 , 6, 151–165. (55) Mitternacht, S. FreeSASA: An open source C library for solvent accessible surface area calculations. F1000Research 2016 , 5, 189. (56) Konstantinidis, K.; Karakasiliotis, I.; Anagnostopoulos, K.; Boulougouris, G. C. On the estimation of the molecular inaccessible volume and the molecular accessible surface of a ligand in protein–ligand systems. Molecular Systems Design & Engineering 2021 , 6,946–963. 36 (57) Ausaf Ali, S.; Imtaiyaz Hassan, M.; Islam, A.; Ahmad, F. A review of methods available to estimate solvent-accessible surface areas of soluble proteins in the folded and unfolded states. Current Protein and Peptide Science 2014 , 15 , 456–476. (58) Zhu, Q.; Lu, Y.; He, X.; Liu, T.; Chen, H.; Wang, F.; Zheng, D.; Dong, H.; Ma, J. Entropy and polarity control the partition and transportation of drug-like molecules in biological membrane. Scientific reports 2017 , 7, 17749. 37 Modeling hyperparameters 
+
+The modeling classes and hyperparameters (with the grid values in [square brackets]) were as follows: 
+
+DecisionTreeRegressor : decision tree regressor (DTR) 
+
+• min_samples_leaf : The minimum number of samples required to be at a leaf node [ 1, 2, 4, 8, 16, 32, 64 ] 
+
+• min_samples_split : minimum number of samples required to split an internal node [ 2, 4, 8, 16, 32, 64 ] 
+
+RandomForestRegressor : random forest regressor (RFR) ensemble of 1,000 DTR models 
+
+• min_samples_leaf : same as DecisionTreeRegressor 
+
+• min_samples_split : same as DecisionTreeRegressor 
+
+• max_features : the proportion of features to consider when looking for the best split [ 0.1, 0.2, 0.4, 0.8, 1.0 ] 
+
+ElasticNet : linear regression implementation with L1 (Lasso) and L2 (Ridge) type reg-ularization. 
+
+• alpha : parameter that scales the total regularization term [ 0, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100, 500, 1000 ] 
+
+• l1_ratio : the ratio of Lasso to the total ( L1 
+
+> total
+
+) [ 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ] 
+
+MultiTaskElasticNet : joint optimization of the ElasticNet to multiple targets 
+
+• alpha : same as ElasticNet 
+
+38 • l1_ratio : same as ElasticNet 
+
+BayesianRidge : fits a Bayesian Linear Regression with Ridge ( L2 type) regularization 
+
+PLSRegression : Partial least-squares regression 48 commonly used 33 cross-decomposition algorithm in chemoinformatics 
+
+• n_components : number of components [1, 2, 5, 10, 20, 50, 100] 
+
+SVR : Epsilon-Support Vector Regression model 
+
+• kernel : kernel type [ ‘linear’, ‘rbf’, ‘sigmoid’ ‘poly’ ] 
+
+• gamma : kernel coefficient [ ‘scale’, ‘auto’ ] 
+
+• C : regularization parameter [ 0.001, 0.01, 0.1, 1, 10 ] 
+
+• epsilon : specifies the epsilon-tube [ 0.0001, 0.001, 0.01, 0.1, 1, 10, 100 ] For the polynomial kernel ‘poly’, degrees of 1, 2, and 3 were considered. 
+
+XGBoost : XGBoost is an optimized distributed gradient boosting library designed to be highly efficient, flexible and portable. It implements machine learning algorithms under the Gradient Boosting framework. 49,50 
+
+• objective : regression with squared loss ["reg:squarederror"], 
+
+• n_estimators : number of trees [100, 1000], 
+
+• max_depth : Maximum depth of a tree. [4, 5, 6], 
+
+• lambda : L2 regularization term on weights [0.001, 0.01, 0.1, 1, 10], 
+
+• alpha : L1 regularization term on weights [0.001, 0.01, 0.1, 1, 10] 39 • subsample : Subsample ratio of the training instances. Setting it to 0.5 means that XGBoost would randomly sample half of the training data prior to growing trees. and this will prevent overfitting. Subsampling will occur once in every boosting iteration. [0.5, 1.0] 
+
+MLP : the SparseChem 51 model is a Multi-Layer Perceptron ( MLP ) implementation specialized for sparse input and output matrices 
+
+• number of layers [1, 2] 
+
+• number of neurons in each layer [20, 50, 100] 
+
+• dropout ratio [0.6, 0.8] 
+
+• weight decay (L2 type regularization) [0.01, 0.1] 
+
+• learning rate [0.1, 0.3] 40 Model selection for testing 
+
+> 41
+
+# Compound library and Cross Validation 
+
+Salt removal and standardization was done using RDKit v’2023.09.6’ in the following way: 
+
+Algorithm 1 Desalting 
+
+mol ← rdkit.Chem.M olStandardize.rdM olStandardize.Cleanup (mol )
+
+desalted ← rdkit.Chem.SaltRemover.SaltRemover (def nData = salts ).StripM ol (mol )
+
+f rags ← rdkit.Chem.GetM olF rags (desalted, asM ols = T rue )
+
+if len (f rags ) > 1 then 
+
+desalted ← chooseM ostSignif f icantF ragment (f rags )
+
+end if 
+
+desalted ← rdkit.Chem.RemoveStereochemistry (desalted )
+
+desalted ← rdkit.Chem.M olStandardize.rdM olStandardize.U ncharger () .uncharger .uncharge (desalted )
+
+desalted ← rdkit.Chem.M olStandardize.rdM olStandardize.Cleanup (desalted )
+
+42 Hyperparameters of tuned models Scaffold landscape 
+
+The provided file ‘all_plate_desalted_smiles_folds_with_scaffolds.csv’ contains the calcu-lated scaffold for each molecules, using the ‘MakeScaffoldGeneric’ function of the ‘Chem.Scaffolds. MurckoScaffold’ library of RDKit. 
+
+# Linear Coefficient percepta descriptors full names 
+
+For the sake of space the full names of percepta descriptors in Figure 4 were shortened. Here we attach the full names of all descriptrs from left to right. 1. Bioavailability (%) (Dose, mg = 10,00) 2. Pe (Caco-2) with LogP, 10ˆ -6 cm/s (pH = 7,40, rpm = 300,00) 3. Maximum passive absorption (%) 4. LogSw|pH 5. Number of Rings (size 5) 6. No. of Rotatable Bonds 7. Hetero Ratio 8. Contribution of transcellular route to absorption (%) 9. Pe (Jejunum), 10ˆ -4 cm/s 10. 1st strongest acid pKa 11. Contribution of paracellular route to absorption (%) 12. Vd (L/kg) 43 13. Most common form (pH = 7,40)|Fraction 14. Most common form (pH = 7,40)|-15. C Ratio 16. Log(PS*fu, brain) 17. Number of Rings (size 6) 18. NO Ratio 19. Number of Aromatic Rings 20. LogS (pH = 7,40) 21. Pe (Caco-2) with LogD, 10ˆ -6 cm/s (pH = 7,40, rpm = 300,00) 22. LogSw|LogSw 23. N Ratio 24. 1st strongest base pKa 25. No. of Hydrogen Bond Donors 26. LogBB 27. Log(BCF) 28. Fraction of form +1-1 (pH = 7,40) 29. Halogen Ratio 30. Log(Koc) 31. Number of Rings 32. TPSA 44 33. Molecular Weight 34. LogPS 35. LogD (pH = 7,40) 36. Most common form (pH = 7,40)|+ 37. LogP 38. No. of Hydrogen Bond Acceptors 
+
+# Interpretable feature importance studies 
+
+For Figure 2 style visualization of these linear models, for easier comparasion of overal performance to all tuned models, see Figure S3. 45 Additional physicochemical profile violin plots 
+
+# Descriptor generation 
+
+Smiles of salts removed: "Na", "Ca", "Cl", "Br", "O", "Zn", "K", "I", "F", "N", "Li", "Mg", "O=S(=O)(O)O", "O=C(O)C(=O)O", "CS(=O)(=O)O", "O=P(=O)OO", "O=P(O)(O)O", "O=C(O)C=CC(=O)O", "O=C(O)CC(O)(CC(=O)O)C(=O)O", "O=C(O)C(O)C(O)C(=O)O", "CC(C)(C)N", "NC(N)=NCCCC(N)C(=O)O", "CCO", "O=S(=O)(O)CCO", "NC(CO)(CO)CO", "O=S(=O)(O)c1ccccc1", "CC(=O)O", "Cc1ccc(S(=O)(=O)O)cc1", "O=C(O)O", "O=C(O)CCC(=O)O", "O=C(O)c1ccccc1", "O=CO", "O=C(O)CC(O)C(=O)O", "CCN(CC)CC", "CCNCC", "CC(C)C(=O)O", "NC1CCCCC1", "CCC(=O)O" All 58 Percepta descriptors: "1st strongest acid pKa", "1st strongest base pKa" are derived from dropped featurs. All other features that are bald, were dropped based on lack of variance in the values. "LogPS", "LogBB", "Log(PS*fu, brain)", "Pe (Jejunum), 10 −4 cm/s", "Maximum pas-sive absorption (%)", "Contribution of transcellular route to absorption (%)", "Contribu-tion of paracellular route to absorption (%)", "Molecular Weight", "No. of Hydrogen Bond Donors", "No. of Hydrogen Bond Acceptors", "TPSA", "No. of Rotatable Bonds", "C Ra-tio", "N Ratio", "NO Ratio", "Hetero Ratio", "Halogen Ratio", "Number of Rings", "Num-ber of Aromatic Rings", "Number of Rings (size 3)", "Number of Rings (size 4)" ,"Number of Rings (size 5)", "Number of Rings (size 6)", "Dielectric Constant", "Index of Refraction", "Surface Tension", "Density", "Polarizability", "Molar Volume", "Molar Refractivity" , "LogS (pH = 7,40)", "LogSw|LogSw", "LogSw|pH", "BP (Pres-sure (mmHg) = 760,00)", "VP (Temperature (C) = 37,00)", "Enthalpy of Vapor-ization", "Flash Point" , "Pe (Caco-2) with LogP, 10 −6 cm/s (pH = 7,40, rpm = 300,00)", "Pe (Caco-2) with LogD, 10 −6 cm/s (pH = 7,40, rpm = 300,00)", "Log(BCF)", "Log(Koc)", 46 "Parachor" , "LogP", "LogD (pH = 7,40)", "pKa(Acid)|pKa", "pKa(Acid)|Conf. limits", "pKa(Acid)|AtomNo", "pKa(Base)|pKa", "pKa(Base)|Conf. limits", "pKa(Base)|AtomNo" , "Vd (L/kg)", "Fraction of form +1-1 (pH = 7,40)", "Most com-mon form (pH = 7,40)|+", "Most common form (pH = 7,40)|-", "Most common form (pH = 7,40)|Fraction", " Isoelectric point" , "Bioavailability (%) (Dose, mg = 10,00)" Columns containing Nan and columns with very small variety values were removed. The pKa colums were converted into 2 values representing the minimal acid and the maximal base values in the correspontding lists.List of 38 Percepta descriptors after filtering and preprocessing: "LogPS", "LogBB", "Log(PS*fu, brain)", "Pe (Jejunum), 10 −4 cm/s", "Maximum pas-sive absorption (%)", "Contribution of transcellular route to absorption (%)", "Contribu-tion of paracellular route to absorption (%)", "Molecular Weight", "No. of Hydrogen Bond Donors", "No. of Hydrogen Bond Acceptors", "TPSA", "No. of Rotatable Bonds", "C Ratio", "N Ratio", "NO Ratio", "Hetero Ratio", "Halogen Ratio", "Number of Rings", "Number of Aromatic Rings", "Number of Rings (size 5)", "Number of Rings (size 6)", "LogS (pH = 7,40)", "LogSw|LogSw", "LogSw|pH", "Pe (Caco-2) with LogP, 10 −6 cm/s (pH = 7,40, rpm = 300,00)", "Pe (Caco-2) with LogD, 10 −6 cm/s (pH = 7,40, rpm = 300,00)", "Log(BCF)", "Log(Koc)", "LogP", "LogD (pH = 7,40)", "Vd (L/kg)", "Fraction of form +1-1 (pH = 7,40)", "Most common form (pH = 7,40)|+", "Most common form (pH = 7,40)|-", "Most common form (pH = 7,40)|Fraction", "Bioavailability (%) (Dose, mg = 10,00)", "1st strongest acid pKa", "1st strongest base pKa" 
+
+All 96 RDKit Descriptors: "rdMolDescriptors": 2 [ "CalcChi0n", "CalcChi0v", "CalcChi1n", "CalcChi1v", "Cal-cChi2n", "CalcChi2v", "CalcChi3n", "CalcChi3v", "CalcChi4n", "CalcChi4v", "CalcEx-actMolWt", "CalcNumAtoms", "CalcFractionCSP3", "CalcHallKierAlpha", "CalcKappa1", "CalcKappa2", "CalcKappa3", "CalcNumAliphaticCarbocycles", "CalcNumAliphaticHete-
+
+> 2https://datagrok.ai/help/domains/chem/descriptors
+
+47 rocycles", "CalcNumAliphaticRings", "CalcNumAmideBonds", "CalcNumAromaticCarbo-cycles", "CalcNumAromaticHeterocycles", "CalcNumAromaticRings", "CalcNumHBA", "CalcNumHBD", "CalcNumHeavyAtoms", "CalcNumHeteroatoms", "CalcNumHeterocy-cles", "CalcNumLipinskiHBA", "CalcNumLipinskiHBD", "CalcNumRings", "CalcNumRo-tatableBonds", "CalcNumSaturatedCarbocycles", "CalcNumSaturatedHeterocycles", "Cal-cNumSaturatedRings", "CalcNumSpiroAtoms", "CalcNumBridgeheadAtoms", "CalcPhi", "CalcTPSA", "CalcLabuteASA","BCUT2D", "CalcCrippenDescriptors", ], "Descriptors": 3 [ "ExactMolWt", "HeavyAtomMolWt", "MolWt", "NumValenceElec-trons", "FpDensityMorgan1", "FpDensityMorgan2", "FpDensityMorgan3", "MaxAbsPar-tialCharge", "MaxPartialCharge", "MinAbsPartialCharge", "MinPartialCharge", ], "MolSurf": 4 [ "PEOE_VSA1", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5", "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8", "PEOE_VSA9", "PEOE_VSA10", "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13", "PEOE_VSA14", "SMR_VSA1", "SMR_VSA2", "SMR_VSA3", "SMR_VSA4", "SMR_VSA5", "SMR_VSA6", "SMR_VSA7", "SMR_VSA8", "SMR_VSA9", "SMR_VSA10", "SlogP_VSA1", "SlogP_VSA2", "SlogP_VSA3", "SlogP_VSA4", "SlogP_VSA5", "SlogP_VSA6", "SlogP_VSA7", "SlogP_VSA8", "SlogP_VSA9", "SlogP_VSA10", "SlogP_VSA11", "SlogP_VSA12", "LabuteASA", "TPSA", "pyLabuteASA"] 
+
+> 3https://www.rdkit.org/docs/source/rdkit.Chem.Descriptors.html
+> 4https://www.rdkit.org/docs/source/rdkit.Chem.MolSurf.html
+
+48 Figure S1: Figures based on Figure 2, Visual explanation of which tuned models are further discussed in Tables 1, 2, 3, and 4, respectively in this order from top to bottom. Circled 
+
+tuned models were further selected for test-set evaluation, squared ones were not. 
+
+49 Figure S2: 4-fold Cross Validation compound sets and randomly selected hold-out test set. 
+
+Figure S3: Best validation R 2 of linear single-task (ElasticNet) models on each input-target pair. Hyperparameter seatrch was done in 4-fold cross-validation. This Figure supplements Figure 4. 
+
+50 Table S1: Hyperparameters corresponding to Table 1. eval target input training target parameters L_LogPe percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [100], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.8], ’lr’: 0.1 PS_LogPe percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [100], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.5], ’lr’: 0.3 DOD_LogPe percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [50, 50], ’weight_decay’: 0.1, ’dropouts_trunk’: [0.6, 0.6], ’lr’: 0.3 PC_LogPe percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [20], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.6], ’lr’: 0.3 H_LogPe percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [50], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.5], ’lr’: 0.3 BBB_LogPe percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [20], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.6], ’lr’: 0.3 PCA_0 percepta PCA_0 of ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [50, 50], ’weight_decay’: 0.1, ’dropouts_trunk’: [0.5, 0.5], ’lr’: 0.3 PCA_1 percepta PCA_1 of ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [50], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.5], ’lr’: 0.3 PCA_2 percepta PCA_2 of ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [50], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.6], ’lr’: 0.1 51 Table S2: Hyperparameters corresponding to Table 2. eval target model input training target parameters L RFR percepta ’L_LogPe’ ’n_estimators’: 1000, ’min_samples_split’: 32, ’max_features’: 0.8 PS SVR percepta ’PS_LogPe’ ’kernel’: ’rbf’, ’gamma’: ’scale’, ’C’: 1, ’epsilon’: 0.0001 DOD MTEN percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’alpha’: 0.5, ’l1_ratio’: 0.2 PC XGB percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’objective’: ’reg:squarederror’, ’n_estimators’: 1000, ’subsample’: 0.5, ’max_depth’: 4, ’lambda’: 0.1, ’alpha’: 10 H MTEN percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’alpha’: 0.1, ’l1_ratio’: 1.0 BBB XGB percepta ’BBB_LogPe’ ’objective’: ’reg:squarederror’, ’n_estimators’: 100, ’subsample’: 0.5, ’max_depth’: 6, ’lambda’: 0.1, ’alpha’: 0.01 PCA_0 RFR percepta PCA_0 of ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’n_estimators’: 1000, ’min_samples_split’: 4, ’max_features’: 0.1 PCA_1 SVR percepta PCA_1 of ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’kernel’: ’rbf’, ’gamma’: ’scale’, ’C’: 1, ’epsilon’: 0.1 PCA_2 SVR percepta PCA_2 of ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’kernel’: ’poly’, ’degree’: 1, ’gamma’: ’scale’, ’C’: 1, ’epsilon’: 0.01 52 Table S3: Hyperparameters corresponding to Table 3. eval target model input training target parameters PCA_0 MLP percepta PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’hidden_sizes’: [50, 50], ’weight_decay’: 0.1, ’dropouts_trunk’: [0.5, 0.5], ’lr’: 0.3 PCA_0 MLP cddd PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’hidden_sizes’: [15], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.5], ’lr’: 0.1 PCA_0 MLP molBERT PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’hidden_sizes’: [100], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.6], ’lr’: 0.1 PCA_0 MLP rdkit PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’hidden_sizes’: [50], ’weight_decay’: 0.1, ’dropouts_trunk’: [0.6], ’lr’: 0.3 PCA_0 MLP ecfp PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’hidden_sizes’: [50], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.6], ’lr’: 0.3 BBB_LogPe MLP percepta ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [20], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.6], ’lr’: 0.3 BBB_LogPe MLP cddd ’BBB_LogPe’ ’hidden_sizes’: [15], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.5], ’lr’: 0.3 BBB_LogPe MLP rdkit ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [20], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.6], ’lr’: 0.3 BBB_LogPe MLP molBERT ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [100], ’weight_decay’: 0.1, ’dropouts_trunk’: [0.6], ’lr’: 0.1 BBB_LogPe MLP ecfp ’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’ ’hidden_sizes’: [50], ’weight_decay’: 0.01, ’dropouts_trunk’: [0.6], ’lr’: 0.3 53 Table S4: Hyperparameters corresponding to Table 4. eval target model input training target parameters PCA_0 RFR percepta PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’n_estimators’: 1000, ’min_samples_split’: 4, ’max_features’: 0.1 PCA_0 RFR percepta PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’n_estimators’: 1000, ’min_samples_split’: 4, ’max_features’: 0.1 PCA_0 MTEN cddd [’PCA_0’, ’PCA_1’, ’PCA_2’] of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’alpha’: 0.5, ’l1_ratio’: 0.2 PCA_0 SVR molBERT PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’kernel’: ’linear’, ’C’: 0.01, ’epsilon’: 0.0001 PCA_0 XGB rdkit PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’objective’: ’reg:squarederror’, ’n_estimators’: 100, ’max_depth’: 5, ’lambda’: 0.1, ’alpha’: 1 PCA_0 DTR ecfp PCA_0 of [’L_LogPe’, ’PS_LogPe’, ’DOD_LogPe’, ’PC_LogPe’, ’H_LogPe’, ’BBB_LogPe’] ’min_samples_split’: 64 Table S5: Performance of the best models evaluated on the test set. Find corresponding R 2
+
+values in Table 5. input target corr train corr valid corr test percepta PCA 0 0.7732 (0.0250) 0.8101 (0.0101) 0.7139 (0.0147) MLP percepta BBB 0.8062 (0.0171) 0.7979 (0.0073) 0.6929 (0.0140) MLP percepta DOD 0.6716 (0.0132) 0.7636 (0.0168) 0.6858 (0.0623) MLP percepta PCA 0 0.9691 (0.0008) 0.7610 (0.0026) 0.7047 (0.0009) RFR percepta L 0.7281 (0.0111) 0.7525 (0.0251) 0.1937 (0.0378) MLP percepta BBB 1.0000 ( n.a. ) 0.7417 ( n.a. ) 0.7359 ( n.a. ) XGB percepta H 0.7266 (0.0138) 0.7167 (0.0211) 0.4650 (0.0406) MLP cddd PCA 0 0.8446 (0.0299) 0.7314 (0.0109) 0.7932 (0.0461) MLP cddd BBB 0.7205 (0.0801) 0.7043 (0.0169) 0.5229 (0.0390) MLP molBERT PCA 0 0.7169 (0.0169) 0.6596 (0.0120) 0.5719 (0.0444) MLP rdkit BBB 0.8024 (0.0206) 0.6208 (0.0305) 0.4506 (0.0485) MLP 54 Table S6: Repeating scaffolds scaffold_smiles fold orig_stock compound_name plate_number  
+
+> CC1CCC2C(C)CCC(C)(C)C2C1C
+
+4 BTRG PGY0072 4 
+
+> CC1CCC2C(C)CCC(C)(C)C2C1C
+
+4 BTRG PGY0216_1 6 
+
+> CCC(C)C1(C)CCC2C3CCC4CC(C)CCC4(C)C3C(C)CC21C
+
+3 BTRG Hydrocortisone 6 
+
+> CCC(C)C1(C)CCC2C3CCC4CC(C)CCC4(C)C3C(C)CC21C
+
+4 BTRG Prednisolone 1 
+
+> CCC(C)C1(C)CCC2C3CCC4CC(C)CCC4(C)C3C(C)CC21C
+
+4 BTRG Prednisone 6 
+
+> CCC1CC(C(C)C)C(C)C2CC(C)C(C3CCCCC3)CC12
+
+0 BTRG Enoxacin 1 
+
+> CCC1CC(C(C)C)C(C)C2CC(C)C(C3CCCCC3)CC12
+
+0 BTRG Norfloxacin 1Table S7: Best single-task linear regression (ElasticNet) tuned models on the validation set for each target after hyperparameter search with 4 folds cross-validation. This Table supplements Figure 4 target corr train corr valid r2 train r2 valid parameters 
+
+BBB 0.750527 0.674643 0.542300 0.391731 ’alpha’: 0.5, ’l1_ratio’: 0.1 
+
+DOD 0.692909 0.624653 0.464124 0.261704 ’alpha’: 0.1, ’l1_ratio’: 1.0 
+
+H 0.715914 0.636709 0.496039 0.340970 ’alpha’: 0.1, ’l1_ratio’: 0.8 
+
+L 0.737502 0.681822 0.530107 0.394466 ’alpha’: 0.1, ’l1_ratio’: 0.8 
+
+P C 0.551864 0.455126 0.262933 0.118399 ’alpha’: 0.5, ’l1_ratio’: 0.3 
+
+P S 0.660146 0.516586 0.405330 0.238899 ’alpha’: 0.5, ’l1_ratio’: 0.1 
+
+P CA 0 0.833645 0.758294 0.687807 0.536525 ’alpha’: 0.1, ’l1_ratio’: 1.0 
+
+P CA 1 0.630956 0.527209 0.353954 0.256748 ’alpha’: 0.1, ’l1_ratio’: 0.8 
+
+P CA 2 0.580977 0.309568 0.301764 -0.109284 ’alpha’: 0.5, ’l1_ratio’: 0.0 Figure S4: Additional violin plots (middle and right) of the 10 lowest (left respectively) and the 10 highest (right respectively) penetrating compounds on heart (H)-, brain (BBB)-specific membrane and dodecane (DOD). Violin plots show the distribution of the compounds with respect to their physicochemical properties. 
+
+55 TOC Graphic Cn1cnc2c1c(=O)n(C)c(=O)n2C 
+
+> Feature extraction
+
+In vitro PAMPA 
+
+QSPR modeling 
+
+Regression 
+
+56

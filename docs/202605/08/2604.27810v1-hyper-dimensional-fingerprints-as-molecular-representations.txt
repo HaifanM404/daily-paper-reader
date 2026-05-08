@@ -1,0 +1,781 @@
+Title: Hyper-Dimensional Fingerprints as Molecular Representations
+
+URL Source: https://arxiv.org/pdf/2604.27810v1
+
+Published Time: Fri, 01 May 2026 00:56:16 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# Hyper-Dimensional Fingerprints as Molecular Representations 
+
+## Jonas Teufel iD †1, Luca Torresi iD †1, André Eberhard 1,Pascal Friederich iD 1* 
+
+1Karlsruhe Institute of Technology (KIT), Institute of Nanotechnology (INT), Kaiserstraße 12, Karlsruhe, Germany. 
+
+Abstract 
+
+Computational representations of molecular structure underpin virtual screening, property prediction, and materials discovery. Conventional molecular fingerprints provide efficient, deterministic representations but lose structural information through hash-based compression, particularly at reduced dimensionalities. Learned representations from graph neural networks recover this expressiveness but require task-specific training and substantial computational resources. Here we introduce hyperdimensional fingerprints (HDF), which replace the learned transformations in message-passing neural networks with algebraic operations on high-dimensional vectors, producing deterministic molecular representations without any training. Across diverse property prediction benchmarks, HDF outperforms conventional fingerprints in the majority of tasks while exhibiting greater consistency across datasets and models. Crucially, HDF embeddings preserve molecular similarity faithfully: at 32 dimensions, distances in HDF space achieve a 0.9 Pearson corre-lation with graph edit distance, compared to 0.55 for the widely used Morgan fingerprints at equivalent size. This structural fidelity persists at low dimensions where hash-based methods degrade, allowing simple nearest-neighbor regression to remain predictive with as few as 64 components. We demonstrate the practical impact of this in Bayesian molecular optimization, where HDF-based surrogate models achieve substantially improved sample efficiency in regimes where Morgan fingerprints perform comparably to random search. These results establish HDF as a general-purpose, training-free alternative to conventional molecular finger-prints, delivering more faithful structural similarity, more consistent predictive performance, and substantial gains in sample-efficient optimization. They suggest that the information loss long accepted as inherent to fixed-length fingerprints is a limitation of the hash-based encoding scheme rather than the fingerprint paradigm itself. 
+
+1     
+
+> arXiv:2604.27810v1 [cs.LG] 30 Apr 2026 Molecular Graph High-dimensional Vectorspace e.g. by Circular Convolution Graph Representation Iterative Message Passing Graph Aggregation :::Node Properties
+> Hyper-dimensional Fingerprint
+> Hyperspace Vectors Message Binding Message Passing
+> Property Prediction Similarity Metrics Graph Generation
+
+Fig. 1 Overview of the hyperdimensional fingerprint representation. Atomic properties are mapped to high-dimensional vectors through predefined dictionaries and combined via circular convolution to form initial node embeddings. Iterative message passing propagates structural information across the molecular graph, and the final fingerprint is obtained by aggregating node embeddings across all iterations. 
+
+Keywords: Molecular Property Prediction, Molecular Fingerprints, Hyperdimensional Computing 
+
+# 1 Main 
+
+Molecular fingerprints are fixed-size vector representations that encode the structural and chemical properties of molecules in a format suitable for computational analysis [1, 2]. These representations are fundamental to modern cheminformatics, enabling property prediction, similarity-based virtual screening, and quantitative structure-activity relationship modeling. The ability to represent molecules of varying size as vectors of fixed dimensionality has made fingerprinting methods essential across applications ranging from solubility prediction to drug discovery. Even as graph neural networks and large molecular foundation models have gained traction, molecular fingerprints continue to underpin a wide range of recent high-impact studies. Applications include antibiotic and antimicrobial discovery [ 3– 7], generative and de novo drug design [ 8, 9 ], data-driven catalyst and reaction optimization [ 10 –14 ], inverse design of functional materials [ 15 ], and small-molecule property prediction in chemical biology [ 16 ]; recent surveys of medicinal chemistry, preclinical drug discovery, and natural-product drug discovery likewise treat fingerprint-based representations 
+
+> 0†These authors contributed equally to this work.
+
+2as a foundational tool [ 17– 19 ]. For example, Stokes et al. trained a deep neural network on Morgan fingerprints to identify halicin, a structurally novel broad-spectrum antibiotic [ 3], a strategy since extended to additional antibiotic classes [ 4, 5]. In a very domain, Li et al. used Morgan-fingerprint-based Tanimoto kernels within a closed-loop Bayesian optimization to identify metallophotocatalyst formulations competitive with iridium-based systems while exploring just 2.4 % of the candidate formulation space [10]. Traditional fingerprinting approaches, such as Morgan fingerprints (also known as extended-connectivity fingerprints) [ 20 , 21 ], offer practical advantages including com-putational efficiency, deterministic computation, and interpretability. However, these methods rely on hash-based folding of substructural features into fixed-length bit vec-tors, which introduces information loss through bit collisions and limits representational capacity. While learned molecular representations from graph neural networks [ 22 , 23 ]can achieve higher expressivity, they require training on task-specific data, demand substantial computational resources, and may not generalize well to domains outside their training distribution. This motivates the development of molecular representations that combine the efficiency and generality of traditional fingerprints with improved structural representation. Hyperdimensional computing (HDC) [ 24 , 25 ] uses the quasi-orthogonality of random vectors in high-dimensional spaces to build structured representations from simple algebraic operations, without any training. The quasi-orthogonality of randomly sampled vectors in high-dimensional spaces enables robust distributed representations through simple algebraic operations, and recent work has begun to explore this framework for encoding graph-structured and molecular data. GraphHD [ 26 ] and GrapHD [ 27 ] explored encoding graph topology into hypervector spaces, but both are restricted to immediate 1-hop neighborhood interactions, limiting the representation of multi-bond chemical environments. In the molecular domain, MoleHD [ 28 ] encodes molecules by tokenizing SMILES strings into hypervectors, processing them as linear sequences rather than graphs, while HDBind [ 29 ] applies HDC to molecular property prediction but relies on external feature extractors—such as conventional fingerprints or deep learning models—prior to hyperdimensional projection. These approaches, along with further recent work [ 30 ], have established the viability of HDC for molecular and graph encoding tasks, but a general-purpose molecular fingerprint that encodes multi-hop structural environments directly from molecular graphs has not yet been realized. In this work, we introduce hyperdimensional fingerprints (HDF), a molecular representation that builds on these advances by integrating HDC with iterative message-passing frameworks. Our approach encodes atomic properties as randomly sampled hypervectors and propagates structural information through iterative binding and aggregation operations over the molecular graph, capturing multi-hop neighborhoods analogous to circular fingerprints of varying radii. Unlike rigid, expert-driven traditional representations, HDF provides a generalizable architecture that avoids hard-coded structural rules. This approach is entirely deterministic and requires no training, while retaining the structural expressivity of iterative message-passing schemes. By 3grounding the encoding in algebraic operations with well-understood mathematical properties rather than hash-based folding, HDF avoids the information loss through bit collisions that limits traditional fingerprints at reduced dimensionalities. We evaluate HDF across diverse molecular property prediction benchmarks and demonstrate competitive performance compared to traditional fingerprinting meth-ods. Two properties distinguish HDF from existing approaches. First, distances in the HDF embedding space exhibit stronger correlation with graph edit distance than traditional fingerprints, indicating that HDF more faithfully captures topological similarity between molecules. Second, HDF maintains predictive performance at sub-stantially reduced embedding dimensions; at 32 to 256 components, HDF achieves lower prediction errors than Morgan fingerprints of equivalent size on the majority of datasets. These properties prove particularly advantageous for Bayesian optimization of molecular properties, where low-dimensional representations are preferred for com-putational tractability. In this setting, HDF enables substantially improved sample efficiency, whereas Morgan fingerprints at comparable dimensions perform near random baseline levels. Our findings establish hyperdimensional fingerprints as a practical alternative to traditional molecular representation methods for applications that benefit from compact representations with faithful structural similarity. The combination of dimensional efficiency, strong correlation with graph-theoretic distance measures, and training-free computation suggests utility for property prediction, similarity search, and sample-efficient molecular optimization. 
+
+# 2 Results 
+
+In this section we present the results of various computational experiments and ablation studies meant to evaluate the performance of the proposed hyperdimensional finger-prints in molecular property prediction tasks. We compare HDF against traditional Morgan fingerprints and other fingerprint methods implemented in the cheminfor-matics library RDKit [ 31 ] to show their competitive performance across a variety of different property prediction tasks. 
+
+## 2.1 Hyperdimensional fingerprints for molecular property prediction 
+
+We evaluate the effectiveness of HDF for molecular property prediction from two complementary perspectives: first, by examining performance across different machine learning paradigms to assess model-agnostic utility; and second, by comparing against established fingerprinting methods across a diverse set of chemical properties and datasets to assess generalization. 4GB 
+
+> KNN
+> RF
+> NN
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> R2 Score
+
+Crippen's logP ( )
+
+> GB
+> KNN
+> RF
+> NN
+> R2 Score
+
+AqSolDB ( )
+
+> HDC
+> Morgan
+> RDKit
+> GB
+> KNN
+> RF
+> NN
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> R2 Score
+
+QM9 ( U0) ( )
+
+> GB
+> KNN
+> RF
+> NN
+> R2 Score
+
+QM9 (GAP) ( )Fig. 2 Model predictivity (R ²) comparison of various simple machine learning models for 4 different molecular property regression tasks when trained on Hyperdimensional Fingerprints (green, ours), Morgan Fingerprints (blue) and RDKit Fingerprints (purple). The compared models are Gradient Boosting (GB), K-nearest Neighbors (KNN), Random Forest (RF) and Multi-Layer Perceptrons (NN). Hyperparameter configurations for the hatched bars were obtained by a prior hyperparameter optimization of representation and model parameters while non-hatched bars use the same constant hyperparameters (see Appendix for details). Results are averaged over 10 independent repetitions. 
+
+Comparison across ML models 
+
+We first compare HDF against Morgan [ 21 ] and RDKit [ 31 ] fingerprints across four machine learning methods and four molecular property regression tasks (see Supple-mentary Materials Section S5.1 for details). Notably, HDF uses fixed hyperparameters throughout, while Morgan and RDKit fingerprints are hyperparameter-optimized. HDF substantially improves prediction performance across the majority of model-dataset pairs (Figure 2), with gains achieved without hyperparameter optimization. Zero-point energy prediction exhibits the most substantial improvements, consistent with the fact that this quantum mechanical property depends primarily on local atomic environments and bond types—features explicitly represented in HDF’s atomic dictionaries. We also observe that HDF performs exceptionally well with k-nearest neighbors methods, suggesting that its representation is particularly effective for molecular similarity tasks. 
+
+Comparison across fingerprint methods 
+
+We next compare HDF against four established fingerprinting methods across a wider variety of property prediction datasets spanning diverse chemical domains and dataset sizes (see the Supplementary Materials for details on all methods and datasets). 5b Similarity-Based Bioactivity Assay Results         
+
+> aCorrelation of Molecular Representations with Graph Edit Distance (GED) Fig. 3 aAbsolute Pearson correlation between fingerprint-based distances and graph edit distance (GED) across embedding sizes, comparing Morgan fingerprints with radius 2 (blue) and hyperdimen-sional fingerprints with depth 2 (green, ours). Box plots summarize the distribution over molecular pairs. Hyperdimensional fingerprints consistently exhibit stronger correlation with GED. bRatio of K-nearest neighbor prediction error for Morgan fingerprints to hyperdimensional fingerprints (Error FP /Error HDC ) as a function of embedding dimensionality for five molecular property datasets. A dashed line at 1.0 marks parity; values above 1.0 indicate that hyperdimensional fingerprints (green, ours) achieve lower prediction error than Morgan fingerprints. Both methods use a fixed radius/depth of 2 and k= 5 neighbors.
+
+Neural network models trained on different fingerprint representations show that HDF achieves the best result on 8 of 17 property-dataset combinations, with a median rank of 2.0 tied with Atom Pair fingerprints (Table 1). While no single method dominates across all tasks, HDF maintains consistently small deviations from the best-performing method on each dataset. The largest performance gaps between HDF and traditional fingerprints occur for extensive thermodynamic properties such as zero-point vibrational energy (ZPVE), enthalpy ( ∆H), and internal energy ( U0), where HDF achieves prediction errors up to two orders of magnitude smaller than hash-based fingerprints. These properties scale with molecular size and composition—information that HDF preserves through its atomic dictionaries encoding atom types and bond connectivity, but that hash-based methods lose through bit collisions when folding substructural features into fixed-length vectors. This result highlights a key advantage of algebraic encoding over hashing: physically meaningful relationships between atomic environments are retained in the representation rather than compressed away. 
+
+## 2.2 Hyperdimensional fingerprints capture structural similarity 
+
+The preceding experiments demonstrate that HDF achieves strong predictive perfor-mance across diverse molecular property tasks. A natural question is whether this performance arises from HDF capturing meaningful structural relationships between molecules. We hypothesize that distances in the HDF embedding space more accurately reflect molecular topology than traditional fingerprints, and that this property directly benefits distance-dependent prediction methods. We present two complementary experiments to support this hypothesis. 
+
+Correlation with graph edit distance 
+
+We first analyze the correlation between representation-space distances and graph edit distance (GED) [ 32 ]. Since exact GED computation is NP-hard for general molecular 6Table 1 Comparison of neural network models trained on different fingerprint representations across a variety of different properties and dataset sizes. Results are obtained over 5 independent experiment repetitions and using the same hyperparameter configuration for all fingerprints, where applicable. Best results in each row are highlighted in dark green. The last row shows the median rank of each method across all properties and the average relative deviation from the best result. Additional information can be found in the Supplementary Materials. 
+
+Dataset Quantity Datapoints HDC Morgan RDKit Torsion AtomPair HOPV15 PCE [%] 175 0.203  
+
+> ±0.03
+
+0.157  
+
+> ±0.04
+
+0.157  
+
+> ±0.02
+
+0.157  
+
+> ±0.04
+
+0.154 
+
+> ±0.02
+
+Voc [V] 175 0.128  
+
+> ±0.02
+
+0.100  
+
+> ±0.01
+
+0.099  
+
+> ±0.01
+
+0.100  
+
+> ±0.01
+
+0.110 
+
+> ±0.01
+
+FreeSolv ∆G [kcal/mol] 639 0.966  
+
+> ±0.12
+
+1.185  
+
+> ±0.19
+
+0.978  
+
+> ±0.20
+
+1.840  
+
+> ±0.09
+
+1.207 
+
+> ±0.05
+
+BACE IC50 [pIC50] 1513 0.571  
+
+> ±0.04
+
+0.515  
+
+> ±0.04
+
+0.540  
+
+> ±0.05
+
+0.525  
+
+> ±0.05
+
+0.522 
+
+> ±0.05
+
+LIPOP LogD 4199 0.548  
+
+> ±0.02
+
+0.581  
+
+> ±0.01
+
+0.601  
+
+> ±0.03
+
+0.597  
+
+> ±0.01
+
+0.551 
+
+> ±0.02
+
+AqSolDB logS [log M] 9887 0.618  
+
+> ±0.02
+
+0.730  
+
+> ±0.01
+
+0.851  
+
+> ±0.04
+
+0.756  
+
+> ±0.01
+
+0.624 
+
+> ±0.02
+
+clogp ClogP 9887 0.506  
+
+> ±0.05
+
+1.286  
+
+> ±0.05
+
+1.557  
+
+> ±0.05
+
+1.203  
+
+> ±0.04
+
+0.691 
+
+> ±0.03
+
+COMPAS-3X U0 [eV] 39482 1.103  
+
+> ±0.17
+
+96 .695  
+
+> ±0.75
+
+133 .592  
+
+> ±1.17
+
+88 .090  
+
+> ±0.94
+
+77 .317 
+
+> ±0.86
+
+Gap [eV] 39482 0.156  
+
+> ±0.00
+
+0.088  
+
+> ±0.00
+
+0.226  
+
+> ±0.00
+
+0.177  
+
+> ±0.00
+
+0.217 
+
+> ±0.00
+
+μ [D] 39482 0.048  
+
+> ±0.00
+
+0.035  
+
+> ±0.00
+
+0.054  
+
+> ±0.00
+
+0.051  
+
+> ±0.00
+
+0.051 
+
+> ±0.00
+
+QM9 μ [D] 133882 0.607  
+
+> ±0.01
+
+0.575  
+
+> ±0.00
+
+0.577  
+
+> ±0.00
+
+0.670  
+
+> ±0.00
+
+0.591 
+
+> ±0.00
+
+Cv [cal/(mol K)] 133882 0.386  
+
+> ±0.02
+
+0.818  
+
+> ±0.01
+
+1.560  
+
+> ±0.02
+
+0.997  
+
+> ±0.01
+
+0.323 
+
+> ±0.00
+
+ZP V E [eV] 133882 0.001  
+
+> ±0.00
+
+0.005  
+
+> ±0.00
+
+0.008  
+
+> ±0.00
+
+0.006  
+
+> ±0.00
+
+0.002 
+
+> ±0.00
+
+α [a30] 133882 0.692  
+
+> ±0.01
+
+1.834  
+
+> ±0.02
+
+2.641  
+
+> ±0.02
+
+2.243  
+
+> ±0.03
+
+0.674 
+
+> ±0.01
+
+∆H [eV] 133882 0.606  
+
+> ±0.02
+
+7.195  
+
+> ±0.09
+
+8.992  
+
+> ±0.14
+
+10 .075  
+
+> ±0.08
+
+1.365 
+
+> ±0.06
+
+U0 [eV] 133882 0.578  
+
+> ±0.08
+
+7.251  
+
+> ±0.20
+
+9.014  
+
+> ±0.08
+
+10 .073  
+
+> ±0.13
+
+1.377 
+
+> ±0.10
+
+Gap [eV] 133882 0.008  
+
+> ±0.00
+
+0.007  
+
+> ±0.00
+
+0.007  
+
+> ±0.00
+
+0.008  
+
+> ±0.00
+
+0.007 
+
+> ±0.00
+
+Median Rank (Rel. Deviation) 2.00  
+
+> 13 .5%
+
+3.00  
+
+> 695 .6%
+
+5.00  
+
+> 983 .3%
+
+4.00  
+
+> 733 .6%
+
+2.00 
+
+> 441 .2%
+
+graphs, we construct a dataset of molecular pairs with known edit distances by iteratively applying all chemically valid single-edit perturbations (atom substitutions, bond additions, bond deletions) starting from randomly selected seed molecules and sampling from the resulting set (see the Supplementary Materials for the detailed procedure). We then compute the cosine distance for HDF vectors and the Tanimoto distance for Morgan fingerprints at each embedding dimensionality. Across all tested embedding dimensionalities, HDF consistently achieves higher Pearson correlation with GED than Morgan fingerprints of equivalent size (Figure 3a). 7Fig. 4 Prediction error (MAE) of neural network (NN) regressors trained on Morgan fingerprints (blue) and hyperdimensional fingerprints (green, ours) as a function of embedding dimensionality, on ( a) AqSolDB (logS) and ( b) BACE (pIC50). Each panel compares both representations at two message-passing depths (1 and 3 for HDF; matching radii for Morgan). Results show the mean and standard deviation over 10 independent repetitions. 
+
+At 32 dimensions, HDF attains a median correlation of approximately 0.9, compared to approximately 0.55 for Morgan fingerprints. As embedding size increases, both representations improve, but HDF maintains its advantage: at 512 and 2048 dimensions, HDF achieves median correlations approaching 0.9, compared to approximately 0.8 for Morgan fingerprints. 
+
+Nearest-neighbor prediction accuracy 
+
+As a downstream consequence of this improved structural fidelity, we would expect HDF to benefit distance-based prediction methods on properties that vary smoothly with molecular topology. To probe this, we compare K-nearest neighbor regressors (k = 5 ) trained on HDF and Morgan fingerprints across embedding dimensionalities from 32 to 2048 and report the error ratio MAE Morgan /MAE HDF (Figure 3b). For most datasets, HDF yields lower KNN errors than Morgan fingerprints, with the largest gains at low embedding sizes where the GED correlation gap is also widest. The effect is naturally dataset-dependent: not every molecular property varies smoothly with topological distance, and for properties driven by features that happen to be well-captured by Morgan’s substructure hashing, the ratio can fall near or below parity. The overall trend nevertheless supports the interpretation that faithful distance structure is a meaningful source of HDF’s advantage. 
+
+## 2.3 Hyperdimensional fingerprints are highly compact molecular representations 
+
+Dimensionality ablation 
+
+We investigate the relationship between embedding dimensionality and predictive performance by evaluating HDF and Morgan fingerprints with neural network regressors at dimensions ranging from 32 to 16,384 components (see Supplementary Materials Section S5.3 for details). At low dimensionalities (32 to 256 components), HDF achieves lower predic-tion errors than Morgan fingerprints of equivalent size across the tested datasets 8a Evolution of the objective function at 64 dimensions (ClogP) b Evolution of the objective function at 64 dimensions (ZINC250K)    
+
+> cEmbedding Size Ablation to match target ClogP value (ClogP) dEmbedding Size Ablation to match target QED value (ZINC250K)
+
+Fig. 5 Results of Bayesian optimization for molecular property targeting with different molecular representations. All results aggregate 10 independent experiment repetitions. a, b Progression of the objective function during Bayesian optimization at 64-dimensional embeddings for (a) targeting a ClogP value on the ClogP dataset and (b) targeting a QED value on the ZINC250k dataset. Curves show the best distance-to-target over optimization rounds (lower is better) for randomly sampled representations (gray), Morgan fingerprints with radius 2 (blue), and hyperdimensional fingerprints with depth 2 (green, ours); shaded bands denote standard error. c, d Embedding size ablation reporting the area under the distance-to-target curve (AUC, lower is better) across embedding sizes from 8 to 512, for (c) ClogP targeting on the ClogP dataset and (d) QED targeting on ZINC250k. Box plots show the spread over independent repetitions; brackets indicate statistical significance (Wilcoxon signed-rank test, ** p < 0.01 , *** p < 0.001 ) between Morgan and HDC. 
+
+(Figure 4a,b). This advantage reflects the different ways the two representations han-dle limited dimensionality: Morgan fingerprints hash substructural features into a fixed-length bit vector and therefore incur collision-induced information loss that is most severe at small embedding sizes, whereas HDF distributes structural information continuously across the embedding through algebraic operations. As the dimensional-ity grows, the Morgan collision rate decreases and the gap narrows: on AqSolDB the two methods essentially converge, while on BACE Morgan slightly outperforms HDF at higher dimensions. At higher dimensions, the relative ranking becomes dataset-dependent: HDF retains its advantage on some datasets, the two methods converge on others, and for properties dominated by the discrete substructural features that Morgan encodes directly, Morgan fingerprints can match or exceed HDF accuracy (see Supplementary Materials for dataset-specific results). 
+
+## 2.4 Bayesian optimization with hyperdimensional fingerprints 
+
+The preceding experiments demonstrate two key properties of the HDF representation: (a) distances in the embedding space exhibit stronger correlation with structural similarity compared to traditional fingerprints, and (b) predictive performance of 9HDF representations stays high even at substantially reduced embedding dimensions. These characteristics are particularly relevant for Bayesian optimization, where low-dimensional representations are preferred due to the computational cost of Gaussian process inference, and where the surrogate model benefits from smooth mappings between representation space and target properties. 
+
+Optimization benchmark 
+
+To assess whether these properties translate to improved sample efficiency, we design a Bayesian optimization benchmark that simulates the identification of molecules with optimal target properties from a fixed candidate library. We compare HDF, Morgan fingerprints, and a random baseline at matched dimensionalities using a Gaussian process surrogate model and quantify performance via the area under the cumulative improvement curve (AUC), where lower values indicate faster convergence toward the optimum (see the Supplementary Materials for the detailed procedure). 
+
+Sample efficiency 
+
+For both ClogP and QED targeting, HDF-based optimization converges substantially faster than Morgan fingerprints at matched embedding sizes (Figure 5a,b). At 64 dimensions, HDF approaches the target value within the first tens of optimization rounds, whereas Morgan fingerprints converge much more slowly; the gap is particularly pronounced for ClogP, where HDF reaches near-zero distance to target within roughly 20 rounds while Morgan has yet to reach it after 150 rounds, and the random baseline plateaus far from the target throughout. An ablation across embedding sizes (8 to 512 dimensions) confirms this trend: HDF yields consistently lower AUC than both Morgan and the random baseline for both targets, with differences that are statistically significant across most embedding sizes (Figure 5c,d; Wilcoxon signed-rank test). Notably, HDF maintains this advantage for QED despite performing comparably to or below Morgan fingerprints in direct property prediction on this target (see Table 1). We attribute this to the dimensional efficiency of HDF: at the small embedding sizes required for tractable Gaussian process inference, Morgan fingerprints encode only a limited number of substructural features, whereas HDF continues to capture topological relationships across the molecular graph, enabling the surrogate model to learn more informative structure–property mappings. This has direct practical consequences for BO over large molecular libraries. Both Gaussian process inference and acquisition-function evaluation over the candidate set scale with embedding dimensionality, and for ZINC250k the wall-clock time of a single optimization run drops from approximately three days at 512 dimensions to around two hours at 16 dimensions (the Supplementary Materials)—an embedding regime in which HDF already reaches the target while Morgan fingerprints fail to do so. Low-dimensional representations are therefore not merely convenient for GP tractability but essential for BO to remain feasible at the library sizes encountered in practice. 10 3 Discussion 
+
+The results presented above demonstrate that hyperdimensional fingerprints provide a compact, training-free molecular representation in which embedding distances faithfully reflect molecular topology. This structural fidelity, quantified by strong correlation with graph edit distance, is the central property from which the main practical advantages of HDF follow. First, the faithful preservation of topological similarity directly explains the strong performance of HDF with distance-dependent methods. K-nearest neighbor regressors, which rely entirely on pairwise distances in the embedding space, tend to benefit from HDF’s distance structure compared to Morgan fingerprints at matched dimensionalities. This result suggests that HDF embeddings induce a metric space in which chemically related molecules are consistently placed closer together, a property that hash-based fingerprints do not guarantee. Second, HDF maintains this structural fidelity at remarkably low dimensionalities. At 32–256 components, HDF achieves lower prediction errors than Morgan fingerprints of equivalent size, and distances retain high correlation with graph edit distance even at 32 dimensions. This dimensional efficiency has direct practical consequences for Bayesian optimization over large molecular libraries, where both Gaussian process inference and acquisition over the candidate set scale unfavorably with embedding size: reducing the embedding from a few hundred to a few tens of dimensions can shorten the runtime of a single optimization run from days to hours (the Supplementary Materials), an embedding regime in which HDF already enables substantially improved sample efficiency while Morgan fingerprints at equivalent dimensionalities perform comparably to random search. However, these advantages do not translate uniformly to all tasks. For certain bioactivity-related applications, traditional fingerprints remain preferable, as discussed in the Supplementary Materials. More generally, while HDF demonstrates greater consistency and stability across datasets and model types, performance remains dataset-dependent: for some properties, Morgan fingerprints achieve higher accuracy when sufficient dimensionality is available, as HDF performance saturates earlier with increasing embedding size. The current formulation also does not encode stereochemical information, a limitation we plan to address in future work by extending the atomic dictionaries. Furthermore, the algebraic structure of hyperdimensional computing opens direc-tions beyond property prediction. The approximate invertibility of the binding and bundling operations may enable reconstruction of molecular substructures from finger-print vectors, with potential applications in interpretability and generative molecular design. 11 4 Methods 
+
+## 4.1 Hyperdimensional computing 
+
+Hyperdimensional computing (HDC) [ 24 , 25 , 33 ] is a computational paradigm inspired by brain-like mechanisms of information storage. HDC represents concepts as high-dimensional vectors, typically with D ≳ 10 4, known as hypervectors (HV), which encode information in a distributed and robust manner. Compositional structures are then modeled through a defined set of algebraic operations on the hypervectors, enabling the formation of associative memories. HDC leverages a mathematical phenomenon observed in high-dimensional vector spaces [ 34], where randomly sampled vectors tend to be nearly orthogonal, i.e. x · y ≈ 0.This property lies at the core of the representational power of hypervectors. While the number of exactly orthogonal dimensions in a vector space equals its dimensionality 
+
+D, the number of nearly orthogonal directions grows exponentially with D and their properties increasingly resemble those of perfectly orthogonal vectors. This behavior, often referred to as the "blessing of dimensionality" [ 35 ], inherently facilitates the separation of data, enabling hypervectors to serve as highly distinct and robust symbols in high-capacity, noise-tolerant representations. While multiple different implementations of HDC can be found in the literature, all HDC models are defined by four core components: 
+
+• a mapping φ : S → RD from a set of symbols S to hypervectors, which may be real-valued, binary, or integer-based, depending on the specific model; 
+
+• a similarity function sim : RD × RD → [−1, 1] , such as cosine similarity or the dot product; 
+
+• a bundling operation ⊕ : RD ×RD → RD, which preserves similarity to its operands, i.e. sim( x ⊕ y, x) ≫ 0 and sim( x ⊕ y, y) ≫ 0;
+
+• a binding operation ⊙ : RD × RD → RD, which produces a representation dissimilar to either operand, i.e. sim (x ⊙ y, x) ≈ 0 and sim (x ⊙ y, y) ≈ 0, but which preserves pairwise structure: sim( x ⊙ y, x′ ⊙ y′) correlates with sim( x, x′) · sim( y, y′).Given a compositional hypervector, it is often desirable to recover both the atomic HVs involved in its formation and its compositional structure. This recovery is typically feasible with prior knowledge of the set of potential input HVs and the operations used during the compositional process, although the reconstruction is generally noisy. Among the various HDC implementations, holographic reduced representations (HRR) [ 36 ] offer particularly favorable properties for continuous-valued data: the binding operation is approximately invertible, enabling partial recovery of compositional structure, and similarity computations yield smooth, graded responses rather than discrete outcomes. In the following, we describe the HRR model in detail. 
+
+Holographic reduced representations (HRR) 
+
+The atomic HVs for representing dissimilar objects are real-valued vectors, with their components independently sampled from an isotropic normal distribution with zero mean and variance 1/D , where D is the dimensionality of the vectorial space. For large D, the Euclidean norm of the generated atomic HVs approaches unity. 12 The similarity measure between HVs is typically defined as either the dot product (sim dot ) or the cosine similarity ( sim cos ). The bundling operation is performed as component-wise addition; therefore, normalization is often applied after superposition to preserve the unit norm. The binding operation in HRR is defined via circular convolution, a mathematical operation that projects the outer product of two vectors onto the same dimensional space: 
+
+p = x ⊙ y ≡ pj =
+
+> D−1
+
+X
+
+> k=0
+
+yk x(j−k) mod D.
+
+Circular convolution is a commutative operation that approximately maintains the unit norms of the input HVs. Finally, the unbinding operation is performed by circular correlation of the composed HV with one of its input HVs, which allows recovering noisy versions of the other input HVs. 
+
+## 4.2 Message passing on graphs 
+
+Message passing serves as a mathematical framework for processing graph-structured data within graph neural networks and related architectures [ 22 , 23 ]. For an undi-rected graph G = ( V, E) defined by a set of nodes V and edges E, message-passing algorithms iteratively update node states by propagating information through the network topology. The process begins by initializing a state vector h(0)  
+
+> i
+
+for each node i ∈ V . At each subsequent iteration l, every node aggregates the hidden states of its immediate structural neighbors j ∈ N (i). This mechanism is formalized by a general update function: 
+
+h(l+1)  
+
+> i
+
+= UPDATE 
+
+
+
+h(l) 
+
+> i
+
+, AGGREGATE 
+
+
+
+{h(l) 
+
+> j
+
+| j ∈ N (i)}
+
+ 
+
+(1) By repeating this procedure for L iterations, the final node state h(L) 
+
+> i
+
+captures structural features within an L-hop receptive field centered on node i. When a global representation of the entire graph is required, an auxiliary permutation-invariant readout function is deployed to aggregate the hidden representations of all nodes: 
+
+g = READOUT 
+
+
+
+{h(L) 
+
+> i
+
+| i ∈ V} 
+
+
+
+(2) 
+
+## 4.3 Molecular fingerprints 
+
+Molecular fingerprints are fixed-size vector representations that encode the struc-tural and chemical properties of molecules and are widely used for computational analysis [ 1, 2]. Common architectures include substructure key-based fingerprints, path-based fingerprints, atom pair descriptors [ 37 ], and circular fingerprints. Among these, extended-connectivity fingerprints [ 20 ], also termed Morgan fingerprints [ 21 ], are one of the most widely used molecular representations in academia and industry, e.g. for molecular property prediction and virtual screening. The generation of circular fingerprints, specifically Morgan fingerprints, relies on a deterministic, iterative algorithm to capture local atomic environments. Each heavy 13 atom within the molecular graph is initialized with an integer identifier derived from local atomic invariants, including the atomic number, heavy bond connectivity, isotope, and formal charge. Following initialization, the algorithm iteratively expands circular neighborhoods around each atom up to a specified maximum radius. At each iteration, information about the central atom and its neighbors is aggregated into new identifier codes. These codes are subsequently hashed and folded into a fixed-length bit vector, typically comprising 1024 or 2048 bits. 
+
+## 4.4 Problem statement 
+
+Molecular structures can be naturally represented as undirected graphs G = ( V, E)
+
+consisting of a node set V = {1, . . . , i, j, . . . , V } and an edge set E = V × V , where each node corresponds to an atom and each edge to a chemical bond. Different molecules are thus represented by graphs that vary in order (i.e. different numbers of atoms |V| ), composition and connectivity patterns. However, many downstream tasks in cheminformatics—such as property prediction, similarity search, and molecular optimization—benefit from using fixed-length vector inputs [1, 2]. To facilitate computational tasks, especially when the dataset is of limited size, molecular graphs must be transformed into more tractable representations. Specifically, we aim to encode each molecule m ∈ M , where M denotes the space of all valid molecular graphs, into a fixed-dimensional vector g. Formally, this requires defining a mapping 
+
+f : M −→ RD, m 7 → g, (3) where g ∈ RD is an embedding that encapsulates the chemical and topological properties of the molecule m. To be broadly applicable, this mapping should (i) produce an output of fixed dimension D independent of the number of atoms in m, (ii) remain invariant under any permutation of the atom indices, (iii) preserve both local atomic environments (such as atom types and bond orders) and global molecular topology, and (iv) be computable in time polynomial in the number |V| of atoms. An additional desirable property, not exhibited by most of the current methods rely-ing on fixed-length vector representations, is that the embedding should be invertible, i.e., mappable back unambiguously to the original molecule. 
+
+## 4.5 Hyperdimensional graph encoding 
+
+We encode each molecule m as a fixed-length HV g ∈ RD by combining principles from HDC and message-passing on molecular graphs. This encoding process can be split into three stages: atomic embedding, iterative message passing, and global aggregation. 
+
+Atomic embedding 
+
+We first construct three dictionaries, each mapping specific atomic or structural properties to atomic HVs. These dictionaries provide a minimal set of atomic descriptors characterizing local chemical environments. Specifically: 14 • Atom type dictionary ( Datom ): A mapping from each chemical element type 
+
+e ∈ { C, N, O, S, F, Cl, Br, ... } to a unique HV hatom  
+
+> e
+
+∈ RD:
+
+Datom : e 7 → hatom  
+
+> e
+
+.
+
+• Hydrogen count dictionary ( Dhs ): A mapping from the number of bonds with hydrogen atoms h ∈ Z≥0 to a HV hhs  
+
+> h
+
+∈ RD:
+
+Dhs : h 7 → hhs  
+
+> h
+
+.
+
+• Bond count dictionary ( Dbonds ): A mapping from the total number of bonds with non-hydrogen atoms b ∈ Z≥0 to a corresponding HV hbonds  
+
+> b
+
+∈ RD:
+
+Dbonds : b 7 → hbonds  
+
+> b
+
+.
+
+The HVs hatom  
+
+> e
+
+, hhs  
+
+> h
+
+, hbonds  
+
+> b
+
+are drawn randomly from a Gaussian distribution, 
+
+N (0, 1/√D · I), and remain fixed throughout the computations. Together, these dic-tionaries provide the atomic-level HV representations that encode the properties of individual atoms and their local environments. For each atom i ∈ V of the molecular graph G, we then initialize a node HV 
+
+h(0)  
+
+> i
+
+= hatom  
+
+> ei
+
+⊙ hhs  
+
+> hi
+
+⊙ hbonds  
+
+> bi
+
+, (4) where ⊙ denotes the circular convolution, which we perform in the Fourier-transformed space as 
+
+u ⊙ v = F−1 (F(u) · F (v)) , (5) where u, v ∈ RD and F is the Fourier operator, which can be efficiently implemented using the Fast Fourier Transform. 
+
+Message passing 
+
+To propagate structural information, we perform L iterations of message passing. At iteration l, each node embedding is updated by 
+
+h(l+1)  
+
+> i
+
+= normalize   X  
+
+> j∈N (i)
+
+ h(l) 
+
+> i
+
+⊙ h(l)
+
+> j
+
+ , (6) where N (i) denotes the set of neighbors of node i, and normalize (·) scales its argument to the unit norm. This update rule aggregates information by binding the current embedding of i with that of each neighbor, thereby ensuring permutation invariance and preserving relational structure. While graph isomorphism networks [ 38 ] establish a theoretical upper bound for message-passing expressivity via strictly injective multiset aggregation, our approach relies on circular convolution, which functions as an injective mapping with high probability due to the concentration of measure in high-dimensional spaces. Although the subsequent normalization step restricts expressivity compared to pure summation 15 by discarding feature multiplicity, this limitation is effectively ameliorated by explicitly encoding the node degree into the initial atomic representations. 
+
+Graph aggregation 
+
+After L rounds of message passing, we aggregate the embeddings at each stage of message passing for each node. Specifically, the embedding of node i is obtained by summing the embeddings from all iterations l = 0 to L, followed by normalization: 
+
+hi = normalize 
+
+> L
+
+X
+
+> l=0
+
+h(l)
+
+> i
+
+!
+
+, ∀i ∈ V .
+
+In this way, the node embedding hi captures the molecular environment of the corresponding node, summarizing information from its local neighborhood across 0
+
+to L hops. We then obtain a permutation-invariant structural readout r ∈ RD by summing the node embeddings: 
+
+r = X
+
+> i∈V
+
+hi.
+
+Because only local message-passing operations are involved, r is invariant under any relabeling of the atoms. 
+
+Global graph attributes 
+
+The structural readout r aggregates information from L-hop atomic neighborhoods but does not directly expose macroscopic descriptors of the molecule, which are only implicitly reflected in the distribution of local environments. To complement r with such global information, we additionally encode a small set of graph-level scalar properties into the fingerprint. For a continuous value x ∈ R, we follow the fractional power encoding scheme [ 36 ]: we generate a base HV Φ ∈ RD whose Fourier spectrum has unit magnitudes and is Hermitian-symmetric, ensuring the encoded vector is real-valued, and define 
+
+h(x) = F−1
+
+F(Φ) x/σ 
+
+, (7) where the exponentiation acts component-wise on the Fourier coefficients and σ > 0
+
+is a bandwidth that controls the similarity decay: values x and x′ with |x − x′| ≪ σ
+
+map to highly similar HVs, while differences much larger than σ yield near-orthogonal representations. Unlike the categorical dictionaries used for atomic features, this construction encodes ordinal proximity and is therefore well suited to real- or integer-valued descriptors whose magnitude carries meaning. We apply this encoding to two global descriptors of the molecular graph G: the 
+
+graph size |V| , i.e. the number of heavy atoms, and the graph diameter diam (G),defined as the longest shortest path in G. The corresponding HVs hsize and hdiam are combined through the bundling operation into a single global-attribute HV: 
+
+gattr = hsize ⊕ hdiam ∈ RD. (8) 16 The final molecular fingerprint g is obtained by merging the structural readout with the global-attribute HV. Because the two terms can differ substantially in magnitude, each is normalized individually before being combined, and the result is normalized again to yield a unit-norm embedding: 
+
+g = normalize(normalize( r) + normalize( gattr )) ∈ RD. (9) This compact, fixed-dimensional embedding is invariant under atom index permutations and can be seamlessly integrated into downstream tasks such as property prediction and similarity search. 
+
+Code availability. The hyperdimensional fingerprint method is available as a Python package at https://doi.org/10.5281/zenodo.19373621. The code used to conduct the computational experiments and generate the results presented in this study will be made available upon publication. 
+
+Data availability. All datasets used in this study are publicly available through the chem-mat-database Python package [ 39 ]. Specific dataset identifiers are provided in the Supplementary Materials. 
+
+Acknowledgements. The authors acknowledge support from the state of Baden-Württemberg through bwHPC. Parts of this work were performed on the HoreKa supercomputer funded by the Ministry of Science, Research, and the Arts Baden-Württemberg and by the Federal Ministry of Education and Research. 
+
+Author contributions. J.T. extended the computational method, implemented the experimental code, performed the analysis, and wrote the initial draft of the manuscript. L.T. conceived the initial idea, developed the theoretical framework, and contributed to the writing of the Methods and Related Work sections. A.E. contributed to the initial implementation and code optimization. P.F. supervised the project, provided guidance on the research direction, and reviewed and edited the manuscript. 
+
+Competing interests. The authors declare no competing interests. 
+
+Funding. J.T. acknowledges funding from the pilot program Core-Informatics of the Helmholtz Association (HGF). L.T. acknowledges support by the Federal Ministry of Education and Research (BMBF) under Grant No. 01DM21002A (FLAIM). 
+
+# References 
+
+[1] David, L., Thakkar, A., Mercado, R. & Engkvist, O. Molecular representations in AI-driven drug discovery: A review and practical guide. Journal of Cheminfor-matics 12 , 56 (2020). URL https://doi.org/10.1186/s13321-020-00460-5. [2] Wigh, D. S., Goodman, J. M. & Lapkin, A. A. A review of molecular representation in the age of machine learning. WIREs Computational Molecular Science 12 ,e1603 (2022). URL https://onlinelibrary.wiley.com/doi/abs/10.1002/wcms.1603. 17 [3] Stokes, J. M. et al. A deep learning approach to antibiotic discovery. Cell 180 ,688–702.e13 (2020). [4] Wong, F. et al. Discovery of a structural class of antibiotics with explainable deep learning. Nature 626 , 177–185 (2024). [5] Liu, G. et al. Deep learning-guided discovery of an antibiotic targeting Acinetobacter baumannii. Nature Chemical Biology 19 , 1342–1350 (2023). [6] Scalia, G. et al. Deep-learning-based virtual screening of antibacterial compounds. 
+
+Nature Biotechnology (2025). [7] Orsi, M., Loh, B. S., Weng, C., Ang, W. H. & Frei, A. Using machine learning to predict the antibacterial activity of ruthenium complexes. Angewandte Chemie International Edition 63 , e202317901 (2024). [8] Moret, M. et al. Leveraging molecular structure and bioactivity with chemical language models for de novo drug design. Nature Communications 14 , 114 (2023). [9] Xie, W. et al. Accelerating discovery of bioactive ligands with pharmacophore-informed generative models. Nature Communications 16 , 2391 (2025). [10] Li, X. et al. Sequential closed-loop Bayesian optimization as a guide for organic molecular metallophotocatalyst formulation discovery. Nature Chemistry 16 ,1286–1294 (2024). [11] King-Smith, E. et al. Probing the chemical ‘reactome’ with high-throughput experimentation data. Nature Chemistry 16 , 633–643 (2024). [12] Zahrt, A. F. et al. Machine-learning-guided discovery of electrochemical reactions. 
+
+Journal of the American Chemical Society 144 , 22599–22610 (2022). [13] Götz, J. et al. High-throughput synthesis provides data for predicting molecular properties and reaction success. Science Advances 9, eadj2314 (2023). [14] Zhang, M. et al. Revealing transition state stabilization in organocatalytic ring-opening polymerization using data science. Angewandte Chemie International Edition 64 , e202502090 (2025). [15] Lyu, Y. et al. Fingerprinting organic molecules for the inverse design of two-dimensional hybrid perovskites with target energetics. Science Advances 12 ,eaeb4144 (2026). [16] Ambadi Thody, S. et al. Small-molecule properties define partitioning into biomolecular condensates. Nature Chemistry 16 , 1794–1802 (2024). [17] Mullowney, M. W. et al. Artificial intelligence for natural product drug discovery. 
+
+Nature Reviews Drug Discovery 22 , 895–916 (2023). 18 [18] Rácz, A. et al. The changing landscape of medicinal chemistry optimization. 
+
+Nature Reviews Drug Discovery 24 , 870–887 (2025). [19] Catacutan, D. B., Alexander, J., Arnold, A. & Stokes, J. M. Machine learning in preclinical drug discovery. Nature Chemical Biology 20 , 960–973 (2024). [20] Rogers, D. & Hahn, M. Extended-Connectivity Fingerprints. Journal of Chemical Information and Modeling 50 , 742–754 (2010). URL https://doi.org/10.1021/ ci100050t. [21] Morgan, H. L. The generation of a unique machine description for chemical structures—a technique developed at chemical abstracts service. Journal of Chemical Documentation 5, 107–113 (1965). [22] Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O. & Dahl, G. E. Neural message passing for quantum chemistry. Proceedings of the 34th International Conference on Machine Learning (ICML) 70 , 1263–1272 (2017). [23] Khemani, B., Patil, S., Kotecha, K. & Tanwar, S. A review of graph neural networks: Concepts, architectures, techniques, challenges, datasets, applications, and future directions. Journal of Big Data 11 , 18 (2024). URL https://doi.org/ 10.1186/s40537-023-00876-4. [24] Kanerva, P. Hyperdimensional Computing: An Introduction to Computing in Distributed Representation with High-Dimensional Random Vectors. Cognitive Computation 1, 139–159 (2009). URL https://doi.org/10.1007/s12559-009-9009-8. [25] Kleyko, D., Rachkovskij, D. A., Osipov, E. & Rahimi, A. A survey on hyperdi-mensional computing aka vector symbolic architectures, part i: Models and data transformations. ACM Computing Surveys 55 , 1–40 (2022). [26] Nunes, I., Heddes, M., Givargis, T., Nicolau, A. & Veidenbaum, A. GraphHD: Efficient graph classification using hyperdimensional computing. 2022 Design, Automation & Test in Europe Conference & Exhibition (DATE) 1485–1490 (2022). [27] Poduval, P. et al. Graphd: Graph-based hyperdimensional memorization for brain-like cognitive learning. Frontiers in Neuroscience 16 , 757125 (2022). [28] Ma, D., Thapa, R. & Jiao, X. MoleHD: Efficient drug discovery using brain inspired hyperdimensional computing. 2022 IEEE International Conference on Bioinformatics and Biomedicine (BIBM) 390–393 (2022). [29] Jones, D. et al. Hdbind: encoding of molecular structure with hyperdimensional binary representations. Scientific Reports 14 , 29025 (2024). [30] Vergés, P., Nunes, I., Heddes, M., Givargis, T. & Nicolau, A. Molecular classi-fication using hyperdimensional graph classification. 2024 International Joint 
+
+19 Conference on Neural Networks (IJCNN) 1–8 (2024). [31] Landrum, G. RDKit: Open-source cheminformatics (2006). URL https://www. rdkit.org. [32] Sanfeliu, A. & Fu, K.-S. A distance measure between attributed relational graphs for pattern recognition. IEEE Transactions on Systems, Man, and Cybernetics 
+
+SMC-13 , 353–362 (1983). [33] Heddes, M., Nunes, I., Givargis, T., Nicolau, A. & Veidenbaum, A. Hyperdi-mensional computing: A framework for stochastic computation and symbolic AI. Journal of Big Data 11 , 145 (2024). URL https://doi.org/10.1186/ s40537-024-01010-8. [34] Ledoux, M. The concentration of measure phenomenon 89 (American Mathemat-ical Soc., 2001). [35] Gorban, A. N. & Tyukin, I. Y. Blessing of dimensionality: mathematical founda-tions of the statistical physics of data. Philosophical Transactions of the Royal Society A: Mathematical, Physical and Engineering Sciences 376 , 20170237 (2018). [36] Plate, T. A. Holographic reduced representations. IEEE Transactions on Neural networks 6, 623–641 (1995). [37] Carhart, R. E., Smith, D. H. & Venkataraghavan, R. Atom pairs as molecular features in structure-activity studies: Definition and applications. Journal of Chemical Information and Computer Sciences 25 , 64–73 (1985). [38] Xu, K., Hu, W., Leskovec, J. & Jegelka, S. How powerful are graph neural networks? International Conference on Learning Representations (ICLR) (2019). ArXiv:1810.00826. [39] Teufel, J., Zeller, J. & Singh, M. ChemMatData: Unified chemistry and material science datasets for graph neural networks (2026). URL https://doi.org/10.5281/ zenodo.19533534. 20

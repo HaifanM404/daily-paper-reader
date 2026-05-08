@@ -1,0 +1,272 @@
+Title: ISAAC: Auditing Causal Reasoning in Deep Models for Drug-Target Interaction
+
+URL Source: https://arxiv.org/pdf/2605.02962v1
+
+Published Time: Wed, 06 May 2026 00:05:21 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction 
+
+Barbara Tarantino 1 Sun Kim 2 Yijingxiu Lu 2 Paolo Giudici 1
+
+# Abstract 
+
+Deep learning models often achieve high predic-tive performance on scientific benchmarks, yet it remains unclear whether such performance re-flects mechanistically grounded reasoning or re-liance on spurious correlations. This ambiguity is especially problematic in scientific domains such as drug–target interaction prediction, where valid outputs are expected to depend on underly-ing molecular mechanisms rather than on surface-level statistical patterns. We introduce ISAAC, a post-hoc structural auditing framework based on controlled input-level interventions, enabling a principled comparison of model responses to mechanistic and spurious perturbations to assess reliance on structurally meaningful input com-ponents beyond predictive accuracy. Applying ISAAC to drug–target interaction prediction, we show that models with comparable predictive per-formance exhibit substantial and reproducible dif-ferences in reasoning scores that remain unde-tected under accuracy-based evaluation, motivat-ing the use of post-hoc structural auditing along-side standard performance metrics. 
+
+# 1. Introduction 
+
+Deep learning models have achieved strong predictive per-formance across a wide range of scientific tasks, including molecular modeling, physical reasoning, and biological pre-diction. In practice, high accuracy is often interpreted as evidence that a model has learned to reason about the under-lying problem. This assumption is misleading. Predictive accuracy measures agreement with observed labels, but it does not reveal how predictions are produced or whether they depend on meaningful causal structure. 
+
+> 1
+
+Department of Economics and Management, University of Pavia, Pavia, Italy 2Department of Computer Science and Engi-neering, Seoul National University, Gwanak-gu 08826, Korea. Correspondence to: Paolo Giudici <paolo.giudici@unipv.it >.
+
+Preprint. May 6, 2026. 
+
+In many scientific settings, correct predictions can be ob-tained without reasoning about the underlying mechanisms. Models may exploit statistical regularities, dataset-specific artifacts, or shortcut features that correlate with the target in-distribution but are not mechanistically relevant. As a result, two models with similar accuracy can exhibit fundamen-tally different reasoning behavior, and models that perform well on standard benchmarks may fail under intervention or distribution shift (Ilyas et al., 2019; Taori et al., 2020). In scientific applications, this gap is particularly problematic, as predictions that are accurate yet mechanistically invalid can lead to misleading interpretations or unsafe downstream decisions. This distinction highlights a limitation of accuracy-based evaluation. Accuracy is an observational metric that as-sesses performance on a fixed data distribution. Reasoning, by contrast, can be probed through interventional analy-sis. Assessing whether a model relies on mechanistically meaningful structure requires evaluating how its predictions change when relevant components of the input are actively perturbed. Without such probes, accuracy alone cannot dis-tinguish causal dependence from spurious association (Pearl, 2009). Existing approaches provide only partial insight into this problem. Interpretability methods offer correlational expla-nations of model predictions, but explanation stability does not imply causal validity (Adebayo et al., 2018). Robustness and invariance-based approaches focus primarily on training objectives and generalization guarantees, rather than on ex-plicitly evaluating the reasoning behavior of trained models (Peters et al., 2016). As a result, there is no standard evalu-ation framework that directly tests whether predictions are driven by structurally meaningful input components rather than by superficial correlations. Motivated by this gap, we introduce ISAAC (Intervention-based Structural Auditing Approach for Causal Reason-ing), a post-hoc structural auditing framework based on controlled input-level interventions, designed to evaluate prior-relative structural sensitivity independently of predic-tive accuracy. ISAAC treats reasoning as a behavioral prop-erty of a trained model, conditional on its predictive regime, and assesses it by probing frozen networks with structured 1
+
+> arXiv:2605.02962v1 [cs.LG] 3 May 2026 ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction
+
+interventions, where structural sensitivity is operational-ized as differential response to structurally aligned versus misaligned input-level interventions. By comparing model responses to mechanistic interventions and matched spu-rious interventions, ISAAC tests whether predictions are sensitive to structurally meaningful input components or dominated by non-mechanistic correlations. We instantiate ISAAC in the context of Drug–Target Inter-action (DTI) prediction, a setting in which valid predictions are expected to depend on localized protein–ligand interac-tions and where biologically grounded interventions can be defined. Across multiple sequence-based DTI architectures spanning a range of inductive biases, we find that models with comparable predictive performance differ substantially in their responses to structured perturbations. These differ-ences reveal differences in reasoning behavior that remain undetected under accuracy-based evaluation. Overall, this work demonstrates that predictive accuracy alone is insufficient to characterize model reasoning in sci-entific machine learning. ISAAC introduces a principled, intervention-based auditing framework that makes it possi-ble to assess prior-relative structural sensitivity of trained models beyond observational performance. 
+
+# 2. Background and Related Work 
+
+2.1. Accuracy-Based Evaluation in Scientific Machine Learning 
+
+In many scientific applications, model performance is still primarily assessed through predictive accuracy on held-out data. While useful, this criterion alone provides limited information about how predictions are obtained. A substan-tial body of work has shown that deep models can reach high accuracy by exploiting correlations that are predictive in-distribution but unrelated to the underlying mechanisms of interest for the task. Such shortcut features often sup-port strong benchmark performance while remaining fragile under perturbations or distribution shift (Ilyas et al., 2019; Geirhos et al., 2020). These behaviors have been observed across modalities and tasks, and can persist even when mod-els are optimized for robustness or calibrated performance (Taori et al., 2020; Kirichenko et al., 2020). Several approaches have attempted to reduce shortcut re-liance by promoting invariance across environments or per-turbations. Invariant Risk Minimization formalizes the prin-ciple that predictors should rely on features whose relation-ship with the target remains stable across multiple environ-ments (Arjovsky et al., 2019). Earlier work on invariant prediction relates such stability to causal structure (Peters et al., 2016). While these frameworks provide valuable theoretical insights into causal generalization, they are pri-marily concerned with training objectives and guarantees on learned predictors. They do not directly address how a trained model behaves at inference time, nor whether its pre-dictions depend on invariant or mechanistically meaningful features. Related limitations arise in the context of interpretability and explainability. Feature attribution methods, including saliency maps, gradient-based techniques, local surrogate models, and Shapley-based explanations, aim to provide insight into individual predictions (Simonyan et al., 2014; Sundararajan et al., 2017; Ribeiro et al., 2016; Lundberg and Lee, 2017). Although widely used for transparency and debugging (Doshi-Velez and Kim, 2017), these meth-ods remain fundamentally correlational. Empirical studies have shown that attribution maps can remain largely un-changed even when model parameters are randomized or when predictions are driven by non-causal features (Ade-bayo et al., 2018). As a result, neither predictive accuracy nor explanation-based analyses provide a direct protocol for explicitly assessing whether trained models rely on mean-ingful input structure when producing predictions. 
+
+2.2. Intervention-Based Approaches to Reasoning Evaluation 
+
+Purely observational evaluation is often insufficient to distin-guish meaningful reasoning behavior from spurious associa-tions. Causal inference addresses this limitation by provid-ing a formal framework for distinguishing associative from causal relationships through the analysis of interventions rather than observational regularities alone (Pearl, 2009). This perspective has motivated extensive work on causal dis-covery, causal prediction, and causal representation learning. Invariant prediction methods, for example, exploit stability across interventions to identify causal relationships (Peters et al., 2016), while structural causal models provide a formal language for representing and reasoning about underlying mechanisms (Pearl, 2009). More recent work on causal and disentangled representa-tion learning emphasizes learning representations aligned with generative factors and causal mechanisms (Locatello et al., 2020; Sch ¨olkopf et al., 2021). While principled, these approaches primarily focus on training-time objectives and representation properties, rather than on auditing the rea-soning behavior of complex, pretrained models operating as black boxes. A related line of work studies post-hoc causal analysis of trained neural networks through interventions on internal model components, including mediation-based analyses and causal abstraction frameworks based on interchange inter-ventions (Geiger et al., 2021; Vig et al., 2020). These ap-proaches provide insight into internal causal mechanisms, but typically require access to model internals and assume a meaningful decomposition of latent variables or internal 2ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction 
+
+representations. Intervention-based reasoning evaluation has also emerged in other domains, notably in large language models, where controlled perturbations and benchmark construction reveal gaps between apparent accuracy and underlying reasoning behavior (Xu et al., 2025; Zhang et al., 2025). Despite these advances, existing intervention-based approaches do not provide a principled post-hoc protocol for reasoning eval-uation under a controlled predictive regime. In particular, they fail to systematically contrast sensitivity to structurally aligned versus misaligned input perturbations while jointly controlling for intervention magnitude, operator, and pre-dictive performance, limiting their ability to audit whether pretrained scientific models preferentially rely on mecha-nistically meaningful input structure rather than spurious correlations. 
+
+# 3. Methodology 
+
+ISAAC provides a protocol for evaluating whether the pre-dictions of a trained deep model are supported by struc-turally meaningful reasoning rather than superficial statisti-cal associations. Reasoning is operationalized as a behav-ioral property of a fixed predictive system, revealed through structured input-level interventions. 
+
+3.1. Reasoning as Interventional Behavior 
+
+Let fθ : X → Y denote a predictive model with fixed pa-rameters θ, selected prior to auditing. The input space X
+
+may correspond to sequences, graphs, images, or structured records, while the output space Y denotes a real-valued pre-diction quantity. Throughout auditing, the model is treated as a fixed predictive system. We assume access to a finite auditing set D = {xi}Ni=1 ⊂ X .Importantly, D is disjoint from the data used for training and validation, but does not necessarily coincide with the standard test set; instead, it refers to the subset of available data on which interventional analysis can be meaningfully performed. Reasoning is then probed through externally specified input-level interventions. An intervention is defined as a determin-istic operator I : X → X that modifies selected components of an input while leaving the internal computation of the model unchanged. For an input x ∈ D , the intervened input is denoted by xI = I(x). Interventions are introduced to induce controlled structural variation, independently of the data-generating distribution. The auditing set D is restricted to inputs admitting a structured representation that supports well-defined interventions; inputs lacking such structure are excluded. Under this setup, ISAAC characterizes model behavior con-ditional on the learned parameters θ, so that variation in model outputs is induced exclusively by the applied inter-vention operator I.For any input x and intervention I, we define the interven-tional response difference 
+
+δθ (x, I) = fθ (xI ) − fθ (x),
+
+where subtraction is interpreted component-wise in Y. This quantity captures the relative change in model output in-duced by a controlled structural perturbation, with the origi-nal input serving as a reference point for contrastive evalua-tion. 
+
+3.2. Structured Inputs and Matched Interventions 
+
+The auditing framework assumes that inputs admit a struc-tured representation that enables selective modification of identifiable components. Formally, each input x ∈ X is represented as a collection of components 
+
+x =  x(1) , x (2) , . . . , x (M ),
+
+where each component corresponds to a well-defined subset of the input representation. The nature of this decomposition is domain dependent and may correspond to residues in a biological sequence, nodes in a graph, regions in an image, or fields in a structured record. This decomposition is not assumed to reflect true causal structure. An intervention acts on a subset of components indexed by a scope S ⊆ { 1, . . . , M }. For an input x and intervention 
+
+I, the intervened input satisfies 
+
+xI 
+
+> (m)
+
+=
+
+(
+
+ϕ(x(m)) if m ∈ S ,x(m) otherwise ,
+
+where ϕ denotes the intervention operator applied to the se-lected components. The operator specifies how components are modified, while the scope specifies where the modifica-tion occurs. This separation induces matched intervention pairs with identical scope size and intervention operator, differing only in structural alignment. For auditing to be well-defined, each input is required to admit a unique interventional repre-sentation, so that interventional effects are unambiguously associated with individual inputs. 
+
+3.3. Mechanistic and Spurious Intervention Classes 
+
+Reasoning behavior is evaluated by contrasting model re-sponses to two classes of matched input-level interventions. We assume access to an externally specified structural prior that identifies a subset of input components relevant to the prediction task. The prior is used solely to define struc-tural alignment and does not encode ground-truth causal structure. 3ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction 
+
+Let Sprior ⊆ { 1, . . . , M } denote the set of input compo-nents identified by the structural prior. Mechanistic inter-vention scopes are defined as subsets S ⊆ S prior with cardi-nality defined relative to |S prior |.We define a complementary set of input components 
+
+Scomp ⊆ {1, . . . , M } \ S prior , disjoint from the prior-defined region. For each mechanistic scope S ⊆ S prior ,a spurious scope S′ ⊆ S comp is constructed by uniformly sampling components outside Sprior with matched cardi-nality |S′| = |S|; by construction, such scopes are not supported by the structural prior. For a fixed intervention operator ϕ, the corresponding inter-vention classes are 
+
+Imech = {(S, ϕ ) | S ⊆ S prior },
+
+Ispur = {(S′, ϕ ) | S′ ⊆ S comp }.
+
+This construction enables a controlled comparison of model sensitivity to structurally aligned versus misaligned pertur-bations, while holding the intervention operator and scope cardinality fixed. 
+
+3.4. Quantifying Reasoning Consistency 
+
+All reasoning metrics are defined with respect to the auditing set D and characterize model behavior under controlled interventional perturbations. ISAAC evaluates reasoning by comparing model responses to matched mechanistic and spurious interventions applied to the same input. This contrast isolates sensitivity to struc-turally aligned components while holding the intervention operator and perturbation magnitude fixed. For a reference input x ∈ D , mechanistic and spurious inter-ventions induce two collections of interventional response differences, 
+
+∆mech (x) = {δθ (x, I) | I ∈ I mech },
+
+∆spur (x) = {δθ (x, I) | I ∈ I spur }.
+
+These sets summarize how model outputs vary when struc-turally aligned or misaligned components of the input are selectively perturbed. 
+
+Reasoning Score (RS). We introduce the Reasoning Score (RS) as a per-input measure of relative interventional pref-erence. For a given input x, we summarize the typical response to each intervention class as 
+
+mmech (x) = median  ∆mech (x) ,mspur (x) = median(∆ spur (x)) ,
+
+where the median summarizes the central tendency of signed interventional responses within each class. The RS is defined as 
+
+RS( x) = |mmech (x)||mmech (x)| + |mspur (x)| ∈ [0 , 1] .
+
+If |mmech (x)| = |mspur (x)| = 0 , we set RS( x) = 0 .5.RS quantifies the relative magnitude of the dominant cen-tral interventional effect between mechanistic and spurious perturbations. As it is based on the median of signed in-terventional responses, large but heterogeneous responses with opposing signs lead to small median shifts and con-sequently low RS values, capturing weak alignment rather than low sensitivity. Higher RS values indicate a stronger relative preference for mechanistically aligned perturbations, whereas lower values indicate a stronger preference for mis-aligned perturbations. RS is therefore most informative when interpreted comparatively across models evaluated under identical intervention designs and predictive regimes. RS uses |mmech (x)| rather than median( |∆mech (x)|) be-cause the sign of the logit shift is not uniformly interpretable across inputs; the signed median captures directional co-herence within each class, and its magnitude reflects the dominant central effect. Directional analyses are reported in Appendix A. Model-level reasoning behavior is summarized by averaging RS over the auditing set, 
+
+RS θ = Ex∼D [RS( x)] .
+
+Geometric diagnostic metrics. While RS captures rela-tive intervention preference at the level of individual inputs, it does not characterize the global structure or dispersion of interventional responses across the auditing set. We there-fore introduce two complementary diagnostic metrics that describe the geometry of mechanistic and spurious response distributions at the model level. Let 
+
+∆mech  
+
+> θ
+
+= [
+
+> x∈D
+
+∆mech (x), ∆spur  
+
+> θ
+
+= [
+
+> x∈D
+
+∆spur (x),
+
+denote the collections of all mechanistic and spurious inter-ventional responses, respectively. The Separation Coefficient is defined as 
+
+Csep (θ) = median  ∆mech 
+
+> θ
+
+ − median(∆ spur  
+
+> θ
+
+)
+
+IQR  ∆mech 
+
+> θ
+
+ ,
+
+and quantifies the separation between typical mechanistic and spurious responses, normalized by the intrinsic vari-ability of mechanistic effects. If IQR(∆ mech  
+
+> θ
+
+) = 0 , we set 
+
+Csep (θ) = 0 .4ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction 
+
+The Overlap Rate is defined as the fraction of spurious responses that fall within the interquartile range of mecha-nistic responses, 
+
+Overlap( θ) = P s ∈ [Qmech 0.25 , Q mech 0.75 ] s ∈ ∆spur 
+
+> θ
+
+ .
+
+Together, these metrics complement RS by characterizing the distributional structure of mechanistic and spurious in-terventional responses beyond central tendency. 
+
+# 4. Experiments 
+
+4.1. Experimental Questions and Evaluation Protocol 
+
+The experimental evaluation assesses whether ISAAC dis-tinguishes models whose predictions are supported by struc-turally aligned signals from models relying on spurious cor-relations, while holding predictive performance fixed. The focus is therefore on interventional response organization rather than predictive accuracy alone. We address three questions: (i) whether models respond differently to mechanistic versus spurious interventions on identical inputs; (ii) whether such differences are consis-tently captured at the model level by ISAAC reasoning scores and geometric separation metrics; and (iii) whether ISAAC metrics reveal differences in reasoning behavior that are not detectable via standard accuracy-based evaluation. All experiments follow a two-stage protocol that separates predictive validation from interventional auditing. Models are trained and selected using standard training and validation procedures. Predictive performance is evaluated on the test split solely to verify that all models operate within a comparable predictive regime, and is not used for ranking or comparison. Interventional auditing is performed subsequently on a struc-turally valid subset of the test data. Models are treated as frozen predictors and probed through structured input-level interventions, without retraining, model selection, or label-based evaluation. Reported results therefore characterize the organization of model responses under matched mechanistic and spurious interventions, conditional on comparable predictive perfor-mance. 
+
+4.2. Auditing Setup: Task, Data, and Models 
+
+We apply ISAAC to DTI prediction, a scientific machine learning task in which valid predictions are expected to depend on localized protein–ligand interactions rather than global sequence statistics. Sequence-based DTI benchmarks are known to admit shortcut solutions despite strong pre-dictive performance, making them suitable for auditing in-terventional reasoning beyond accuracy (Ilyas et al., 2019; Geirhos et al., 2020). Interaction prediction is formulated as a binary classification task. Each input is a pair x = ( d, t ), where d is a drug en-coded as a SMILES string and t is a protein target encoded as an amino acid sequence, with label y ∈ { 0, 1} indicating interaction presence (Chen et al., 2020; Huang et al., 2020; Bai et al., 2022; Lin et al., 2025). Models implement a deter-ministic scoring function fθ (d, t ) ∈ R. In ISAAC, auditing is performed directly on this raw score, independently of any decision threshold or calibration. Experiments are conducted on the Davis benchmark, a stan-dard dataset for kinase inhibitor interactions ( ¨Ozt ¨urk et al., 2018; Nguyen et al., 2020; Huang et al., 2020; Lin et al., 2025). We follow the train/validation/test splits released with the TAPB benchmark and apply them consistently across all models, as defined in the corresponding public repository (Lin et al., 2025). 1 The TAPB benchmark speci-fies a random partition of the data into training, validation, and test sets according to a 7:1:2 ratio, which we adopt without modification across all models. These splits are used exclusively for model training and validation, and to verify that all architectures operate within a comparable predictive regime. Interventional auditing is not performed on the raw splits directly, but on a structurally valid auditing set derived post-hoc from the test split, as described below. We audit DeepDTA ( ¨Ozt ¨urk et al., 2018), DeepConvDTI (Lee et al., 2019), and TAPB (Lin et al., 2025), spanning convolutional, deeper target-side, and target-aware attention-based architectures with increasing structural bias. Models are selected to contrast inductive assumptions relevant to ISAAC’s interventional analysis rather than predictive per-formance, and are audited post-hoc from frozen checkpoints trained using original implementations and recommended, comparable training protocols. No model-specific tuning is performed during auditing. 
+
+4.3. Intervention Design and Structural Validity 
+
+ISAAC evaluates reasoning behavior by contrasting model responses to matched mechanistic and spurious interven-tions, following the general paradigm of perturbation-based analysis for evaluating trained neural networks (Ivanovs et al., 2021). In the DTI setting, each input is a drug–target pair x = ( d, t ), and interventions act exclusively on the protein sequence t, while the drug d is held fixed. This reflects the assumption that valid interaction predictions de-pend on localized target-side structure rather than global sequence statistics, consistent with known shortcut behavior in sequence-based DTI models (Ilyas et al., 2019; Geirhos et al., 2020). 
+
+> 1https://github.com/GaomingL1n/TAPB
+
+5ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction  
+
+> Table 1. Structural coverage and intervention design statistics for the Davis benchmark. Reported values correspond to successive structural requirements needed to define unambiguous input-level interventions under ISAAC.
+
+Structural requirements Targets in test split 379 Targets with KLIFS pocket annotation 321 (84.7%) Targets with realizable interventions 208 (54.9%) Mechanistic region size (KLIFS) Median pocket residues per target 85 IQR pocket residues per target 8Intervention control Exact cardinality matching (mech./spur.) 100% Intervention scopes are defined using an externally speci-fied structural prior that identifies protein regions expected to be mechanistically relevant for binding. For kinase tar-gets in the Davis benchmark, this prior is derived from KLIFS (Kinase–Ligand Interaction Fingerprints and Struc-tures) binding-pocket annotations (Kooistra et al., 2015), inducing a set of residue indices Sprior ⊆ { 1, . . . , M }. The prior is used solely to define intervention locations and does not encode ground-truth causal effects. Auditing is performed on a structurally valid auditing set de-rived post-hoc from the test split. Out of 379 protein targets in the Davis test split, 321 (84.7%) have KLIFS binding-pocket annotations, and 208 (54.9%) admit fully realizable interventions, meaning that all annotated pocket residues can be unambiguously indexed in the corresponding protein sequences. This deterministic filtering ensures that each au-dited input admits a unique and well-defined interventional representation. Structural coverage and key properties of the intervention design are summarized in Table 1. For each input, mechanistic scopes are generated by sam-pling fixed-size subsets S ⊆ S prior from the prior-defined binding-pocket region. Intervention cardinality is defined relative to target-specific pocket size. For each sampled mechanistic scope, a matched spurious scope S′ of identical cardinality is constructed by uniformly sampling residues from {1, . . . , M } \ S prior . This enforces exact matching of perturbation magnitude, so that the two intervention classes differ solely in their alignment with the structural prior. By construction, however, mechanistic and spurious scopes also differ in geometric structure: mechanis-tic scopes are spatially compact (mean positional spread 227, contiguity 0.922), whereas spurious scopes are more diffuse (mean spread 754, contiguity 0.195). The implications of this asymmetry are assessed in Appendix A. We consider a family of input-level intervention operators  
+
+> Table 2. Predictive performance of the audited models on the audit-ing subset (208 targets with fully realizable ISAAC interventions). Values are means with 95% confidence intervals across 5 training seeds.
+
+Model AUROC (95% CI) DeepConvDTI 0.876 (0.874, 0.879) DeepDTA 0.907 (0.900, 0.917) TAPB 0.882 (0.833, 0.909) that selectively perturb local structural information while preserving global sequence properties, instantiated in our ex-periments via masking and physicochemically constrained substitutions. All interventions are defined independently of the model and applied identically across architectures, en-suring that audited differences reflect model behavior under a shared intervention design rather than dependence on a specific perturbation choice. 
+
+4.4. Auditing Results 
+
+We analyze how trained DTI models respond to matched mechanistic and spurious interventions under the ISAAC auditing protocol. The goal is to characterize differences in interventional reasoning behavior across models, condi-tional on operating within a comparable predictive regime. 
+
+Predictive performance comparison. Predictive accu-racy is used as a minimal validation criterion to ensure that audited models operate within a comparable and well-defined predictive regime; performance metrics serve as a reality check rather than an explanatory measure of model behavior (Yu and Kumbier, 2020). Table 2 reports AU-ROC on the auditing subset (208 targets, 3,044 drug–target pairs), averaged across 5 training seeds, to verify that the comparable-regime assumption holds specifically on the data used for interventional analysis. All models achieve nearly indistinguishable predictive per-formance on the auditing subset, with absolute AUROC dif-ferences around 3%, confirming that observed interventional differences are not attributable to residual performance gaps on the analyzed data. 
+
+Aggregated reasoning metrics. We quantify model-level reasoning behavior using the ISAAC metrics averaged across 5 independent runs, varying both training and in-tervention seeds. Reporting multi-seed averages ensures that observed differences reflect stable properties of each architecture rather than artifacts of a single training or sam-pling realization. These metrics characterize interventional response structure and are not intended as alternative perfor-mance measures. Table 3 summarizes the resulting aggre-gated scores. 6ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction    
+
+> Table 3. Auditing results under structured interventions on the Davis benchmark, averaged across 5 runs varying both training and intervention seeds. RS denotes the Reasoning Score averaged over the auditing set. Csep quantifies geometric separation between mechanistic and spurious interventional responses, and Overlap measures their distributional overlap. Values are reported as means with 95% confidence intervals obtained from a hierarchical bootstrap resampling inputs and interventional responses, averaged across runs.
+
+Model RS (95% CI) Csep (95% CI) Overlap (95% CI) DeepConvDTI 0.414 (0.406, 0.421) 0.061 (0.028, 0.100) 0.347 (0.329, 0.366) DeepDTA 0.441 (0.432, 0.450) 0.079 (0.037, 0.122) 0.379 (0.358, 0.402) TAPB 0.521 (0.512, 0.530) 0.458 (0.417, 0.497) 0.417 (0.394, 0.444) Despite nearly identical AUROC, the audited models ex-hibit consistent and reproducible differences in the orga-nization of their interventional responses across all runs. TAPB achieves the highest mean RS (0.521, 95% CI [0.512, 0.530]) together with a substantially larger sepa-ration coefficient ( Csep = 0 .458 , 95% CI [0.417, 0.497]), indicating coherent separation between mechanistic and spu-rious interventional responses under the auditing protocol. In contrast, DeepConvDTI exhibits the lowest RS (0.414, 95% CI [0.406, 0.421]) and a near-zero separation coeffi-cient ( Csep = 0 .061 , 95% CI [0.028, 0.100]), reflecting weak and diffuse sensitivity with no coherent preference for mechanistically aligned perturbations. DeepDTA attains an intermediate RS (0.441, 95% CI [0.432, 0.450]) with sim-ilarly low separation, indicating increased responsiveness without coherent structural organization. Notably, among models whose AUROC differs by approxi-mately 3%, model-level RS values span a range from 0.414 to 0.521. This discrepancy is stable across seeds and inter-vention families (see Appendix A), indicating that accuracy-based evaluation alone does not reflect differences in the structural organization of interventional responses captured by ISAAC. Taken together, these results show that predictive perfor-mance alone is insufficient to characterize how DTI models organize their responses under intervention. ISAAC re-veals systematic and reproducible differences in the relative alignment and separation of interventional responses across models operating within the same predictive regime, differ-ences that remain invisible under standard accuracy-based evaluation. 
+
+Reproducibility. Code will be made available upon publi-cation. 
+
+# 5. Discussion 
+
+The central finding of this work is that predictive accuracy is insufficient to characterize how trained DTI models utilize structured input information under intervention. Models with AUROC differences around 3% on the auditing subset, exhibit substantial and reproducible differences in RS, stable across 5 independent runs varying both training and inter-vention seeds. This stability indicates that the observed dif-ferences reflect genuine architectural properties rather than artifacts of a single training realization. The dissociation is further reinforced by the AUROC ordering being discor-dant with the ISAAC ordering: the model with the highest audited-subset AUROC does not exhibit the strongest inter-ventional alignment, confirming that residual performance differences cannot account for the observed behavior. These differences are not arbitrary. TAPB, the only architec-ture with explicit target-aware attention, is the only model with mean values above the neutral threshold on all direc-tional metrics (see Appendix A): mechanistic dominance above 0.5, mechanistic-to-spurious ratio above 1, and sign consistency of 0.741. DeepDTA and DeepConvDTI, which rely on convolutional encoding without explicit binding-site awareness, remain below these thresholds, responding more strongly to diffuse spurious perturbations than to compact mechanistic ones. This pattern suggests that architectural inductive biases toward localized target-side structure trans-late into measurably different interventional behavior, even when predictive performance is indistinguishable. This contribution is complementary to, and distinct from, existing evaluation approaches. Feature attribution methods provide correlational explanations of individual predictions but cannot distinguish mechanistic from spurious sensitivity. Invariance-based approaches such as IRM address train-ing objectives rather than auditing the behavior of frozen models. Causal abstraction and mediation analysis frame-works probe internal model components but require access to model internals and meaningful decompositions of la-tent representations. ISAAC instead operates post-hoc at the input level, requires no retraining or internal access, and provides a controlled interventional contrast under a shared structural prior, a combination not available in exist-ing frameworks. The present study has several limitations that define its scope and motivate future extensions. The structural prior is de-rived from KLIFS pocket annotations and may not capture all affinity-determining residues; metrics should therefore be interpreted as reflecting prior-relative structural sensi-tivity rather than mechanistic validity in a strong causal 7ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction 
+
+sense. The spurious control is matched in cardinality but not in spatial contiguity, introducing a geometric asymmetry whose implications are assessed in Appendix A; geometry-matched controls represent an important extension of the current design. The audit is restricted to target-side interven-tions with the drug held fixed, and to three sequence-based architectures on a single dataset. Extensions to drug-side interventions, graph-based or structure-based model classes, and additional datasets such as KIBA are compatible with the ISAAC framework given an appropriate structural prior, and constitute the most direct directions for future work. Overall, these results establish that post-hoc auditing of prior-relative structural sensitivity provides information about model behavior that accuracy-based evaluation cannot detect. ISAAC introduces a principled and reproducible pro-tocol for this analysis, applicable across architectures and domains where structured inputs and externally specified priors are available. Where predictive benchmarks are satu-rated, interventional auditing of this kind offers a principled basis for distinguishing models that are indistinguishable under conventional evaluation. 
+
+# Impact Statement 
+
+This work contributes to the evaluation of deep learning systems by proposing a structured approach for auditing in-terventional reasoning behavior beyond predictive accuracy. ISAAC provides a principled way to analyze how trained models respond to controlled input perturbations, even in settings where standard performance metrics are saturated and fail to distinguish model behavior. For the machine learning community, ISAAC highlights the distinction between predictive success and the organi-zation of reasoning under intervention. By conditioning on comparable accuracy and contrasting responses to struc-turally aligned and misaligned perturbations, the framework enables systematic comparison of models that are indistin-guishable under conventional benchmarks. More broadly, this work contributes to the practice of post-hoc model auditing by operationalizing interventional anal-ysis without requiring retraining, intervention-level super-vision, or access to internal model states. ISAAC is model-agnostic and compatible with existing training pipelines, making it applicable across architectures and application domains where structured inputs are available. By encouraging evaluation protocols that probe model be-havior under meaningful perturbations, this work supports more transparent and informative assessment practices in scientific machine learning and related areas where under-standing model behavior is critical alongside predictive per-formance. 
+
+# References 
+
+Geirhos, R., Jacobsen, J.-H., Michaelis, C., Zemel, R. S., Brendel, W., Bethge, M., and Wichmann, F. Shortcut learning in deep neural networks. Nature Machine Intelli-gence , 2:665–673, 2020. Ilyas, A., Santurkar, S., Tsipras, D., Engstrom, L., Tran, B., and Madry, A. Adversarial examples are not bugs, they are features. In NeurIPS , 2019. Kirichenko, P., Izmailov, P., and Wilson, A. G. Why nor-malizing flows fail to detect out-of-distribution data. In 
+
+NeurIPS , 2020. Arjovsky, M., Bottou, L., Gulrajani, I., and Lopez-Paz, D. Invariant risk minimization. arXiv preprint arXiv:1907.02893 , 2019. Lundberg, S. M. and Lee, S.-I. A unified approach to inter-preting model predictions. In NeurIPS , pp. 4768–4777, 2017. Peters, J., B ¨uhlmann, P., and Meinshausen, N. Causal in-ference by using invariant prediction. JRSS B , 78(5):947– 1012, 2016. Hendrycks, D. and Dietterich, T. Benchmarking neural net-work robustness to common corruptions and perturba-tions. arXiv preprint arXiv:1903.12261 , 2019. Taori, R., Dave, A., Shankar, V., Carlini, N., Recht, B., and Schmidt, L. Measuring robustness to natural distribution shifts. In NeurIPS , 2020. Pearl, J. Causality . Cambridge University Press, 2nd edition, 2009. Sch ¨olkopf, B., Locatello, F., Bauer, S., et al. Toward causal representation learning. Proceedings of the IEEE ,109:612–634, 2021. Locatello, F., Poole, B., R ¨atsch, G., Sch ¨olkopf, B., Bachem, O., and Tschannen, M. Weakly-supervised disentangle-ment without compromises. In ICML , 2020. Simonyan, K., Vedaldi, A., and Zisserman, A. Deep inside convolutional networks. arXiv preprint arXiv:1312.6034 ,2014. Sundararajan, M., Taly, A., and Yan, Q. Axiomatic attribu-tion for deep networks. In ICML , pp. 3319–3328, 2017. Ribeiro, M. T., Singh, S., and Guestrin, C. Why should I trust you? In KDD , pp. 1135–1144, 2016. Doshi-Velez, F. and Kim, B. Towards a rigorous sci-ence of interpretable machine learning. arXiv preprint arXiv:1702.08608 , 2017. 8ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction 
+
+Adebayo, J., Gilmer, J., Muelly, M., Goodfellow, I., Hardt, M., and Kim, B. Sanity checks for saliency maps. In 
+
+NeurIPS , 2018. Xu, X., et al. RE-IMAGINE: Symbolic benchmark synthesis for reasoning evaluation. In ICML , 2025. Zhang, M., et al. LLMScan: Causal scan for LLM misbe-havior detection. In ICML , 2025. ¨Ozt ¨urk, H., ¨Ozg ¨ur, A., and ¨Ozkirimli, E. DeepDTA: Deep drug–target binding affinity prediction. Bioinformatics ,34:i821–i829, 2018. Gao, K. Y., et al. Interpretable drug target prediction. In 
+
+IJCAI , pp. 3371–3377, 2018. Li, X., et al. Deep learning for drug-drug interaction predic-tion. Quantitative Biology , 12:30–52, 2024. Huang, K., Xiao, C., Glass, L., and Sun, J. MolTrans: Molecular interaction transformer. Bioinformatics ,37:830–836, 2020. Nguyen, T., et al. GraphDTA. Bioinformatics , 37:1140– 1147, 2020. Lee, I., Keum, J., and Nam, H. DeepConv-DTI. PLOS Com-putational Biology , 15, 2019. Lin, G., et al. TAPB. Nature Communications , 16, 2025. Chen, L., et al. TransformerCPI. Bioinformatics , 36:4406– 4414, 2020. Bai, P., et al. DrugBAN. Nature Machine Intelligence , 5:126– 136, 2022. Kooistra, A. J., et al. KLIFS database. Nucleic Acids Re-search , 44:D365–D371, 2015. Yu, B. and Kumbier, K. Veridical data science. PNAS ,117:3920–3929, 2020. Geiger, A., et al. Causal abstractions of neural networks. In 
+
+NeurIPS , 2021. Vig, J., et al. Investigating gender bias using causal media-tion. In NeurIPS , 2020. Ivanovs, M., Kadikis, R., and Ozols, K. Perturbation-based methods for explaining neural networks. Pattern Recog-nition Letters , 150:228–234, 2021. 9ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction 
+
+# A. Robustness Analyses 
+
+This appendix provides additional analyses of the ISAAC audit on the Davis benchmark. The analyses address three aspects of the empirical protocol: the dependence of the Reasoning Score on the intervention operator, the directional organization of interventional responses, and the geometric properties of the mechanistic and spurious intervention scopes. 
+
+Operator-specific robustness. We evaluate the Reasoning Score (RS) under two intervention operators: masking and physicochemically constrained substitution. Masking replaces selected residues with a dedicated mask token ( X), removing local residue identity while preserving sequence length. Physicochemically constrained substitution replaces each selected residue with an amino acid sampled from the same physicochemical class, preserving coarse biochemical properties while perturbing residue identity. For both operators, intervention realizations are fixed across architectures by using the same random seeds for scope sampling and substitution. RS is computed separately for each operator and averaged across 5 independent runs varying both model-training and intervention seeds. The results are shown in Table 4. Absolute RS values differ between operators, as expected given their different perturbation semantics. The ordering of the models, however, is unchanged under both operators. Thus, the qualitative comparison between architectures is stable with respect to this operator choice.      
+
+> Table 4. Operator-specific ISAAC Reasoning Scores on the Davis benchmark, averaged across 5 independent training and intervention seeds. RS mask and RS sub denote RS under masking and physicochemically constrained substitution, respectively. Values are means with 95% confidence intervals obtained by hierarchical bootstrap, averaged across runs.
+
+Model RS mask (95% CI) RS sub (95% CI) DeepConvDTI 0.402 (0.394, 0.410) 0.427 (0.419, 0.433) DeepDTA 0.427 (0.419, 0.436) 0.448 (0.439, 0.456) TAPB 0.440 (0.430, 0.449) 0.586 (0.577, 0.595) 
+
+Directional organization of interventional responses. The RS summarizes the relative magnitude of central responses to mechanistic and spurious perturbations. It does not directly characterize whether responses within an intervention class are directionally coherent. We therefore consider three complementary diagnostics. 
+
+Sign Consistency (SC) is the fraction of mechanistic responses whose sign matches the sign of the within-input central mechanistic response mmech (x), averaged over the auditing set. Values above 0.5 correspond to directional agreement within mechanistic perturbations. 
+
+Mechanistic-to-Spurious Ratio (MSR) is the average of |mmech (x)|/|mspur (x)|, with the convention MSR = 1 when both central responses are zero. Values above 1 indicate larger central responses to mechanistic than to matched spurious perturbations. 
+
+Mechanistic Dominance (MD) is the fraction of audited inputs satisfying |mmech (x)| > |mspur (x)|. Values above 0.5
+
+indicate that mechanistic perturbations produce the larger central response for a majority of inputs. The results are reported in Table 5. TAPB has the largest SC and is the only model with mean MSR above 1 and mean MD above 0.5. DeepDTA and DeepConvDTI remain below these thresholds for MSR and MD, indicating larger central responses to spurious perturbations for most audited inputs. TAPB’s MD has higher across-run variability ( 0.535 ± 0.114 ), so the dominance result is best interpreted as an aggregate pattern rather than a uniform per-run effect.       
+
+> Table 5. Directional organization of interventional responses on the Davis benchmark, averaged across 5 runs varying both training and intervention seeds. SC: Sign Consistency; MSR: Mechanistic-to-Spurious Ratio; MD: Mechanistic Dominance, defined as the fraction of inputs satisfying |mmech |>|mspur |. Values are reported as mean ±standard deviation across runs.
+
+Model SC (mean ± std) MSR (mean ± std) MD (mean ± std) DeepConvDTI 0.524 ± 0.012 0.665 ± 0.069 0.328 ± 0.046 
+
+DeepDTA 0.554 ± 0.015 0.754 ± 0.058 0.398 ± 0.027 
+
+TAPB 0.741 ± 0.050 1.245 ± 0.323 0.535 ± 0.114 
+
+10 ISAAC: Auditing Causal Reasoning in Deep Models for Drug–Target Interaction Prediction 
+
+Geometry of intervention scopes. Mechanistic and spurious scopes are exactly matched in cardinality but not in spatial geometry. Mechanistic scopes are sampled from the KLIFS-defined binding-pocket region, whereas spurious scopes are sampled outside that region. Consequently, mechanistic scopes are more compact, while spurious scopes are more diffuse. Table 6 reports the corresponding descriptive statistics.  
+
+> Table 6. Geometric properties of mechanistic and spurious intervention scopes on the Davis auditing set. Positional spread is the mean sequence-position distance between the first and last selected residue. Contiguity is the fraction of selected residues adjacent to at least one other selected residue, averaged over scopes.
+
+Scope type Mean positional spread Mean contiguity Mechanistic 227 0.922 Spurious 754 0.195 This geometric asymmetry defines the scope of the present control. The mechanistic–spurious comparison is cardinality-matched and operator-matched, but not geometry-matched. The audit should therefore be interpreted as a contrast between prior-aligned and prior-misaligned perturbations under matched perturbation size, rather than as a test in which all geometric properties are held fixed. Within this design, the response patterns differ across architectures. DeepConvDTI and DeepDTA show larger central responses to the more diffuse spurious scopes, with MSR below 1 and MD below 0.5. TAPB shows the opposite aggregate pattern, with MSR above 1 and MD above 0.5, although MD remains variable across runs. These results do not rule out a contribution of locality, but they show that the geometric asymmetry does not impose a uniform response pattern across models. A fully geometry-matched control is therefore a natural extension of the present audit, while the current results remain consistent with architecture-dependent sensitivity to the prior-defined binding-pocket region. 11
