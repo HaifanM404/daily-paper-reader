@@ -1,0 +1,1266 @@
+Title: Topological Neural Tangent Kernel
+
+URL Source: https://arxiv.org/pdf/2605.01110v1
+
+Published Time: Tue, 05 May 2026 00:15:13 GMT
+
+Number of Pages: 15
+
+Markdown Content:
+# Topological Neural Tangent Kernel 
+
+Sanjukta Krishnagopal 
+
+Department of Computer Science, University of California Santa Barbara 
+
+sanjukta@ucsb.edu 
+
+## Abstract 
+
+Graph neural tangent kernels give a principled infinite-width theory for graph neural networks, but inherit a basic limitation of graph models: they use only pairwise structure unless higher-order information is explicitly encoded in the features. Many relational systems contain higher-order interactions that are more naturally represented by simplicial complexes. We introduce TopoNTK, the infinite-width kernel associated with Hodge message-passing on edge features. TopoNTK combines lower Hodge interactions, capturing graph-like coupling through shared vertices, with upper Hodge interactions, capturing coupling through filled simplices. This makes the kernel sensitive to filled-simplex structure invisible to graph-only kernels, allowing complexes with the same graph and features but different filled simplices to induce different edge-level kernels whenever the upper Hodge operator changes. Beyond expressivity, the Hodge structure gives an interpretable learning geometry. Edge signals decompose into gradient-like, harmonic, and local circulation compo-nents. The propagation operator exactly preserves the Hodge decomposition; for nonlinear TopoNTKs, exact kernel-level invariance requires explicit compatibility conditions, while the standard ReLU recursion gives a Hodge-aligned architectural bias. Kernel spectra then diagnose which projected topological components are learned quickly or slowly. We prove an expressivity separation, propagation-level Hodge preservation, conditional kernel compatibility, spectral learning, and finite-depth stability, and support these claims on synthetic simplicial tasks and DBLP higher-order link prediction. 
+
+## 1 Introduction 
+
+Graph neural networks and their infinite-width limits, neural tangent kernels (NTKs), provide a principled framework for learning on relational data Jacot et al. [2018], Du et al. [2019], Krishnagopal and Ruiz [2023]. These methods are built around pairwise relations, where vertices represent objects and edges represent interactions. However, many complex systems involve higher-order relations among groups of entities, including multi-person social groups, biological assemblies, neural co-activity patterns, and multi-agent interactions Battiston et al. [2020], Krishnagopal and Bianconi [2021], Krishnagopal [2022]. In such settings, the distinction between an unfilled cycle and a filled triangle (representing a single three-way simultaneous interaction) is not merely a modeling detail: it changes the topology, the geometry of edge signals, and the relevant notion of similarity. Simplicial complexes provide a natural representation for this structure by extending graphs with higher-dimensional faces while retaining the graph as the 1-skeleton. Here, a 0-simplex is a node, a 1-simplex is an edge, a 2-simplex is a filled triangle, and more generally a k-simplex represents an interaction among k + 1 nodes. Thus, graphs are the simplest case containing only 0- and 1-simplices. Simplicial complexes also support a Hodge-theoretic decomposition of edge signals into exact, harmonic, and coexact components, corresponding to gradient-like flows, cycle flows modulo filled boundaries, and local circulations around filled simplices (see Figure 1). Hodge Laplacians and 
+
+> Preprint.
+> arXiv:2605.01110v1 [cs.LG] 1 May 2026
+
+their lower–upper decomposition are standard tools for analyzing such edge-supported signals Horak and Jost [2013], Lim [2020], Schaub et al. [2020] with applications in many real-world social and biological systems Su et al. [2024]. Recent work in topological deep learning frames simplicial complexes, cell complexes, and related domains as natural extensions of graph representation learning Hajij et al. [2022], Papamarkou et al. [2024], using lower and upper adjacency or Hodge-based message passing Ebli et al. [2020], Bodnar et al. [2021], Yang et al. [2022]. These works show that higher-order structure can provide information unavailable to graph-only models. However, the corresponding kernel perspective remains undeveloped. This raises a natural question: can the NTK framework be extended to simplicial complexes in a way that captures higher-order topology and provides insight on the learning dynamics? We introduce the Topological Neural Tangent Kernel (TopoNTK), the infinite-width kernel associated with a simplified Hodge message-passing architecture on edge features. TopoNTK propagates information through two complementary Hodge channels: a lower channel induced by shared vertices and an upper channel induced by shared filled simplices. The lower channel recovers graph-like interactions on the 1-skeleton, while the upper channel captures filled-simplex structure invisible to graph kernels using only the same graph and input features. Thus, TopoNTK can distinguish simplicial complexes with identical underlying graphs but different triangle sets. Our main observation is that this Hodge-theoretic structure gives both expressivity and interpretability. Graph NTKs, and lower-only topological kernels, cannot distinguish complexes with the same 1-skeleton and identical features but different triangle sets. By contrast, the full TopoNTK depends on both lower and upper Hodge Laplacians and induces learning behavior aligned with exact, harmonic, and coexact edge-signal components. This yields a topologically structured spectral diagnostic with finite-depth Lipschitz stability under upper-Laplacian perturbations, useful when signals depend on group-level structure, cycles, or circulations rather than pairwise connectivity alone. 
+
+Contributions We make four contributions: (i) we define TopoNTK, an infinite-width kernel associ-ated with Hodge message passing on edge features; (ii) we show that upper Hodge propagation can capture filled-simplex structure invisible to graph NTKs and lower-only variants using the same graph and features; (iii) we prove exact Hodge preservation of propagation, give sufficient conditions for kernel-level Hodge compatibility, derive spectral learning dynamics, and prove finite-depth stability under upper-Laplacian perturbations; and (iv) we empirically probe these predictions on synthetic and real data on tasks such as triangle-count sensitivity, Hodge component recovery, and DBLP higher-order link prediction. 
+
+## 2 Background 
+
+2.1 Simplicial complexes and Hodge theory 
+
+Let X be an oriented simplicial complex with vertex set V , edge set E, and triangle set T . While a graph records only pairwise relations, a simplicial complex also records higher-order relations: a filled triangle {i, j, k } ∈ T represents a simultaneous three-way interaction rather than merely the three pairwise edges among its vertices. This distinction is central: two complexes may have the same 
+
+1-skeleton but different triangle sets, and hence different higher-order topology, that isn’t captured when they are represented by their graph skeleton. We focus on edge signals, or real-valued 1-cochains, 
+
+x ∈ C1(X) ∼= R|E|.
+
+We identify finite-dimensional chains and cochains with their Euclidean coordinate vectors. Let 
+
+B1 ∈ R|V |×| E| map oriented edges to vertices and B2 ∈ R|E|×| T | map oriented triangles to edges. They satisfy the chain-complex identity 
+
+B1B2 = 0 ,
+
+which algebraically expresses that the boundary of a boundary is zero. The Hodge 1-Laplacian is 
+
+L1 = B⊤ 
+
+> 1
+
+B1 + B2B⊤ 
+
+> 2
+
+.
+
+2We write 
+
+L↓ := B⊤ 
+
+> 1
+
+B1, L↑ := B2B⊤ 
+
+> 2
+
+.
+
+The lower Laplacian L↓ couples edges that share vertices and is determined by the graph 1-skeleton. The upper Laplacian L↑ couples edges that co-bound filled triangles and therefore depends on the higher-order simplicial structure. These operators are standard in combinatorial Hodge theory and simplicial signal processing Horak and Jost [2013], Lim [2020], Schaub et al. [2020], Barbarossa and Sardellitti [2020]. The Hodge decomposition gives the orthogonal splitting 
+
+C1(X) = im B⊤ 
+
+> 1
+
+⊕ ker L1 ⊕ im B2.
+
+We call these the exact, harmonic, and coexact subspaces. Exact components are gradient-like edge flows induced by vertex potentials, harmonic components are global cycle flows, and coexact components are local circulations around filled triangles. This decomposition is the natural coordinate system for topological learning on edge signals (see Figure 1). This interpretation underlies a large body of work on edge flows, circulation, and higher-order signal processing on simplicial complexes Schaub et al. [2020], Lim [2020]. More broadly, higher-order network methods support signals defined not only on nodes and edges but also on higher-dimensional k-simplices through the k-th Hodge Laplacian Schaub et al. [2021], Bick et al. [2023]. 
+
+2.2 Neural tangent kernels 
+
+The neural tangent kernel (NTK) describes the infinite-width training dynamics of neural networks under gradient descent Jacot et al. [2018]. For a network fθ , the NTK is 
+
+K(x, x ′) = ⟨∇ θ fθ (x), ∇θ fθ (x′)⟩.
+
+In the infinite-width limit, many architectures induce deterministic kernels, and squared-loss training is governed by kernel gradient flow or, with ridge regularization, kernel ridge regression. Given a training Gram matrix K and labels y, kernel ridge regression has fitted training values 
+
+ˆy = K(K + λI )−1y, 
+
+and test prediction k⊤∗ (K + λI )−1y. Thus the eigenspaces of K determine the learning bias: large-eigenvalue target components are fit more strongly than small-eigenvalue components. 
+
+Graph NTKs: Graph NTKs arise from message-passing graph neural networks [Du et al., 2019, Krishnagopal and Ruiz, 2023]. A typical message-passing layer has the form H(ℓ+1) =
+
+σ
+
+ eAH (ℓ)W (ℓ)
+
+
+
+, where eA is a graph propagation operator, H(ℓ) is the hidden representation at layer 
+
+ℓ, W (ℓ) is a trainable weight matrix, and σ is a nonlinear activation function. In the infinite-width limit, the associated covariance and tangent kernels obey deterministic recursions determined by 
+
+eA and σ. Since their propagation operators are graph-derived, they depend only on the 1-skeleton. Therefore, if two simplicial complexes have the same graph and the same input features but different filled triangles, a graph NTK using only the 1-skeleton assigns them the same kernel. This motivates a topological NTK that incorporates upper Hodge structure. 
+
+## 3 Topological Neural Tangent Kernels 
+
+3.1 Simplicial message passing 
+
+Graph message passing propagates information through shared vertices. On simplicial complexes, interactions also occur through higher-order structure such as filled triangles. We model this by combining two propagation mechanisms for edge signals: a lower channel capturing graph-like interactions (edge signals propagating through a shared node) and an upper channel capturing higher-order interactions (edge signals propagating via being faces of a shared triangle). This lower–upper propagation viewpoint is closely related to simplicial neural networks and Hodge-based convolutional filters Ebli et al. [2020], Bodnar et al. [2021], Yang et al. [2022]. 3Figure 1: Graphs, simplicial complexes, and Hodge decomposition. A simplicial complex augments a graph with filled higher-order interactions. Edge signals decompose into exact, harmonic, and coexact components, corresponding to gradient-like flows, global cycles modulo filled boundaries, and local circulations. Let X be an oriented simplicial complex and let 
+
+H(0) ∈ R|E|× d
+
+denote d-dimensional edge features. Define the Hodge propagation operator 
+
+Pγ,α,β = γI + αL ↓ + βL ↑,
+
+where 
+
+L↓ = B⊤ 
+
+> 1
+
+B1, L↑ = B2B⊤ 
+
+> 2
+
+.
+
+The lower term couples edges sharing vertices; the upper term couples edges that co-bound a filled triangle. The residual term acts as an edge self-loop and preserves harmonic signals, since 
+
+L↓h = L↑h = 0 for h ∈ ker L1.A simplicial message-passing layer, written in the ordering used by the kernel recursion below, is 
+
+H(ℓ+1) = Pγ,α,β σ
+
+
+
+H(ℓ)W (ℓ)
+
+,
+
+where W (ℓ) ∈ Rmℓ×mℓ+1 has entries N (0 , 1/m ℓ) at initialization and σ is applied entrywise. The lower, upper, and full variants use γI +αL ↓, γI +βL ↑, and γI +αL ↓ +βL ↑, respectively. Appendix A derives the corresponding infinite-width recursion. A pre-activation convention, σ(P H (ℓ)W (ℓ)),gives a related kernel with P inside the activation covariance map. The same construction can be formulated for k-cochains using L↓
+
+> k
+
+, L ↑
+
+> k
+
+.
+
+3.2 The Topological Neural Tangent Kernel 
+
+The neural tangent kernel captures the infinite-width limit of a neural network. For simplicial message passing, this yields a kernel that depends on both graph structure and higher-order topology through the lower and upper Hodge operators. 
+
+Definition 1 (Topological Neural Tangent Kernel) . Let X and Y be simplicial complexes with edge features H(0)  
+
+> X
+
+, H (0)  
+
+> Y
+
+. Define 
+
+PX = γI + αL ↓(X) + βL ↑(X), PY = γI + αL ↓(Y ) + βL ↑(Y ).
+
+Initialize 
+
+Σ(0) (X, Y ) = 1
+
+d H(0)  
+
+> X
+
+(H(0)  
+
+> Y
+
+)⊤.
+
+We set Θ(0) (X, Y ) = Σ (0) (X, Y ). For ℓ ≥ 0,
+
+Σ(ℓ+1) (X, Y ) = PX Φ(Σ (ℓ)(X, Y )) P ⊤ 
+
+> Y
+
+,
+
+Θ(ℓ+1) (X, Y ) = PX
+
+h
+
+Θ(ℓ)(X, Y ) ⊙ ˙Φ(Σ (ℓ)(X, Y )) 
+
+i
+
+P ⊤ 
+
+> Y
+
++ Σ (ℓ+1) (X, Y ).
+
+4For a nonlinearity σ, the notation Φ(Σ (ℓ)(X, Y )) abbreviates the standard dual-activation covariance map evaluated entrywise using the cross-covariance Σ(ℓ)(X, Y ) together with the corresponding self-covariance diagonals from Σ(ℓ)(X, X ) and Σ(ℓ)(Y, Y ). The derivative map ˙Φ is defined analogously. Thus, entrywise, 
+
+Φ(Σ (ℓ))ij = E[σ(gXi )σ(gYj )] , ˙Φ(Σ (ℓ))ij = E[σ′(gXi )σ′(gYj )] ,
+
+where (gXi , g Yj ) is centered Gaussian with variances Σ(ℓ) 
+
+> ii
+
+(X, X ), Σ(ℓ) 
+
+> jj
+
+(Y, Y ), and covariance 
+
+Σ(ℓ) 
+
+> ij
+
+(X, Y ).For graph-level or complex-level prediction, we use the pooled scalar kernel 
+
+K(X, Y ) = 1⊤ 
+
+> EX
+
+Θ(L)(X, Y )1EY ,
+
+optionally normalized by |EX |−1/2|EY |−1/2. For a fixed complex X, we write KX := Θ (L)(X, X ),
+
+an edge-by-edge kernel matrix acting on edge signals x ∈ C1(X) ∼= R|E|.Unlike graph NTKs using only the same 1-skeleton and features, TopoNTK incorporates L↑ and is therefore sensitive to filled triangles. 
+
+## 4 Theoretical Properties 
+
+4.1 Expressivity beyond graph kernels 
+
+Graph kernels using only pairwise structure cannot distinguish simplicial complexes that share the same 1-skeleton and input features. In contrast, TopoNTK incorporates the upper Hodge Laplacian and can detect differences in filled-simplex structure. 
+
+Proposition 1 (Filled-simplex sensitivity) . Let X and X′ be simplicial complexes with the same oriented 1-skeleton. Any graph NTK whose propagation and input features depend only on the 
+
+1-skeleton assigns the same kernel to X and X′.By contrast, let 
+
+PX = γI + αL ↓ + βL ↑(X), PX′ = γI + αL ↓ + βL ↑(X′).
+
+If β > 0, L↑(X)̸ = L↑(X′), and there exists a positive semidefinite edge covariance C such that 
+
+PX CP ⊤
+
+> X
+
+̸ = PX′ CP ⊤ 
+
+> X′
+
+,
+
+then there are edge features, realizing C = 1 
+
+> d
+
+HH ⊤, for which the edge-level TopoNTK differs after one layer. A pooled scalar kernel separates the pair whenever the pooling functional is nonzero on this edge-level kernel difference. 
+
+The proof is given in Appendix B. The condition says only that the changed filled simplices must be visible to the chosen edge-feature covariance and pooling. Thus the result is an expressivity separation: graph-only kernels are invariant to triangle changes on a fixed 1-skeleton, whereas TopoNTK can respond through L↑.
+
+4.2 Hodge-aligned structure 
+
+Edge signals admit a decomposition into exact, harmonic, and coexact components. The lower and upper Hodge operators do not mix these types, which is why the TopoNTK learns edge-signal components in coordinates adapted to the Hodge decomposition. 
+
+Proposition 2 (Hodge preservation of propagation) . The residual Hodge propagation operator 
+
+Pγ,α,β = γI + αL ↓ + βL ↑ preserves the Hodge decomposition: 
+
+Pγ,α,β (E) ⊆ E , Pγ,α,β (H) ⊆ H , Pγ,α,β (C) ⊆ C .
+
+Moreover, L↑ vanishes on E, L↓ vanishes on C, both vanish on H, and Pγ,α,β h = γh for h ∈ H .Proof. If x = B⊤ 
+
+> 1
+
+u ∈ E , then L↑x = B2(B1B2)⊤u = 0 . If x = B2v ∈ C , then L↓x =
+
+B⊤ 
+
+> 1
+
+B1B2v = 0 . If h ∈ H , then B1h = 0 and B⊤ 
+
+> 2
+
+h = 0 , so both Hodge Laplacian terms vanish. The identity term preserves every subspace, giving the claim. 5Kernel-level Hodge compatibility. Proposition 2 is the main structural fact: the Hodge propagator itself does not mix exact, harmonic, and coexact signals. Kernel-level invariance additionally requires the covariance and tangent-kernel updates to preserve the same blocks. Useful sufficient conditions are: (i) linear activations together with Hodge-block-compatible initial covariance; (ii) Hodge-filter kernels whose covariances and tangent kernels are matrix functions or finite sums of products of L↓
+
+and L↑; or (iii) any recursion for which Σ(0) , Φ(Σ (ℓ)), and ˙Φ(Σ (ℓ)) remain block diagonal in 
+
+C1(X) = E ⊕ H ⊕ C .
+
+For nonlinear ReLU NTK recursions with entrywise Hadamard products, this compatibility is not automatic, because the Hodge decomposition is generally not aligned with the standard edge basis. Thus the nonlinear TopoNTK should be understood as a Hodge-aligned architectural bias, while exact block invariance holds under the compatibility condition below. 
+
+Proposition 3 (Sufficient condition for kernel-level Hodge compatibility) . Assume Σ(0) (X, X )
+
+is block diagonal with respect to C1(X) = E ⊕ H ⊕ C , and assume that, for each finite layer, 
+
+Φ(Σ (ℓ)(X, X )) and ˙Φ(Σ (ℓ)(X, X )) are block diagonal in the same decomposition. Then the within-complex TopoNTK preserves the Hodge decomposition: 
+
+KX (E) ⊆ E , KX (H) ⊆ H , KX (C) ⊆ C .
+
+The sufficient conditions above are examples where these hypotheses hold. 
+
+See Appendix C. The proposition records when propagation-level Hodge preservation lifts to the full kernel; the experiments below test whether the standard ReLU recursion retains this Hodge-aligned bias in practice. 
+
+4.3 Spectral learning dynamics 
+
+Kernel methods learn along eigenvectors, with rates determined by eigenvalues. When the Hodge-compatibility assumptions hold, KX is block diagonal with respect to the Hodge decomposition, so eigenvectors may be chosen within the exact, harmonic, and coexact subspaces. More generally, one can project eigenvectors onto these subspaces to diagnose how the nonlinear TopoNTK distributes Hodge components across its spectrum. Components aligned with larger kernel eigenvalues are learned more quickly, while components aligned with smaller eigenvalues are learned more slowly. 
+
+Theorem 1 (Spectral learning under kernel gradient flow) . Let KX be the TopoNTK, and let KX uj =
+
+κj uj be an orthonormal eigenbasis of KX . Suppose kernel gradient flow is initialized at f0 = 0 and trained to fit a target edge signal y. Then the prediction at time t is 
+
+ft = X
+
+> j
+
+ 1 − e−κj t ⟨y, u j ⟩uj .
+
+Thus each kernel eigenmode is learned independently, and the learning rate of mode uj is determined by its eigenvalue κj .
+
+The proof is the standard eigenbasis solution of kernel gradient flow and is given in Appendix D. 
+
+4.4 Stability under higher-order perturbations 
+
+If triangle structure is perturbed on a fixed oriented edge set, the upper Hodge Laplacian changes and the finite-depth TopoNTK changes continuously with it. 
+
+Theorem 2. Let X, X ′ be complexes on the same oriented edge set, differing only in their triangle sets. Assume the finite-depth recursion is uniformly bounded and that Φ, ˙Φ are Lipschitz on the relevant bounded covariance set. For ReLU, assume additionally that covariance diagonals stay bounded away from zero. Then there are constants CK , C pred , depending on the finite-depth bounds and on L, α, β, γ , such that 
+
+∥KX − KX′ ∥F ≤ CK ∥L↑ − L′↑∥F .
+
+Moreover, for kernel ridge regression with ridge parameter λ > 0,
+
+∥ˆyX − ˆyX′ ∥ ≤ Cpred 
+
+λ ∥L↑ − L′↑∥F ∥y∥.
+
+If B2, B ′ 
+
+> 2
+
+are represented over a common oriented candidate-triangle set and ∥B2∥, ∥B′
+
+> 2
+
+∥ ≤ M ,then ∥L↑ − L′↑∥ ≤ 2M ∥B2 − B′
+
+> 2
+
+∥.
+
+60.0 0.2 0.4 0.6 0.8 1.0     
+
+> Triangle density q
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> 2.0
+> 2.5
+> Test RMSE
+> Triangle-count prediction
+> Graph = Lower
+> Upper TopoNTK
+> Full TopoNTK Graph Lower Upper Full
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Score
+> DBLP closure: main metrics
+> Average Precision
+> F1
+
+Figure 2: Higher-order prediction in synthetic and real data. Left: Controlled triangle-count sensitivity test. Error bars denote standard error over 5 independent runs. Kernels using L↑ outperform the graph/lower baseline, which is sample-invariant in this fixed-skeleton task. Right: Future three-author collaboration closure on DBLP. We report average precision and F1, with error bars denoting standard error over 5 runs. Upper and full TopoNTK-style variants achieve the strongest performance, indicating that filled-triangle collaboration history contains predictive information beyond the pairwise graph. The first bound is stated in Frobenius norm; the ridge bound uses operator-norm resolvent estimates together with ∥A∥op ≤ ∥ A∥F . See Appendix E. 
+
+## 5 Experiments 
+
+We evaluate TopoNTK on synthetic topology-sensitive tasks and DBLP coauthorship prediction. Baselines are Graph NTK, Lower TopoNTK, Upper TopoNTK, and Full TopoNTK. Unless stated otherwise, we use kernel ridge regression with ReLU activation covariance maps, depth L = 2 ,
+
+γ = 0 .5, α = β = 1 , scalar spectral normalization of Hodge propagators, and trace normalization of the final edge kernel. In fixed-complex edge-signal experiments, we use the architecture operator induced by the recursion with Σ(0) = I and evaluate k(x, x ′) = x⊤Karch x′.
+
+5.1 Higher-order prediction tasks Triangle-count prediction. We first test whether upper-dimensional information improves pre-diction of a simplex-dependent target. The fixed 1-skeleton has n = 30 vertices with cycle edges 
+
+(i, i + 1) and second-neighbor chords (i, i + 2) ; the n triples (i, i + 1 , i + 2) are candidate 2-simplices. For each density q, each candidate is filled independently with probability q, and the target is the raw number of filled triangles. We use 200 samples per density, 5 repetitions, a 70/30 train/test split, and 
+
+λ = 10 −4. Error bars are standard errors. 
+
+DBLP simplicial closure. We evaluate future three-author collaboration prediction on the ScHoLP coauth-DBLP temporal network [Benson et al., 2018], constructed from DBLP metadata [dblp team]. After sorting by time, the first 70% of simplices form the historical complex and the remaining 30% define future collaborations. Candidates are historical closed triads, i.e. triples whose three pairwise coauthorship edges appear in the historical 1-skeleton but whose three-author simplex is absent from history. Positives are candidates that appear as three-author simplices in the future window; negatives are candidates absent from both history and future. We use local ego complexes around candidate triples. The graph baseline is a node-level graph NTK on the ego 1-skeleton, while TopoNTK variants are edge-level kernels using P = γI + αL ↓ + βL ↑ with scalar spectral normalization of L↓ and L↑.We use 5 runs with at most 50,000 simplices, 120 positives and 120 negatives, ego size 10, a 70/30 split, depth L = 2 , λ = 10 −3, maximum simplex size 10, maximum group size 8, and at most 200 local triangles. Figure 2 shows the same behavior in controlled and real settings. In triangle-count regression, Upper TopoNTK and Full TopoNTK achieve substantially lower error than graph-only/lower-only baselines, as expected for a task affected by filled 2-simplices. q = 0 , 1 are deterministic and therefore trivial. This experiment is intended as a controlled sensitivity diagnostic rather than a difficult predictive 7Exact Harmonic Coexact         
+
+> Target Hodge component
+> 10 −3
+> 10 −2
+> 10 −1
+> Relative RMSE (log scale)
+> Hodge Component Prediction
+> Graph NTK
+> Lower TopoNTK
+> Upper TopoNTK
+> Full TopoNTK 10 2
+> 10 1
+> 10 0
+> Fitted learning rate
+> Spectral bias: Full TopoNTK
+> exact modes
+> harmonic modes
+> coexact modes
+> identity: rate =
+> 10 210 110 010 1
+> Kernel eigenvalue j
+> exact
+> harmonic
+> coexact
+> Hodge
+> component
+
+Figure 3: Hodge-aligned recovery and spectral diagnostic. Left: Relative RMSE for recovering exact, harmonic, and coexact edge-signal components. Lower propagation improves exact-component recovery, while upper propagation improves coexact-component recovery; harmonic components reflect global cycle structure. Error bars denote standard error over 5 runs. Right: Spectral diagnostic for the full TopoNTK. Each point is a kernel eigenmode, and the diagonal is the kernel-gradient-flow prediction from Theorem 1. The main information is the placement of Hodge-labeled modes across the spectrum: in this random-complex example, harmonic modes concentrate at smaller eigenvalues and are predicted to learn more slowly. benchmark: the target is deliberately a function of the filled 2-simplices. The graph/lower kernel contains no sample-specific higher-order information in this fixed-skeleton setting. Here, Graph NTK and Lower TopoNTK are identical, so we plot them as a single Graph = Lower curve. On DBLP, the graph NTK and lower TopoNTK remain predictive, via average precision and F1, because pairwise coauthorship and shared-author structure still provide strong information about future collaborations. The gains from the upper and full channel reflect additional predictive signal from higher-order collaborations in this normalized local implementation. Note that full isn’t always better than upper; lower channel may introduce pairwise noise for purely higher-order tasks. 
+
+5.2 Hodge recovery and spectral diagnostic 
+
+We next test whether the kernels align with the Hodge decomposition. For each random complex, we sample an Erd˝ os–Rényi graph G(n, p ) with n = 20 , p = 0 .35 , fill each 3-clique with probability 
+
+q = 0 .4, and sample unit-norm edge signals by summing independent exact, harmonic, and coexact components. The sample Gram matrix is Gij = x⊤ 
+
+> i
+
+Karch xj , and multi-output kernel ridge regression recovers each target component: exact, harmonic, and coexact. We use 120 training signals, 60 test signals, 5 seeds, depth 2, and λ = 10 −3.For the spectral diagnostic, we compute eigenpairs Kfull uj = κj uj on an ER complex with n = 30 ,
+
+p = 0 .35 , q = 0 .4. For a target y = uj , Theorem 1 predicts ∥ft − uj ∥ = e−κj t∥uj ∥; the diagnostic content is therefore the placement of Hodge-labeled modes across the spectrum. Figure 3 shows that lower propagation improves exact-component recovery, while upper propagation improves coexact-component recovery. Harmonic components lie in ker L1 and are not directly amplified by either Hodge channel; they are retained through the identity channel and learned according to their kernel eigenvalues. The spectral-bias plot on the right visualizes the kernel-gradient-flow law for the finite-dimensional TopoNTK operator. The decay rate is determined analytically by κj so agreement with the diagonal is a sanity check, and the distribution of eigenvalues is the diagnostic result. Interestingly, in this random-complex example, harmonic modes concentrate at smaller eigenvalues, indicating slower predicted learning of global topological structure. 
+
+5.3 Stability under higher-order perturbations 
+
+Finally, we test the stability result of Section 4.4. Starting from a fixed 1-skeleton G(n, p ) with 
+
+n = 30 , p = 0 .35 , and q = 0 .4, we generate a complex X and construct perturbed complexes X′ by independently flipping candidate triangles with probability ε. Thus, the graph structure is unchanged while only the higher-order structure is corrupted. For each ε, we use 3 independent perturbations per run, averaged over 5 runs. We use the full TopoNTK and compare ridge parameters. 80.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5                         
+
+> ‖L↑−L0↑‖F
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> ‖K − K0‖F/‖ K‖F
+> A. Kernel stability
+> 0.0 0.1 0.2 0.3 0.4 0.5
+> Triangle flip probability ε
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> ‖̂ y −̂  y0‖/‖̂ y‖
+> B. Prediction stability
+> λ= 0.0001
+> λ= 0.001
+> λ= 0.01
+> λ= 0.1
+> 10 210 310 410 5
+> ‖L↑−L0↑‖F/λ
+> 10 −4
+> 10 −3
+> 10 −2
+> 10 −1
+> ‖̂ y −̂  y0‖/‖̂ y‖
+> C. 1/ λscaling
+
+Figure 4: Stability under triangle perturbations. (A) Relative kernel perturbation versus change in the upper Laplacian. The approximately linear trend supports Lipschitz dependence on higher-order structure. (B) Prediction perturbation versus triangle flip probability ε for different ridge parameters λ; stronger regularization improves stability. (C) Relative prediction errors plotted against 
+
+∥L↑ − L′↑∥F /λ , consistent with the predicted 1/λ -type scaling from Section 4.4. For each pair (X, X ′), we compute 
+
+∆K = ∥KX − KX′ ∥F
+
+∥KX ∥F
+
+, ∆L = ∥L↑ − L′↑∥F .
+
+We also measure prediction stability under kernel ridge regression: 
+
+∆y = ∥ˆyX − ˆyX′ ∥∥ˆyX ∥ , ˆyX = KX (KX + λI )−1y. 
+
+In the code, y is a fixed mean-centered, unit-norm mixed edge signal on the base complex. The normalization in ∆y is empirical; the theorem gives an absolute bound proportional to ∥y∥. We vary both the triangle flip probability ε and the ridge parameter λ.Figure 4 shows that TopoNTK varies stably under triangle perturbations. Kernel changes scale approximately linearly with changes in L↑, while prediction changes grow smoothly with perturbation strength and decrease with stronger regularization. This supports the theory and is practically useful for error estimation and generalization when higher-order relations are noisy or partially observed. 
+
+## 6 Conclusion 
+
+We introduced TopoNTK, the infinite-width kernel induced by Hodge message passing on edge features. By incorporating lower and upper Hodge interactions, TopoNTK captures higher-order structure invisible to graph-only methods and gives a spectral view of exact, harmonic, and coexact components. Exact Hodge preservation holds for the propagation operator and for Hodge-compatible kernels; the standard nonlinear ReLU TopoNTK instead provides a strong architectural alignment. This is the main message: the upper channel gives expressivity beyond the 1-skeleton, the residual channel preserves harmonic information at propagation level, and the resulting spectra provide interpretable coordinates for relational learning with group interactions, cycles, and circulations. 
+
+Limitations and broader impact. Exact kernel methods scale quadratically in sample size, and dense n-vertex complexes have O(n3) possible 2-simplices. The DBLP experiment therefore uses sampled local ego complexes and should be interpreted as evidence of a higher-order signal rather than a definitive large-scale benchmark. We compare kernel variants rather than trained finite-width SNN or MPSN models; scalable local-triangle approximations and finite-width comparisons are natural next steps. The method may benefit domains with group interactions, flows, or circulations, but in sensitive applications its increased expressivity may amplify biases present in data. 
+
+Code availability and compute. Code is available at github.com/chimeraki/TopoNTK . We used a workstation with Intel i7-10750H CPU, 16GB RAM, and an NVIDIA GTX 1650 Ti GPU; runtimes were 1–5min for synthetic experiments and 10–15min for DBLP. 9References 
+
+Sergio Barbarossa and Stefania Sardellitti. Topological signal processing over simplicial complexes. 
+
+IEEE Transactions on Signal Processing , 68:2992–3007, 2020. doi: 10.1109/TSP.2020.2981920. Federico Battiston, Giulia Cencetti, Iacopo Iacopini, Vito Latora, Maxime Lucas, Alice Patania, Jean-Gabriel Young, and Giovanni Petri. Networks beyond pairwise interactions: Structure and dynamics. Physics Reports , 874:1–92, 2020. Austin R. Benson, Rediet Abebe, Michael T. Schaub, Ali Jadbabaie, and Jon Kleinberg. Simplicial closure and higher-order link prediction. Proceedings of the National Academy of Sciences , 115 (48):E11221–E11230, 2018. doi: 10.1073/pnas.1800683115. Christian Bick, Elizabeth Gross, Heather A. Harrington, and Michael T. Schaub. What are higher-order networks? SIAM Review , 65(3):686–731, 2023. doi: 10.1137/21M1414024. Cristian Bodnar, Fabrizio Frasca, Yu Guang Wang, Nina Otter, Guido F. Montúfar, Pietro Liò, and Michael M. Bronstein. Weisfeiler and lehman go topological: Message passing simplicial networks. In Proceedings of the 38th International Conference on Machine Learning , volume 139 of Proceedings of Machine Learning Research , pages 1026–1037. PMLR, 2021. dblp team. dblp computer science bibliography. https://dblp.org . Metadata released under CC0 1.0 Public Domain Dedication, with ODC-BY 1.0 as a secondary license; accessed 2026-04-28. Simon S. Du, Karthik Hou, Ruslan Salakhutdinov, Barnabas Poczos, and Jianfeng Wang. Graph neural tangent kernel: Fusing graph neural networks with graph kernels. In Advances in Neural Information Processing Systems , 2019. Stefania Ebli, Michaël Defferrard, and Gard Spreemann. Simplicial neural networks. In NeurIPS Workshop on Topological Data Analysis and Beyond , 2020. Mustafa Hajij, Ghada Zamzmi, Theodore Papamarkou, Nina Miolane, Aldo Guzmán-Sáenz, Karthikeyan Natesan Ramamurthy, Tolga Birdal, Tamal K. Dey, Soham Mukherjee, Shreyas N. Samaga, Neal Livesay, Robin Walters, Paul Rosen, and Michael T. Schaub. Topological deep learning: Going beyond graph data. arXiv preprint arXiv:2206.00606 , 2022. Danijela Horak and Jürgen Jost. Spectra of combinatorial laplace operators on simplicial complexes. 
+
+Advances in Mathematics , 244:303–336, 2013. Arthur Jacot, Franck Gabriel, and Clément Hongler. Neural tangent kernel: Convergence and generalization in neural networks. In Advances in Neural Information Processing Systems , 2018. Sanjukta Krishnagopal. The collective vs individual nature of mountaineering: A network and simplicial approach. Applied Network Science , 7(62), 2022. Sanjukta Krishnagopal and Ginestra Bianconi. Spectral detection of simplicial communities via hodge laplacians. Physical Review E , 104(6):064303, 2021. Sanjukta Krishnagopal and Luana Ruiz. Graph neural tangent kernel: Convergence on large graphs. In Proceedings of the 40th International Conference on Machine Learning , pages 17827–17841. PMLR, 2023. Lek-Heng Lim. Hodge laplacians on graphs. SIAM Review , 62(3):685–715, 2020. doi: 10.1137/ 18M1223101. Theodore Papamarkou, Tolga Birdal, Michael M. Bronstein, Gunnar E. Carlsson, Justin Curry, Yue Gao, Mustafa Hajij, Roland Kwitt, Pietro Lio, Paolo Di Lorenzo, et al. Position: Topological deep learning is the new frontier for relational learning. In Proceedings of the 41st International Conference on Machine Learning , volume 235 of Proceedings of Machine Learning Research .PMLR, 2024. Michael T. Schaub, Austin R. Benson, Paul Horn, Gabor Lippner, and Ali Jadbabaie. Random walks on simplicial complexes and the normalized hodge 1-laplacian. SIAM Review , 62(2):353–391, 2020. doi: 10.1137/18M1201019. 10 Michael T. Schaub, Yu Zhu, Jean-Baptiste Seby, T. Mitchell Roddenberry, and Santiago Segarra. Signal processing on higher-order networks: Livin’ on the edge ... and beyond. Signal Processing ,187:108149, 2021. doi: 10.1016/j.sigpro.2021.108149. Zhe Su, Yiying Tong, and Guo-Wei Wei. Hodge decomposition of single-cell RNA velocity. Journal of Chemical Information and Modeling , 64(8):3558–3568, 2024. doi: 10.1021/acs.jcim.4c00132. Maosheng Yang, Elvin Isufi, Michael T. Schaub, and Geert Leus. Simplicial convolutional filters. 
+
+IEEE Transactions on Signal Processing , 70:4633–4648, 2022. doi: 10.1109/TSP.2022.3207045. 
+
+## A Derivation of the TopoNTK Recursion 
+
+We derive the recursion used in Definition 1 from a standard infinite-width NTK limit. The derivation is for the post-activation propagation convention 
+
+H(ℓ+1)  
+
+> X
+
+= PX σ
+
+
+
+H(ℓ) 
+
+> X
+
+W (ℓ)
+
+, PX = γI + αL ↓(X) + βL ↑(X),
+
+where H(0)  
+
+> X
+
+∈ R|EX |× d is the input edge-feature matrix, σ is applied entrywise, and the weights are independent across layers with 
+
+W (0)  
+
+> ab
+
+∼ N (0 , 1/d ), W (ℓ) 
+
+> ab
+
+∼ N (0 , 1/m ℓ) for ℓ ≥ 1.
+
+For notational simplicity we write all hidden widths as mℓ, and take the standard infinite-width limit 
+
+m1, . . . , m L → ∞ . The deterministic operators PX are fixed with respect to the trainable weights. To obtain a scalar-output NTK for each edge, append an independent linear readout 
+
+fX (i) = 1
+
+√mLmLX
+
+> r=1
+
+ar H(L) 
+
+> X,ir
+
+, ar ∼ N (0 , 1) ,
+
+with the same readout weights used when comparing two inputs. The edge-by-edge NTK is 
+
+Θ(L)(X, Y )ij = lim  
+
+> m→∞
+
+⟨∇ θ fX (i), ∇θ fY (j)⟩ ,
+
+where θ contains all hidden-layer weights and the readout weights. This is the matrix-valued kernel acting on edge outputs. Pooled graph- or complex-level kernels are obtained from this edge-level kernel by the pooling operation in Definition 1. We first compute the covariance recursion. Define the empirical layer covariance 
+
+Σ(ℓ) 
+
+> m
+
+(X, Y ) = 1
+
+mℓ
+
+H(ℓ) 
+
+> X
+
+(H(ℓ) 
+
+> Y
+
+)⊤ ∈ R|EX |×| EY |,
+
+with the convention 
+
+Σ(0) (X, Y ) = 1
+
+d H(0)  
+
+> X
+
+(H(0)  
+
+> Y
+
+)⊤.
+
+For fixed edge indices i ∈ EX , j ∈ EY , and hidden coordinate r, the preactivations 
+
+Z(ℓ) 
+
+> X,ir
+
+=
+
+> mℓ
+
+X
+
+> a=1
+
+H(ℓ)
+
+> X,ia
+
+W (ℓ) 
+
+> ar
+
+, Z(ℓ) 
+
+> Y,jr
+
+=
+
+> mℓ
+
+X
+
+> a=1
+
+H(ℓ)
+
+> Y,ja
+
+W (ℓ)
+
+> ar
+
+are conditionally centered Gaussian in the infinite-width limit, with covariance 
+
+E
+
+h
+
+Z(ℓ) 
+
+> X,ir
+
+Z(ℓ) 
+
+> Y,jr
+
+H(ℓ) 
+
+> X
+
+, H (ℓ)
+
+> Y
+
+i
+
+= Σ (ℓ) 
+
+> m
+
+(X, Y )ij .
+
+Their variances are the corresponding diagonal entries of Σ(ℓ) 
+
+> m
+
+(X, X ) and Σ(ℓ) 
+
+> m
+
+(Y, Y ). Hence the post-activation covariance before Hodge propagation is the dual activation map 
+
+Φ(Σ (ℓ)(X, Y )) ij = E[σ(gXi )σ(gYj )] ,
+
+where (gXi , g Yj ) is the centered Gaussian pair with these two variances and this cross-covariance. Applying the deterministic propagators on the two sides gives 
+
+Σ(ℓ+1) (X, Y ) = PX Φ(Σ (ℓ)(X, Y )) P ⊤ 
+
+> Y
+
+.
+
+11 This proves the covariance recursion. We now derive the tangent-kernel recursion. Let Θ(ℓ)(X, Y ) denote the infinite-width tangent kernel associated with the network truncated at layer ℓ, before the final readout contribution at the next layer. The usual NTK chain rule gives two contributions when passing from layer ℓ to layer ℓ + 1 .First, gradients with respect to parameters from previous layers are multiplied by the activation derivatives at the two inputs. In the infinite-width limit, averaging over hidden channels replaces the product of derivatives by the derivative covariance map 
+
+˙Φ(Σ (ℓ)(X, Y )) ij = E[σ′(gXi )σ′(gYj )] .
+
+Since the deterministic propagation PX is applied after the activation, the old tangent kernel is transformed as 
+
+PX
+
+h
+
+Θ(ℓ)(X, Y ) ⊙ ˙Φ(Σ (ℓ)(X, Y )) 
+
+i
+
+P ⊤ 
+
+> Y
+
+.
+
+Here ⊙ denotes the Hadamard product in the standard edge-coordinate basis. Second, the parameters W (ℓ) of the new layer contribute the covariance of the new hidden representa-tion, which is exactly Σ(ℓ+1) (X, Y ). Equivalently, this is the standard new-layer contribution in the fully-connected NTK recursion, followed on the two sides by the deterministic propagators. Combining the old-parameter and new-parameter contributions yields 
+
+Θ(ℓ+1) (X, Y ) = PX
+
+h
+
+Θ(ℓ)(X, Y ) ⊙ ˙Φ(Σ (ℓ)(X, Y )) 
+
+i
+
+P ⊤ 
+
+> Y
+
++ Σ (ℓ+1) (X, Y ),
+
+initialized by 
+
+Θ(0) (X, Y ) = Σ (0) (X, Y ).
+
+Thus the infinite-width edge-level NTK satisfies exactly the recursion stated in Definition 1. For ReLU, Φ and ˙Φ are the standard arc-cosine covariance maps, with the derivative map understood on covariance pairs whose self-variances are positive. The finite-depth stability result therefore assumes that the relevant self-covariance diagonals stay bounded away from zero. The derivation above also makes clear why the Hodge propagators PX , P Y appear outside the dual activation maps for the post-activation convention. A pre-activation convention σ(PX H(ℓ) 
+
+> X
+
+W (ℓ)) would instead place the Hodge propagation inside the covariance map and gives a different, though closely related, kernel. 
+
+## B Proof of Proposition 1 
+
+Proof. The graph-NTK statement follows immediately. If the two complexes have the same oriented 
+
+1-skeleton, then every graph-derived propagation operator is the same. If the graph NTK uses only features determined by that 1-skeleton, then the input covariance is also the same. Therefore the graph NTK recursion produces the same kernel for X and X′.For TopoNTK, the only difference between the two propagation operators is the upper Hodge term: 
+
+PX − PX′ = β L↑(X) − L↑(X′).
+
+Thus, if β > 0 and L↑(X)̸ = L↑(X′), then PX̸ = PX′ . In the linear-activation case, the first covariance update is 
+
+Σ(1)  
+
+> X
+
+= PX CP ⊤ 
+
+> X
+
+, Σ(1)  
+
+> X′
+
+= PX′ CP ⊤ 
+
+> X′
+
+,
+
+where C = Σ (0) is the input edge-feature covariance. Hence, under the stated condition, 
+
+Σ(1) 
+
+> X
+
+̸ = Σ (1)  
+
+> X′
+
+.
+
+Since the NTK recursion contains this covariance as an additive contribution, the edge-level TopoNTK differs after one layer. Finally, a pooled scalar kernel applies a linear pooling functional to the edge-level kernel. Therefore edge-level separation implies pooled separation whenever the pooling functional is nonzero on the resulting kernel difference. For sum pooling this condition is 
+
+1⊤ Θ(L) 
+
+> X
+
+− Θ(L)
+
+> X′
+
+1̸ = 0 .
+
+12 C Proof of Hodge-Compatible Invariance 
+
+Proof of Proposition 3. By Proposition 2, the propagation operator Pγ,α,β is block diagonal with respect to 
+
+C1(X) = E ⊕ H ⊕ C .
+
+By assumption, Σ(0) (X, X ) is block diagonal in this decomposition, and the finite-depth covariance and tangent-kernel updates preserve block diagonal structure. Inducting over layers gives that Σ(ℓ)
+
+and Θ(ℓ) are block diagonal for all ℓ ≤ L. Hence KX = Θ (L)(X, X ) is block diagonal and maps each of E, H, and C into itself. For nonlinear NTK recursions involving entrywise Hadamard products, the preservation of Hodge block structure is an additional compatibility condition, not a generic consequence of orthogonal Hodge block diagonal structure. This is why the main text distinguishes exact Hodge preservation of the propagation operator from Hodge-aligned bias of the standard nonlinear TopoNTK. 
+
+## D Proof of Spectral Learning 
+
+Proof of Theorem 1. Let KX be the within-complex TopoNTK. Since KX is symmetric positive semidefinite, it admits an orthonormal eigendecomposition 
+
+KX uj = κj uj , κj ≥ 0,
+
+with {uj } an orthonormal basis for the relevant edge-signal space. Consider squared-loss kernel gradient flow with target y and prediction ft:
+
+df t
+
+dt = −KX (ft − y), f0 = 0 .
+
+Define the error 
+
+et = ft − y. 
+
+Then de t
+
+dt = df t
+
+dt = −KX et.
+
+Expand the error in the eigenbasis of KX :
+
+et = X
+
+> j
+
+ej (t)uj , ej (t) = ⟨et, u j ⟩.
+
+Using KX uj = κj uj , we obtain 
+
+de t
+
+dt = − X
+
+> j
+
+κj ej (t)uj .
+
+Equating coefficients in the orthonormal basis gives the scalar ODE 
+
+de j (t)
+
+dt = −κj ej (t).
+
+Thus 
+
+ej (t) = ej (0) e−κj t.
+
+Since f0 = 0 , we have e0 = −y, and therefore 
+
+ej (0) = ⟨e0, u j ⟩ = −⟨ y, u j ⟩.
+
+Hence 
+
+et = − X
+
+> j
+
+e−κj t⟨y, u j ⟩uj .
+
+Because ft = y + et, and 
+
+y = X
+
+> j
+
+⟨y, u j ⟩uj ,
+
+13 we obtain 
+
+ft = X
+
+> j
+
+ 1 − e−κj t ⟨y, u j ⟩uj .
+
+If the Hodge-compatibility assumptions of Proposition 3 hold, then KX is block diagonal with respect to 
+
+C1(X) = E ⊕ H ⊕ C .
+
+Therefore each block admits an orthonormal eigenbasis, and the eigenvectors {uj } may be chosen within the exact, harmonic, and coexact subspaces. In that case, the expansion above shows that learning proceeds independently along Hodge-aligned kernel eigenmodes, with mode uj learned at rate κj .
+
+## E Proof of the Stability Theorem 
+
+We prove the stability result in Theorem 2. 
+
+Proof. Let X and X′ be simplicial complexes with the same 1-skeleton and different triangle sets. Since the 1-skeleton is fixed, the lower Hodge Laplacian is unchanged: 
+
+L↓(X) = L↓(X′).
+
+Thus all variation in the TopoNTK comes from the upper Hodge Laplacian 
+
+L↑(X) = B2B⊤ 
+
+> 2
+
+.
+
+Let 
+
+∆B2 := B2 − B′
+
+> 2
+
+, ∆L↑ := L↑(X) − L↑(X′).
+
+Then 
+
+∆L↑ = B2B⊤ 
+
+> 2
+
+− B′
+
+> 2
+
+B′⊤  
+
+> 2
+
+.
+
+Adding and subtracting B′
+
+> 2
+
+B⊤ 
+
+> 2
+
+gives 
+
+∆L↑ = ( B2 − B′
+
+> 2
+
+)B⊤ 
+
+> 2
+
++ B′
+
+> 2
+
+(B2 − B′
+
+> 2
+
+)⊤.
+
+Therefore, applying the triangle inequality 
+
+∥∆L↑∥ ≤ ∥ B2 − B′
+
+> 2
+
+∥ ∥ B2∥ + ∥B′
+
+> 2
+
+∥ ∥ B2 − B′
+
+> 2
+
+∥.
+
+Hence 
+
+∥∆L↑∥ ≤ (∥B2∥ + ∥B′
+
+> 2
+
+∥)∥B2 − B′
+
+> 2
+
+∥.
+
+Assuming ∥B2∥, ∥B′
+
+> 2
+
+∥ ≤ M , we obtain 
+
+∥∆L↑∥ ≤ 2M ∥B2 − B′
+
+> 2
+
+∥.
+
+Now define the propagation operators 
+
+PX = γI + αL ↓(X) + βL ↑(X), PX′ = γI + αL ↓(X′) + βL ↑(X′).
+
+The residual term cancels and the lower term is unchanged because the 1-skeleton is fixed, so 
+
+PX − PX′ = β L↑(X) − L↑(X′).
+
+Thus 
+
+∥PX − PX′ ∥ ≤ β∥L↑ − L′↑∥,
+
+and, if ∥B2∥, ∥B′
+
+> 2
+
+∥ ≤ M , also ∥PX − PX′ ∥ ≤ 2βM ∥B2 − B′
+
+> 2
+
+∥.We next show that the TopoNTK recursion is Lipschitz in the propagation operator. Assume that all covariance matrices remain in a bounded set and that the activation covariance maps Φ and ˙Φ are Lipschitz on this set: 
+
+∥Φ( A) − Φ( B)∥ ≤ LΦ∥A − B∥, ∥ ˙Φ( A) − ˙Φ( B)∥ ≤ L ˙Φ∥A − B∥.
+
+14 Also assume 
+
+∥PX ∥, ∥PX′ ∥ ≤ R. 
+
+Let Σ(ℓ) 
+
+> X
+
+and Σ(ℓ) 
+
+> X′
+
+denote the depth-ℓ covariance matrices for X and X′. The recursion is 
+
+Σ(ℓ+1)  
+
+> X
+
+= PX Φ(Σ (ℓ) 
+
+> X
+
+)P ⊤ 
+
+> X
+
+, Σ(ℓ+1)  
+
+> X′
+
+= PX′ Φ(Σ (ℓ) 
+
+> X′
+
+)P ⊤ 
+
+> X′
+
+.
+
+Subtracting gives 
+
+Σ(ℓ+1)  
+
+> X
+
+− Σ(ℓ+1)  
+
+> X′
+
+= PX Φ(Σ (ℓ) 
+
+> X
+
+)P ⊤ 
+
+> X
+
+− PX′ Φ(Σ (ℓ) 
+
+> X′
+
+)P ⊤ 
+
+> X′
+
+.
+
+Add and subtract intermediate terms: 
+
+Σ(ℓ+1)  
+
+> X
+
+− Σ(ℓ+1)  
+
+> X′
+
+= ( PX − PX′ )Φ(Σ (ℓ) 
+
+> X
+
+)P ⊤
+
+> X
+
++ PX′
+
+ Φ(Σ (ℓ) 
+
+> X
+
+) − Φ(Σ (ℓ) 
+
+> X′
+
+)P ⊤
+
+> X
+
++ PX′ Φ(Σ (ℓ) 
+
+> X′
+
+)( PX − PX′ )⊤.
+
+Taking norms and using boundedness, 
+
+∥Σ(ℓ+1)  
+
+> X
+
+− Σ(ℓ+1)  
+
+> X′
+
+∥ ≤ Cℓ∥PX − PX′ ∥ + R2LΦ∥Σ(ℓ) 
+
+> X
+
+− Σ(ℓ) 
+
+> X′
+
+∥.
+
+By induction over finite depth L, there exists a constant CΣ,L such that 
+
+∥Σ(L) 
+
+> X
+
+− Σ(L) 
+
+> X′
+
+∥ ≤ CΣ,L ∥PX − PX′ ∥.
+
+The tangent kernel recursion is 
+
+Θ(ℓ+1)  
+
+> X
+
+= PX
+
+h
+
+Θ(ℓ) 
+
+> X
+
+⊙ ˙Φ(Σ (ℓ) 
+
+> X
+
+)
+
+i
+
+P ⊤ 
+
+> X
+
++ Σ (ℓ+1)  
+
+> X
+
+.
+
+Using the same Lipschitz and boundedness assumptions, and the covariance bound above, another induction gives 
+
+∥Θ(L) 
+
+> X
+
+− Θ(L) 
+
+> X′
+
+∥ ≤ CΘ,L ∥PX − PX′ ∥.
+
+Since KX = Θ (L) 
+
+> X
+
+and KX′ = Θ (L) 
+
+> X′
+
+, we obtain 
+
+∥KX − KX′ ∥ ≤ CΘ,L ∥PX − PX′ ∥.
+
+Combining with the propagation bound, 
+
+∥KX − KX′ ∥ ≤ C∥L↑ − L′↑∥,
+
+with the displayed B2 bound as a corollary under ∥B2∥, ∥B′
+
+> 2
+
+∥ ≤ M .It remains to prove the prediction stability bound. Kernel ridge regression gives 
+
+byX = KX (KX + λI )−1y. 
+
+Using the identity 
+
+K(K + λI )−1 = I − λ(K + λI )−1,
+
+we have 
+
+byX − byX′ = λ (KX′ + λI )−1 − (KX + λI )−1 y. 
+
+By the resolvent identity, 
+
+(KX′ + λI )−1 − (KX + λI )−1 = ( KX′ + λI )−1(KX − KX′ )( KX + λI )−1.
+
+Therefore, 
+
+∥byX − byX′ ∥ ≤ λ∥(KX′ + λI )−1∥∥ KX − KX′ ∥∥ (KX + λI )−1∥∥ y∥.
+
+Since KX and KX′ are positive semidefinite, 
+
+∥(KX + λI )−1∥ ≤ 1
+
+λ , ∥(KX′ + λI )−1∥ ≤ 1
+
+λ .
+
+Thus 
+
+∥byX − byX′ ∥ ≤ 1
+
+λ ∥KX − KX′ ∥∥ y∥.
+
+Using the kernel stability bound, 
+
+∥byX − byX′ ∥ ≤ Cλ ∥L↑ − L′↑∥∥ y∥,
+
+again with the B2 version following from ∥L↑ − L′↑∥ ≤ 2M ∥B2 − B′
+
+> 2
+
+∥. This completes the proof. 15

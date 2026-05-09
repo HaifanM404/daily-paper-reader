@@ -1,0 +1,1188 @@
+Title: A Dirac-Frenkel-Onsager principle: Instantaneous residual minimization with gauge momentum for nonlinear parametrizations of PDE solutions
+
+URL Source: https://arxiv.org/pdf/2605.00284v1
+
+Published Time: Mon, 04 May 2026 00:23:45 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# A Dirac-Frenkel-Onsager principle: Instantaneous residual minimization with gauge momentum for nonlinear parametrizations of PDE solutions 
+
+Matteo Raviola 1 Benjamin Peherstorfer 2
+
+## Abstract 
+
+Dirac-Frenkel instantaneous residual minimiza-tion evolves nonlinear parametrizations of PDE solutions in time, but ill-conditioning can ren-der the parameter dynamics non-unique. We interpret this non-uniqueness as a gauge free-dom: nullspace directions that leave the time derivative unchanged can be used to select better-conditioned parameter velocities. Build-ing on Onsager’s minimum-dissipation principle, we introduce a history variable—interpretable as momentum—and inject it only along the nullspace directions. The resulting Dirac-Frenkel-Onsager dynamics preserve instantaneous resid-ual minimization, in contrast to standard regular-ization that can introduce bias, while promoting temporally smooth parameter evolutions. Exam-ples demonstrate that the approach leads to in-creased robustness in singular and near-singular regimes. 
+
+## 1. Introduction 
+
+Neural networks and, more broadly, nonlinear parametriza-tions provide an expressive ansatz class for partial differ-ential equations (PDEs), which can complement classical discretizations in, e.g., high dimensions and reduced model-ing (Han et al., 2018; Raissi et al., 2019; Du & Zaki, 2021a; Zhang et al., 2025). As in classical numerical analysis, there are two broad algorithmic paradigms. Methods following the global-in-time paradigm such as PINNs (Raissi et al., 2019) train a neural network to represent the PDE solution over the entire space-time domain by minimizing a global objective. In contrast, methods following the local-in-time or sequential-in-time paradigm advance the neural-network parameters in time by computing parameter updates at each time step from local residual minimization, which induces an evolution on the network parameters. Analogous to 
+
+> 1
+
+EPFL, Lausanne, Switzerland 2Courant Institute of Mathe-matical Sciences, New York University, New York, NY, USA. Correspondence to: Matteo Raviola <matteo.raviola@epfl.ch >.
+
+Preprint. May 4, 2026. 
+
+global and local methods in classical numerical analysis, global- and local-in-time methods for neural networks can address complementary needs; see, e.g., Zhang et al. (2025). 
+
+Dirac-Frenkel variational principle In this work, we adopt the local-in-time paradigm. Many local-in-time meth-ods build on the Dirac-Frenkel variational principle, which performs a Galerkin-type projection at each time step to se-lect the time derivative of the parametrized solution so that the PDE residual is minimized instantaneously (Dirac, 1930; Frenkel, 1934; Lubich, 2008). The Dirac-Frenkel principle is foundational well beyond neural PDE solvers, e.g., it has a long history of being extensively used in computational chemistry (Meyer et al., 1990; Beck et al., 2000) and for dynamic low-rank approximations (Koch & Lubich, 2007; Einkemmer et al., 2025). 
+
+Challenge: non-unique parameter dynamics While the Dirac-Frenkel principle yields a well-defined evolution on the level of the parametrized function, it does not necessarily induce a uniquely defined evolution of the parameters. In particular, in neural networks, distinct parameters and dis-tinct parameter velocities may represent the same function and the same function derivative, respectively. This ambiguity appears when the parametrization Jacobian is rank-deficient: even though the Dirac-Frenkel residual minimization condition uniquely determines the function-level time derivative, it leaves multiple admissible parameter velocities that realize it. Even when the parameter evolution is mathematically unique, fast spectral decay of the Jacobian can lead to ill-conditioning so that small perturbations due to finite numerical precision and other approximations can cause erratic parameter trajectories and a loss of robustness. This non-uniquness and ill-conditioning issues of the Dirac-Frenkel dynamics on the parameter level are widely recog-nized for neural networks (Berman & Peherstorfer, 2023; Zhang et al., 2025; Feischl et al., 2024; Chen et al., 2024) as well as for other nonlinear parametrizations (Kay, 1989; Rowan et al., 2020; Kvaal et al., 2023). 
+
+Our contribution: Dirac-Frenkel-Onsager principle 
+
+We systematically address the non-uniqueness and ill-conditioning issue by interpreting the Dirac-Frenkel under-determination of the parameter dynamics as gauge freedom. 1
+
+> arXiv:2605.00284v1 [cs.LG] 30 Apr 2026 Dirac-Frenkel-Onsager (DFO)
+
+We leverage this to select parameter velocities that promote temporal smoothness while preserving the Dirac-Frenkel optimality condition of instantaneous residual minimization. To achieve this, we introduce an auxiliary history variable that serves as a memory of the past parameter velocities. We want the history variable to be close to a parameter velocity that reflects the present Dirac-Frenkel residual-minimizing dynamics while avoiding abrupt changes. We therefore ap-ply Onsager’s principle (Onsager, 1931) to optimally update the history variable by minimizing the mismatch with the current parameter velocity against retaining past informa-tion via a quadratic dissipation penalty on changes. The resulting history variable is a low-pass filtered version of the past minimal-norm Dirac-Frenkel parameter velocities, providing a smooth momentum-like direction. We hence interpret the history variable as a momentum variable. Importantly, and this is a key aspect of our approach, we use the momentum variable to only fix the Dirac-Frenkel gauge. In particular, this means that the Dirac-Frenkel-determined evolution in function space that guarantees in-stantaneous residual minimization is unchanged and the momentum is used only along the gauge directions, i.e., the directions in the nullspace of the parametrization Ja-cobian. By injecting the momentum only in the nullspace directions, we select a unique parameter velocity while pre-serving the instantaneous residual-minimization property of Dirac-Frenkel (Galerkin optimality). This yields the pro-posed Dirac-Frenkel-Onsager dynamics. 
+
+Literature review There is a wide range of neural PDE solver approaches building on the Dirac-Frenkel variational principle, including Neural Galerkin schemes (Bruna et al., 2024), evolutional neural networks (Du & Zaki, 2021b), and many others (Anderson & Farazmand, 2022; Berman & Peherstorfer, 2023; Finzi et al., 2023; Berman & Peherstor-fer, 2024; Feischl et al., 2024). Another perspective is to view the dynamics as natural gradient descent that are ap-plied on an energy; see, e.g., Wang et al. (2021); Hu et al. (2024); Dahmen et al. (2025) in the context of neural net-works. Independent of the specific instance of how the Dirac-Frenkel variational principle is used, it suffers from the non-uniqueness and ill-conditioning issues described above. This is also noted in, e.g., Finzi et al. (2023); Feischl et al. (2024); Buchfink et al. (2024); Zhang et al. (2025). The classical approach to cope with the non-uniqueness of the parameter dynamics is to add a regularizer, which has been systematically analyzed for the first time in (Feis-chl et al., 2024). However, Tikhonov regularization can introduce a bias which ought to be controlled via a residual-depending regularization parameter to avoid incurring a large error. On the other hand, the works (Haegeman et al., 2011; Koch & Lubich, 2007) fix the gauge with orthogo-nality conditions that are specific to matrix-factorization and tensor parameterizations, which are not applicable to generic nonlinear parametrizations such as neural networks. Another remedy that has been proposed is randomization (Berman & Peherstorfer, 2023). While this can lead to bet-ter conditioned problems (Dong et al., 2025), it is not clear what the resulting time-continuous dynamics are. Finzi et al. (2023) propose restarts, that is periodically re-training the neural network from scratch during time integration, which can lead to better minimal-norm parameter velocities; how-ever, these can add a non-negligible cost overhead and it is unclear when exactly to perform the restarts. There is also a line of work on instantaneous residual minimization that avoids the Dirac-Frenkel varaitional principle altogether, for example via discretize-then-optimize and related formula-tions (Chen et al., 2023; Zhang et al., 2025; Chen et al., 2024; Kvaal et al., 2023). However, the resulting optimiza-tion problems to be solved at each time step can be more challenging to solve (Zhang et al., 2025). The Dirac-Frenkel dynamics are analogous to natural gradi-ent descent (Amari, 1998) when applied to gradient flows. In the context of neural PDE solvers, natural gradient descent with momentum is used for training PINNs in, e.g., (M ¨uller & Zeinhofer, 2023; Goldshlager et al., 2024; Guzman-Cordero et al., 2025). Crucially, the dynamics in this case represent optimization and the previous optimization update is used as momentum rather than a moving average of the intermediate minimal-norm solutions. 
+
+Summary of contributions (a) Remove a core failure mode of Dirac-Frenkel dynamics in ill-conditioned regimes while maintaining residual minimization, avoiding the bias that can be introduced by standard regularization. (b) Address the ill-conditioning in a principled way by re-casting it as gauge freedom and fixing the gauge via Onsager momentum injections along gauge directions. (c) Improve practical reliability of neural PDE solvers by producing smoother, less erratic parameter velocities. 
+
+## 2. Dirac-Frenkel variational principle 
+
+2.1. Instantaneous residual minimization 
+
+Let Ω ⊆ Rd be the spatial domain and [0 , T ] the time inter-val. Consider the PDE 
+
+∂tu(t, x ) = F(u(t, ·)) (1) with the right-hand side operator F that can contain partial derivatives and initial u0 : Ω → R and boundary conditions so that the problem is well posed over a suitable Hilbert space U. We aim to approximate the solution function 
+
+u : [0 , T ] × Ω → R, which lies in u(t, ·) ∈ U at all times t.2Dirac-Frenkel-Onsager (DFO) 2             
+
+> 0
+> 2truth
+> 2
+> 0
+> 2
+> spatial domain
+> Dirac-Frenkel (stuck after collapse)
+> 2
+> 0
+> 2Dirac-Frenkel-Onsager (ours)
+> 10 0
+> 10 6
+> 10 12
+> cond. nr.  Dirac-Frenkel (DF)
+> Dirac-Frenkel-Onsager (DFO) [ours]
+> 0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0
+> time
+> 10 16
+> 10 10
+> 10 4
+> L2 err.  Dirac-Frenkel (DF)
+> Dirac-Frenkel-Onsager (DFO) [ours]
+
+Figure 1. At wave collision ( t = 2 ), the tangent space collapses and so Dirac-Frenkel (even with minimal-norm regularization) yields a parameter velocity that keeps the waves locked together. In contrast, the proposed Dirac-Frenkel-Onsager principle keeps injecting momentum in the nullspace direction at rank loss and so the dynamics can escape the collapse. 
+
+We parametrize the solution function as ˆu(θ(t), ·) : Ω → R
+
+with a time-dependent parameter vector θ(t) ∈ Rp and assume that ˆu is continuously differentiable in θ(t). In particular, the parametrization induces the trial set M =
+
+{ˆu(θ, ·) | θ ∈ Rp}, which is often referred to as trial mani-fold. The approximation ˆu(θ(t), ·) evolves in time through the time dependence of the parameter θ(t). Differentiating with respect to t and applying the chain rule leads to 
+
+∂t ˆu(θ(t), ·) = ∇θ ˆu(θ(t), ·)⊤η(t) , (2) where η(t) is the parameter velocity and can be interpreted as the time derivative ˙θ(t) of the parameter vector θ(t). In particular, the time derivative (2) is an element of the space spanned by the component functions of the gradient 
+
+Tˆu(θ(t),·)M = span {∂θ1 ˆu(θ(t), ·), . . . , ∂ θp ˆu(θ(t), ·)} ,
+
+(3) which coincides with the tangent space of M at ˆu(θ(t), ·)
+
+under certain regularity conditions. Among all possible velocities at time t, the Dirac-Frenkel variational principle selects the residual-minimizing one 
+
+∂t ˆu(θ(t), ·) = arg min 
+
+> v∈T ˆu(θ(t),·)M
+
+∥v − F (ˆ u(θ(t), ·)) ∥2 , (4) where ∥ · ∥ denotes the L2 norm over Ω in the following; see also Bachmayr et al. (2025). At the parameter level, this translates to the least-squares problem 
+
+˙θ(t) ∈ arg min 
+
+> η∈Rp
+
+∥∇ θ ˆu(θ, ·)⊤η − F (ˆ u(θ(t), ·)) ∥2 . (5) The advantage over standard Galerkin optimality is that the Dirac-Frenkel variational principle is also applicable to parametrizations with a nonlinear parameter dependence (e.g., neural networks). 
+
+2.2. Conditioning and tangent space collapse 
+
+A major issue is that the induced parameter least-squares problem (5) may have a non-unique solution or be ill-conditioned, even though Dirac-Frenkel uniquely deter-mines the residual-minimizing velocity at the function level via (4). 
+
+Tangent space collapse In the extreme case, the tangent map η 7 → ∇ θ ˆu(θ, ·)⊤η has a non-trivial kernel. Equiva-lently, the tangent space has dimension strictly smaller than 
+
+p, and we refer to this phenomenon as tangent space collapse (Zhang et al., 2025). Then the least-squares problem (5) has infinitely many minimizers: different parameter velocities η
+
+induce the same tangent function. Choosing a particular rep-resentative, e.g., the minimum ℓ2-norm solution, enforces a unique parameter velocity but leads to dynamics that can be qualitatively wrong or even completely off as the following example demonstrates (see Figure 1). Even when tangent map is injective, it can be poorly conditioned (e.g., in the 
+
+L2 operator norm), meaning that small perturbations can produce large changes in the inferred parameter velocity. In finite precision, where time integration typically requires truncating small singular values, ill-conditioning manifests numerically as a practical tangent space collapse, which motivates methods that explicitly control how the dynamics 3Dirac-Frenkel-Onsager (DFO) 
+
+behave along (exact or numerical) nullspace directions. 
+
+Example: Colliding waves Consider the wave equation 
+
+∂2 
+
+> t
+
+u = c2∂2
+
+> x
+
+u with c = 1 and initial condition u(0 , x ) = 
+
+ϕ0(x; −2) + ϕρ(x; 2) , where ϕρ(x; μ) = exp( − 12 (x −
+
+μ)2/(1 + ρ)) with an offset ρ ≥ 0. The dynamics are visualized in Figure 1 for ρ = 0 : the two waves given by ϕ0(x; −2) and ϕ0(x; 2) at initial position x = −2 and 
+
+x = 2 , respectively, approach each other, collide at spatial location x = 0 and time t = 2 , and then separate and move away from each other again. We now demonstrate on this example analytically that apply-ing Dirac-Frenkel with minimal-norm regularization directly can lead to dynamics which incur a large error because of the tangent space collapse. We bring the wave equation into first-order form (1) and consider the vector-valued parametriza-tion ˆu(θ(t), x ) = [ˆ u(1) (θ(t), x ), ˆu(2) (θ(t), x )] ⊤ with 
+
+θ(t) = [ θ1(t), . . . , θ 4(t)] ⊤ ∈ R4 and components 
+
+ˆu(1) (θ(t), x ) = ϕ0(x; θ1(t)) + ϕρ(x; θ2(t)) ,
+
+ˆu(2) (θ(t), x ) = c∂ μϕ0(x; θ3(t)) − c∂ μϕρ(x; θ4(t)) . (6) As long as θ1(t)̸ = θ2(t), the space (3) spanned by the component functions of the gradient is four dimensional and Dirac-Frenkel leads to a unique parameter velocity ˙θ(t).However, when the waves collide t = 2 , we have θ1(t) = 
+
+θ2(t) and the tangent space collapses to dimension two. In particular, to separate the two waves at t > 2, the parameter velocity needs to be aligned with the direction [1 , −1, 0, 0] ⊤,which is in the orthogonal complement of the collapsed tangent space. Thus, following the minimal-norm Dirac-Frenkel dynamics can never lead to a separation of the waves and the waves are stuck for all t > 2, as shown in Figure 1. Analogously, regularization with Tikhonov and truncated SVD also prevents motions in the orthogonal complement of the collapsed space. Consequentially, the two waves stick together rather than cross, leading to the collapse of even the regularized Dirac-Frenkel dynamics. See Section A.1 for additional details on this problem. 
+
+## 3. Leveraging the gauge freedom 
+
+3.1. Gauge freedom of Dirac-Frenkel dynamics 
+
+We propose to treat the non-uniqueness of the parameter velocity as a gauge freedom of the Dirac-Frenkel dynamics. To make this gauge freedom precise, it is convenient to work with the normal equations 
+
+G(θ(t)) η(t) = g(θ(t)) (7) of the least-squares problem (5) , with the matrix G(θ(t)) ∈
+
+Rp×p and the right-hand side vector g(θ(t)) ∈ Rp defined as ( i, j = 1 , . . . , p )
+
+Gij (θ(t)) = ⟨∂θi ˆu(θ(t), ·), ∂ θj ˆu(θ(t), ·)⟩ ,gi(θ(t)) = ⟨∂θi ˆu(θ(t), ·), F(ˆ u(θ(t), ·)) ⟩ ,
+
+where ⟨· , ·⟩ denotes the L2 inner product on Ω. The set of all solutions of the normal equations (7) , and thus of the least-squares problem (5) , is an affine space. Let ¯η(θ(t)) ∈ Rp
+
+be a reference solution of (5) , which will be the minimal-norm solution in the following, but any other reference solution can be used. All parameter velocities η(t) that are compatible with the Dirac-Frenkel dynamics, in the sense that they solve (5), can be represented as 
+
+η(t) = ¯ η(θ(t)) + w , w ∈ null( G(θ(t))) , (8) where null( G(θ)) denotes the nullspace of the matrix 
+
+G(θ(t)) . Notice that the latter is the same space as the kernel of the linear map η 7 → ∇ θ ˆu(θ(t), ·)⊤η induced by the gradient of ˆu at θ(t).We refer to this freedom of adding vectors w from the nullspace null( G(θ(t))) to any parameter velocity ¯η(θ(t)) 
+
+as gauge freedom of the Dirac-Frenkel dynamics. In particu-lar, the nullspace captures parameter velocity directions that are not violating the instantaneous residual minimization principle given by Dirac-Frenkel and thus are not changing the time derivative ∂t ˆu given in (2). 
+
+3.2. Gauge fixing for Dirac-Frenkel dynamics 
+
+We propose to fix the gauge of Dirac-Frenkel dynamics. This means we maintain the instantaneous residual mini-mization property of Dirac-Frenkel dynamics while select-ing one specific parameter velocity ˙θ(t) in the set of all possible solutions given by (8). One approach to fixing the gauge freedom is via an objective 
+
+Φ : Rn × Rn → R and an optimization problem 
+
+˙θ(t) = ¯ η(θ(t)) + arg min 
+
+> w∈null( G(θ(t)))
+
+Φ(¯ η(θ(t)) , w ) , (9) where Φ selects one w out of all possible choices in the nullspace null( G(θ(t))) (recall that ¯η(θ(t)) is the reference velocity). We stress that (9) applies changes to the residual-minimizing velocity ¯η(θ(t)) only in the directions of the nullspace, so that ˙θ(t) is also a solution of the Dirac-Frenkel least-squares problem (5) and thus an instantaneous residual minimizing velocity. This is in contrast to standard regular-ization that applies the regularizer to all components (within and outside of the nullspace) so that the resulting velocity is not necessarily residual-minimizing. Instead, we advocate for maintaining the residual-minimization property and us-ing the gauge freedom to pick one parameter velocity that has favorable properties. The next section discusses one specific objective, but we remark that equation (9) should be 4Dirac-Frenkel-Onsager (DFO) 
+
+understood as a flexible gauge-fixing template rather than the specific Onsager-history objective function introduced below. Other choices of Φ, including potentially history-free gauge-fixing rules, are possible and are an interesting direction for future work. 
+
+First versus higher-order changes We note that the Jacobian nullspace characterizes directions that do not change the represented function to first order; for nonlinear parametrizations, motion in these directions can still alter the function through higher-order effects. Consequently, for finite step sizes, nullspace injection can introduce higher-order drift that is not controlled by the instantaneous Dirac-Frenkel optimality condition—indeed, this is in agreement with the overall Dirac-Frenkel principle that constrains only the first-order (tangent-space) residual minimization and imposes no variational control over higher-order effects in-duced by parameter motion. 
+
+## 4. Dirac-Frenkel-Onsager dynamics 
+
+4.1. Onsager’s principle 
+
+We introduce a history variable m(t) ∈ Rp, which can be interpreted as a proposed velocity based on previous parameter velocities. Define the tracking energy 
+
+E m, t ) = 12 m − ¯η(θ(t)) 22,
+
+which penalizies mismatch between m(t) and the refer-ence ¯η(θ(t)) , and define a quadratic dissipation potential 
+
+Ψ( v) = τ 
+
+> 2
+
+∥v∥22, τ > 0. We then apply Onsager’s minimum-dissipation principle (Onsager, 1931) to m(t) as 
+
+˙m(t) ∈ arg min 
+
+> ϕ∈Rp
+
+n
+
+Ψ( ϕ) + ⟨∇ mE(m(t), t ), ϕ ⟩
+
+o
+
+, (10) so that the stationary condition of (10) yields the linear filter 
+
+τ ˙m(t) = −∇ mE(m(t), t ) = ¯ η(θ(t)) − m(t). (11) The explicit representation of the filter is an exponentially weighted history of ¯η(θ(t)) ,
+
+m(t) = e − t−t0 
+
+> τ
+
+m(t0) + 1
+
+τ
+
+Z tt0
+
+e− t−sτ ¯η(θ(s))d s, 
+
+which reveals how the whole history of the reference ¯η
+
+is included in m. In particular, when ¯η(θ(t)) = ¯η is fixed, then the mismatch energy decays monotonically since  
+
+> ddt
+
+E(m(t), t ) = − 1 
+
+> τ
+
+∥m(t) − ¯η∥22 ≤ 0, which demonstrates the inertia-like effect of the variable m(t) and that m(t) is a relaxational memory mechanism towards ¯η.
+
+4.2. Gauge fixing with Onsager dynamics Momentum in orthogonal complement Given the refer-ence parameter velocity ¯η(θ(t)) (in our case the minimal-norm solution to (5) ), we require the parameter velocity ˙θ(t)
+
+to match m(t) imposing 
+
+˙θ(t) = ¯ η(θ(t)) + arg min 
+
+> w∈null( G(θ(t)))
+
+−⟨ m(t), w ⟩ + 12λ ∥w∥22 ,
+
+(12) where m(t) is given by the Onsager equation (11) and λ > 0
+
+is a regularization parameter that controls how much mo-mentum is added along the nullspace directions. We can write down the dynamics of θ(t) and m(t) di-rectly. Let P (θ) ∈ Rp×p be the projector onto the nullspace 
+
+null( G(θ)) , then the solution ˙θ(t) of (12) is 
+
+˙θ(t) = ¯ η(θ(t)) + λP (θ(t)) m(t). (13) Combining (13) with the Onsager dynamics given in (11) ,we obtain 
+
+˙m(t) = 1
+
+τ (¯ η(θ(t)) − m(t)) , (14) 
+
+˙θ(t) = ¯ η(θ(t)) + λP (θ(t)) m(t). (15) 
+
+Discussion In the situation that the Gram matrix 
+
+G(θ(t)) is of low rank (“tangent space collapse”), the nullspace null( G(θ(t)) enlarges, and so the projection term 
+
+P (θ(t)) m(t) becomes the mechanism that injects motion along newly available nullspace (gauge) directions. Addi-tionally, in case of near collapse (i.e., poor conditioning of 
+
+G(θ)), truncating small singular values and injecting the momentum m(t) in the resulting approximated nullspace acts as a low-pass filter that can prevent jumps in these di-rections that can be caused by numerical artifacts due to poor conditioning. Let us also comment on how the use of momentum in our setting fundamentally differs from optimization approaches. For an optimization task, only the final/best iterate is of interest. In our case, we approximate a dynamical system which must be matched at all times t. This means that a naive application of momentum fails as it does not respect the instantaneous-minimization principle. 
+
+4.3. Time discretization 
+
+Let us now discretize the Dirac-Frenkel-Onsager dynamics with an Euler method for ease of exposition; other time-integration schemes can be applied as in Appendix E. Consider the time domain [0 , T ] with 0 = t0 < t 1 < · · · <tK = T with equidistant time-step size δt > 0. We de-note the reference velocity at time tk as ¯ηk = ¯ η(θk) ∈ Rp
+
+and the corresponding momentum variable as mk ∈ Rp.5Dirac-Frenkel-Onsager (DFO) 
+
+For the Onsager evolution (11) , we use backward (implicit) time stepping because it preserves the qualitative relaxation property of the Onsager filter for any time-step size δt > 0,whereas explicit methods would lead to a step-size restric-tion. For the parameter evolution (15) we instead employ forward (explicit) Euler, so that the combined scheme is semi-implicit. With these choices, we can exploit the On-sager evolution special structure in m(t) to obtain backward Euler steps which require no solve and thus implicit time integration can be applied efficiently. More precisely, we have 
+
+τ mk+1 − mk
+
+δt = ¯ ηk − mk+1 ,
+
+which is equivalent to the exponential moving average 
+
+mk+1 = β m k + (1 − β) ¯ ηk, β = ττ + δt .
+
+Note that β ∈ (0 , 1) for any δt > 0, so mk+1 is always a convex combination of mk and ¯ηk. For the parameter equaiton, the time discretization yields 
+
+θk+1 − θk
+
+δt = ¯ ηk + λP (θk)mk+1 ,
+
+with the minimal-norm solution ¯ηk = G(θk)+g(θk). Notice that backward in time would lead to a nonlinear problem at each time step. Putting this together, we obtain the time-discrete dynamics with the minimal-norm parameter velocity as reference 
+
+¯ηk = G(θk)+g(θk),mk+1 = βm k + (1 − β)¯ ηk,θk+1 = θk + δt (¯ ηk + λP (θk)mk+1 ).
+
+(16) 
+
+4.4. Collocation and sampling in space 
+
+We introduce a set of collocation points {xi}Ni=1 ⊂ Ω. The collocation points can be uniformly sub-sampled from a grid in the spatial domain Ω in low dimensions, or sampled in some other way for high-dimensional problems (Wen et al., 2024). In particular, the collocation points can change over the time step, which we disregard for notational ease. We define the batch gradient J(θ) ∈ RN ×p of ˆu(θ, ·),which we hereafter refer to as Jacobian, and the batch right-hand side f (θ) ∈ RN as 
+
+Jij (θ) = ∂θj ˆu(θ, x i) , fi(θ) = F(ˆ u(θ, ·))( xi) (17) for i = 1 , . . . , N and j = 1 , . . . , p . An approximation of the minimal-norm solution of the Dirac-Frenkel least-squares problem (5) can then be computed via an SVD of the batch gradient J(θ): Let J(θ) = U ΣV ⊤ be the SVD of J(θ) and let UϵΣϵV ⊤ 
+
+> ϵ
+
+be the one with all singular values greater than a tolerance ϵ > 0 truncated (tSVD). The 
+
+Algorithm 1 Dirac-Frenkel-Onsager dynamics Fit parameterization ˆu(θ, ·) to initial condition u0 to ob-tain θ0 and set m0 = 0 
+
+for k = 1 to K do 
+
+Assemble Jk = J(θk) and fk = f (θk) defined in (17) Compute Uϵ, Σϵ, V ⊤ 
+
+> ϵ
+
+= tSVD( Jk, ϵ )
+
+Compute minimal-norm solution ¯ηk of (5) to tol. ϵ
+
+Update momentum mk+1 = βm k + (1 − β)¯ ηk
+
+Project momentum m⊥ 
+
+> k+1
+
+= mk+1 − Vϵ(V ⊤ 
+
+> ϵ
+
+mk+1 )
+
+Update parameters θk+1 = θk + δt  ¯ηk + λm ⊥
+
+> k+1
+
+
+
+end for 
+
+minimal-norm solution up to the tolerance ϵ is then formally given by ¯η = VϵΣ−1 
+
+> ϵ
+
+U ⊤ 
+
+> ϵ
+
+f (θ). Furthermore, the action of the projector Pϵ(θ) can be computed from the same SVD as Pϵ(θ)z = z − VϵV ⊤ 
+
+> ϵ
+
+z. We note that a randomized SVD can be used; see Appendix D. 
+
+4.5. Algorithm and costs 
+
+In Algorithm 1 we describe the DFO steps with the semi-implicit Euler scheme introduced in Section 4.3. Notice how injecting momentum requires only two extra matrix-vector multiplies compared to DF with an SVD-based least-squares solver, which amounts to a few extra lines of code. The dominant cost is the computation of the tSVD which scales like O(N p 2). If we use randomized tSVD with sketch size 
+
+s, the cost can be reduced to O(N s 2) (see Appendix D). 
+
+## 5. Numerical experiments 
+
+We demonstrate our method on various low and high dimen-sional examples. In this section, we use DF to denote the Dirac-Frenkel dynamics with minimal-norm solution of the normal equations (7) obtained with truncated SVD to some tolerance ϵ, unless stated otherwise. 
+
+5.1. Examples with tangent-space collapse 
+
+We revisit the wave example introduced earlier. Using the minimal-norm velocity as reference and the DFO dynamics given by (14) – (15) we obtain with the momentum m(t) anon-zero velocity component in the direction [1 , −1, 0, 0] ⊤,which is in the Jacobian nullspace when the waves collide, and so the waves can separate after the tangent space col-lapse; see Figure 1. This confirms the theoretical analysis for the exact collapse case ρ = 0 in Section A.1 which proves that the continuous-time DFO dynamics recover the exact PDE solution through the collision for a suitable choice of 
+
+λ. Additionally, we consider an ill-conditioned case with ρ
+
+small but positive. In this case, DF recovers after a while but an order of magnitude larger error is attained than with DFO; see Figure 2a. 6Dirac-Frenkel-Onsager (DFO) 0 1 2 3 4                
+
+> time
+> 10 15
+> 10 10
+> 10 5
+> 10 0
+> L2 error
+> DF, ill-cond.
+> DF, collapse
+> DFO, ill-cond. (ours)
+> DFO, collapse (ours) 0246
+> time
+> 0
+> 2
+> 4
+> 6
+> spatial domain  DF (stuck after collapse)
+> 0246
+> time
+> 0
+> 2
+> 4
+> 6
+> spatial domain  DFO (ours) 0246
+> time
+> 10 15
+> 10 11
+> 10 7
+> 10 3
+> 10 1
+> L2 error
+> DF
+> DFO (ours)
+
+(a) wave problem (b) advection-reaction problem 
+
+Figure 2. Plot (a) shows that DFO achieves orders of magnitude lower errors than DF in a severely ill-conditioned wave problem without exact collapse. Plot (b) shows that for an advection-reaction problem with repeated tangent-space collapse points at t ∈ { π/ 2, π, 3π/ 2},the DFO momentum injects nullspace parameter velocities so that the full-dimensional tangent space is restored after collapse and parameter dynamics can continue to evolve, while DF remains stuck after the first collapse point. 0 2 4 6 8         
+
+> time t
+> 10 4
+> 10 3
+> 10 2
+> relative  L2 error
+> DF
+> DFO (ours) 0510 15 20
+> time t
+> 10 2
+> 10 1
+> relative  L2 error  DF
+> DFO (ours)
+
+(a) rotating detonation waves (b) transport through flow field 0 2 4 6 8 10  
+
+> time t
+> 10 2
+> relative  L2 error  DF
+> DFO (ours)
+
+(c) charged particles in electric field 
+
+Figure 3. Relative error over time for the three low-/moderate-dimensional PDEs, comparing minimal-norm DF (tSVD) and the proposed DFO. 
+
+Let us consider another example affected by tangent space collapse: an advection-reaction equation that leads to Ja-cobian rank loss at time t = π/ 2; see Figure 2b and Ap-pendix A.2 for a details on the problem. We obtain a sim-ilar effect with the DFO dynamics (14) – (15) to the one observed for the wave equation: at the singular point, where the dimension of the tangent space space drops to zero, the momentum injects non-zero velocity directions without sac-rificing the instantaneously residual minimizing condition. The variational space hence recovers full dimension again, and the dynamics are approximated with high accuracy. 
+
+5.2. Low-dimensional PDE examples Examples (Details in Appendix B). (a) Rotating detonation waves : We use the model of Koch et al. (2020), motivated by rotating detonation engines for space propulsion. Its degrees of freedom are the intensive property of the working fluid and the combustion progress. The solution features a sharp-fronted wave that propagates around a circular domain and that spawns a second wave. (b) Transport through flow field : We model transport through a nonuniform, time-dependent flow field with the advection equation. (c) Charged particles in electric field : We use the Vlasov equation to model the dynamics of charged particles in a collisionless plasma. Starting from a localized particle distribution, the electric field advects, shears, and deforms the density in phase space over time. 
+
+Parametrizations, time discretization, other methods 
+
+We use multi-layer perceptron (MLP) parametrizations with periodic embeddings to enforce periodic boundary condi-tions. The DF dynamics are discretized with Runge-Kutta 4 (RK4) and the DFO dynamics with a combination of RK4 and backward Euler (see Appendix E for details). We com-pared our approach DFO to several other methods that imple-ment instantaneous residual minimization: Dirac-Frenkel (DF) with tSVD-based approximate minimal-norm solu-tion (DF tsvd) as used in, e.g., Bruna et al. (2024); DF with Tikhonov regularization (DF Tiko) as in Feischl et al. (2024), TENG (Chen et al., 2024), which performs an in-ner re-training loop with natural gradient descent; Neural IVP (NIVP) (Finzi et al., 2023), which re-trains the neural-network from scratch at occasional time steps to improve conditioning; and RSNG (Berman & Peherstorfer, 2023), which uses randomized updates to improve conditioning. We sweep the hyper-parameters and show the best results, except for RSNG for which we show the average over five runs as it is a randomized method. 
+
+Results: Lower overall error, negligible overhead Fig-ure 3 shows that DFO leads to lower errors than minimal-norm Dirac-Frenkel dynamics. A comparison to other meth-ods provides further evidence that Dirac-Frenkel-Onsager leads to competitive errors that are lowest across all three examples (Table 1). In particular, we note that the extra costs incurred by Onsager dynamics and the momentum variable are almost negligible, compared to the extra costs incurred by, e.g., TENG in certain problems. We note that DFO can be combined with randomization techniques to fur-ther reduce costs; see Appendix D and the high-dimensional problem below. 7Dirac-Frenkel-Onsager (DFO) 1       
+
+> 1DF DFO (ours)
+> 11
+> 1
+> 1
+> 11
+> 10 2
+> 10 1
+> 10 2
+
+Figure 4. Charged particles: The pointwise error plots show that DFO (right) suppresses background error away from the solution support by using momentum to select coherent, smooth parame-ter velocities in nullspace directions, whereas DF (left) uses the dynamics-agnostic 2-norm regularizer that leads to less informa-tive dynamics into the nullspace directions. 1        
+
+> 2
+> 3
+> mean
+> 012345678
+> time t
+> 0.00
+> 0.05
+> 0.10
+> cov  truth
+> DF
+> DFO (ours)
+
+Figure 5. Fokker-Planck 5D: DFO, by promoting temporal smoothens and so reducing erratic parameter velocities, yields more accurate mean and covariance predictions and avoids the jumps observed in DF. 
+
+Results: Less background error away from support 
+
+When plotting the point-wise error over the spatial domain (see Figure 4), we observe that DFO produces noticeable lower background error in regions where the true solution is essentially inactive. This improvement is explained by how DFO resolves the DF gauge freedom. The momentum sup-plies a coherent, temporally smooth choice for the parameter velocity components in all directions, rather than leaving the nullspace components to be set by the dynamics-agnostic 2-norm regularizer. As a result, spurious parameter mo-tion that does not affect the solution is nonetheless steered in a consistent way, reducing the accumulation of small off-support artifacts. 
+
+Table 1. DFO achieves the lowest avg. L2 error with near-negligible additional cost. Method L2 err. L2 err. @ T Runtime (DF=1) 
+
+Rotating detonation waves 
+
+DF + Tiko 6.41e-03 5.45e-03 1×
+
+DF + tSVD 6.06e-03 4.02e-03 1×
+
+NIVP 6.41e-03 5.71e-03 1×
+
+RSNG 1.22e-02 4.04e-03 0.3×
+
+TENG 6.83e-03 6.35e-03 3×
+
+DFO (ours) 2.10e-03 1.91e-03 1×
+
+Transport through flow field 
+
+DF + Tiko 6.44e-02 1.07e-01 1×
+
+DF + tSVD 3.82e-02 1.05e-01 1×
+
+NIVP 1.69e-02 2.32e-02 1×
+
+RSNG 3.13e-02 1.03e-01 0.5×
+
+TENG 5.68e-02 1.55e-01 2×
+
+DFO (ours) 1.23e-02 2.63e-02 1×
+
+Charged particles in electric field 
+
+DF + Tiko 8.25e-03 1.62e-02 0.9×
+
+DF + tSVD 1.22e-02 4.06e-02 1×
+
+NIVP 8.48e-03 1.79e-02 1×
+
+RSNG 2.72e-02 1.02e-01 0.5×
+
+TENG 6.01e-02 3.17e-01 2×
+
+DFO (ours) 3.95e-03 8.06e-03 1×
+
+Table 2. Summary of results for the 5D Fokker-Planck equation. Method Err. mean Err. cov Runtime (DF=1) DF + tSVD 1.46e-02 3.17e-01 1
+
+RSNG 2.81e-02 4.33e-01 0.4×
+
+NIVP 2.82e-01 1.71e+01 2×
+
+TENG 2.23e-02 5.81e-01 2×
+
+DFO (ours) 4.47e-03 5.26e-02 1×
+
+RDFO (ours) 4.51e-03 5.60e-02 0.5×
+
+5.3. High-dimensional Fokker-Planck equation 
+
+We consider the evolution of five interacting particles in an aharmonic confining potential with an additional repulsive interaction term whose joint density u(t, x ) with x ∈ R5
+
+evolves according to a Fokker–Planck equation. We solve the Fokker–Planck equation using an MLP with three layers and width 20; see Appendix B.4. Figure 5 shows the predicted mean and diagonal entry of the covariance corresponding to dimension five. While DF dynamics lead to jumps in the solution, our DFO leads to smoother mean and covariance predictions. This is in agreement with the results shown in Table 2, where our approach achieves the smallest approximation error for the mean and covariance. We additionally show in Table 2 a variant RDFO of DFO that uses a randomized SVD (see Appendix D for details), which helps to reduce the runtime in this example by a factor two compared to DFO and DF. 8Dirac-Frenkel-Onsager (DFO) 
+
+## 6. Conclusions and limitations 
+
+Conclusions This work proposes an Onsager-type mo-mentum mechanism that systematically handles tangent-space collapse and ill-conditioning in Dirac-Frenkel dy-namics. By injecting momentum only along Jacobian-null (gauge) directions, we uniquely determine a parameter evo-lution while leaving the Galerkin-optimal, instantaneous residual-minimizing function-space dynamics unchanged. Numerical experiments demonstrate that the proposed Dirac-Frenkel-Onsager scheme can cope with tangent-space col-lapse situations, less background error is injected because momentum leads to informed parameter velocities in all di-rections, and the approach incurs little extra costs and scales to high-dimensional problems. 
+
+Limitations (i) DFO resolves non-uniqueness along Jacobian-null (gauge) directions, but it does not directly cure ill-conditioning in function-relevant directions associ-ated with small yet nonzero singular values. (ii) The method introduces a dissipation/time-scale parame-ter controlling how aggressively the history variable tracks the instantaneous Dirac-Frenkel reference. In this work we use simple, problem-dependent choices; principled and automated selection strategies (e.g., based on conditioning indicators or residual) remain to be developed. 
+
+## Impact Statement 
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here. 
+
+## References 
+
+Amari, S.-i. Natural gradient works efficiently in learning. 
+
+Neural Computation , 10(2):251–276, 1998. doi: 10.1162/ 089976698300017746. Anderson, W. and Farazmand, M. Evolution of nonlinear reduced-order solutions for PDEs with conserved quanti-ties. SIAM J. Sci. Comput. , 44(1):A176–A197, 2022. Bachmayr, M., Dahmen, W., and Oster, M. Variationally correct neural residual regression for parametric PDEs: on the viability of controlled accuracy. IMA Journal of Numerical Analysis , pp. 1–50, 10 2025. Beck, M., J ¨ackle, A., Worth, G., and Meyer, H.-D. The multiconfiguration time-dependent hartree (MCTDH) method: a highly efficient algorithm for propagating wavepackets. Physics Reports , 324(1):1–105, 2000. Berman, J. and Peherstorfer, B. Randomized sparse Neural Galerkin schemes for solving evolution equations with deep networks. In Oh, A., Naumann, T., Globerson, A., Saenko, K., Hardt, M., and Levine, S. (eds.), Advances in Neural Information Processing Systems , volume 36, pp. 4097–4114. Curran Associates, Inc., 2023. Berman, J. and Peherstorfer, B. CoLoRA: Continuous low-rank adaptation for reduced implicit neural modeling of parameterized partial differential equations. In Salakhut-dinov, R., Kolter, Z., Heller, K., Weller, A., Oliver, N., Scarlett, J., and Berkenkamp, F. (eds.), Proceedings of the 41st International Conference on Machine Learning , vol-ume 235 of Proceedings of Machine Learning Research ,pp. 3565–3583. PMLR, 21–27 Jul 2024. Bruna, J., Peherstorfer, B., and Vanden-Eijnden, E. Neu-ral Galerkin schemes with active learning for high-dimensional evolution equations. J. Comput. Phys. , 496: 112588, 2024. ISSN 0021-9991. Buchfink, P., Glas, S., Haasdonk, B., and Unger, B. Model reduction on manifolds: A differen-tial geometric framework. Physica D: Nonlinear Phenomena , 468:134299, 2024. ISSN 0167-2789. doi: https://doi.org/10.1016/j.physd.2024.134299. URL https://www.sciencedirect.com/ science/article/pii/S0167278924002501 .Chen, H., Wu, R., Grinspun, E., Zheng, C., and Chen, P. Y. Implicit neural spatial representations for time-dependent PDEs. In Krause, A., Brunskill, E., Cho, K., Engelhardt, B., Sabato, S., and Scarlett, J. (eds.), Proceedings of the 40th International Conference on Machine Learning , vol-ume 202 of Proceedings of Machine Learning Research ,pp. 5162–5177. PMLR, 23–29 Jul 2023. Chen, Z., Mccarran, J., Vizcaino, E., Soljacic, M., and Luo, D. TENG: Time-evolving natural gradient for solving PDEs with deep neural nets toward machine precision. In Salakhutdinov, R., Kolter, Z., Heller, K., Weller, A., Oliver, N., Scarlett, J., and Berkenkamp, F. (eds.), Pro-ceedings of the 41st International Conference on Machine Learning , volume 235 of Proceedings of Machine Learn-ing Research , pp. 7143–7162. PMLR, 21–27 Jul 2024. Dahmen, W., Li, W., Teng, Y., and Wang, Z. Expansive nat-ural neural gradient flows for energy minimization, 2025. URL https://arxiv.org/abs/2507.13475 .Dirac, P. A. M. Note on exchange phenomena in the thomas atom. Mathematical Proceedings of the Cambridge Philo-sophical Society , 26(3):376–385, 1930. Dong, Y., Schwerdtner, P., and Peherstorfer, B. Ran-domized time stepping of nonlinearly parametrized so-lutions of evolution problems, 2025. URL https: //arxiv.org/abs/2512.19009 .9Dirac-Frenkel-Onsager (DFO) 
+
+Du, Y. and Zaki, T. A. Evolutional deep neural network. 
+
+Physical Review E , 104(4), oct 2021a. doi: 10.1103/ physreve.104.045303. URL https://doi.org/10. 1103%2Fphysreve.104.045303 .Du, Y. and Zaki, T. A. Evolutional deep neural network. 
+
+Phys. Rev. E , 104:045303, Oct 2021b. Einkemmer, L., Kormann, K., Kusch, J., McClar-ren, R. G., and Qiu, J.-M. A review of low-rank methods for time-dependent kinetic simulations. J. Comput. Phys. , 538:114191, 2025. ISSN 0021-9991. doi: https://doi.org/10.1016/j.jcp.2025.114191. URL https://www.sciencedirect.com/ science/article/pii/S0021999125004747 .Feischl, M., Lasser, C., Lubich, C., and Nick, J. Regular-ized dynamical parametric approximation. arXiv , 2403 (19234):1–38, 2024. Finzi, M., Potapczynski, A., Choptuik, M., and Wil-son, A. G. A Stable and Scalable Method for Solv-ing Initial Value PDEs with Neural Networks, Au-gust 2023. URL http://arxiv.org/abs/2304. 14994 . arXiv:2304.14994 [cs]. Frenkel, J. Wave Mechanics, Advanced General Theory .Clarendon Press, Oxford, 1934. Goldshlager, G., Abrahamsen, N., and Lin, L. A kaczmarz-inspired approach to accelerate the optimization of neu-ral network wavefunctions. Journal of Computational Physics , 516:113351, 2024. Guzman-Cordero, A., Dangel, F., Goldshlager, G., and Zeinhofer, M. Improving energy natural gradient de-scent through woodbury, momentum, and randomiza-tion. In The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2025. URL https: //openreview.net/forum?id=5YMZfufpfY .Haegeman, J., Cirac, J. I., Osborne, T. J., Pi ˇzorn, I., Ver-schelde, H., and Verstraete, F. Time-dependent varia-tional principle for quantum lattices. Phys. Rev. Lett. ,107:070601, Aug 2011. doi: 10.1103/PhysRevLett.107. 070601. URL https://link.aps.org/doi/10. 1103/PhysRevLett.107.070601 .Halko, N., Martinsson, P.-G., and Tropp, J. A. Finding structure with randomness: Probabilistic algorithms for constructing approximate matrix decompositions. SIAM review , 53(2):217–288, 2011. Han, J., Jentzen, A., and E, W. Solving high-dimensional partial differential equations using deep learning. Pro-ceedings of the National Academy of Sciences , 115(34): 8505–8510, 2018. Hu, Z., Liu, C., Wang, Y., and Xu, Z. Energetic variational neural network discretizations of gradient flows. SIAM Journal on Scientific Computing , 46(4):A2528–A2556, 2024. Kay, K. G. The matrix singularity problem in the time-dependent variational method. Chem. Phys. , 137(1):165– 175, 1989. Koch, J., Kurosaka, M., Knowlen, C., and Kutz, J. N. Mode-locked rotating detonation waves: Experiments and a model equation. Physical Review E , 101(1):013106, Jan-uary 2020. ISSN 2470-0045, 2470-0053. doi: 10.1103/ PhysRevE.101.013106. URL https://link.aps. org/doi/10.1103/PhysRevE.101.013106 .Koch, O. and Lubich, C. Dynamical low-rank approxima-tion. SIAM J. Matrix Anal. Appl. , 29(2):434–454, 2007. Kvaal, S., Lasser, C., Pedersen, T. B., and Adamowicz, L. No need for a grid: Adaptive fully-flexible gaussians for the time-dependent Schr ¨odinger equation. arXiv , 2207 (00271):1–8, 2023. Lubich, C. From Quantum to Classical Molecular Dynam-ics: Reduced Models and Numerical Analysis . EMS Press, 2008. Meyer, H.-D., Manthe, U., and Cederbaum, L. The multi-configurational time-dependent hartree approach. Chemi-cal Physics Letters , 165(1):73–78, 1990. M ¨uller, J. and Zeinhofer, M. Achieving high accuracy with PINNs via energy natural gradient descent. In Krause, A., Brunskill, E., Cho, K., Engelhardt, B., Sabato, S., and Scarlett, J. (eds.), Proceedings of the 40th Interna-tional Conference on Machine Learning , volume 202 of 
+
+Proceedings of Machine Learning Research , pp. 25471– 25485. PMLR, 23–29 Jul 2023. Onsager, L. Reciprocal relations in irreversible processes. i. Phys. Rev. , 37:405–426, Feb 1931. doi: 10.1103/ PhysRev.37.405. URL https://link.aps.org/ doi/10.1103/PhysRev.37.405 .Raissi, M., Perdikaris, P., and Karniadakis, G. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. J. Comput. Phys. , 378:686– 707, 2019. Rowan, K., Schatzki, L., Zaklama, T., Suzuki, Y., Watanabe, K., and Varga, K. Simulation of a hydrogen atom in a laser field using the time-dependent variational principle. 
+
+Phys. Rev. E , 101:023313, Feb 2020. Wang, Y., Chen, J., Liu, C., and Kang, L. Particle-based energetic variational inference. Statistics and Computing ,31:1–17, 2021. 10 Dirac-Frenkel-Onsager (DFO) 
+
+Wen, Y., Vanden-Eijnden, E., and Peherstorfer, B. Coupling parameter and particle dynamics for adaptive sampling in Neural Galerkin schemes. Phys. D , 462:134129, 2024. doi: 10.1016/j.physd.2024.134129. Zhang, H., Chen, Y., Vanden-Eijnden, E., and Peherstorfer, B. Sequential-in-time training of nonlinear parametriza-tions for solving time-dependent partial differential equa-tions. SIAM Review , 2025. (accepted). 11 Dirac-Frenkel-Onsager (DFO) 
+
+## Appendix outline 
+
+This appendix complements the main text as follows. • Section A provides details on the two examples of Section 2.2 (wave collision and advection–reaction) illustrating tangent-space collapse and how DFO escapes it. • Section B collects the specifications for the PDE benchmarks of Sections 5.2 and 5.3. • Section C reports details about architectural choices, least-squares solvers, IC fitting, some extended numerical results, and baselines for the experiments in Sections 5.2 and 5.3. • Section D summarizes the randomized tSVD variant used in RDFO (Table 2) to reduce the cost of least-squares and to approximate nullspace projections. • Section E specifies the RK4 time discretization used for DFO in the PDE experiments of Section 5.2. 
+
+## A. Examples with tangent-space collapse 
+
+A.1. Wave collision problem 
+
+We consider the 1D wave equation as in the main text ∂2 
+
+> t
+
+u = c2∂2
+
+> x
+
+u with initial conditions u(0 , x ) = ϕ0(x; −2) + ϕρ(x; 2) 
+
+and ut(0 , x ) = c∂ μϕ0(x; −2) − c∂ μϕρ(x; 2) , where we recall ϕρ(x; μ) = exp( − 12 (x − μ)2/(1 + ρ)) for a parameter 
+
+ρ ≥ 0. It can be easily checked that the analytical solution is given by 
+
+u(t, x ) = ϕ(x − ct ; −2) + ϕ(x + ct ; 2) . (18) We bring the equation in first-order form and use the two-wave parameterization ˆu(θ(t), x ) from Section 2.2, see (6) . We let 
+
+c = 1 and study the case and ρ = 0 , where the tangent space loses rank at collision. Indeed, at a collision event the two wave locations coincide, namely θ1 = θ2, and ∂θ1 ˆu(θ, ·) ≡ ∂θ2 ˆu(θ, ·), so that the direction 
+
+ξ1 = [1 , −1, 0, 0] ⊤ ∈ null( G(θ)) . (19) If additionally θ3 = θ4, then ∂θ3 ˆu(θ, ·) ≡ − ∂θ4 ˆu(θ, ·), so also 
+
+ξ2 = [0 , 0, 1, 1] ⊤ ∈ null( G(θ)) . (20) Consequently, the tangent space dimension drops and the DF least-squares admits infinitely many parameter velocities. Let ¯η(θ(t)) denote the DF reference velocity (minimal-norm solution). By construction, ¯η(θ(t)) ∈ range( G(θ(t))) and therefore ¯η(θ(t)) ⊥ null( G(θ(t))) , hence 
+
+ξ⊤ 
+
+> 1
+
+¯η(θ(t)) = 0 and ξ⊤ 
+
+> 2
+
+¯η(θ(t)) = 0 whenever ξ1, ξ 2 ∈ null( G(θ(t))) . (21) Thus, at collision the minimal-norm DF velocity has no component along the critical separation direction ξ1.
+
+Why DFO escapes at collapse. Let now ξ = ξ1 and define the scalar components 
+
+β(t) = ξ⊤ ¯η(θ(t)) , α(t) = ξ⊤m(t).
+
+The Onsager equation τ ˙m = ¯ η − m implies τ ˙α(t) = β(t) − α(t). Before collision, null( G(θ(t))) = {0} and thus 
+
+P (θ(t)) = 0 ; therefore DFO reduces to DF at the level of ˙θ, but m(t) still accumulates a smooth history of ¯η(θ(t)) , so α(t)
+
+is generically nonzero near collision. At the collision time (collapse), ξ ∈ null( G(θ(t))) and therefore ξ⊤P (θ(t)) m(t) = 
+
+ξ⊤m(t) = α(t). Using the DFO gauge-fixed update ˙θ = ¯ η + λP (θ)m, we obtain 
+
+ξ⊤ ˙θ(t) = ξ⊤ ¯η(θ(t)) + λξ ⊤P (θ(t)) m(t) = 0 + λα (t)̸ = 0 ,
+
+so DFO produces a nonzero velocity component along ξ and the waves can separate after collision. Furthermore, we can make the following exact-recovery statement for a specific choice of the DFO parameter. 12 Dirac-Frenkel-Onsager (DFO) 
+
+Proposition A.1 (DFO recovers the exact crossing continuation) . Consider the collapse case ρ = 0 and c = 1 . Let 
+
+θ∗(t) = [ −2 + t, 2 − t, −2 + t, 2 − t]⊤, q = ˙θ∗(t) = [1 , −1, 1, −1] ⊤. (22) 
+
+Assume that the continuous-time DFO dynamics τ ˙m = ¯ η(θ) − m and ˙θ = ¯ η(θ) + λP (θ)m are initialized with θ(0) = θ∗(0) 
+
+and m(0) = 0 , and choose 
+
+λ = (1 − exp( −2/τ )) −1 . (23) 
+
+Then the path θ∗(t) satisfies the continuous-time DFO dynamics and the represented function ˆu(θ∗(t), ·) equals the exact wave-equation solution (18) for all t ≥ 0.Proof. Along θ∗(t), the parametrization (6) represents the exact solution (18) . For t̸ = 2 , the path θ∗(t) avoids the rank-loss configuration described by (19)–(20), and the exact PDE vector field satisfies 
+
+F(ˆ u(θ∗(t), ·)) = ∇θ ˆu(θ∗(t), ·)⊤q. (24) By (24) , for t̸ = 2 , the minimal-norm DF reference velocity is unique and satisfies ¯η(θ∗(t)) = q. Before collision, the same rank condition from (22) and (19) –(20) gives P (θ∗(t)) = 0 , so DFO agrees with DF at the level of ˙θ. Since m(0) = 0 and 
+
+¯η(θ∗(t)) = q for 0 ≤ t < 2, the Onsager equation gives 
+
+m(t) = (1 − exp( −t/τ )) q, 0 ≤ t < 2. (25) Taking the left limit in (25) at collision yields 
+
+m(2) = (1 − exp( −2/τ )) q. (26) At t = 2 , the path (22) satisfies θ∗ 
+
+> 1
+
+= θ∗ 
+
+> 2
+
+and θ∗ 
+
+> 3
+
+= θ∗ 
+
+> 4
+
+, so the collision nullspace directions are those in (19) and (20) . The exact velocity decomposes as 
+
+q = [0 , 0, 1, −1] ⊤ + ξ1, (27) where [0 , 0, 1, −1] ⊤ is orthogonal to the collapse directions ξ1 and ξ2 from (19)–(20). Therefore, by (27) and the minimal-norm orthogonality relation (21), the DF reference velocity at collision is 
+
+¯η(θ∗(2)) = [0 , 0, 1, −1] ⊤,
+
+and, by (26) and (27), the projected memory in the DFO correction is 
+
+P (θ∗(2)) m(2) = (1 − exp( −2/τ )) ξ1.
+
+Hence, with the choice in (23), the DFO velocity at collision is 
+
+˙θ(2) = ¯ η(θ∗(2)) + λP (θ∗(2)) m(2) = [0 , 0, 1, −1] ⊤ + ξ1 = q, (28) and the separation component is restored exactly. After collision, θ∗ immediately leaves the rank-loss configuration described, so the unique DF reference velocity along the exact path is again q. Hence, P (θ∗(t)) = 0 and ˙θ(t) = q for t > 2. Together with (24) and (28) , this shows that 
+
+θ(t) = θ∗(t) is a solution of the DFO dynamics, and the claim is proven. 
+
+Numerical setup to produce Figure 1. For the numerics, we consider two regimes: the collapse case ρ = 0 and an 
+
+ill-conditioned case ρ = 4 .635 × 10 −6. The Onsager parameters are set to τ = 0 .5 and λ = 1 . We assemble the batch Jacobian J(θ) and right-hand side f (θ) using N = 151 equidistant collocation points on the periodic domain Ω = [ −12 , 12) .For this toy parameterization, the spatial derivatives entering the wave operator are evaluated analytically. We discretize both DF and DFO in time with forward Euler and the semi-implicit scheme of Section 4.3, respectively, using step size 
+
+δt = 3 × 10 −4, and at each time step compute the DF reference velocity ¯ηk via an tSVD-based least-squares solve of the batch system. 13 Dirac-Frenkel-Onsager (DFO) 
+
+A.2. Advection–reaction problem 
+
+Consider the advection–reaction equation on Ω = [0 , 2π) with periodic boundary conditions 
+
+∂tu(t, x ) = −c ∂ xu(t, x ) − κ u (t, x ) + s(t, x ),
+
+with c ∈ R and κ ∈ R \ { 0}. We choose c = 1 and κ = 1 . We select the initial condition and source term s(t, x ) so that the exact solution is 
+
+u(t, x ) = a(t) sin( x) + b(t) cos( x), a(t) = sin( t), b(t) = sin( t),
+
+so in particular ∂tu(π/ 2, ·) ≡ 0. A direct calculation shows that the choice 
+
+s(t, x ) =   cos( t) + ( κ − c) sin( t) sin( x) +   cos( t) + ( κ + c) sin( t) cos( x)
+
+makes the above u(t, x ) satisfy the PDE exactly. We approximate u with the two-parameter ansatz 
+
+ˆu(θ(t), x ) = ˆ a(θ(t)) sin( x) + ˆb(θ(t)) cos( x), ˆa(θ) = sin( θ1), ˆb(θ) = sin( θ2),
+
+with θ = [ θ1, θ 2]⊤ ∈ R2. The parameter derivatives are 
+
+∂θ1 ˆu(θ, x ) = cos( θ1) sin( x), ∂θ2 ˆu(θ, x ) = cos( θ2) cos( x),
+
+hence the tangent space collapses whenever cos( θ1) = 0 or cos( θ2) = 0 , e.g. at θi = π/ 2 modulo 2π. In particular, the chosen parameterization matches the solution exactly with θ1(t) = θ2(t) = t, which can be obtained from the DF least-squares problem at times t ∈ [0 , π/ 2) as the Jacobian is full rank. When t hits π/ 2, we have that cos( θ1(t)) = cos( θ2(t)) = 0, and both derivatives ∂θ1 ˆu and ∂θ2 ˆu vanish and the tangent space collapses to {0}. Hence, the DF least-squares admits every velocity as a minimizer, and the minimal-norm selection returns ¯η(θ(t)) = 0 , and the DF trajectory freezes at the collapse point once it reaches it (see Figure 2b). 
+
+Why DFO escapes. At a collapse point, the Gram matrix satisfies G(θ) = 0 and thus the nullspace projector is P (θ) = I.Moreover ¯η(θ(t)) = 0 at t = π/ 2. Since ¯η(θ(t)) ̸ = 0 away from collapse, the Onsager filter produces a nonzero history 
+
+m(π/ 2) ̸ = 0 . Therefore DFO yields 
+
+˙θ(π/ 2) = ¯ η(π/ 2) + λP (θ(π/ 2)) m(π/ 2) = λm (π/ 2) ̸ = 0 ,
+
+so the parameter trajectory leaves the collapse set immediately and the DF evolution resumes uniquely once G(θ) regains rank. 
+
+Numerical setup to produce Figure 2. We use an equidistant spatial grid with N = 512 points on [0 , 2π) and integrate over the time interval [0 , 6] with step size δt = 10 −4. For DF and DFO, we discretize the parameter dynamics for θ with forward Euler, while the history variable m is advanced with backward Euler, resulting in the semi-implicit scheme (16) from the main text. The SVD-based least-squares solver employs truncation thresholds given by an absolute tolerance 10 −3
+
+and a relative tolerance 10 −10 . Finally, we set the Onsager parameters to τ = 0 .05 and λ = 10 −5.
+
+## B. PDE examples specifications 
+
+Let us provide a detailed description of the PDEs we use for the experiments presented in Sections 5.2 and 5.3. We show the reference (truth) and the solution obtained with the DFO scheme for the 4 PDEs in Figures 6 to 9. 
+
+B.1. Rotating detonation waves (RDW) 
+
+We consider the rotating detonation wave model of Koch et al. (2020), motivated by rotating detonation engines for space propulsion. The state consists of two fields on the periodic domain Ω = [0 , 2π): an intensive fluid property η(t, x ) and the combustion progress λ(t, x ). The dynamics generate a sharp-fronted wave that travels around the circular domain and, through the reaction–relaxation coupling, can trigger a secondary wave. Specifically, we solve the following two-field system with periodic boundary conditions, 
+
+∂tη = −η ∂ xη + ν ∂ xx η + (1 − λ) ω(η) + ξ(η), ∂tλ = ν ∂ xx λ + (1 − λ) ω(η) − β(η; μ) λ, 
+
+14 Dirac-Frenkel-Onsager (DFO) 0   
+
+> 2
+> 4
+> 6
+> truth DFO (ours)
+> 05
+> time
+> 0
+> 2
+> 4
+> 6
+> space
+> 05
+> 1.0
+> 1.2
+> 1.4
+> 1.6
+> 1.8
+> 2.0
+> 0.75
+> 0.80
+> 0.85
+> 0.90
+> 0.95
+
+Figure 6. Space-time plot of the fields η and λ, solutions of the rotating detonation waves PDE system 
+
+where 
+
+ω(η) = exp 
+
+ η − ηc
+
+α
+
+
+
+, β(η; μ) = μ
+
+1 + exp( r(η − ηp)) , ξ(η) = −ε η. 
+
+We use the parameters ν = 10 −2, μ = 3 .5, α = 0 .3, ηc = 1 .1, ε = 0 .11 , ηp = 0 .5, r = 5 .0, and the initial condition 
+
+η(0 , x ) = 0 .4 exp  −2.25( x − π)2 + 1 , λ(0 , x ) = 0 .75 .
+
+We integrate until final time T = 8 . Since no closed-form solution is available, we compute reference solutions using RK4 in time coupled with a high-order IMEX discretization in space. 
+
+B.2. Transport through flow field 
+
+We model passive transport through a nonuniform flow field via a two-dimensional linear advection equation. The unknown 
+
+u(t, x, y ) represents a scalar quantity (e.g., a tracer concentration) that is carried by a spatially varying velocity field on the periodic domain Ω = [ −1, 1) 2. Specifically, we solve 
+
+∂tu + cx(x) ∂xu + cy (y) ∂y u = 0 , (x, y ) ∈ [−1, 1) 2,
+
+with periodic boundary conditions and separable advection speeds 
+
+cx(x) = 1 .0
+
+
+
+1 + 0 .6 sin   2π·3( x−x0)
+
+> Lx
+
+
+
+, cy (y) = 0 .8
+
+
+
+1 + 0 .3 cos   2π·2( y−y0)
+
+> Ly
+
+
+
+, Lx = Ly = 2 .
+
+We initialize with a localized Gaussian bump, 
+
+u(0 , x, y ) = exp 
+
+
+
+− (x − ¯x)2 + ( y − ¯y)2
+
+πσ 
+
+
+
+, σ = 8 × 10 −3, ¯x = −0.2, ¯y = 0 ,
+
+and integrate until final time T = 20 . Since no closed-form solution is available for this spatially varying velocity field, we compute reference solutions using RK4 in time combined with fourth-order finite differences in space. 
+
+B.3. Charged particles in electric field 
+
+Following a setup similar to (Berman & Peherstorfer, 2024), we consider a two-dimensional (one space, one velocity) Vlasov model for collisionless charged particles in a prescribed electrostatic potential. The unknown u(t, x, v ) is the particle density in phase space; starting from a localized distribution, the self-consistent transport in (x, v ) driven by free streaming and electric forcing advects, shears, and deforms the density over time. Specifically, we solve the Vlasov equation on 
+
+[−1, 1) 2,
+
+∂tu(t, x, v ) = −v ∂ xu(t, x, v ) + ( ∂xϕ(x)) ∂v u(t, x, v ), (x, v ) ∈ [−1, 1) 2,
+
+15 Dirac-Frenkel-Onsager (DFO) x           
+
+> y
+> t0t4t8t12 t16 t20
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> truth x
+> y
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> DFO
+
+Figure 7. Snapshots of the solution of the advection equation modeling transport through flow field x           
+
+> v
+> t0t2t4t6t8t10
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> truth x
+> v
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> DFO
+
+Figure 8. Snapshots of the charged particles density solution of the Vlasov equation 
+
+with periodic boundary conditions in both position x and velocity v. The potential is taken as 
+
+ϕ(x) = −α  1 + cos( π(x + μ)4) − β sin( πx ),
+
+and we set α = 0 .2, β = 0 .1, μ = 0 . The initial condition is a localized Gaussian bump in phase space, 
+
+u(0 , x, v ) = exp 
+
+
+
+− (x − 0.1) 2 + v2
+
+σ2
+
+
+
+, σ = 0 .15 ,
+
+and we integrate until final time T = 10 . Since no closed-form solution is available, we compute reference solutions using RK4 in time coupled with fourth-order finite differences in space. 
+
+B.4. Fokker–Planck equation 
+
+We adopt the setup of (Bruna et al., 2024), where the dynamics are described in terms of d interacting particles X(t) = (X1(t), . . . , X d(t)) ⊤ ∈ Rd evolving in an anharmonic confining potential with an additional repulsive interaction term. Specifically, for i = 1 , . . . , d ,
+
+dXi(t) = 
+
+
+
+g(t, X i(t)) + α ¯X(t) − α X i(t)
+
+
+
+dt + √2D dWi(t), ¯X(t) = 1
+
+d
+
+> d
+
+X
+
+> j=1
+
+Xj (t),
+
+where W1, . . . , W d are independent Wiener processes. We start from a Gaussian initial law X(0) ∼ N (m0, Σ0) (equiva-lently, u(0 , ·) is Gaussian), but due to the nonlinearity the density does not remain Gaussian over time. The joint probability density u(t, x ) of X(t), with x = ( x1, . . . , x d)⊤ ∈ Rd, satisfies the d-dimensional Fokker–Planck equation 
+
+∂tu = −
+
+> d
+
+X
+
+> i=1
+
+∂xi
+
+ u h i(t, x ) + D
+
+> d
+
+X
+
+> i=1
+
+∂2 
+
+> xi
+
+u, hi(t, x ) = g(t, x i) + α¯x − αx i, ¯x = 1
+
+d
+
+> d
+
+X
+
+> j=1
+
+xj ,
+
+16 Dirac-Frenkel-Onsager (DFO) 0 1 2 3 4 5 6 7 8         
+
+> time
+> 0
+> 1
+> 2
+> 3
+> 4
+> space
+> truth
+> 012345678
+> time
+> DFO (ours)
+> 0
+> 1
+> 2
+> 3
+> 4
+> 5
+> 6
+> 7
+> Figure 9. Space-time plot of the marginal density of the fifth component of the solution of the Fokker-Planck equation
+
+with 
+
+g(t, x ) = ( a(t) − x)3, a(t) = ascale 
+
+  sin( πa freq t) + ashift 
+
+.
+
+We solve the equation in d = 5 dimensions, and set the parameters to D = 10 −2, α = −0.5, ascale = 1 .25 , ashift = 1 .5,
+
+afreq = 1 . The final time is T = 8 . To compute reference statistics, we simulate the SDE with an Euler–Maruyama scheme to generate 10 5 i.i.d. particle trajectories and form the empirical mean and covariance. 
+
+## C. Detailed numerical setups 
+
+C.1. Architectures and periodic embedding 
+
+All experiments use MLP parametrizations equipped with a periodic embedding layer so that periodic boundary conditions are satisfied by construction. Concretely, we use the periodic embedding from (Berman & Peherstorfer, 2023): for an input 
+
+x ∈ Rd with period P , each embedding channel is defined by trainable parameters a, ϕ, b ∈ Rd as 
+
+periodic embed (x) = 
+
+> d
+
+X
+
+> i=1
+
+a cos((2 π/P ) x + ϕ) + b
+
+> i
+
+,
+
+and this operation is repeated w times (with independent parameters (a, ϕ, b ) per channel) to produce an output vector 
+
+y ∈ Rw. For the low-dimensional examples (RDW, linear advection, and Vlasov), we fix a ≡ 1 and b ≡ 0 in the embedding, i.e., only the phase parameters ϕ are optimized. For RDW, we use two separate MLPs (one for η and one for λ), each with 4
+
+layers of width 10 , for a total of 922 trainable parameters. For Vlasov and 2D advection, we use a single MLP with 3 layers of width 32 (3265 parameters). For the 5D Fokker–Planck equation, we use a single MLP with 3 layers of width 20 (1581 parameters) and parameterize the density as ˆu(θ, x ) = exp( −NN θ (x)) . All networks use the swish activation function. 
+
+C.2. Solving the least-squares subproblem 
+
+The core procedure at each time step of all schemes based on the Dirac-Frenkel residual minimization principle is the solution of the linear least-squares problem 
+
+min  
+
+> η∈Rp
+
+∥Jη − f ∥22, (29) where J and f are as defined in (17) , possibly regularized to handle ill-conditioning. Let us review two standard forms of regularization: (i) a truncated SVD (tSVD), and (ii) explicit Tikhonov regularization. 
+
+tSVD regularization. Let J = U ΣV ⊤ be the SVD, with singular values σ1 ≥ · · · ≥ σp ≥ 0. Given a truncation level 
+
+ϵ > 0, which in all our experiments using the tSVD subroutine we set relative to the largest singular value ϵ = ϵrel σ1, we retain only the modes with σi ≥ ϵ, and define the truncated pseudoinverse 
+
+J† 
+
+> ϵ
+
+= V Σ† 
+
+> ϵ
+
+U ⊤, (Σ † 
+
+> ϵ
+
+)ii =
+
+(
+
+σ−1 
+
+> i
+
+, σi ≥ ϵ, 
+
+0, σi < ϵ. 
+
+The resulting regularized minimal-norm solution to (29) is η = J† 
+
+> ϵ
+
+f .17 Dirac-Frenkel-Onsager (DFO) DF DFO (ours)   
+
+> Figure 10. Vlasov experiment: six random two-dimensional projections of the parameter velocities (which live in R3265 ) produced by tSVD-regularized DF (bottom row) and by DFO (top row). Each panel corresponds to an independent random projection. Markers are colored with a time gradient, with lighter dots indicating later times. DF yields more erratic projected velocities with intermittent large excursions, whereas DFO produces more coherent trajectories in these projections, consistent with the discussion in the main text.
+
+Tikhonov regularization. Alternatively, one can solve the ridge-regularized problem 
+
+min  
+
+> η∈Rp
+
+∥Jη − f ∥22 + γ∥η∥22, γ > 0,
+
+whose solution is η = ( J⊤J + γI )−1J⊤f .
+
+Numerical implementation (QR + SVD). In both cases we avoid forming the full SVD of J by computing a thin QR factorization J = QR followed by an SVD of the smaller triangular factor R = eU Σ V ⊤. Since J = ( Q eU )Σ V ⊤, the singular values are those of R, and the right singular vectors are V . We then apply either (i) hard truncation where σi < ϵ is set to 0 (tSVD), or (ii) the Tikhonov filter σi 7 → σ2 
+
+> i
+
+/(σ2 
+
+> i
+
++ γ) to obtain the regularized least-squares solution. The cost of this procedure is in both cases scales like O(N p 2) when N ≥ p, which is the case for all our experiments. 
+
+C.3. Time and space discretization 
+
+For the low-dimensional examples in Section 5.2, we integrate the parameter dynamics for θ with a fixed-step RK4 scheme across all methods, except for TENG, which uses the Heun method as suggested in (Chen et al., 2024). In all cases, the auxiliary momentum variable m is advanced via a stage-coupled EMA (see Section E). We use a uniform time step 
+
+δt = 4 × 10 −3 for every method. Spatial discretizations rely on equispaced grids with: RDW Nx = 2048 , Vlasov 
+
+Nx = Nv = 500 , and 2D advection Nx = Ny = 512 .For the Fokker–Planck example, we use explicit Euler in time for all methods (including TENG), while DFO employs the specialized Euler discretization described in Section 4.3 of the main text. We truncate R5 to a periodic box x ∈ [0 , 4] 5 and adopt an adaptive sampling strategy: at each time step we draw a mixture of 2 × 10 3 uniform points and 2 × 10 3 Gaussian points, where the Gaussian component is fitted to the current solution using samples from the previous step. 
+
+C.4. Vlasov: temporal regularity of parameter velocities 
+
+As noted in the main text, the DFO correction promotes parameter dynamics that are smoother and less erratic in time than ones obtained from the tSVD-regularized DF scheme. To make this effect visible in the high-dimensional parameter space of the Vlasov experiment, we visualize the (discrete) parameter velocities produced by DF and DFO over the full time integration through several independent random two-dimensional projections. Figure 10 shows that DF produces highly scattered projected velocities with intermittent large excursions, consistent with erratic changes in the effective update direction when the batch Jacobian is close to rank-deficient and the active tSVD subspace changes over time. In contrast, DFO yields projected velocities that remain significantly more concentrated and coherent across time, highlighting the temporally smoothing effect of the history variable and its nullspace-projected correction. 18 Dirac-Frenkel-Onsager (DFO) 
+
+C.5. Benchmarks 
+
+We run NIVP with Tikhonov regularization and use the direct least-squares solver described in Appendix C.2 to keep the procedure simple; we use 10 restarts with 50 k Adam steps as suggested in (Finzi et al., 2023). In the Fokker–Planck experiment, the refit objective is chosen to match the IC-fit objective, and we use a truncated SVD in place of Tikhonov regularization, as the latter is ineffective in this setting. For RSNG, we adopt the sparse sketching strategy (column sampling) proposed in the original paper as this is a core part of the method which can improve accuracy by preventing overfitting (Berman & Peherstorfer, 2023). We report results averaged over 5 random seeds in Tables 1 and 2. For TENG, we use the randomized variant to solve the least-squares subproblems with 7 iterations for the first stage (Euler and Heun) and 5 iterations for the second stage (Heun), as suggested in (Chen et al., 2024). 
+
+C.6. Fitting the initial condition 
+
+For RDW we train with Adam for 50 ,000 iterations, while for Vlasov, linear advection, and Fokker–Planck we use Adam for 
+
+100 ,000 iterations, all using the mean-squared loss. In the Fokker–Planck case, we fit log( u0) using a mixture of uniform samples on the periodic box and Gaussian samples with importance weighting to define the loss function. 
+
+C.7. Additional numerical experiments 
+
+We add two robustness checks for the five-dimensional Fokker–Planck experiment. First, we vary the relative tSVD truncation threshold ϵrel . This threshold is a numerical resolution parameter for both DF and DFO: singular directions below it are not treated as stably resolved by the least-squares solve. The relevant comparison is therefore whether DFO improves over DF over a reasonable range of truncation levels. Table 3 shows that tuned DFO gives lower error of the mean for all tested values ϵrel ∈ [10 −5, 10 −2].             
+
+> Table 3. Fokker–Planck robustness sweep over the relative tSVD truncation threshold. Entries are relative errors of the mean, averaged over five runs.
+> ϵrel DF + tSVD DFO
+> 1.00e −57.75e −26.26e −25.00e −54.73e −23.99e −31.00e −41.46e −24.54e −31.00e −31.11e −26.60e −31.00e −22.46e −21.88e −2
+
+Second, we vary the Onsager parameter λ, which scales the projected momentum correction, and keep β = 0 .2 fixed. Since this correction is added to the DF reference velocity, we use order-one values and tune only within a modest range. Table 4 shows that the Fokker–Planck mean error is stable for λ ∈ [0 .5, 2.5] , so the method does not appear to require fine tuning of 
+
+λ in this example.             
+
+> Table 4. Fokker–Planck robustness sweep over the Onsager parameter λ. Entries are relative errors of the mean, averaged over five runs.
+> λDFO
+> 0.51.36e −20.75 1.53e −212.20e −21.25 1.65e −21.50 7.76e −31.75 1.40e −22.00 8.53e −32.25 3.51e −22.50 7.75e −3
+
+19 Dirac-Frenkel-Onsager (DFO) 
+
+## D. Randomization 
+
+When the batch Jacobian J(θ) ∈ RN ×p has rapidly decaying spectrum, we can approximate its dominant right singular subspace via a randomized SVD to reduce costs (Halko et al., 2011). 
+
+Randomized SVD (RSVD). Let Γ ∈ Rp×s be a sketching matrix (e.g. Gaussian, with oversampling as needed). Form 
+
+Y = J(θ)Γ ∈ RN ×s, Q = orth( Y ) ∈ RN ×s.
+
+Then compute the (small) SVD of the compressed matrix B = Q⊤J(θ) ∈ Rs×p,
+
+B = ˜U ΣV ⊤,
+
+which yields an approximate right singular basis V . After truncation at tolerance ϵ (tRSVD), we obtain Vϵ and define the approximate nullspace projector ˜Pϵ(θ)z = z − Vϵ(V ⊤ 
+
+> ϵ
+
+z).
+
+The computational complexity of this scheme scales like O(N s 2 + ps 2), which amounts to O(N s 2) in our numerical experiments as N ≥ p. Plugging tRSVD into Algorithm 1 in place of the full tSVD computation yields the randomized version of the DFO scheme (RDFO) shown in Table 2. 
+
+## E. RK4 time discretization of DFO 
+
+This section describes the RK4 time discretization of the DFO dynamics used in the low-dimensional PDE experiments in Section 5.2. Let the macro step size be h and the current state be (θk, m k). Define the RK4 stage substeps h1 = h4 = h and 
+
+h2 = h3 = h/ 2, and the intermediate states 
+
+θ1 = θk, θ2 = θk + h 
+
+> 2
+
+k1, θ3 = θk + h 
+
+> 2
+
+k2, θ4 = θk + h k 3.
+
+At each stage s = 1 , 2, 3, 4, we evaluate Js = J(θs) and fs = f (θs), and solve the least-squares subproblem using a tSVD with tolerance ϵ σ max (Js) (see Section C). This yields (i) the minimal-norm Dirac-Frenkel velocity ¯ηs, and (ii) the retained right-singular basis Vs associated with singular values above the truncation threshold. Given (θs, m s−1), we then perform the stage updates 
+
+∆ls ,s = hs ¯ηs, ms = β m s−1 + (1 − β)∆ ls ,s , m⊥ 
+
+> s
+
+= ms − Vs(V ⊤ 
+
+> s
+
+ms),
+
+and define the stage direction 
+
+ks = ¯ ηs + λ m⊥
+
+> s
+
+hs
+
+= ¯ ηs + λ ms − Vs(V ⊤ 
+
+> s
+
+ms)
+
+hs
+
+.
+
+Here β ∈ (0 , 1) controls the history (EMA) update and λ ≥ 0 scales the orthogonal momentum correction. Finally, the RK4 update is 
+
+θk+1 = θk + h
+
+6
+
+ k1 + 2 k2 + 2 k3 + k4
+
+, mk+1 = m4.
+
+20
