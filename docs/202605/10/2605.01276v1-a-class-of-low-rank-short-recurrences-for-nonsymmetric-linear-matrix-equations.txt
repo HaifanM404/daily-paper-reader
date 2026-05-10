@@ -1,0 +1,1852 @@
+Title: A class of low-rank short recurrences for nonsymmetric linear matrix equations
+
+URL Source: https://arxiv.org/pdf/2605.01276v1
+
+Published Time: Tue, 05 May 2026 00:27:56 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+A CLASS OF LOW-RANK SHORT RECURRENCES FOR NONSYMMETRIC LINEAR MATRIX EQUATIONS ∗
+
+DAVIDE PALITTA † , CATHERINE E. POWELL ‡ , AND VALERIA SIMONCINI †§ 
+
+Abstract. We propose a new class of short matrix recurrences for the solution of nonsymmetric linear equations of the type A1XB 1 + . . . + ApXB p = CD T . These iterative methods combine local subspace projection to speed up convergence with rank truncation strategies and randomization procedures to limit memory consumption. Computational experiments on a benchmark problem as well as a challenging discretized mixed formulation of a diffusion equation with random inputs illustrate the potential of the proposed methodology. 
+
+Key words. Multiterm matrix equations, low-rank approximation, nonsymmetric matrix oper-ators, sketching strategies, stochastic Galerkin method. 
+
+MSC codes. 65F45, 65F25, 65F99 
+
+1. Introduction. We are interested in the numerical solution of large-scale mul-titerm matrix equations of the form (1.1) A1XB 1 + . . . + ApXB p = CD T ,
+
+where for i = 1 , . . . , p the coefficient matrices Ai ∈ RnA×nA , Bi ∈ RnB ×nB are large, sparse and nonsymmetric , and C ∈ RnA×q , D ∈ RnB ×q are tall full-rank matrices with 
+
+q ≪ nA, n B . Note that the solution matrix X ∈ RnA×nB is rectangular in general. We define the linear operator 
+
+L : RnA×nB → RnA×nB , L(X) := A1XB 1 + . . . + ApXB p,(1.2) so that (1.1) can be written as L(X) = CD T , and we assume that (1.1) is uniquely solvable. We are mainly interested in matrix equations with p > 2. For p = 1 the problem amounts to solving two linear systems with multiple right-hand sides, while for p = 2, a generalized Sylvester equation is obtained [41]. The matrix equation (1.1) can also be written as a standard (vector) linear system, (1.3) Ax = b, A =
+
+> p
+
+X
+
+> i=1
+
+BTi ⊗ Ai,
+
+where x, b are the vectorizations of the matrices X, CD T , respectively. Here, ⊗ stands for the Kronecker product and A is nonsymmetric. Although the vector formulation (1.3) may be more familiar, the presence of the Kronecker product makes the di-mension unacceptably large, especially if Ai, Bi are large themselves. If standard iterative methods are employed to solve (1.3), full vectors of length nAnB need to be stored, which may be impossible to do. Under these strong memory constraints, the matrix formulation can provide significant benefits, the most prominent being the fact that the low-rank structure can be preserved and exploited. If the solution X can 
+
+> ∗
+
+Version of May 5, 2026 
+
+> †
+
+Dipartimento di Matematica and (AM) 2, Alma Mater Studiorum Universit` a di Bologna, Piazza di Porta San Donato 5, I-40127 Bologna, Italy, {davide.palitta,valeria.simoncini }@unibo.it 
+
+> ‡
+
+Department of Mathematics, University of Manchester, Oxford Road, Manchester M13 9PL, United Kingdom catherine.powell@manchester.ac.uk 
+
+> §
+
+IMATI-CNR, Pavia, Italy. 1
+
+> arXiv:2605.01276v1 [math.NA] 2 May 2026
+
+2 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+be well approximated by low-rank matrices, then approximations can be sought that are already in low-rank factored form, significantly lowering memory requirements. However, we stress that a key condition for making the formulation (1.1) appealing is that the right-hand side matrix has low rank, or else can be well approximated by a low-rank matrix. In general, without this condition it is hard to ensure that X will be numerically low rank. See [3] for pioneering results on low-rank properties of the solution matrix for problems arising in the control of dynamical systems. In recent decades interest in matrix equations of the type (1.1) has grown in var-ious scientific areas. Indeed, algebraic problems in matrix form naturally arise in the discretization of partial differential equations (PDEs) with separable coefficients on polygonal domains using finite difference methods, or whenever tensor approximation spaces are adopted. The latter is the case, for instance, in isogeometric analysis [39], and in certain spectral methods [11, section 5.1.3]. A setting where a multiterm matrix representation of the discretized problem is very natural is space-time formulations in which the left and right coefficient matrices are identified with spaces associated with the distinct variables [20]. In this setting the matrix formulation avoids another potential downside of the Kronecker formulation in (1.3), that is the artificial mix-ing of quantities that may have very different behaviors and interpretations. Along the same lines, matrix equations (1.1) also naturally arise in the numerical solution of certain classes of parametric PDEs (or PDEs with uncertain inputs) when these are discretized using tensor product schemes that treat the spatial and parametric variables separately; see section 8 for one such example. Multiterm matrix equations also classically play a key role in the analysis of stochastic or bilinear control sys-tems, where the structure arises naturally from the problem, without any restrictive assumptions on the form of discretization [4, section 6.4]. They also arise in other PDE-related settings, such as PDE-constrained optimization [13],[10]. Finally, we mention that multiterm matrix equations arise in data science, image processing, and inverse problems [49]; see [41] for an overview. Despite the nowadays rich realm of applications of matrix equations, algorithmic developments are lagging behind. Most early contributions to the solution of (1.1) in its generality resort to the Kronecker form (1.3) in some form or another, and use the matrix structure mostly to build the preconditioner or other acceleration devices; see, e.g., [39],[34],[35],[40],[44],[42],[12],[20]. Algorithms that genuinely attack (1.1), especially in the nonsymmetric case, are scarce. Existing contributions can be divided into two main streams: projection methods and short recurrences. Methods in the first class can be successfully applied as long as left and right approximation spaces can be built that contain enough spectral in-formation relating to the matrices Ai, Bi, respectively [10]. On the other hand, short recurrences implicitly build an approximation space. Given an initial X0, such meth-ods determine a sequence of approximations {Xk}k≥0 as Xk+1 = Xk + Mk where the update matrix Mk is usually forced to have low rank and kept in factored form. For instance, in the symmetric case, early approaches transformed vector methods for (1.3), say the Conjugate Gradient (CG) method, into a matrix iteration. To maintain low-rank iterates (for the solution approximation, direction and residual matrices) rank truncation is performed; in [24] the method was developed in detail, and then further used, e.g., in [7],[22]. Other perspectives for recurrences include alternating methods derived for a particular nonsymmetric PDE-constrained optimization prob-lem in [13], and optimization approaches, see, e.g., [9] for the symmetric case and [23] as a rank-one update for the nonsymmetric case. In this paper we introduce a new family of methods that generalize the well NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS 3established class of Generalized Conjugate Residual vector methods (which culminated in the GMRES algorithm) to the nonsymmetric problem (1.1). To do this, we leverage recent ideas from [33] for the symmetric and positive definite case. Briefly, starting from matrix-oriented CG, a recurrence of the form Xk+1 = Xk + P (l) 
+
+> k
+
+αk(P (r) 
+
+> k
+
+)T was proposed, where αk is a matrix obtained by solving a local minimization problem, and the pair P (l) 
+
+> k
+
+, P (r) 
+
+> k
+
+generates an approximation space that is expanded as the iteration proceeds. A truncation strategy to control the rank growth was also implemented. We propose a new short recurrence of the same type as in [33] where the matrices 
+
+αk, P (l) 
+
+> k
+
+, and P (r) 
+
+> k
+
+are now selected to satisfy local optimality properties that are appropriate for the case when L is nonsymmetric. Classical one-dimensional projection methods for vector linear systems are first reviewed in section 2. The new class of methods is derived in section 3. Within this class, we derive a local Minimal Residual method and a one-term Generalized Conjugate Residual iteration. In section 4 we present algorithmic details and dis-cuss mechanisms for making the new methods computationally efficient on large scale problems, including rank truncation and randomization strategies to reduce memory requirements. Preconditioning strategies are discussed in section 5 and convergence analysis is presented in section 6. We illustrate the performance of our new methods first on a benchmark problem; see section 7. Finally, in section 8 we focus on a chal-lenging matrix equation that initially motivated this work, arising from a stochastic Galerkin discretization of a parametric PDE. 
+
+1.1. Notation. Throughout the paper, capital bold letters ( X) are used to de-note matrices of large dimension, such as nA × nB , nA × nA, or nB × nB , with capital letters ( X) denoting their possibly low-rank factors, e.g. X = X1XT 
+
+> 2
+
+. Greek let-ters ( α) will denote scalars whereas bold Greek letters ( α) will be used for matrices of small dimension. Hence, blkdiag( α1, . . . , αs) will denote a block diagonal matrix with small matrices α1, . . . , αs on its diagonal blocks. The symbol ⊗ denotes the Kronecker product and vec( ·) is the operator that stacks the columns of a matrix one below the other to form a vector. For L defined in (1.2), we also define the operator 
+
+L∗(X) := AT 
+
+> 1
+
+XB T 
+
+> 1
+
++ . . . + ATp XB Tp .
+
+For R ∈ RnA×s we use the short-hand notation A⋆ • R = [ A1R, . . . , ApR], and analogously for BT⋆ • R with R ∈ RnB ×s. We say that a real nonsymmetric matrix A
+
+is positive definite if xT Ax > 0 for any nonzero real vector x.The notation ei is used for the i-th column of the identity matrix, whose dimension will be clear from the context, while 1n ∈ Rn denotes the vector of all ones. For a matrix X, range( X) is the space spanned by its columns. Finally, ∥ · ∥ denotes the Euclidean norm for vectors and its induced norm for matrices, while ∥ · ∥ F denotes the matrix Frobenius norm. 
+
+2. Classical projection methods for linear systems. In this section we recall a few classical iterative methods that are employed for solving linear systems of equations Ax = b, when A may be nonsymmetric. These simple solution strategies, categorized as one-dimensional projection methods, serve as our starting point for developing new matrix-oriented low-rank methods in the sequel. Given a starting approximation x0 and the corresponding residual r0 = b − A x0, a sequence {xk}k≥0
+
+of approximations is determined as (2.1) xk+1 = xk + αkrk, rk+1 = b − A xk+1 ,4 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+for some constant αk whose choice completely defines the method; see, e.g., [38, section 5.3]. We are particularly interested in the case where, at each iteration k, αk
+
+is chosen so that the function ϕ(α) := ∥b − A (xk + αr k)∥2 is minimized, that is (see, for example, [38, section 5.3.2]) 
+
+αk = (Ark)T rk
+
+(Ark)T Ark
+
+.
+
+This ensures that rk+1 is orthogonal to range( Ark), that is, rk+1 satisfies a Petrov-Galerkin condition with respect to a one-dimensional subspace. In keeping with clas-sical literature, we shall refer to this procedure as Minimal Residual (MR) iteration. An alternative class of approaches injects more subspace information by gener-ating direction vectors that satisfy certain orthogonality properties. The Generalized Conjugate Residual (GCR) method falls into this class. At each iteration, the ap-proximation is updated as 
+
+xk+1 = xk + αkpk, rk+1 = b − A xk+1 ,(2.2) where, starting with p0 = r0, a new recurrence of “direction” vectors {pk}k≥0 is introduced. GCR imposes the condition that all vectors Apk be orthogonal and for nonsymmetric matrices A this constraint needs to be imposed explicitly. To make the procedure sustainable in terms of computational cost and memory, the orthogonality condition may be imposed only with respect to ℓ ≤ k vectors, giving rise to the so-called orthomin (ℓ) algorithm. Here, the search directions are updated as (2.3) pk+1 = rk+1 +
+
+> k
+
+X
+
+> j=k−ℓ+1
+
+β(j) 
+
+> k
+
+pj , β(j) 
+
+> k
+
+= − (Ark+1 )T Apj
+
+(Apj )T Apj
+
+.
+
+We are particularly interested in the case ℓ = 1, resulting in the following or-thomin (1) method, 
+
+xk+1 = xk + αkpk, αk = (Apk)T rk
+
+(Apk)T Apk
+
+rk+1 = b − A xk+1 , pk+1 = rk+1 + βkpk, βk = − (Ark+1 )T Apk
+
+(Apk)T Apk
+
+.(2.4) This strategy provides a reasonable trade-off between storage demand and computa-tional cost. It has lower memory requirements than GCR, while imposing stronger orthogonality conditions compared to the MR iteration. Note that if A were symmet-ric, orthomin (1) would correspond to the Conjugate Residual (CR) method where the mutual orthogonality of all vectors Apk is guaranteed by the symmetry of A, even for ℓ = 1. We refer to [1] for a comprehensive description of the above methods and their interrelations in the context of iterative solvers for linear systems of equations. 
+
+3. Low-rank short matrix recurrences. We are now interested in adapting the MR and orthomin -type recurrences ((2.1) and (2.4), respectively) to our matrix equation setting. As already mentioned, a naive strategy would be to first transform (1.1) into Ax = b as in (1.3) and then apply an iteration of the form xk+1 = xk +αkpk
+
+for a specific choice of pk and αk. This would fail to exploit both the Kronecker structure of A and a low-rank matrix representation of x = vec( X). Our new idea then is to devise a principled matrix-oriented generalization of the classical (vector) NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS 5one-dimensional projection scheme (2.1), where the low-rank representation of iterates is preserved from one step to the next. More precisely, given a low-rank starting approximation X0, we aim to derive recurrences of the form (3.1) Xk+1 = Xk + V (l) 
+
+> k
+
+αk(V (r) 
+
+> k
+
+)T , Rk+1 = CD T − L (Xk+1 ),
+
+where the pair ( V (l) 
+
+> k
+
+, V (r) 
+
+> k
+
+) replaces the direction vector and αk is now a matrix of conforming size. Note that in a practical implementation the approximate solution is kept in factored form, so that the update is performed accordingly (see section 4). The idea of using a matrix iteration of the form (3.1) with αk being a matrix was recently introduced in [33] for symmetric and positive definite operators. The use of short recurrences for nonsymmetric A allows us to generalize this idea to the case of the nonsymmetric operator L, or to the case of a preconditioning strategy that makes the preconditioned operator nonsymmetric; see one such example in section 8. 
+
+3.1. The ss–mr method. In this section we design the matrix counterpart of the MR iteration (2.1). Let R0 = CD T − L (X0) and write R0 = R(l)0 (R(r)0 )T . Here and in the following we assume that X0 is such that R0 has low rank. To generalize the iteration (2.1) we consider the recurrence 
+
+Xk+1 = Xk + R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T
+
+Rk+1 = CD T − L (Xk+1 ), Rk+1 =: R(l)
+
+> k+1
+
+(R(r)
+
+> k+1
+
+)T ,
+
+where, at step k, αk is chosen to minimize the Frobenius norm of the residual, namely (3.2) min  
+
+> α∈Rqk×qk
+
+∥CD T − L (Xk + R(l) 
+
+> k
+
+α(R(r) 
+
+> k
+
+)T )∥2 
+
+> F
+
+.
+
+Here qk is the column dimension of the full rank matrix R(l) 
+
+> k
+
+. Equivalently, equa-tion (3.2) corresponds to (3.3) min  
+
+> α∈Rqk×qk
+
+Rk − L 
+
+
+
+R(l) 
+
+> k
+
+α(R(r) 
+
+> k
+
+)T  2
+
+> F
+
+.
+
+The following result provides the solution to this minimization problem, as a generalization of the case where αk is a scalar. 
+
+Proposition 3.1. Let Rk = R(l) 
+
+> k
+
+(R(r) 
+
+> k
+
+)T . The minimizer αk of (3.2) is the solution to the following reduced multiterm matrix equation 
+
+(3.4) (R(l) 
+
+> k
+
+)T L∗ 
+
+L(R(l) 
+
+> k
+
+α(R(r) 
+
+> k
+
+)T )
+
+
+
+R(r) 
+
+> k
+
+= ( R(l) 
+
+> k
+
+)T L∗(Rk)R(r) 
+
+> k
+
+.
+
+Moreover, vec (Rk+1 ) ⊥ A · Range (R(r) 
+
+> k
+
+⊗ R(l) 
+
+> k
+
+).Proof. By defining W = R(r) 
+
+> k
+
+⊗ R(l) 
+
+> k
+
+and writing rk = vec( Rk) and α = vec( α), the minimization problem (3.3) can be recast as min 
+
+> α∈Rq2
+> k
+
+∥rk − A W α∥2.
+
+Hence, α solves the normal equation ( AW )T (AW )α = ( AW )T rk. Going back to matrix form, this normal equation reads as follows (3.5) 
+
+> p
+
+X
+
+> i=1
+> p
+
+X
+
+> j=1
+
+(R(l) 
+
+> k
+
+)T ATi Aj R(l) 
+
+> k
+
+α(R(r) 
+
+> k
+
+)T Bj BTi R(r) 
+
+> k
+
+= ( R(l) 
+
+> k
+
+)T L∗(Rk)R(r) 
+
+> k
+
+,6 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+which is indeed (3.4). The orthogonality condition follows from standard properties of the residual of least squares problems. The explicit form (3.5) of the matrix equation (3.4) reveals that the coefficient operator consists of p2 terms, which have to be computed at each iteration. We postpone the discussion of computational strategies to solve this equation to sec-tion 4.1. Proposition 3.1 and its proof show that the matrix iteration relies on a Petrov-Galerkin orthogonality constraint with respect to a Kronecker structured sub-space, corresponding to the minimization of the residual norm. In the sequel we thus refer to this procedure as the Subspace Minimal Residual method, or ss–mr for short. 
+
+3.2. The ss–gcr (1) method. In this section, we derive the matrix counterpart of the generalized conjugate residual methods that were described for the vector set-ting in section 2. The recurrence for the approximate solution can be written as in (3.1), where the pair ( V (l) 
+
+> k
+
+, V (r) 
+
+> k
+
+) is now renamed ( P (l) 
+
+> k
+
+, P (r) 
+
+> k
+
+) so that 
+
+Xk+1 = Xk + P (l) 
+
+> k
+
+αk(P (r) 
+
+> k
+
+)T , Rk+1 = CD T − L (Xk+1 ),
+
+with Rk+1 retained in factored form as Rk+1 = R(l)
+
+> k+1
+
+(R(r)
+
+> k+1
+
+)T . The coefficient matrix 
+
+αk is again obtained by minimizing the Frobenius norm of the residual, so that it now satisfies (3.6) (P (l) 
+
+> k
+
+)T L∗ 
+
+L(P (l) 
+
+> k
+
+αk(P (r) 
+
+> k
+
+)T )
+
+
+
+P (r) 
+
+> k
+
+= ( P (l) 
+
+> k
+
+)T L∗(Rk)P (r) 
+
+> k
+
+.
+
+As a counterpart of (2.3), the matrix sequence {Pk}k≥0, with Pk = P (l) 
+
+> k
+
+(P (r) 
+
+> k
+
+)T ,could be defined using (3.7) Pk+1 = Rk+1 +
+
+> k
+
+X
+
+> j=k−ℓ+1
+
+P (l) 
+
+> j
+
+βj (P (r) 
+
+> j
+
+)T ,
+
+for a set of matrix-valued coefficients βj to be computed. Given the presumably very high cost of computing more than one such coefficient, in the following we only consider the case ℓ = 1, corresponding to the vector orthomin (1) iteration (2.4). In a way, the use of a subspace-based recurrence (with a matrix-valued βk) may be viewed as a replacement for the multiterm sum in (3.7). To simplify notation from now on, we shall refer to our recurrence as ss–gcr (1) . We thus write 
+
+Pk+1 = Rk+1 + P (l) 
+
+> k
+
+βk(P (r) 
+
+> k
+
+)T ,
+
+where βk ∈ Rqk ×qk is computed by imposing the condition that L(Pk+1 ) is orthogonal to L(Pk), or, equivalently, that Pk+1 is L∗L-orthogonal to Pk. This means that we impose the condition (3.8) (P (l) 
+
+> k
+
+)T L∗(L (Pk+1 )) P (r) 
+
+> k
+
+= 0 ,
+
+and a direct computation shows that this is equivalent to computing βk as the solution of the following projected equation (3.9) (P (l) 
+
+> k
+
+)T L∗ 
+
+L(P (l) 
+
+> k
+
+βk(P (r) 
+
+> k
+
+)T )
+
+
+
+P (r) 
+
+> k
+
+= −(P (l) 
+
+> k
+
+)T L∗(L(Rk+1 )) P (r) 
+
+> k
+
+.
+
+Proposition 3.2. Let Pk+1 = P (l)
+
+> k+1
+
+(P (r)
+
+> k+1
+
+)T and define 
+
+Φ( Xk+1 ) := ∥CD T − L (Xk+1 )∥2 
+
+> F
+
+= ∥Rk − L (P (l) 
+
+> k
+
+αk(P (r) 
+
+> k
+
+)T )∥2 
+
+> F
+
+.
+
+Then L∗(Pk+1 ) is a descent direction for Φ, that is, ⟨∇ Φ( Xk+1 ), L∗(Pk+1 )⟩F < 0.NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS 7
+
+Algorithm 3.1 ss–gcr (1) - Subspace Generalized Conjugate Residual method. 
+
+Input: Operator L : RnA×nB → RnA×nB in (1.1), low-rank factors C, D of the right-hand side, initial guess X0, maximum number of iterations maxit , stopping tolerance tol , truncation parameters maxrank and toltrank (†).
+
+Output: Approximate solution Xk such that ∥L (Xk ) − CD T ∥F ≤ ∥ CD T ∥F · tol 
+
+1: Set R0 = CD T − L (X0), P0 = R0 = P (l)0 (P (r)0 )T
+
+2: for k = 0 , . . . , maxit do 
+
+3: Compute αk by solving (3.6) 4: Set Xk+1 = Xk + P (l) 
+
+> k
+
+αk (P (r) 
+
+> k
+
+)T in a factorized form X(l)
+
+> k+1
+
+τk+1 (X(r)
+
+> k+1
+
+)T = Xk+1 
+
+optional: low-rank truncation of Xk+1 
+
+5: Set Rk+1 = CD T − L (X(l)
+
+> k+1
+
+τk+1 (X(r)
+
+> k+1
+
+)T ) in a factorized form R(l)
+
+> k+1
+
+ρk+1 (R(r)
+
+> k+1
+
+)T = Rk+1 
+
+optional: low-rank truncation of Rk+1 
+
+6: if ∥Rk+1 ∥F ≤ ∥ CD ⊤∥F · tol then 
+
+7: Return Xk+1 
+
+8: end if 
+
+9: Compute βk by solving (3.9) 10: Set Pk+1 = Rk+1 + P (l) 
+
+> k
+
+βk (P (r) 
+
+> k
+
+)T in a factorized form P (l)
+
+> k+1
+
+γk+1 (P (r)
+
+> k+1
+
+)T = Pk+1 
+
+optional: low-rank truncation of Pk+1 
+
+11: end for 
+
+12: Return Xk+1 
+
+> (†): Parameters used in the low-rank truncation procedures at step 4, 5, and 10.
+
+Proof. Let A and b be as in (1.3). We define ϕ(x) = ∥b − A x∥2 and notice that 
+
+ϕ(x) = Φ( X) where x = vec( X). It follows that ∇ϕ(x) = −2AT (b − A x) and so 
+
+∇Φ( Xk+1 ) = −2L∗(Rk+1 ), where Rk+1 = CD T − L (Xk+1 ). Hence, 
+
+⟨∇ Φ( Xk+1 ), L∗(Pk+1 )⟩F = −2⟨L ∗(Rk+1 ), L∗(Pk+1 )⟩F
+
+= −2⟨L ∗(Pk+1 ) − L ∗(P (l) 
+
+> k
+
+βk(P (r) 
+
+> k
+
+)T ), L∗(Pk+1 )⟩F
+
+= −2∥L ∗(Pk+1 )∥2 
+
+> F
+
++ 2 ⟨L ∗(P (l) 
+
+> k
+
+βk(P (r) 
+
+> k
+
+)T ), L∗(Pk+1 )⟩F
+
+= −2∥L ∗(Pk+1 )∥2 
+
+> F
+
++ 2 trace 
+
+
+
+βTk (P (l) 
+
+> k
+
+)T L∗(L(Pk+1 )) P (r)
+
+> k
+
+
+
+,
+
+and the L∗L-orthogonality (3.8) of the matricized directions gives the result. 
+
+4. The Algorithms. The ss–gcr (1) scheme for (1.1) is summarized in Algo-rithm 3.1. The ss–mr algorithm is obtained by simply replacing lines 9–10 with Set Pk+1 = Rk+1 ,
+
+which corresponds to replacing Pk with Rk throughout the algorithm. The low-rank truncation of Rk+1 is then carried on. Note that βk does not need to be computed in this case. This makes the cost per iteration of ss–mr lower than that of ss–gcr (1) ,especially when the rank of the factors is large. Moreover, no extra memory allocation for the matrices Pk is required, making the method very appealing memory-wise. On the other hand, the weaker orthogonality condition imposed by ss–mr may result in a higher number of iterations being needed to meet a prescribed accuracy compared to ss–gcr (1) .Algorithm 3.1 includes some optional truncation steps. As previously mentioned, the large dense matrices Xk+1 , Pk+1 and Rk+1 are not explicitly formed. Instead, each matrix is kept in factored form, and their ranks are truncated if necessary. The update of the approximate solution is linked to the subsequent factorization step as 8 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+follows. Starting from Xk = X(l) 
+
+> k
+
+τk(X(r) 
+
+> k
+
+)T , we have 
+
+Xk+1 = Xk + P (l) 
+
+> k
+
+αk(P (r) 
+
+> k
+
+)T
+
+= [ X(l) 
+
+> k
+
+, P (l) 
+
+> k
+
+]blkdiag( τk, αk)[ X(r) 
+
+> k
+
+, P (r) 
+
+> k
+
+]T = X(l)
+
+> k+1
+
+τk+1 (X(r)
+
+> k+1
+
+)T ,
+
+where X(l) 
+
+> k+1
+
+and X(r) 
+
+> k+1
+
+are the reduced orthonormal factors of the QR decomposi-tions of [ X(l) 
+
+> k
+
+, P (l) 
+
+> k
+
+] and [ X(r) 
+
+> k
+
+, P (r) 
+
+> k
+
+], respectively. That is, if [ X(l) 
+
+> k
+
+, P (l) 
+
+> k
+
+] = Q(l)rl
+
+and [ X(r) 
+
+> k
+
+, P (r) 
+
+> k
+
+] = Q(r)rr , then we can define X(l) 
+
+> k+1
+
+:= Q(l), X(r) 
+
+> k+1
+
+:= Q(r), and 
+
+τk+1 := rlblkdiag( τk, αk)rTr . Alternatively, using a (truncated) SVD decomposition we can lower the rank of X(l) 
+
+> k+1
+
+and X(r)
+
+> k+1
+
+. Given a truncation tolerance toltrank 
+
+and a maximum rank maxrank , if U ΣV T is the SVD of rlblkdiag( τk, αk)rTr and 
+
+{σj }j=1 ,...,d k are its singular values, we select (4.1) ιk+1 := min 
+
+
+
+maxrank , arg max  
+
+> j
+
+{σj : ( σj /σ 1) ≤ toltrank }
+
+
+
+,
+
+and then set X(l) 
+
+> k+1
+
+:= Q(l)Uιk+1 , τk+1 = Σ ιk+1 and X(r) 
+
+> k+1
+
+:= Q(r)Vιk+1 where the truncated SVD of rlblkdiag( τk, αk)rTr of rank ιk+1 is denoted Uιk+1 Σιk+1 V Tιk+1 .The procedure for updating the matrices Pk is analogous. These matrices are not stored in full format; their factors are immediately created and saved. However, additional care needs to be taken with the update and the truncation of the residual matrix Rk, especially when the number p of terms in the matrix equation and/or the maximum value of maxrank is large. This will be discussed in section 4.2. 
+
+4.1. Computing αααk and βββk. The computation of both αk and βk requires the solution of a multiterm matrix equation. Thanks to the explicit projection onto range( P (r) 
+
+> k
+
+⊗ P (l) 
+
+> k
+
+), the coefficient matrices of this equation have smaller dimensions than the original Ai and Bi. On the other hand, the application of the operator L∗L
+
+squares the number of terms leading to an equation with p2 terms. In passing, we note that this cost occurs in computing the (same) coefficient matrix for both αk and 
+
+βk, but also the right-hand side for βk. Therefore, the computation of αk and βk
+
+must be handled with care to avoid excessive computational costs. Using the rank qk
+
+of P (l) 
+
+> k
+
+(and P (r) 
+
+> k
+
+), we propose two strategies for this task. (i) If qk is sufficiently small, the explicit construction of the Kronecker form of (3.4) is feasible and the resulting SPD linear system can be solved using Cholesky fac-torisation. The main cost of this procedure lies in the computation of the p2
+
+Kronecker products in the coefficient matrix, (4.2) T =
+
+> p
+
+X
+
+> i=1
+> p
+
+X
+
+> j=1
+
+
+
+(P (r) 
+
+> k
+
+)T BiBTj P (r)
+
+> k
+
+
+
+⊗
+
+
+
+(P (l) 
+
+> k
+
+)T ATi Aj P (l)
+
+> k
+
+
+
+.
+
+Indeed, even for very sparse matrices Ai and Bi, T is in general dense. Moreover, computing the p2 terms may already be problematic for moderate values of p.One advantage, however, is that the coefficient matrix (and its Cholesky factor) employed for the computation of αk can be reused to compute βk if needed. (ii) If qk becomes too large, CG can be used ∗ to solve (3.4). While the p2 terms (P (l) 
+
+> k
+
+)T ATi Aj P (l) 
+
+> k
+
+and ( P (r) 
+
+> k
+
+)T BiBTj P (r) 
+
+> k
+
+for i, j = 1, . . . , p , still need to be    
+
+> ∗The matrix-vector operation is performed in matrix-matrix form, without explicitly forming the full coefficient matrix Tin Kronecker form. NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS
+
+9computed, this approach avoids assembling their Kronecker product. On the other hand, the normal equations nature of (3.4) makes the latter prone to ill-conditioning, slowing convergence of CG. Preconditioning is thus essential. More details about this key aspect will be given in section 5. Solving (3.4) iteratively results in an inexact computation of αk and βk, so that the orthogonality prop-erties illustrated in section 3.1–3.2 hold only approximately. The rank truncation steps in Algorithm 3.1 already affect the orthogonality properties, even when αk
+
+and βk are computed exactly, so we expect the iterative solution of (3.4) to be completely harmless in this regard. 
+
+4.2. Randomized truncation of the residual matrix. Writing Xk+1 as 
+
+X(l)
+
+> k+1
+
+τk+1 (X(r)
+
+> k+1
+
+)T , the residual matrix Rk+1 = CD T − L (Xk+1 ) can be written in factored form as 
+
+Rk+1 = [ C, A1X(l)
+
+> k+1
+
+, . . . , ApX(l)
+
+> k+1
+
+]
+
+
+
+Iq
+
+−τk+1 
+
+. . .
+
+−τk+1 
+
+
+
+DT
+
+(X(r)
+
+> k+1
+
+)T B1
+
+...(X(r)
+
+> k+1
+
+)T Bp
+
+
+
+= [ C, A⋆ • X(l)
+
+> k+1
+
+]
+
+Iq
+
+−Ip ⊗ τk+1 
+
+
+
+[D, BT⋆ • X(r)
+
+> k+1
+
+]T .(4.3) One could compute the skinny QR factorizations of the left and right factors followed by a truncated SVD of the resulting core matrix. However, the storage demand of fully allocating [ C, A⋆ • X(l)
+
+> k+1
+
+] and [ D, BT⋆ • X(r)
+
+> k+1
+
+] amounts to 2( p · maxrank + q) columns, assuming the rank of Xk+1 is maxrank . If p and/or maxrank are sufficiently small so that the two matrices can be stored, this strategy is feasible and yields a low-rank representation of Rk+1 . Otherwise, we adopt a randomization strategy that allows us to compute both a low-rank approximation of Rk+1 , and its Frobenius norm, as required by the stopping criterion in Algorithm 3.1. A key tool for this is randomized oblivious ( ε, δ, m )-subspace embeddings. Given an m-dimensional subspace V ⊂ Rn, a sketching matrix S ∈ Rs×n (with random entries) is a randomized oblivious ( ε, δ, m )-subspace embedding of V if (4.4) (1 − ε)∥v∥2 ≤ ∥ Sv ∥2 ≤ (1 + ε)∥v∥2,
+
+holds for all v ∈ V with probability at least 1 − δ; see, e.g., [2, Definition 2.3]. Depending on the chosen S, various values of the sketching dimension s, as a function of ε, m, and δ, have been identified that ensure (4.4) is satisfied; see, for example, [19, Section 9]. If S is chosen so that (4.4) holds, and we replace the vector v with any matrix R such that range( R) ⊂ V , then (4.5) (1 − ε)∥R∥2 
+
+> F
+
+≤ ∥ SR ∥2 
+
+> F
+
+≤ (1 + ε)∥R∥2
+
+> F
+
+also holds with probability at least 1 − δ. Due to the low computational cost of applying them, in our numerical experiments in sections 7 and 8 we choose sketching matrices known as randomized subsampled trigonometric transformations (RSTTs); see e.g., [19, Section 4.6]. In [43] theoretical guarantees have been obtained for RSTTs by selecting s = O(ε−2(m + log nδ ) log mδ ). However, numerical evidence suggests that selecting the smaller sketching dimension s = O(ε−2m/δ ) works well in practice; see, e.g., [19, Section 9]. 10 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+In our context we want to define sketching matrices SA ∈ RsA×nA and SB ∈
+
+RsB ×nB for range([ C, A⋆ • X(l)
+
+> k+1
+
+]) and range([ D, BT⋆ • X(r)
+
+> k+1
+
+]), respectively. Since we do not know the dimensions mA and mB of these spaces, we can employ the upper bound mA, m B ≤ (p · maxrank + q) to select sA and sB . As this bound is likely to be pessimistic, it is reasonable to choose sA = sB = s where s = 2( p · maxrank + q). In the following, we identify a constant γ that depends on the embedding pa-rameters, such that ∥Rk+1 ∥F ≤ γ∥SARk+1 STB ∥F holds with high probability. We can then use the singular value decomposition of the two-sided ‘sketched’ matrix 
+
+SARk+1 STB ∈ RsA×sB to construct Rk+1 in low rank factored form and to estimate 
+
+∥Rk+1 ∥F . More precisely, we perform the following steps: 1. Compute the skinny QR decompositions of the sketched left and right factors in (4.3) to give 
+
+SA[C, A⋆ • X(l)
+
+> k+1
+
+] = QARA and SB [DT , BT⋆ • X(r)
+
+> k+1
+
+] = QB RB ,
+
+discard the Q’s, and implicitly write 
+
+Rk+1 =
+
+
+
+[C, A⋆ • X(l)
+
+> k+1
+
+]R−1
+
+> A
+
+  
+
+RAblkdiag( I, −I ⊗ τk+1 )RTB
+
+  
+
+[DT , BT⋆ • X(r)
+
+> k+1
+
+]R−1
+
+> B
+
+T
+
+=: KlρKTr .(4.6) 
+
+The pseudo-inverses of RA and RB may be employed if these matrices are singular or severely ill-conditioned. 2. Compute the SVD ρ = U ΣV T , select ι as in (4.1), and truncate the former to obtain Uι, Σι, V ι.3. Update the (truncated) residual in factored form as Rk+1 = R(l)
+
+> k+1
+
+ρk+1 (R(r)
+
+> k+1
+
+)T
+
+where 
+
+R(l) 
+
+> k+1
+
+:= KlUι, ρk+1 := Σ ι, R(r) 
+
+> k+1
+
+:= Kr Vι.
+
+Let (4.5) hold for SA applied to range( Kl) ⊆ range(([ C, A⋆ • X(l)
+
+> k+1
+
+]), and for SB
+
+applied to range( Kr ) ⊆ range(([ DT , BT⋆ • X(r)
+
+> k+1
+
+]) with embedding parameters εA, δA
+
+and εB , δB , respectively. Using the form of the exact residual matrix from (4.6) gives 
+
+∥SARk+1 STB ∥2 
+
+> F
+
+= ∥SA(KlρKTr STB )∥2 
+
+> F
+
+≥ (1 − εA)∥KlρKTr STB ∥2
+
+> F
+
+(4.7) 
+
+≥ (1 − εA)(1 − εB )∥KlρKTr ∥2 
+
+> F
+
+=: 1
+
+γ2 ∥Rk+1 ∥2
+
+> F
+
+with γ = (1 − εA)−1/2(1 − εB )−1/2 (see also [29, Theorem 3.11] for a similar result), and the final inequality holds with probability at least (1 − δA)(1 − δB ). Hence, we have the probabilistic upper bound 
+
+∥Rk+1 ∥F ≤ γ∥SARk+1 STB ∥F = γ ∥Σ∥F
+
+with Σ computed in step 2. We refer to [30] for a more general analysis of truncation quality using left and right sketchings. If the Bj ’s are small (i.e., if nB is small), there is no need to introduce the sketching matrix SB to reduce the dimension of Kr . In this case, we replace (4.6) with Rk+1 = Klρ, where ρ = blkdiag( I, −I ⊗ τk+1 )  [DT , BT⋆ • X(r)]T , and proceed with step 2. In step 3, we simply define R(r) 
+
+> k+1
+
+:= Vι. Proceeding as in (4.7), the bound 
+
+∥SARk+1 ∥2 
+
+> F
+
+≥ (1 − εA)∥Klρ∥2 
+
+> FNEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS
+
+11 holds with probability at least (1 − δA), from which ∥Rk+1 ∥F ≤ γ ∥Σ∥F holds with the same probability, with γ = (1 − εA)−1/2. An analogous procedure can be applied if the Aj ’s (but not the Bj ’s) are small. 
+
+4.3. Memory requirements. In this section we summarize the memory re-quirements of ss–gcr (1) and ss–mr .Recall that Xk, Rk, and Pk are kept in low-rank factored form V (l)ν(V (r))T , with 
+
+V (l), V (r) having at most maxrank columns. In ss–gcr (1) , allocating these iterates therefore requires storing up to 3(( nA + nB ) · maxrank + maxrank 2) entries. This reduces to 2(( nA + nB ) · maxrank + maxrank 2) entries for ss–mr , since Pk = Rk. Two matrices of size nA ×maxrank and nB ×maxrank are also required for working storage. If αk and βk are computed with a direct solver (case (i) in section 4.1), then the full matrix T of size maxrank 2 × maxrank 2 defined in (4.2) needs to be stored. If qk
+
+is large (case (ii) in section 4.1) the main storage allocation demand is that of the p2
+
+dense matrices ( P (l) 
+
+> k
+
+)T ATi Aj P (l) 
+
+> k
+
+and ( P (r) 
+
+> k
+
+)T BiBTj P (r) 
+
+> k
+
+for i, j = 1 , . . . , p , of size at most maxrank × maxrank each. Employing the PCG method for the inner solves to compute αk and βk inexactly does not significantly increase this demand. Finally, as discussed in section 4.2, the computation of the low-rank factorization of the residual matrix Rk is performed via sketching when at least one of nA and nB
+
+is large. The main storage cost is for the left and right factors which have a total of (p · maxrank + q)( sA + nB ) entries for one-sided sketching when, say, nB < s B and (p · maxrank + q)( sA + sB ) entries when two-sided sketching is applied. 
+
+5. Preconditioning. As in the vector case, acceleration procedures can be em-ployed for multiterm matrix equation solvers, see, e.g., [22], [9], [33]. Following similar derivations in [9] and [33], natural preconditioners are obtained when a ‘leading’ part 
+
+P of the operator L can be identified. That is, by splitting the operator as L = P −N ,one can use the leading term, or a cheaper approximation eP thereof, as a precondi-tioner. At each iteration, the action of the inverse is then applied as eP−1(R) where 
+
+R is always stored in low-rank format. Before describing how to efficiently incorporate preconditioning into our new al-gorithms, we need to discuss what types of preconditioners are feasible for matrix equations (1.1) with many terms ( p > 2). There are two main considerations. The first is that the identified splitting should lead to an effective preconditioner; this concern is typical of fixed-point type iterations. The second is that applying the ac-tion of P−1 (or an approximation thereof) should incur an acceptable computational cost. This will depend on the number of addends in the designated leading part of the operator. In the recent literature, two settings have been considered: (i) One-term preconditioning . In this case, a pair ( Ai, Bi) is identified as a precondi-tioner, so that P−1(R) = A−1 
+
+> i
+
+RB −1 
+
+> i
+
+. In the event that computing the action of the inverse of Ai or Bi is too expensive, these matrices may be replaced with suit-able approximations. See section 8 for an illustration of one-term preconditioning in a concrete application setting. (ii) Two-term preconditioning . Here, we assume that there exist two pairs of coefficient matrices ( Ai, Bi) and ( Aj , Bj ) such that P(R) = AiRB i + Aj RB j denotes the leading part of L applied to R. Inverting P corresponds to solving a Sylvester equation at each iteration, which is very expensive. In this case, following [9] and [33] we replace P−1 with the operator eP−1 that corresponds to applying a 12 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+fixed number of ADI iterations †. See section 7 for an illustration of two-term preconditioning. Other solvers for Sylvester equations may be considered in place of ADI, depending on the properties of P.A major problem arises if the leading term contains more than two addends, as applying the action of P−1 may then be as difficult as solving the original problem. In this case, an inner-outer procedure seems to be feasible. Here, one identifies eP−1
+
+with a few iterations of another iterative method, or the same one, applied to the des-ignated leading operator, or to the whole operator [38, section 9.4.1]. An interesting preconditioning alternative was recently proposed in [46], where the possibility of an approximate inverse with a Kronecker structure is explored. After line 8 of Algorithm 3.1 the action of the chosen preconditioner can be included in ss–gcr (1) as follows 
+
+Zk+1 = eP−1(Rk+1 ).
+
+Then, line 10 should be replaced by 10 . Pk+1 = Zk+1 + P (l) 
+
+> k
+
+βk(P (r) 
+
+> k
+
+)T
+
+where βk is computed accordingly. In ss–mr we simply need to set Pk+1 = Zk+1 . For both algorithms, we set P0 = Z0. In other words, the sequence {Pk}k≥0 generates a recurrence of preconditioned spaces. Regarding the memory requirements of preconditioning, since Zk is also kept in low-rank factored form, it has at most ( nA + nB ) · maxrank + maxrank 2 entries to be stored. One-term preconditioning does not require additional memory; see (i) above. If two-term preconditioning is used, more memory may need to be allocated. For instance, if eP−1 is applied by performing tADI iterations of the ADI method, then the memory allocation demand increases by tADI (nA + nB ) · maxrank ; see, e.g., [5, Section 2] for more details on the ADI memory cost. 
+
+6. Convergence analysis. In this section, we deepen our understanding of the convergence properties of the considered recurrences. Using the residual minimization properties and the ss–mr recurrence, we can investigate the relation between the norm of two successive residual matrices. The next proposition determines a general bound that in the vector case is due to Elman [16]. In the following, A is as defined in (1.3). 
+
+Proposition 6.1. Assume that A is positive definite and let Rk = R(l) 
+
+> k
+
+(R(r) 
+
+> k
+
+)T
+
+with Rk̸ = 0 . Let μ(A) = λmin ( 12 (A + AT )) . Then after one ss–mr iteration it holds 
+
+(6.1) ∥Rk+1 ∥F ≤
+
+
+
+1 − μ(A)2
+
+∥A∥ 2
+
+ 12
+
+∥Rk∥F .
+
+Proof. From Rk+1 = Rk − L (R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T ) we obtain 
+
+∥Rk+1 ∥2 
+
+> F
+
+= trace( RTk+1 Rk) − trace( RTk+1 L(R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T )) = trace( RTk+1 Rk) = trace( RTk Rk) − trace( RTk L(R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T )) = ∥Rk∥2 
+
+> F
+
+1 − trace( RTk L(R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T )) 
+
+∥Rk∥2
+
+> F
+
+!
+
+. 
+
+> †ADI is an iterative method based on rational Krylov subspaces [6],[15]. NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS
+
+13 In the second equality, we have used the orthogonality property of Rk+1 . We next bound from below the second term in parentheses. Let W = R(r) 
+
+> k
+
+⊗ R(l) 
+
+> k
+
+and e =vec( Iq ), so that r = vec( Rk) = W e . Then (6.2) trace( RTk L(R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T )) 
+
+∥Rk∥2
+
+> F
+
+= rT AW α
+
+rT r
+
+where α = vec( αk). Writing the equation for αk in vector form as W T AT AW α =
+
+W T AT r, and setting M = W T AT AW then gives α = M−1(W T AT r). Substituting this expression into the right-hand side of (6.2) we obtain trace( RTk L(R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T )) 
+
+∥Rk∥2
+
+> F
+
+= rT AW M−1W T AT rrT r .
+
+Now, let W = Qρ be the reduced QR decomposition of W and define MQ := 
+
+QT AT AQ. Then 
+
+rT AW M−1W T AT rrT r = rT AQM−1 
+
+> Q
+
+QT AT rrT r = rT AQM−1 
+
+> Q
+
+QT AT rrT AQQ T AT rrT AQQ T AT rrT r .
+
+For the numerator of the second factor, we let r = W e = Qρe =: Qs , so that 
+
+∥r∥ = ∥s∥. We observe that |rT AT r| = |sT QT AT r| ≤ ∥ s∥∥ QT AT r∥ and in particular, that ∥QT AT r∦ = 0 for r̸ = 0. Hence, 
+
+rT AQQ T AT r = ∥QT AT r∥2 ≥ rT AT r 2
+
+∥r∥2 = 
+
+> 12
+
+rT (AT + A)r 2
+
+∥r∥2 ≥ μ(A)2∥r∥4/∥r∥2.
+
+The first factor is bounded as (6.3) rT AQM−1 
+
+> Q
+
+QT AT rrT AQQ T AT r ≥ 1
+
+∥M Q∥ ≥ 1
+
+∥A∥ 2 .
+
+In summary, we have obtained the following bound trace( RTk L(R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T )) 
+
+∥Rk∥2
+
+> F
+
+≥ 1
+
+∥A∥ 2
+
+μ(A)2∥r∥4
+
+∥r∥4 .
+
+Therefore, 
+
+∥Rk+1 ∥2 
+
+> F
+
+= ∥Rk∥2 
+
+> F
+
+1 − trace( RTk L(R(l) 
+
+> k
+
+αk(R(r) 
+
+> k
+
+)T )) 
+
+∥Rk∥2
+
+> F
+
+!
+
+≤ ∥ Rk∥2
+
+> F
+
+
+
+1 − μ(A)2
+
+∥A∥ 2
+
+
+
+,
+
+which completes the proof. The bound (6.1) implies that if the residual matrix Rk is not truncated, conver-gence is ensured for k large enough, since μ(A) < ∥A∥ and 
+
+∥Rk∥F ≤
+
+
+
+1 − μ(A)2
+
+∥A∥ 2
+
+ k
+
+> 2
+
+∥R0∥F .
+
+This is in line with known classical results for Generalized Conjugate Residual type methods [45]. 14 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+Unfortunately, in general, the above bound may not be descriptive of the actual convergence of the method, not even in the vector case. In our matrix-oriented setting, two major weaknesses arise with such a bound: first, it does not account for the subspace projection step associated with having a matrix αk and second, the low-rank structure plays no role. Indeed, the proof relies on the matrix AW , where the Kronecker structure of W is not exploited. The following remark highlights the important role of the subspace projection. 
+
+Remark 6.2. The bound (6.3) in the proof of Proposition 6.1 reveals that a more descriptive bound is given by 
+
+∥Rk+1 ∥F ≤
+
+
+
+1 − μ(A)2
+
+∥M Q∥
+
+ 12
+
+∥Rk∥F
+
+where the matrix MQ = QT AT AQ and the orthonormal columns of Q span the range of R(r) 
+
+> k
+
+⊗ R(l) 
+
+> k
+
+. Note that MQ depends on k via Q.
+
+We now discuss the behavior of the matrix iterations in terms of the computed subspaces, with a view to interpreting the methods once truncation is incorporated. Recall the notation A⋆ • R = [ A1R, . . . , ApR], and analogously for BT⋆ • R with R
+
+of conforming dimensions. Moreover, note that for k ≥ 0, subsequent applications of the operator can be written as Ak+1  
+
+> ⋆
+
+• R = A⋆ • (Ak⋆ • R). We then define the space 
+
+Kk(A⋆, R 0) = range([ R0, A⋆ • R0, . . . , Ak⋆ • R0]) (as in [33]). Note that the spaces are nested, that is Kk(A⋆, R 0) ⊆ Kk+1 (A⋆, R 0). After k iterations of either ss–gcr (1) or ss–mr and without forced rank trun-cation to maxrank , the columns of R(l)
+
+> k+1
+
+, P (l) 
+
+> k+1
+
+span Kk(A⋆, R (l)0 ), and similarly, the columns of R(r)
+
+> k+1
+
+, P (r) 
+
+> k+1
+
+span Kk(BT⋆ , R (r)0 ). The dimension of these spaces quickly grows due to the inclusion of many terms ‡ as k increases, although it may grow less than one would expect, due to possible redundancies. Recalling the derivation of the recurrence coefficient αk (e.g., Proposition 3.1 for ss–mr ), it follows that be-fore truncation is enforced, both methods ss–mr and ss–gcr (1) perform a matrix Petrov-Galerkin projection onto the spaces A⋆ • Kk(A⋆, R (l)0 ) (from the left) and 
+
+BT⋆ • Kk(BT⋆ , R (r)0 ) (from the right) §. For k sufficiently large so the maximum allowed rank of Kk(A⋆, R (l)0 ) and Kk(BT⋆ , R (r)0 ) is reached, truncation is enforced, yielding the reduced subspaces range( R(l)
+
+> k+1
+
+) ⊂ Kk+1 (A⋆, R (l)0 ), range( R(r)
+
+> k+1
+
+) ⊂ Kk+1 (B⋆, R (r)0 ) of dimension maxrank . The Petrov-Galerkin projection onto these subspaces will con-tinue to decrease the residual norm as long as new information is injected into the subspaces after truncation, compared with the previous iterate. Before the first forced truncation takes place, this condition can be formally written as range( R(l)
+
+> k+1
+
+)̸ ⊂ Kk(A⋆, R (l)0 ); and similarly for range( R(r)
+
+> k+1
+
+). After the first rank truncation to maxrank , the condi-tion above can be rewritten as range( R(l)
+
+> k+1
+
+)̸ ⊂ range( R(l) 
+
+> k
+
+). While the recurrence before truncation corresponds to a projection method with a growing subspace, the process after truncation may be interpreted as a thick restart-ing procedure, which is commonly used in projection methods for large eigenvalue     
+
+> ‡The actual dimension growth at each iteration depends both on pand maxrank , but also on the linear independence of the added columns with respect to the already computed space.
+> §This consideration is well known in the vector case, and it corresponds to the mathematical equivalence of GCR methods with GMRES. NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS
+
+15 problems and linear systems; see ¶, e.g., [48, section 9.3], [31]. This procedure acts as follows: After a fixed number of iterations, the projection phase is stopped, then the current approximation space is reduced to a significantly smaller dimension - en-suring that relevant information is retained, and finally the process is restarted by adding new vectors to this retained thick vector (in fact a tall matrix). Each restart is called a cycle. In our setting, after the truncation that yields R(l)
+
+> k+1
+
+, the new col-umns A⋆ • R(l) 
+
+> k+1
+
+are added to the subspace, giving range([ R(l)
+
+> k+1
+
+, A⋆ • R(l)
+
+> k+1
+
+]); this new subspace most likely again requires truncation. As the subsequent iterations proceed, the space dimension keeps changing in an accordion-like manner. In summary, once the truncation process is installed, every new iteration behaves like a cycle of thick restarting, and each restart consists of a single iteration. 
+
+7. Numerical experiments on a benchmark problem. In this section, we consider a benchmark problem that is commonly used in the literature to test meth-ods for solving (1.1) when the associated Kronecker matrix A is nonsymmetric and nonsingular. The aim here is to describe the general behavior of the two new methods 
+
+ss–mr and ss–gcr (1) , and compare their performance with that of state-of-the-art algorithms. All experiments were performed in MATLAB on a modest MacBook Pro laptop with a 2.6GHz 6-Core Intel Core i7 processor and 16GB RAM. In all experiments we fix X0 = 0 and tol = 10 −6. As discussed in section 4.2, when one or both of the dimensions nA or nB is too large, we use a randomization strategy to compute the norm of the residual in the stopping condition. We set 
+
+s = 2( p · maxrank + q) and (i) if nA, n B < s , we compute ∥Rk+1 ∥F ;(ii) if nA ≥ s but nB < s , we compute ∥SARk+1 ∥F ;(iii) if nA, n B ≥ s we compute ∥SARk+1 STB ∥F
+
+where we use RSTTs (see section 4.2) as sketching matrices SA ∈ Rs×nA and SB ∈
+
+Rs×nB (if required) and sA = sB = s. We also report the true relative residual Res:= ∥Rk∥F /∥R0∥F for the obtained solution, to verify the reliability of our ran-domization strategy. Our implementation of Algorithm 3.1 automatically switches between an exact and inexact computation of αk and βk: if qk, the rank of the current P (l) 
+
+> k
+
+and P (r) 
+
+> k
+
+,is such that q2 
+
+> k
+
+< 4000, then we assemble the matrix T in (4.2) and solve the re-lated SPD linear system by computing its Cholesky factorization. Otherwise, we use preconditioned CG ( pcg ) on the Kronecker formulation of (3.5), with relative resid-ual norm tolerance 10 −4. In our benchmark tests, we choose the following two-term preconditioning operator for this inner pcg solve 
+
+P(α) = ( R(l) 
+
+> k
+
+)T AT 
+
+> 1
+
+A1R(l) 
+
+> k
+
+α(R(r) 
+
+> k
+
+)T B1BT 
+
+> 1
+
+R(r) 
+
+> k
+
++ ( R(l) 
+
+> k
+
+)T AT 
+
+> 2
+
+A2R(l) 
+
+> k
+
+α(R(r) 
+
+> k
+
+)T B2BT 
+
+> 2
+
+R(r)
+
+> k
+
+which is the leading operator of the projected equation for the considered problem. 
+
+7.1. A convection-diffusion problem. We consider the following steady state convection-diffusion boundary value problem 
+
+
+
+−ε∆u +⃗w · ∇ u = f, in D = ( −1, 1) 2,u(1 , y ) = u(x, −1) = u(x, 1) = 0 ,u(−1, y ) = 1 
+
+> ¶Depending on the strategy adopted to retain vectors, the term “Implicitly restarted methods“ is often employed.
+
+16 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+with constant source term f = 1 and recirculating wind field, ⃗w(x, y ) = ( ϕ 1(x)ψ1(y), ϕ 2(x)ψ2(y)) = (2 y(1 − x2), −2x(1 − y2)) .
+
+Following [35], we apply standard centered finite differences for the first and second derivatives on a uniform mesh of points ( xi, y j )i,j =0 ,...,n −1 with spacing h = 2 /(n − 1) in each direction. Denoting with X ∈ Rn×n the matrix whose entries approximate 
+
+u(xi, y j ), this discretization leads to the matrix equation (7.1) A1X + XB 2 + ( Φ1E1)XΨ1 + Φ2X(E2Ψ2) = CD T ,
+
+where A1 and B2 correspond to the discretized second derivatives in the x and y
+
+directions, respectively, while the other terms are related to the first derivatives. We test our solvers on (7.1) for different values of the mesh parameter h (equivalently, n)and the diffusion coefficient ε. We apply the two-term preconditioner (7.2) P : X → A1X + XB 2,
+
+corresponding to the (discrete) diffusion part of the operator and approximate the action of P−1 via 8 iterations of the low-rank ADI method [5] with (sub)optimal Wachspress’ shifts [47]. In Table 1 we compare the performance of ss–gcr (1) and ss–mr with that of low-rank GMRES ( lr-pgmres ) [34] for ε = 0 .1, 0.01 and for various values of the problem dimension n = nA = nB . We apply the same two-term preconditioner for all methods. In each case, we report the number of iterations k, the CPU time in seconds, and the true relative residual norm (Res) at termination. For ss–gcr (1) 
+
+and ss–mr , we adapt the value of maxrank to the choice of ε. Specifically, we set 
+
+maxrank = 50 for ε = 0 .1 and maxrank = 70 for ε = 0 .01. Due to the higher chosen value of maxrank , we use pcg to compute αk (and βk) when ε = 0 .01. In this case, we also report the minimum and maximum number of iterations (in square brackets) required for this inner solve (column ‘ pcg ’). For ε = 0 .1, we construct (4.2) and solve the related SPD linear system using Cholesky factorization; pcg is not employed. The rank of the final iterate Xk is reported in the column ‘Rank’. For lr-pgmres ,the low-rank factors representing the basis of the constructed subspace need to be stored. In the column ‘Mem’ in Table 1, the number of stored n-dimensional vectors is reported, resulting in O(Mem · n) of memory allocations. We first focus on results obtained for ε = 0 .1. Applying the ADI approximation to the preconditioner (7.2) results in an iteration count that is almost independent of n, thanks to the dominance of the diffusion part of the operator. The proposed randomization-based computation of the residual matrix norm is reliable; all the val-ues in the ‘Res’ column are below tol = 10 −6. Our new methods require a low number of iterations to meet the chosen stopping condition. This, along with the moderate value of maxrank , leads to a very effective solution procedure with solve times one order of magnitude quicker than for lr-pgmres . The main disadvantage of the lat-ter solver is its large storage demand which is not comparable to that of our short recurrence methods. When ε = 0 .01, all methods require more iterations to converge. While both ss–gcr (1) and ss–mr still achieve competitive results, converging quickly, 
+
+lr-pgmres does not converge within 50 iterations. To further demonstrate the improved performance of the new matrix recurrences over classical vector methods for (1.3), in Table 2 we report the performance of BiCGStab( ℓ) (with ℓ = 2) for (7.1) in Kronecker form. Vector methods allocate NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS 17 
+
+ε = 0 .1 (maxrank =50) 
+
+ss–gcr (1) ss–mr lr-pgmres 
+
+n k rank pcg Res Time k rank pcg Res Time k Mem Res Time 1,024 4 37 – 7.2e-8 0.7 4 37 – 2.8e-7 0.6 17 835 4.3e-7 2.9 2,048 4 39 – 2.0e-7 0.8 4 39 – 2.7e-7 0.7 15 779 6.0e-7 4.0 4,096 3 38 – 9.9e-7 0.5 4 41 – 1.6e-7 1.0 14 780 4.8e-7 7.4 8,192 3 39 – 5.6e-7 1.0 3 40 – 4.6e-7 0.9 13 775 6.7e-7 16.4 16,384 3 40 – 6.3e-7 1.8 3 41 – 6.4e-7 1.7 12 757 6.5e-7 28.7 
+
+ε = 0 .01 (maxrank =70) 
+
+ss–gcr (1) ss–mr lr-pgmres 
+
+n k rank pcg Res Time k rank pcg Res Time k Mem Res Time 1,024 12 50 [73,97] 8.0e-7 3.5 15 50 [94,106] 7.1e-7 4.8 * * * *2,048 12 51 [77,97] 7.0e-7 4.2 15 51 [91,121] 7.0e-7 4.2 * * * *4,096 11 55 [68,119] 8.7e-7 5.6 13 53 [82,100] 9.6e-7 6.5 * * * *8,192 11 59 [69,102] 5.5e-7 10.5 12 56 [79,118] 7.0e-7 8.9 * * * *16,384 10 70 [79,100] 5.2e-7 17.5 10 66 [83,93] 8.3e-7 14.9 * * * *Table 1: Performance of ss–gcr (1) , ss–mr , and lr-pgmres for the convection-diffusion problem preconditioned by (7.2) with tol = 10 −6, maxit = 50, and 
+
+toltrank = 10 −10 . Two-sided sketching is required in all cases. ‘*’ means the method did not converge to the prescribed tolerance within 50 iterations. vectors of length n2; because of this high memory requirement, we only consider the first three values of n. The inbuilt MATLAB function bicgstabl.m was used [28], with stopping tolerance 10 −6. Incomplete LU preconditioning with threshold 10 −4
+
+was also employed, requiring storage for about 4 times the number of nonzeros ‖ of A.In addition to the strong memory limitations, the results in Table 2 demonstrate that the vector method is extremely expensive compared to the matrix iterations, even for the smaller values of n considered. It is also worth noting that the set-up cost of the preconditioner is significant; the incomplete LU factorisation requires around 9 .5seconds for the case n = 1 , 024, rising to approximately 230 seconds for n = 4 , 096. These costs are not included in the timings reported in Table 2. Finally, we notice that GMRES( m) was also tested, with m = 5 and the same preconditioner; timings were not better, while in general the method requires more memory than BiCGStab(2). Results are not reported. 
+
+ε n # Iter Res Time ε n # Iter Res Time 0.1 1,024 33 4.8e-07 4.0 0.01 1,024 17 4.7e-07 2.1 2,048 59 7.0e-07 32.4 2,048 33 2.6e-07 17.6 4,096 109 9.7e-07 2,316.1 4,096 79 2.9e-07 1,709.3 Table 2: Performance of BiCGStab(2) for the convection-diffusion problem (7.1), using ILU preconditioning with threshold 10 −4. Reported CPU times are in seconds.     
+
+> ‖The entries of the coefficient matrix Awere first reordered using symamd to limit fill-in.
+
+18 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+8. Application to a stochastic Galerkin mixed finite element problem. 
+
+We now apply ss–mr and ss–gcr (1) to a challenging class of matrix equations that arises when we apply a stochastic Galerkin mixed finite element method (SG-MFEM) to a system of PDEs with uncertain coefficients. Specifically, we consider an SG-MFEM discretization of the parametric Darcy flow problem [8], [17] that leads to a prototypical parametric saddle point problem. After reformulating the discrete prob-lem as a matrix equation, we employ the new solvers with a one-term preconditioner that renders the left coefficient matrices non-symmetric. Previous work on low-rank solvers for SGFEM matrix equations has focused on parametric PDE models that yield linear systems with SPD matrices (see [36, 25] and references therein). 
+
+8.1. Parametric Darcy Flow Problem. Let D ⊂ R2 be a spatial domain with boundary ∂D = ∂D D ∪ ∂D N and define the parameter domain Γ := [ −1, 1] M .We consider the following boundary value problem: find ⃗u : D × Γ → R 2 (a velocity field) and p : D × Γ → R (a pressure field) that satisfy ρ-a.s. on Γ, (8.1) 
+
+κ(x, y)−1⃗u(x, y) + ∇p(x, y) = 0 in D, 
+
+∇ · ⃗u(x, y) = 0 in D, p(x, y) = g(x) on ∂D D ,⃗ u(x, y) ·⃗n = 0 on ∂D N .
+
+Here, we assume that κ−1 is a parameter-dependent function of the form 
+
+κ(x, y)−1 := κ0(x) + 
+
+> M
+
+X
+
+> r=1
+
+κr (x)yr , x ∈ D, y ∈ Γ,(8.2) and the parameters yr := ξr (ω) are images of independent uniform random variables 
+
+ξr ∼ U (−1, 1) with joint probability density ρ = (1 /2) M . This model arises when the reciprocal of the permeability coefficient is represented as a random field. The chosen model (8.2) mimics the separable structure of a truncated Karhunen–Lo` eve (KL) expansion [26] where κ0 = E[κ−1] and κr := √λr ϕr where ( λr , ϕ r ) is an eigenpair of the chosen covariance operator. Crucially, λr → 0 as r → ∞ at a rate that depends on the smoothness of the covariance and when ∥κr ∥∞ → 0 rapidly as r → ∞ , we expect to be able to approximate the solution well in low rank format. To set up a well-posed weak formulation, the following assumption is needed. 
+
+Assumption 1. κ−1 ∈ L∞(D × Γ) and there exist κmin and κmax such that 
+
+0 < κ min ≤ κ−1(x, y) ≤ κmax < ∞, a.e. in D × Γ.
+
+We also make the following assumption about the parameter-free part. 
+
+Assumption 2. κ0 ∈ L∞(D) and there exist κ0,min and κ0,max such that 
+
+0 < κ 0,min ≤ κ0(x) ≤ κ0,max < ∞, a.e. in D. 
+
+To ensure that Assumption 1 holds, we assume τ := 1
+
+> κ0,min
+
+PMr=1 ∥κr ∥∞ < 1. 
+
+8.2. Stochastic Galerkin Approximation. Following [17], we apply stochas-tic Galerkin approximation using tensor product spaces. Briefly, we look for approx-imations ⃗u h,q ∈ Vh ⊗ Sq and ph,q ∈ Wh ⊗ Sq that satisfy the associated weak form of (8.1) where Vh ⊂ H0,N (div ; D) and Wh ⊂ L2(D) are an inf-sup stable pair of finite element spaces associated with a spatial mesh on D and Sq ⊂ L2
+
+> ρ
+
+(Γ). In the experiments below, we use lowest-order rectangular Raviart–Thomas elements. On NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS 19 Γ, we employ global polynomial approximation of total degree ≤ q. In this case, 
+
+nq := dim( Sq ) = ( M + q)! /M !q!, where M is the number of input parameters. If we group all spatial unknowns for both solution fields ⃗u h,q and ph,q per para-metric degree of freedom, then the finite-dimensional weak problem can be written as (8.3) G0 ⊗ A0 +
+
+> M
+
+X
+
+> r=1
+
+Gr ⊗ Ar
+
+!
+
+x = g0 ⊗ f ⇔ Ax = b, 
+
+where A is symmetric and indefinite. Using Sq = span {ψ1(y), . . . , ψ nq (y)}, we have [Gr ]i,j := E [yr ψiψj ] , i, j = 1 , . . . , n q , r = 0 , 1, . . . , M, 
+
+(where y0 := 1) and we elect to work with an orthonormal Legendre basis so that 
+
+E [ψiψj ] = δi,j and G0 = I. The vector g0 ∈ Rnq denotes the first column of G0. The matrices Gr are symmetric for r ≥ 1 but are indefinite. The finite element matrices 
+
+A0 =
+
+ K0 BT
+
+B 0
+
+
+
+, Ar =
+
+ Kr 00 0
+
+
+
+, r ≥ 1,
+
+are symmetric and indefinite with K0 positive definite (due to Assumption 2) and 
+
+BT has full column rank. We define the vector f = [ gT , 0T ]T ∈ Rnh with nh =dim( Vh) + dim( Wh) where g incorporates the non-zero Dirichlet boundary condition. Due to the Kronecker structure, (8.3) can also be written as a p = ( M + 1)-term matrix equation (8.4) A0XG 0 + A1XG 1 + · · · + AM XG M = f g T 
+
+> 0
+
+,
+
+with coefficient matrices that are symmetric and indefinite, with solution X ∈ Rnh×nq .
+
+8.3. Preconditioned Matrix Equation. Following the discussion in section 5, it is natural to use a one-term preconditioner for (8.4) based on the pair ( A0, G0) so that P−1(Rk+1 ) = A−10 Rk+1 (since G0 = I). Applying the inverse of A0 on the left in (8.4) leads to a preconditioned problem with non-symmetric left matrices A−10 Ar
+
+and symmetric right matrices Gr . This strategy is equivalent to preconditioning the Kronecker system with the symmetric and indefinite matrix P = I ⊗ A0. This is a ‘mean-based’ preconditioner as A0 only incorporates the leading part κ0 of the uncer-tain input. Such preconditioners are successful when the variance of the input is low to moderate relative to the mean. P can also be viewed as a constraint preconditioner. This is easier to see if one reorders the degrees of freedom and rewrites the coefficient matrix A of the linear system in (8.3) and the preconditioner P as 
+
+A =
+
+PMr=0 Gr ⊗ Kr I ⊗ B⊤
+
+I ⊗ B 0
+
+ , P =
+
+ I ⊗ K0 I ⊗ B⊤
+
+I ⊗ B 0
+
+ .(8.5) If enough memory is available to store vectors of length nhnq , one may use minres 
+
+[32] as a solver with an SPD preconditioner, as in [17]. However, for problems with the structure considered here, indefinite constraint preconditioners can be particularly effective. If properly initialized, minres with a constraint preconditioner is equivalent to a projection method [18]. Results in [27], [21], and [37], show that 1 is an eigen-value of the preconditioned system matrix with high multiplicity, and the remaining eigenvalues are real and lie in the spectral interval of the SPD matrix PMr=0 Gr ⊗ Kr
+
+preconditioned by I ⊗K0. Using Assumptions 1 and 2, one can show that this interval is contained in [1 − τ, 1 + τ ] ⊂ R+ so that all the eigenvalues are positive. 20 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+8.4. Numerical Experiments. We first apply ss–gcr (1) and ss–mr to a syn-thetic problem where the coefficients in (8.2) decay rapidly, and X can be approxi-mated with maxrank ≤ 40. We then consider a more challenging case which requires a larger value of maxrank for the same tolerance. In both problems, an appropriate value of maxrank for a fixed value of M is determined by running initial experiments on problems with a small value of nh (coarse spatial mesh). Since A0 ∈ Rnh×nh be-comes costly to invert (via factorization) for fine spatial meshes, we apply an inexact preconditioner based on the pair ( eA0, I), where eA0 is defined by replacing the (1,1) block of A0 by the diagonal of K0, which (since K0 is a weighted mass matrix) is spectrally equivalent. We fix X0 = 0, tol = 10 −6 and toltrank = 10 −8. We report the number of iterations k required to meet the stopping condition, the solution time (in seconds), and the actual rank of the final solution iterate Xk, as the number of parameters M and the SG-MFEM discretization parameters nh and q are increased. In Test Problem 2, where the dimensions of the reduced problems for αk and βk are larger, we use pcg for the inner solves. The performance of the new methods is com-pared with that of minres on the associated linear systems with the same one-term preconditioner and stopping condition. 
+
+Test Problem 1: Fast Decay Case. Let D = [0 , 1] 2 with p = g = 1 on ∂D D =
+
+{0} × [0 , 1] and ⃗u ·⃗n = 0 on ∂D N = ∂D \ ∂D D , modelling flow from left to right across the domain. We choose κ−1 as in (8.2) with κ0 = 1 and κr (x) = √λr ϕr (x) where √λr = 0 .832 r−4 and ϕr (x) = cos(2 πβ 1(r)x1) cos(2 πβ 2(r)x2) with x = [ x1, x 2]⊤ ∈ D, 
+
+where β1(r) = r−l(r)( l(r)+1) /2, β2(r) = l(r)−β1(r) and l(r) = ⌊− 1/2+ p1/4 + 2 r⌉.This construction [14] provides a synthetic example of a KL expansion with rapidly decaying terms. Choosing M = 5 and M = 9 (giving six and ten terms in the matrix equation) ensures we keep all terms with √λr > 10 −3 and √λr > 10 −4.
+
+nh = 49 , 152 
+
+ss–mr minres 
+
+M q nq maxrank Rank k Res Time k Res Time 4 126 40 35 10 6.1e-07 11.0 18 8.6e-07 10.7 5 5 252 40 40 12 7.0e-07 14.2 19 2.7e-07 23.2 6 462 40 40 13 8.5e-07 16.3 19 2.2e-07 47.7 4 715 40 40 11 8.4e-07 32.4 18 8.6e-07 106.1 9 5 2,002 40 40 13 9.3e-07 39.5 19 2.7e-07 574.8 6 5,005 40 40 15 7.9e-07 47.1 * * *
+
+nh = 196 , 608 
+
+ss–mr minres 
+
+M q nq maxrank Rank k Res Time k Res Time 4 126 30 30 12 7.4e-07 43.9 18 8.6e-07 48.5 5 5 252 40 39 12 7.8e-07 59.0 19 2.5e-07 132.8 6 462 40 40 13 9.0e-07 66.8 19 2.0e-07 390.0 4 715 40 40 11 7.7e-07 125.8 18 8.6e-07 875.0 9 5 2,002 40 40 13 8.0e-07 153.9 * * *6 5,005 40 40 14 9.1e-07 163.6 * * *Table 3: Test Problem 1 Performance of ss–mr on the matrix equation formulation with one-term preconditioning, and minres on the associated linear system with the same preconditioner, tol = 10 −6 and toltrank = 10 −8.NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS 21 
+
+nh = 49 , 152 
+
+ss–gcr (1) minres 
+
+M q nq maxrank Rank k Res Time k Res Time 4 126 30 30 10 5.5e-07 12.2 18 8.6e-07 10.7 5 5 252 30 30 11 8.7e-07 14.0 19 2.7e-07 23.2 6 462 40 40 11 5.2e-07 20.2 19 2.2e-07 47.7 4 715 40 40 9 6.2e-07 38.4 18 8.6e-07 106.1 9 5 2,002 40 40 10 8.0e-07 47.3 19 2.7e-07 574.8 6 5,005 40 40 11 7.7e-07 56.5 * * *
+
+nh = 196 , 608 
+
+ss–gcr (1) minres 
+
+M q nq maxrank Rank k Res Time k Res Time 4 126 30 30 9 9.0e-07 49.3 18 8.6e-07 48.5 5 5 252 30 30 11 7.2e-07 68.5 19 2.5e-07 132.8 6 462 40 40 10 8.5e-07 76.5 19 2.0e-07 390.0 4 715 40 40 9 4.9e-07 153.9 18 8.6e-07 875.0 9 5 2,002 40 40 10 6.8e-07 184.2 * * *6 5,005 40 40 11 6.2e-07 204.4 * * *Table 4: Test Problem 1 Performance of ss–gcr (1) on the matrix equation for-mulation with one-term preconditioning, and minres on the associated linear system with the same preconditioner, tol = 10 −6 and toltrank = 10 −8.In Tables 3 and 4, we display results obtained with ss–mr and ss–gcr (1) for problems discretized on two finite element meshes on D and with polynomials of to-tal degree ≤ q = 4 , 5, 6 on Γ. In most cases the final rank is equal to the chosen value of maxrank . We see that the number of iterations required by both subspace methods is independent of M and the discretization parameters. ss–mr is gener-ally quicker, requiring only 1–4 more iterations than ss–gcr (1) . minres with the constraint preconditioner also converges well, with iteration counts independent of M
+
+and the discretization parameters. For very small problems, it is the quickest method. However, for larger problems, the subspace methods outperform the standard Krylov method by a substantial margin in terms of both timings and memory consumption. The symbol ∗ indicates that the minres experiment had to be aborted due to the excessive amount of time and/or memory required. On the finest mesh, with M = 9 and q = 6 so that nq = 5 , 005, the discrete problem consists of over 984 million equa-tions. The problem is solved with the new subspace methods with modest memory requirements in a couple of minutes. Timings in bold indicate cases where two-sided sketching was applied in the estimation of the residual norm. 
+
+Test Problem 2: Slow Decay Case. Next, we consider D = [ −1, 1] 2 with 
+
+p = g = 1 on ∂D D = {− 1} × [−1, 1] and ⃗u ·⃗n = 0 on ∂D N = ∂D \ ∂D D . This time, we model κ−1 as a truncated KL expansion in terms of random variables ξr ∼
+
+U (−√3, √3) with mean κ0 = 1 and separable exponential covariance 
+
+C(x, x′) = σ22Y
+
+> i=1
+
+exp 
+
+
+
+− |xi − x′
+
+> i
+
+|
+
+ℓi
+
+
+
+, x, x′ ∈ D. 
+
+In the parametric representation (8.2), we then have κr = σ√3√λr ϕr where {(λr , ϕ r )}
+
+are eigenpairs of σ−2C, and these can be computed analytically [26]. For the full field, 22 D. PALITTA, C. E. POWELL, and V. SIMONCINI 
+
+R 
+
+> D
+
+Var[ κ−1]dx = 4 σ2 and for the truncated one, we have σ2 PMr=1 λr . This fact may be used to decide on an appropriate value for M . It is well known that the separable exponential covariance is problematic. The eigenvalues decay very slowly, especially for small correlation lengths ℓi. We include it to illustrate the limiting performance of our new methods on a difficult problem where the required rank is not that small, and to motivate the need for future work. 
+
+nh = 49 , 152 
+
+ss–mr minres 
+
+M q nq maxrank k pcg Res Time k Res Time 4 495 80 7 [6, 7] 7.5e-07 24.0 10 6.6e-07 32.2 8 5 1,287 100 7 [6, 7] 5.1e-07 29.9 10 5.2e-08 109.6 6 3,003 100 7 [6, 7] 7.0e-07 33.2 9 9.4e-07 381.1 4 1,820 120 7 [6, 7] 8.0e-07 74.6 10 3.4e-07 233.7 12 5 6,188 140 7 [6, 7] 8.0e-07 101.8 * * *6 18,564 140 8 [5 ,7] 5.1e-07 139.2 * * *
+
+nh = 196 , 608 
+
+ss–mr minres 
+
+M q nq maxrank k pcg Res Time k Res Time 4 495 80 7 [6, 7] 6.8e-07 99.7 10 6.6e-07 251.6 8 5 1,287 100 7 [6, 7] 4.1e-07 165.0 10 5.4e-08 986.7 6 3,003 100 7 [6, 7] 5.1e-07 168.0 * * *4 1,820 120 7 [6, 7] 6.8e-07 420.7 * * *12 5 6,188 140 7 [6, 7] 6.2e-07 482.6 * * *6 18,564 140 7 [6, 7] 7.9e-07 490.7 * * *Table 5: Test Problem 2 Performance of ss–mr on the matrix equation formulation with one-term preconditioning, and minres on the associated linear system with the same preconditioner, tol = 10 −6 and toltrank = 10 −8..Recall, the computation of αk and βk involves solving reduced problems with (M + 1) 2 terms. This squaring, coupled with the not-so-small required values of 
+
+maxrank (see Table 5) poses a computational challenge. In all cases, the rank of the final iterate was equal to the stated value of maxrank . Since we require larger values of maxrank , we confine our study here to a problem with ℓ1 = ℓ2 = 2 (large correlation length) so that we do not need to choose M to be too large. We fix the standard deviation to be σ = 0 .15 so that the truncated field remains spatially positive and the mean-based preconditioner is effective. Specifically, we consider M = 8 and M = 12, so that the associated matrix equations have nine and thirteen terms, and we retain 87% and 89% of the variance of the random input field, respectively. Results obtained with ss–mr are presented in Table 5. Timings in bold indicate cases where the problem dimension is large enough that two-sided sketching is needed. Results with ss–gcr (1) are not shown. In most cases, it converged in one fewer itera-tion but was substantially slower than ss–mr for larger problems due to the increased computational effort required to compute βk. Again, the number of iterations re-quired by both methods is independent of the SG-MFEM discretisation parameters. The iteration counts are lower than in the last example. This is to be expected as the variance of the random input is smaller, making the mean-based preconditioner NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS 23 more effective. Due to the higher values of maxrank required, the inner solves for the reduced problems had to be performed with pcg , but inner iteration counts are also independent of the discretization parameters. minres with the constraint precond-tioner also converges well in terms of iteration counts. However, it is not competitive in terms of time or memory requirements. Again, the symbol ∗ indicates that the ex-periment was not performed due to time and/or memory restrictions, but the trends are clear. On the finest spatial mesh, with M = 12 and q = 6, the discrete problem consists of more than 3 .9 × 10 9 equations. Both ss–gcr (1) and minres struggle, but with ss–mr , which has lower memory requirements, we can solve the system in a few minutes with modest resources. 
+
+9. Conclusions. We have derived a new class of short recurrences that can be used to solve linear multiterm matrix equations associated with general nonsymmetric coefficient operators, when the solution can be approximated by a low-rank matrix. The iterative methods are effective thanks to a careful treatment of the inherent struc-ture throughout the solution process. Rank truncations and randomization strategies are fundamental ingredients of our approach to keep memory allocations small and to facilitate the solution of very large problems. The reported results also show that the new strategies are able to efficiently solve matrix equations in the target class for a wide range of parameter values and discretization settings. When a good preconditioner is available, the ss–mr method shows better performance in terms of CPU time than ss–gcr (1) , while ensuring lower memory requirements. 
+
+Acknowledgments. VS would like to thank Maike Meier for pointing to [29] for bounds used in section 4.2. The work of VS was partially supported by the European Union - NextGenerationEU under the National Recovery and Resilience Plan (PNRR) - Mission 4 Education and research - Component 2 From research to business - Invest-ment 1.1 Notice Prin 2022 - DD N. 104 of 2/2/2022, entitled “Low-rank Structures and Numerical Methods in Matrix and Tensor Computations and their Application”, code 20227PCCKZ – CUP J53D23003620006. The same fund partially supported the visit of CP to the University of Bologna in September 2025. DP and VS are members of INdAM, Research Group GNCS. CP gratefully acknowledges the Dame Kathleen Ollerenshaw travel fund, administered by the University of Manchester. All authors acknowledge that they conducted some of this work at the Institute for Computational and Experimental Research in Mathematics (ICERM) in Providence, USA, which is supported by the National Science Foundation under Grant No. DMS-1929284, while participating in the Stochastic and Randomized Algorithms program, Spring semester 2026.           
+
+> REFERENCES [1] S. F. Ashby, T. A. Manteuffel, and P. E. Saylor ,A Taxonomy for Conjugate Gradient Methods , SIAM Journal on Numerical Analysis, 27 (1990), pp. 1542–1568. [2] O. Balabanov and L. Grigori ,Randomized Gram–Schmidt Process with Application to GMRES , SIAM Journal on Scientific Computing, 44 (2022), pp. A1450–A1474, https: //doi.org/10.1137/20M138870X. [3] P. Benner and T. Breiten ,Low Rank Methods for a Class of Generalized Lyapunov Equations and Related Issues , Numerische Mathematik, 124 (2013), pp. 441–470. [4] P. Benner, A. Cohen, M. Ohlberger, and K. Willcox , eds., Model reduction and approxi-mation: theory and Algorithms , Computational Science & Engineering, SIAM, PA, 2017. [5] P. Benner and P. K¨ urschner ,Computing real low-rank solutions of Sylvester equations by the factored ADI method , Computers & Mathematics with Applications, 67 (2014), pp. 1656–
+
+24 D. PALITTA, C. E. POWELL, and V. SIMONCINI 1672, https://doi.org/10.1016/j.camwa.2014.03.004. [6] P. Benner, R.-C. Li, and N. Truhar , On the ADI method for Sylvester equations , Journal of Computational and Applied Mathematics, 233 (2009), pp. 1035–1045. [7] P. Benner, A. Onwunta, and M. Stoll , Low-rank solution of unsteady diffusion equations with stochastic coefficients ,SIAM/ASAJ.Uncertainty Quantification , 3 (2015), pp. 622–649. [8] A. Bespalov, C. E. Powell, and D. J. Silvester , A priori error analysis of stochastic Galerkin mixed approximations of elliptic PDEs with random data , SIAM Journal on Numerical Analysis, 50 (2012), pp. 2039–2063. [9] I. Bioli, D. Kressner, and L. Robol , Preconditioned low-rank riemannian optimization for symmetric positive definite linear matrix equations , SIAM J. Scientific Computing, 47 (2025), pp. A1091–A1116, https://doi.org/10.1137/24M1688540. [10] A. B¨ unger, V. Simoncini, and M. Stoll , A low-rank matrix equation method for solving PDE-constrained optimization problems , SIAM J. Sci. Comput., 43 (2021), pp. S637–S654. [11] C. Canuto, M. Y. Hussaini, A. Quarteroni, and T. A. Zang , Spectral methods , Scientific Computation, Springer-Verlag, Berlin, 2006. Fundamentals in single domains. [12] T. Damm , Direct methods and ADI-preconditioned Krylov subspace methods for generalized Lyapunov equations , Num. Lin. Alg. with Appl., 15 (2008), pp. 853–871. [13] S. Dolgov and M. Stoll , Low-rank solution to an optimization problem constrained by the Navier–Stokes equations , SIAM J. Sci. Comput., 39 (2017), pp. A255–A280. [14] M. Eigel, C. J. Gittelson, C. Schwab, and E. Zander , Adaptive stochastic Galerkin FEM ,Computer Methods in Applied Mechanics and Engineering, 270 (2014), pp. 247–269. [15] N. S. Ellner and E. L. Wachspress , Alternating Direction Implicit iteration for systems with complex spectra , SIAM J. Numerical Analysis, 23 (1991), pp. 859–870. [16] H. C. Elman , Iterative methods for large sparse nonsymmetric systems of linear equations ,PhD thesis, Yale University, New Haven, CT, 1982. [17] O. Ernst, C. Powell, D. Silvester, and E. Ullmann , Efficient solvers for a linear stochastic Galerkin mixed formulation of diffusion problems with random data , SIAM Journal on Scientific Computing, 31 (2009), pp. 1424–1447. [18] N. Gould, D. Orban, and T. Rees , Projected Krylov methods for saddle-point systems ,SIAM Journal on Matrix Analysis and Applications, 35 (2014), pp. 1329–1343, https: //doi.org/10.1137/130916394. [19] N. Halko, P. G. Martinsson, and J. A. Tropp , Finding Structure with Randomness: Prob-abilistic Algorithms for Constructing Approximate Matrix Decompositions , SIAM Review, 53 (2011), pp. 217–288, https://doi.org/10.1137/090771806. [20] J. Henning, D. Palitta, V. Simoncini, and K. Urban , An ultraweak space-time variational formulation for the wave equation: analysis and efficient numerical solution , ESAIM: Mathematical Modelling and Numerical Analysis, 56 (2022), pp. 1173–1198, https://doi. org/https://doi.org/10.1051/m2an/2022035. [21] C. Keller, N. I. M. Gould, and A. J. Wathen , Constraint preconditioning for indefinite linear systems , SIAM Journal on Matrix Analysis and Applications, 21 (2000), pp. 1300– 1317, https://doi.org/10.1137/S0895479899351805. [22] D. Kressner, M. Pleˇ singer, and C. Tobler , A preconditioned low-rank CG method for parameter-dependent Lyapunov equations , Num. Lin. Alg. Appl, 21 (2014), pp. 666–684. [23] D. Kressner and P. Sirkovi´ c, Truncated low-rank methods for solving general linear matrix equations , Numerical Linear Algebra with Applications, 22 (2015), p. 564–583, https:// doi.org/10.1002/nla.1973, http://dx.doi.org/10.1002/nla.1973. [24] D. Kressner and C. Tobler , Low-Rank Tensor Krylov Subspace Methods for Parametrized Linear Systems , SIAM. J. Matrix Anal. & Appl., 32 (2011), pp. 1288–1316, https://doi. org/10.1137/100799010. [25] K. Lee, H. C. Elman, C. E. Powell, and D. Lee , Enhanced alternating energy minimization methods for stochastic Galerkin matrix equations , BIT Numerical Mathematics, 62 (2022), pp. 965–994, https://doi.org/10.1007/s10543-021-00903-x. [26] G. J. Lord, C. E. Powell, and T. Shardlow , An Introduction to Computational Stochastic PDEs , Cambridge University Press, 2014. [27] L. Lukˇ san and J. Vlˇ cek , Indefinitely preconditioned inexact Newton method for large sparse equality constrained non-linear programming problems , Num. Linear Algebra and Appl., 5 (1998), pp. 219–247. [28] The MathWorks, Inc. , MATLAB 7 , r2025b ed., 2026. [29] M. Meier , Randomized algorithms and theory for rank estimation and least squares , PhD thesis, University of Oxford, 2024. [30] M. Meier and Y. Nakatsukasa , Fast randomized numerical rank estimation for numerically low-rank matrices , Linear Algebra and its Applications, 686 (2024), pp. 1–32, https://doi. NEW RECURRENCES FOR NONSYMMETRIC MATRIX EQUATIONS 25 
+
+org/https://doi.org/10.1016/j.laa.2024.01.001. [31] R. B. Morgan , Implicitly restarted GMRES and Arnoldi methods for nonsymmetric systems of equations , SIAM Journal on Matrix Analysis and Applications, 21 (2000), pp. 1112–1135, https://doi.org/10.1137/S0895479897321362. [32] C. C. Paige and M. A. Saunders , Solution of sparse indefinite systems of linear equations ,SIAM journal on numerical analysis, 12 (1975), pp. 617–629. [33] D. Palitta, M. Iannacito, and V. Simoncini , A subspace-conjugate gradient method for linear matrix equations , SIAM J. Matrix Anal. Appl, 46 (2025), pp. 2197–2225, https: //doi.org/10.1137/25M1723402. [34] D. Palitta and P. K¨ urschner , On the convergence of Krylov methods with low-rank truncations , Numer Algor, 88 (2021), pp. 1383–1417, https://doi.org/10.1007/ s11075-021-01080-2. [35] D. Palitta and V. Simoncini , Matrix-equation-based strategies for convection-diffusion equations , BIT Numer. Math., 56 (2016), pp. 751–776, https://doi.org/10.1007/ s10543-015-0575-8. [36] C. E. Powell, D. Silvester, and V. Simoncini , An efficient reduced basis solver for stochastic Galerkin matrix equations , SIAM Journal on Scientific Computing, 39 (2017), pp. A141– A163, https://doi.org/10.1137/15M1032399. [37] M. Rozloˇ zn´ ık and V. Simoncini , Krylov subspace methods for saddle point problem with indefinite preconditioning , SIAM J. Matrix Analysis and Appl, 24 (2002), pp. 368–391. [38] Y. Saad , Iterative methods for sparse linear systems , SIAM, Society for Industrial and Applied Mathematics, 2nd ed., 2003. [39] G. Sangalli and M. Tani , Isogeometric preconditioners based on fast solvers for the Sylvester equation , SIAM Journal on Scientific Computing, 38 (2016), pp. A3644–A3671. [40] S. D. Shank, V. Simoncini, and D. B. Szyld , Efficient low-rank solutions of generalized Lyapunov equations , Numerische Mathematik, 134 (2016), pp. 327–342. [41] V. Simoncini , Computational Methods for Linear Matrix Equations , SIAM Review, 58 (2016), pp. 377–441, https://doi.org/10.1137/130912839. [42] M. Stoll and T. Breiten , A low-rank in time approach to PDE-constrained optimization ,SIAM J. Sci. Comput., 37 (2015), pp. B1–B29. [43] J. A. Tropp , Improved Analysis of the Subsampled Randomized Hadamard Transform , Ad-vances in Adaptive Data Analysis, 03 (2011), pp. 115–126, https://doi.org/10.1142/ S1793536911000787. [44] E. Ullmann , A Kronecker product preconditioner for stochastic Galerkin finite element dis-cretizations , SIAM J. Scientific Computing, 32 (2010), pp. 923–946. [45] S. R. Vatsya , Convergence of Conjugate Residual-Like Methods to Solve Linear Equations ,SIAM J. Numerical Analysis, 25 (1988), pp. 957–964. [46] Y. Voet , Preconditioning techniques for generalized Sylvester matrix equations , Numerical Linear Algebra with Applications, 32 (2025), p. e70020, https://doi.org/https://doi.org/ 10.1002/nla.70020. [47] E. Wachspress , The ADI Model Problem , Springer, 2013, https://doi.org/10.1007/ 978-1-4614-5122-8. [48] D. S. Watkins , The matrix eigenvalue problem. GR and Krylov subspace methods , SIAM, Philadelphia, 2007. [49] J. Zhang and J. G. Nagy , An alternating direction method of multipliers for the solution of matrix equations arising in inverse problems , Numerical Linear Algebra with Applications, 25 (2018), p. e2123.
