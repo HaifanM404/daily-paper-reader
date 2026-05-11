@@ -1,0 +1,463 @@
+Title: A Robust Foundation Model for Conservation Laws: Injecting Context into Flux Neural Operators via Recurrent Vision Transformers
+
+URL Source: https://arxiv.org/pdf/2605.05488v1
+
+Published Time: Fri, 08 May 2026 00:18:25 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# A Robust Foundation Model for Conservation Laws: Injecting Context into Flux Neural Operators via Recurrent Vision Transformers 
+
+Taeyoung Kim ∗
+
+Center for AI and Natural Sciences Korea Institute for Advanced Study Seoul, South Korea 02455 
+
+taeyoungkim@kias.re.kr 
+
+Joon-Hyuk Ko ∗
+
+Center for AI and Natural Sciences Korea Institute for Advanced Study Seoul, South Korea 02455 
+
+jhko725@kias.re.kr 
+
+## Abstract 
+
+We propose an architecture that augments the Flux Neural Operator (Flux NO), which combines the classical finite volume method (FVM) with neural operators, with ViT-based context injection. Our model is formulated as a hypernetwork: it extracts solution dynamics over a finite temporal window, encodes them with a re-current Vision Transformer, and generates the parameters of a context-conditioned neural operator. This enables the model to infer and solve conservation laws without explicit access to the governing equation or PDE coefficients. Experimen-tally, we show that the proposed method preserves the robustness, generalization ability, and long-time prediction advantages of Flux NO over standard neural operators, while delivering reliable numerical solutions across a broad range of conservative systems, including previously unseen fluxes. Our code is available at 
+
+https://github.com/xx257xx/CONTEXT_FLUX_NO .
+
+## 1 Introduction 
+
+Neural-network-based methods for scientific computing have rapidly emerged as a major research direction, with a wide range of paradigms being introduced in quick succession. This evolution can be broadly understood as three successive shifts. First, physics-informed neural networks (PINNs) were proposed to solve partial differential equations (PDEs) by directly optimizing neural networks subject to the governing equations together with initial and boundary conditions [Raissi et al., 2019]. Second, operator learning introduced a different perspective: rather than solving each PDE instance independently, neural operators learn the solution map of a prescribed PDE family, enabling direct prediction of forward or inverse solutions from input conditions [Li et al., 2021, Lu et al., 2021, Kovachki et al., 2023]. More recently, inspired by the few-shot and in-context capabilities of Transformer-based foundation models [Brown et al., 2020, Dosovitskiy et al., 2020], this viewpoint has been extended to scientific machine learning, giving rise to PDE foundation models that aim to solve diverse classes of PDEs by conditioning on contextual information such as observed dynamics, equation families, or domain structure [Hao et al., 2024, Herde et al., 2024, Subramanian et al., 2024]. Motivated by this line of development, we revisit the classical finite volume method (FVM), in which the evolution of conservation laws is governed by numerical fluxes at cell interfaces [LeVeque, 2002], and combine it with neural operators in the spirit of the Flux Neural Operator (Flux NO) [Tran et al., 2024]. Building on this formulation, we propose a recurrent ViT-based context injection mechanism that lifts Flux NO into a foundation-model framework. The resulting model infers the underlying dynamics from short solution trajectories and adapts its numerical-flux operator accordingly, without requiring explicit knowledge of PDE coefficients or closed-form flux expressions. 
+
+> ∗Equal contribution. Correspondence to: Taeyoung Kim <taeyoungkim@kias.re.kr>, Joon-Hyuk Ko <jhko725@kias.re.kr>. Preprint.
+> arXiv:2605.05488v1 [cs.LG] 6 May 2026
+
+Our main contributions are as follows: • We formulate an in-context flux-learning problem for parametric conservation laws, where a short observed trajectory is used to infer a latent numerical flux operator. • We introduce a context-conditioned Flux Neural Operator in which a recurrent ViT encoder produces a compact context code that conditions the finite-volume flux operator. • We show that enforcing a conservative flux-difference update improves autoregressive stability and OOD robustness compared with generic PDE foundation-model baselines on one-dimensional conservation-law benchmarks and a related diffusive Burgers-type problem. 
+
+## 2 Background 
+
+This section reviews the ingredients that motivate our architecture. We emphasize two points. First, conservation laws require numerical updates that respect flux-difference structure, and Flux NOs encode this conservative structure, but are not inherently designed for in-context adaptation across unseen flux functions. Second, recent PDE foundation models provide context-conditioned adaptability, but often do so with generic prediction architectures that do not explicitly preserve conservative numerical structure. 
+
+2.1 Conservation laws and Flux Neural Operators 
+
+We consider conservation laws of the form 
+
+∂tu + ∇ · F (u; p) = 0 , (1) where u(t, x) ∈ Rd is the conserved state and F (u; p) is the physical flux, possibly parameterized by coefficients p. The key structure of Eq. (1) is that temporal evolution is determined by flux imbalance. In a one-dimensional finite volume discretization, this leads to the semi-discrete update 
+
+ddt ¯ui(t) = − 1∆x
+
+ ˆfi+ 12 (t) − ˆfi− 12 (t)
+
+
+
+, (2) and, after time discretization, to the conservative update 
+
+¯u n+1  
+
+> i
+
+= ¯ u ni − ∆t
+
+∆x
+
+ ˆf ni+ 12
+
+− ˆf ni− 12
+
+
+
+. (3) The telescoping flux-difference structure ensures discrete conservation under suitable boundary conditions and is particularly important for nonlinear hyperbolic problems, where smooth solutions can develop shocks and long-time prediction requires stable transport behavior. Operator learning provides a data-driven framework for approximating solution maps between function spaces. Neural operators such as DeepONet [Lu et al., 2021] and Fourier Neural Operator [Li et al., 2021] learn such maps from data and can be evaluated rapidly on new inputs. However, many neural operators predict future solution fields directly and therefore do not explicitly enforce the conservative structure in Eq. (3). This can lead to conservation errors or unstable error accumulation during autoregressive rollout. Flux Neural Operators address this issue by combining neural operators with the finite volume viewpoint [Kim and Kang, 2025, Kim et al., 2025]. Instead of directly predicting the next solution snapshot, Flux NO learns a numerical flux operator, 
+
+ˆfi+ 12 = GΘ
+
+
+
+Si+ 12 (u n)
+
+
+
+, (4) where Si+ 12 (u n) denotes a local or nonlocal stencil representation around the interface i + 12 , and 
+
+GΘ is a neural operator. The next state is then obtained by substituting this learned flux into the finite volume update: 
+
+¯u n+1  
+
+> i
+
+= ¯ u ni − ∆t
+
+∆x
+
+
+
+GΘ(Si+ 12 (u n)) − GΘ(Si− 12 (u n)) 
+
+
+
+. (5) Thus, the model is constrained to evolve the solution through flux differences, giving it an inductive bias aligned with conservation laws. Since errors enter through a conservative residual rather than an unconstrained global prediction, this structure is especially useful for robust long-time rollout and resolution transfer. 22.2 PDE foundation models and context conditioning 
+
+Recent work has begun to move from single-equation neural operators toward foundation models for PDEs. The goal is to train models that can operate across broader families of equations, coef-ficients, discretizations, and physical regimes by conditioning on contextual information, such as short observed trajectories, equation descriptors, simulation metadata, or prompt-like input–output examples. Several approaches use transformer-style architectures, patch tokenization, autoregressive sequence modeling, or hypernetwork conditioning to enable such cross-system adaptation [Yang and Osher, 2024, Yang et al., 2025, Hao et al., 2024, Morel et al., 2025]. These methods provide a mechanism for in-context generalization: a single trained model can adapt its behavior based on the observed task context, without explicit retraining for each new equation instance. However, many PDE foundation models remain generic predictors of future states or latent solution fields. Their architectures are typically designed around sequence modeling or global operator regression, rather than the conservative numerical structure specific to hyperbolic conservation laws. Consequently, they may lack an explicit finite-volume update rule, interface flux representation, or guaranteed flux-difference form, which can be important in shock-dominated regimes, long-time rollout, and resolution transfer. Our method combines context-conditioned adaptation with a conservative numerical backbone. A short trajectory segment is encoded into a context vector, and a hypernetwork uses this vector to generate the parameters of a Flux NO target network. Thus, the model does not merely condition a generic predictor on context; it conditions the numerical flux operator itself. Compared with standard neural operators, the resulting model evolves states through a flux-difference update. Compared with Flux NO, it replaces a fixed flux operator with a context-generated one. Compared with generic PDE foundation models, it injects context into a structure-preserving solver, enabling adaptation to unseen flux functions while retaining the finite-volume inductive bias needed for conservation laws. 
+
+## 3 In-Context Flux Neural Operator 
+
+3.1 Problem setting 
+
+For conservation laws in Eq. (1), our goal is to learn a context-conditioned evolution operator from short trajectory observations. Let u(t, x) be the continuous solution and let un ∈ Rd×Nx denote its grid-sampled state at time t = n∆t, where Nx := Nx1 × · · · × Nxn . Given a context trajectory 
+
+U n−k+1: n = ( un−k+1 , . . . , un) ∈ Rk×d×Nx ,
+
+we seek to predict the next state un+1 .Rather than learning this map as an unconstrained input–output predictor, we decompose the problem into two stages: first infer a latent representation of the underlying dynamics from the observed trajectory, and then use this representation to instantiate a context-conditioned Flux NO. This naturally leads to a hypernetwork formulation, 
+
+c = E (U n−k+1: n), Θ = H(c), un+1 = F (un, ∆t; Θ) , (6) where E is the context encoder, H maps the context vector to target-network parameters, and F is the Flux NO target network. The encoder is not given the analytical flux function, PDE coefficients, or equation labels; all conditioning information must be inferred from the observed solution history. 
+
+3.2 Context Encoder and Hypernetwork 
+
+Given a short trajectory segment, the encoder extracts a compact context vector and maps it to the parameters of the Flux NO target network. We impose an information bottleneck, 
+
+Rk×din ×Nx −→ Re −→ Rq , e ≪ q, (7) where e is the context dimension and q is the number of generated target-network parameters. When grid coordinates are used, they are appended as additional input channels. 3Temporal recurrent mixing and spatial attention. The encoder is designed to process temporal and spatial axes separately while respecting causality along time. We therefore adopt a temporally recurrent Vision Transformer design inspired by TRecViT [Patraucean et al., 2025], where temporal mixing is handled by gated linear recurrent units [De et al., 2024, Botev et al., 2024] and spatial mixing by transformer blocks. Given U n−k+1: n ∈ Rk×d×Nx , the encoder first tokenizes each time slice using a ViT patch embed-ding with learnable positional encodings [Dosovitskiy et al., 2020]: 
+
+V (0) = PatchEmbed( U n−k+1: n) ∈ Rk×P ×e, (8) where P is the number of spatial patches. Each encoder layer alternates between temporal recurrent mixing for each spatial token and spatial self-attention for each time step: 
+
+bV (ℓ):,p = TemporalBlock (ℓ) 
+
+V (ℓ):,p 
+
+
+
+, V (ℓ+1)  
+
+> t, :
+
+= SpatialTransformer (ℓ)  bV (ℓ)
+
+> t, :
+
+
+
+. (9) In our implementation, the temporal block is a residual recurrent block based on a gated linear recurrent unit with a causal depthwise one-dimensional convolution. This alternating structure allows the encoder to propagate information through the observed trajectory while modeling spatial interactions at each time step. After the final layer, we apply token-wise layer normalization and average the final temporal state over spatial tokens: 
+
+c = 1
+
+P
+
+> P
+
+X
+
+> p=1
+
+LayerNorm 
+
+
+
+V (L)
+
+> k,p
+
+
+
+∈ Re. (10) The hypernetwork then maps this context vector to the target-network parameters, 
+
+Θ = H(c) ∈ Rq . (11) 
+
+3.3 Flux Neural Operator Target Network 
+
+The target network is a Flux NO whose parameters are generated from the context vector. Thus, unlike the original Flux NO with fixed parameters, our model instantiates a different numerical flux operator for each inferred dynamics. For clarity, we describe the one-dimensional case. Given the current state un, we construct left- and right-shifted stencil features V l and V r under periodic boundary conditions. These features contain local solution values around cell interfaces, together with grid coordinates when used. The generated Flux NO maps them to numerical fluxes, 
+
+ˆf ni+ 12
+
+= GΘ(V ri ), ˆf ni− 12
+
+= GΘ(V li ), (12) and advances the solution by the finite-volume update 
+
+un+1  
+
+> i
+
+= uni − ∆t
+
+∆x
+
+ ˆf ni+ 12
+
+− ˆf ni− 12
+
+
+
+. (13) Equivalently, 
+
+un+1 = un − ∆t
+
+∆x
+
+ GΘ(V r ) − GΘ(V l) . (14) This form makes the conservative structure explicit: the model predicts fluxes, and the solution changes only through flux differences across neighboring interfaces. The flux operator GΘ is implemented as a depth-L neural operator acting on the stencilized state: 
+
+z(0) (x) = Wlift;Θ V (x),
+
+ez(ℓ)(x) = 
+
+Z
+
+k(ℓ)Θ (x, x ′)z(ℓ−1) (x′) dx ′, ℓ = 1 , . . . , L, z(ℓ)(x) = z(ℓ−1) (x) + σ
+
+ez(ℓ)(x)
+
+
+
+, ℓ = 1 , . . . , L, GΘ(x) = Wproj;Θ z(L)(x).
+
+(15) Here Wlift;Θ , Wproj;Θ , and k(ℓ)Θ are generated by the hypernetwork. In this way, the context vector instantiates the numerical flux operator itself, rather than merely modulating intermediate activations. The overall architecture is illustrated in Figure 1. 4Figure 1: Overview of HFluxNO. (a) A temporally recurrent Vision Transformer encodes the context trajectory by alternating temporal recurrent mixing and spatial attention, producing a context vector that is mapped by a hypernetwork to Flux NO parameters. (b) The generated Flux NO target network predicts numerical fluxes, which are used in a conservative finite-volume update. 
+
+## 4 Experiments 
+
+4.1 Baselines 
+
+To demonstrate the efficacy of our method, we selected the following state-of-the-art models from recent literature. For a fair performance comparison, we implement all models in JAX Bradbury et al. [2018] porting over original implementations if necessary. We provide a brief description of the baselines below, and refer readers to Section A for additional details. In preliminary experiments, ICON exhibited substantially larger prediction errors than the other baselines on the 1D cubic conservation-law benchmark. Because its performance was not competitive in this setting, we trained ICON using a single random seed and omit it from the main quantitative comparisons for clarity. Its results are reported separately in Section A. 
+
+ICON [Yang and Osher, 2024, Yang et al., 2025] is a decoder-only transformer language model that was repurposed for operator learning. Instead of language tokens, the model is trained to ingest the PDE solution field sampled at discrete time points and generate the output at some future point in time. 
+
+DPOT [Hao et al., 2024] is a non-transformer model that first compresses the input trajectory using spatial patch embedding, followed by a learnable weighted sum along the time axis. Subsequently, Fourier attention layers [Guibas et al., 2021, Hao et al., 2024] are applied on the aggregated context to learn kernel integral transforms conditional to the input context. 5DISCO [Morel et al., 2025] is another hypernetwork-based architecture, with the axial vision transformer architecture from McCabe et al. [2024] as the hypernetwork, and a neural ordinary differential equation [Chen et al., 2018, Kidger, 2021] with a U-Net [Ronneberger et al., 2015] vector field as the target network. Next time-step predictions are generated by numerically integrating the U-Net vector field using an adaptive Runge-Kutta solver, which can make this method more computationally expensive than its counterparts. 
+
+4.2 Datasets 
+
+While large, high quality PDE datasets have been made available in recent years [Takamoto et al., 2022, Ohana et al., 2024, Koehler et al., 2024], many of these datasets have limited variety in the equational form of the PDEs, their coefficient values, and the function family the initial conditions are sampled from. While a natural consequence of the difficulty of generating high quality PDE solutions, this limitation makes it difficult to gauge the generalization capabilities of the trained multiphysics neural operators. As such, we perform experiments with newly generated datasets designed to test both in-distribution performance and controlled forms of out-of-distribution generalization. For newly generated data, we provide a brief description of each dataset below, and provide in-depth simulation details in Section B. 
+
+1D Cubic Conservation Laws We first consider the problem of learning a family of 1D cubic conservation laws, as proposed by Yang and Osher [2024]. The governing equation is given as, 
+
+ut + ( c1u + c2u2 + c3u3)x = 0 , x ∈ [0 , 1] , (c1, c 2, c 3) ∼ Unif([ −1, 1] 3)
+
+with periodic boundary conditions and sample the initial conditions u(0) from a 1D Gaussian random field with the periodic covariance function. 
+
+1D Shallow Water Equations Next, we consider a parametrized form of the 1D shallow-water equations. Let m = hu denote the momentum. The state is q = ( h, m )⊤, and the governing equation is 
+
+qt + F (q)x = 0 , x ∈ [0 , 1] , (16) with flux 
+
+F (q) = 
+
+ αm γm 2/h + 12 βh 2
+
+
+
+, (α, γ, β ) ∼ Unif ([0 .5, 1.5] × [0 .5, 1.5] × [8 , 12]) . (17) The standard shallow-water equations correspond to (α, γ, β ) = (1 , 1, g ). For the initial conditions, we sample m(0) from a Gaussian random field and h(0) from a lognormal random field to ensure that the water height remains non-negative. 
+
+1D Viscous Burgers Equation The last equation we simulate is the viscous Burgers equation, given as 
+
+ut + ( a · u2)x = νu xx , x ∈ [0 , 1] , (a, ν ) ∼ Unif ([0 .5, 1.5] × [0 .005 , 0.015]) . (18) Note that this equation is not a conservation law (Eq. (1)) due to the presence of a dissipative term on the right hand side. Therefore we include this dataset in our benchmarks to gauge if our HFluxNO model can handle more general cases beyond the strictly conservative setting it was motivated by. For all simulated datasets, the equations are solved in the time interval t ∈ [0 , 0.4] with a sampling period of ∆t = 0 .005 . We generate 100 initial conditions per coefficient choice, and 1000, 100, 100 coefficient choices for the training, validation, and test datasets respectively. 
+
+4.3 Model training and evaluation 
+
+All models were trained using the mean squared error between model predictions and data for a single time step prediction. We set the context length to be k = 20 for most of our experiments. All models were trained for 50000 gradient steps, with the AdamW optimizer and a linear warm-up cosine decay schedule for the learning rate. 6We evaluate the trained models on (i) in-distribution accuracy, (ii) out-of-distribution robustness (shock-dominated regimes, sine fluxes), (iii) long-time roll-out beyond the training horizon. For evaluation metric, we used the relative l2 and l∞ norms which are defined as in (19) Rel. l2(u, u target ) := ∥u − utarget ∥2
+
+∥utarget ∥2
+
+, Rel. l∞(u, u target ) := ∥u − utarget ∥∞
+
+∥utarget ∥∞
+
+(19) over space at each time, and then averaged over time; or over the full spatiotemporal grid. 
+
+## 5 Results 
+
+5.1 In-distribution predictions. 
+
+We first evaluate the trained models under the in-distribution setting, using a test dataset of 100 coefficient combinations with 100 initial conditions each, sampled from the same distributions as the training data. We consider two types of model predictions - (i) a single step forecast, where the context is fed into the model to predict the solution ∆t time later, and (ii) a short autoregressive rollout, where the model output is recursively fed back into the model as input context for 20 times to generate a short prediction trajectory over a time horizon of 20∆ t.Table 1: In-distribution (ID) prediction accuracy on the 1D benchmark datasets. Reported as mean ±
+
+std over three training runs. The best results are in bold, and the runner-ups are underlined. Single step Autoregressive Rollout (20 steps) Dataset Model Rel. l2 (↓) Rel. l∞ (↓) Rel. l2 (↓) Rel. l∞ (↓)                                    
+
+> Cubic DPOT 7.40e-3 ±9.09e-5 2.42e-2 ±3.84e-4 1.36e-1 ±3.12e-3 6.78e-1 ±9.65e-3 DISCO 1.06e-2 ±1.99e-3 3.90e-2 ±9.65e-3 8.22e-2 ±5.58e-3 4.55e-1 ±3.12e-2 HFluxNO 4.10e-3 ±1.15e-4 1.55e-2 ±6.17e-4 5.21e-2 ±2.15e-3 3.68e-1 ±1.56e-2
+> Shallow water DPOT 8.49e-3 ±4.00e-4 2.88e-2 ±1.59e-3 1.05e-1 ±3.66e-3 4.63e-1 ±1.00e-2 DISCO 1.42e-2 ±6.28e-4 5.07e-2 ±1.94e-3 1.11e-1 ±5.82e-3 4.45e-1 ±2.01e-2 HFluxNO 6.27e-3 ±2.71e-5 2.29e-2 ±3.81e-4 7.55e-2 ±1.26e-3 3.98e-1 ±4.21e-3
+> Viscous Burgers DPOT 2.63e-3 ±2.93e-6 7.17e-3 ±4.29e-5 4.66e-2 ±1.07e-3 1.56e-1 ±4.39e-3 DISCO 3.43e-3 ±2.09e-4 9.65e-3 ±6.01e-4 6.56e-2 ±3.35e-2 3.43e-1 ±2.34e-1 HFluxNO 1.32e-3 ±2.90e-5 3.44e-3 ±7.30e-5 1.72e-2 ±2.35e-4 6.46e-2 ±6.51e-4
+
+From the results in Table 1, we find that the models often have markedly higher relative l∞ errors than relative l2 errors, which stems from the difficulty of exactly capturing shock front locations over time, as opposed to getting the overall form of the solution correctly. The baseline models show an interesting trend: DISCO performs worse than DPOT in several single-step settings, but its stronger dynamical prior improves longer autoregressive rollouts. However, incorporating prior structure into the model pays off in the longer term, with DISCO outperforming the other more flexible baselines. In contrast to this trade-off between single-step and autoregressive performance for the baseline models, we find that HFluxNO consistently outperforms the baselines in both single-step prediction and autoregressive rollout. This indicates that the choice of the model prior structure also greatly matters, and that our architecture design based on the finite volume method is highly effective in learning hyperbolic conservation laws. 
+
+Long time prediction capabilities To further stress test the predictive capabilities of the trained models, we generated long time predictions corresponding to a rollout time of trollout = 0 .4. From the results shown in Fig. 2 we see that our model consistently maintains lower error over time compared with the baselines. Furthermore, we see that the way error accumulates in the model predictions over time differs (Fig. 2, right panel). DPOT and, to a lesser extent, DISCO quickly accumulate high-frequency artifacts with increasing rollouts, which is a well-known problem plaguing autoregressive neural operator architectures [Lippe et al., 2023, Worrall et al., 2024]. In contrast, our model does not suffer from such artifacts, with errors only stemming from a slight misprediction of the wave propagation speed. This indicates that our model has properly learned the local physics of the problem, due to the effectiveness of the built-in inductive biases. 710 2 10 1 10 0                 
+
+> 10 2
+> 10 1
+> 10 0
+> Rel.  l2 Error
+> Cubic Conservation
+> 10 210 110 0
+> 10 2
+> 10 1
+> 10 0Shallow Water
+> 10 210 110 0
+> 10 3
+> 10 2
+> 10 1
+> 10 0
+> 10 1
+> Viscous Burgers
+> DISCO
+> DPOT
+> HFluxNO (Ours)
+> Rollout time trollout
+
+Figure 2: Long time prediction performances of the in-context neural operator models across different datasets. 
+
+Out-of-distribution generalization. We next evaluate the out-of-distribution (OOD) generalization capability of the trained models by (i) assessing model performances on a new dataset, generated using a different, shock-dominated initial condition distribution. Additionally, for the cubic conservation law experiment, We further test models on (ii) seen initial conditions (GRFs) but unseen equations (sine-flux dynamics), and (iii) unseen initial conditions and equations. These settings respectively test robustness to shifted initial-condition distributions, and generalization to a different flux family. Datasets were generated analogously to the in-distribution dataset (details are provided in Section B) and models were evaluated directly on these OOD test sets without fine-tuning. The quantitative results for these OOD settings are reported in Table 2, and qualitative examples are shown in Figure 3. 0.5                                      
+
+> 0.0
+> 0.5
+> ut(x)
+> trollout = 0.015 trollout = 0.035 trollout = 0.075 trollout = 0.155 trollout = 0.315
+> 01
+> 0.5
+> 0.0
+> Error
+> 01010101
+> x
+> Data DPOT DISCO HFluxNO (Ours) 1
+> 0
+> 1
+> ut(x)
+> trollout = 0.015 trollout = 0.035 trollout = 0.075 trollout = 0.155 trollout = 0.315
+> 01
+> 0
+> 2
+> Error
+> 01010101
+> x
+
+(a) 
+
+(b) 
+
+Figure 3: Qualitative rollout examples. The top row (a) shows an in-distribution cubic test trajectory, whereas the bottom row (b) shows an OOD trajectory with shock-dominated initial conditions and sine-flux dynamics. 
+
+Limitations. Our experiments focus primarily on one-dimensional conservation-law dynamics, with one additional diffusive Burgers-type benchmark beyond the strictly conservative setting. Although the proposed architecture is motivated by a conservative finite-volume structure, its performance on higher-dimensional systems, complex geometries, strongly coupled multiphysics problems, and real-world noisy observations remains to be investigated. In addition, the current study evaluates context adaptation on selected equation families, and broader generalization across substantially different PDE classes is left for future work. 8Table 2: OOD generalization performance. The Cubic, Shallow Water, and Viscous Burgers rows use shock-dominated initial conditions. The sine-flux rows evaluate cubic-trained models on unseen sine-flux dynamics without retraining, either with GRF initial conditions or shock-dominated initial conditions. Reported as mean ± std over three training runs. Single step Autoregressive Rollout (20 steps) Dataset Model Rel. l2 (↓) Rel. l∞ (↓) Rel. l2 (↓) Rel. l∞ (↓)                                                            
+
+> Cubic DPOT 7.24e-3 ±1.99e-4 2.45e-2 ±1.72e-4 1.58e-1 ±3.95e-3 8.23e-1 ±3.82e-2 DISCO 9.70e-3 ±1.07e-3 3.73e-2 ±4.19e-3 8.58e-2 ±5.69e-3 4.73e-1 ±2.63e-2 HFluxNO 5.62e-3 ±2.74e-4 2.27e-2 ±1.45e-3 6.68e-2 ±1.69e-3 4.35e-1 ±8.96e-3
+> Sine (with GRF) DPOT 5.98e-3 ±9.64e-5 1.16e-2 ±2.68e-4 1.64e-1 ±7.44e-3 4.92e-1 ±1.27e-2 DISCO 5.90e-3 ±1.01e-3 1.25e-2 ±2.07e-3 6.67e-2 ±6.96e-3 2.33e-1 ±2.47e-2 HFluxNO 2.66e-3 ±3.17e-5 6.44e-3 ±3.74e-5 4.14e-2 ±1.17e-3 1.78e-1 ±4.24e-3
+> Sine DPOT 7.83e-3 ±1.99e-4 2.74e-2 ±9.22e-4 1.76e-1 ±4.69e-3 9.29e-1 ±4.45e-2 DISCO 9.51e-3 ±1.99e-3 3.88e-2 ±7.78e-3 9.01e-2 ±8.08e-3 5.39e-1 ±2.21e-2 HFluxNO 4.85e-3 ±2.85e-4 1.98e-2 ±1.53e-3 6.06e-2 ±2.02e-3 3.83e-1 ±7.62e-3
+> Shallow water DPOT 7.45e-2 ±5.36e-3 3.46e-1 ±2.78e-2 4.59e-1 ±6.07e-3 9.77e-1 ±5.47e-3 DISCO 5.85e-2 ±1.16e-3 2.46e-1 ±4.29e-3 3.35e-1 ±1.01e-2 9.40e-1 ±6.75e-2 HFluxNO 1.25e-1 ±2.83e-3 4.96e-1 ±6.25e-3 4.28e-1 ±6.62e-3 8.47e-1 ±1.28e-2
+> Viscous Burgers DPOT 1.89e-3 ±2.10e-5 5.08e-3 ±1.67e-4 4.50e-2 ±3.19e-3 1.78e-1 ±1.17e-2 DISCO 2.73e-3 ±9.74e-5 7.58e-3 ±4.24e-4 4.53e-2 ±1.41e-2 2.41e-1 ±1.25e-1 HFluxNO 1.64e-3 ±2.43e-5 5.24e-3 ±7.20e-5 2.21e-2 ±5.04e-4 9.99e-2 ±9.47e-4
+
+## 6 Conclusion 
+
+In this work, we proposed HFluxNO, which extends Flux NO into a context-adaptive foundation model for conservation-law dynamics. To handle temporal causality in the input trajectory, we de-signed a context-injection encoder hypernetwork based on a temporally recurrent Vision Transformer, while using the original Flux NO architecture as the target network. This design allows the model to infer latent governing dynamics from short solution histories and instantiate a context-conditioned conservative flux operator. Through training and evaluation against recent baseline models, HFluxNO showed competitive or improved performance across several settings, including in-distribution prediction, out-of-distribution generalization with respect to initial conditions and flux functions, and long-time autoregressive prediction. The benchmark problems considered in this paper include one-dimensional scalar conservation laws, one-dimensional vector-valued conservation laws, and a viscous Burgers-type equation with an explicit diffusive term. These results suggest that combining in-context adaptation with a conservative flux-difference inductive bias can be beneficial for neural solvers of conservation-law dynamics. Future work will extend this framework to richer multiphysics settings, including higher-dimensional systems, more diverse equation families, and more complex physical regimes. 
+
+## References 
+
+A. Botev, S. De, S. L. Smith, A. Fernando, G.-C. Muraru, R. Haroun, L. Berrada, R. Pascanu, P. G. Sessa, R. Dadashi, L. Hussenot, J. Ferret, S. Girgin, O. Bachem, A. Andreev, K. Kenealy, T. Mesnard, C. Hardin, S. Bhupatiraju, S. Pathak, L. Sifre, M. Rivière, M. S. Kale, J. Love, P. Tafti, A. Joulin, N. Fiedel, E. Senter, Y. Chen, S. Srinivasan, G. Desjardins, D. Budden, A. Doucet, S. Vikram, A. Paszke, T. Gale, S. Borgeaud, C. Chen, A. Brock, A. Paterson, J. Brennan, M. Ris-dal, R. Gundluru, N. Devanathan, P. Mooney, N. Chauhan, P. Culliton, L. G. Martins, E. Bandy, D. Huntsperger, G. Cameron, A. Zucker, T. Warkentin, L. Peran, M. Giang, Z. Ghahramani, C. Fara-bet, K. Kavukcuoglu, D. Hassabis, R. Hadsell, Y. W. Teh, and N. de Frietas. RecurrentGemma: Moving Past Transformers for Efficient Open Language Models, 2024. 9J. Bradbury, R. Frostig, P. Hawkins, M. J. Johnson, C. Leary, D. Maclaurin, G. Necula, A. Paszke, J. VanderPlas, S. Wanderman-Milne, and Q. Zhang. JAX: composable transformations of Python+NumPy programs, 2018. URL http://github.com/jax-ml/jax .T. B. Brown, B. Mann, N. Ryder, M. Subbiah, J. Kaplan, P. Dhariwal, A. Neelakantan, P. Shyam, G. Sastry, A. Askell, S. Agarwal, A. Herbert-Voss, G. Krueger, T. Henighan, R. Child, A. Ramesh, D. M. Ziegler, J. Wu, C. Winter, C. Hesse, M. Chen, E. Sigler, M. Litwin, S. Gray, B. Chess, J. Clark, C. Berner, S. McCandlish, A. Radford, I. Sutskever, and D. Amodei. Language models are few-shot learners. In Advances in Neural Information Processing Systems , volume 33, pages 1877–1901. Curran Associates, Inc., 2020. R. T. Q. Chen, Y. Rubanova, J. Bettencourt, and D. K. Duvenaud. Neural Ordinary Differential Equations. In Advances in Neural Information Processing Systems , volume 31. Curran Associates, Inc., 2018. S. De, S. L. Smith, A. Fernando, A. Botev, G. Cristian-Muraru, A. Gu, R. Haroun, L. Berrada, Y. Chen, S. Srinivasan, G. Desjardins, A. Doucet, D. Budden, Y. W. Teh, R. Pascanu, N. D. Freitas, and C. Gulcehre. Griffin: Mixing Gated Linear Recurrences with Local Attention for Efficient Language Models, 2024. A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai, T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly, J. Uszkoreit, and N. Houlsby. An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale. In International Conference on Learning Representations , 2020. J. Guibas, M. Mardani, Z. Li, A. Tao, A. Anandkumar, and B. Catanzaro. Efficient Token Mixing for Transformers via Adaptive Fourier Neural Operators. In International Conference on Learning Representations , 2021. Z. Hao, C. Su, S. Liu, J. Berner, C. Ying, H. Su, A. Anandkumar, J. Song, and J. Zhu. DPOT: Auto-Regressive Denoising Operator Transformer for Large-Scale PDE Pre-Training. In Proceedings of the 41st International Conference on Machine Learning , pages 17616–17635. PMLR, 2024. M. Herde, B. Raoni´ c, T. Rohner, R. Käppeli, R. Molinaro, E. de Bézenac, and S. Mishra. Poseidon: Efficient Foundation Models for PDEs. In Advances in Neural Information Processing Systems ,volume 37, pages 72525–72624, 2024. D. I. Ketcheson, K. T. Mandli, A. J. Ahmadia, A. Alghamdi, M. Quezada de Luna, M. Parsani, M. G. Knepley, and M. Emmett. PyClaw: Accessible, Extensible, Scalable Tools for Wave Propagation Problems. SIAM Journal on Scientific Computing , 34(4):C210–C231, Nov. 2012. P. Kidger. On Neural Differential Equations . PhD thesis, University of Oxford, 2021. T. Kim and M. Kang. Approximating Numerical Fluxes Using Fourier Neural Operators for Hy-perbolic Conservation Laws. Commun. Comput. Phys. , 37(2):420–456, 2025. ISSN 1991-7120, 1815-2406. doi: 10.4208/cicp.OA-2024-0123. T. Kim, Y. Ha, and M. Kang. Neural operators learn the local physics of magnetohydrodynamics. 
+
+Computers & Fluids , 297:106661, 2025. ISSN 0045-7930. doi: 10.1016/j.compfluid.2025.106661. F. Koehler, S. Niedermayr, R. Westermann, and N. Thuerey. APEBench: A Benchmark for Au-toregressive Neural Emulators of PDEs. In The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track , 2024. N. B. Kovachki, Z. Li, K. Azizzadenesheli, B. Liu, K. Bhattacharya, A. M. Stuart, and A. Anandkumar. Neural operator: Learning maps between function spaces with applications to PDEs. Journal of Machine Learning Research , 24(89):1–97, 2023. ISSN 1532-4435. R. J. LeVeque. Finite Volume Methods for Hyperbolic Problems . Cambridge University Press, Cambridge, 2002. ISBN 978-0-521-00924-9. Z. Li, N. Kovachki, K. Azizzadenesheli, B. Liu, K. Bhattacharya, A. Stuart, and A. Anandkumar. Fourier neural operator for parametric partial differential equations. International Conference on Learning Representations , 2021. ICLR 2021. 10 P. Lippe, B. Veeling, P. Perdikaris, R. Turner, and J. Brandstetter. PDE-Refiner: Achieving Accurate Long Rollouts with Neural PDE Solvers. In Advances in Neural Information Processing Systems ,volume 36, pages 67398–67433, 2023. L. Lu, P. Jin, G. Pang, Z. Zhang, and G. E. Karniadakis. Learning nonlinear operators via DeepONet based on the universal approximation theorem of operators. Nature Machine Intelligence , 3(3): 218–229, 2021. doi: 10.1038/s42256-021-00302-5. M. McCabe, B. Régaldo-Saint Blancard, L. Parker, R. Ohana, M. Cranmer, A. Bietti, M. Eickenberg, S. Golkar, G. Krawezik, F. Lanusse, M. Pettee, T. Tesileanu, K. Cho, and S. Ho. Multiple Physics Pretraining for Spatiotemporal Surrogate Models. In Advances in Neural Information Processing Systems , volume 37, pages 119301–119335, 2024. R. Morel, J. Han, and E. Oyallon. DISCO: Learning to DISCover an evolution Operator for multi-physics-agnostic prediction. In Forty-Second International Conference on Machine Learning ,2025. S. Müller, L. Schüler, A. Zech, and F. Heße. GSTools v1.3: A toolbox for geostatistical modelling in Python. Geosci. Model Dev. , 15(7):3161–3182, 2022. ISSN 1991-9603. doi: 10.5194/ gmd-15-3161-2022. R. Ohana, M. McCabe, L. Meyer, R. Morel, F. J. Agocs, M. Beneitez, M. Berger, B. Burkhart, S. B. Dalziel, D. B. Fielding, D. Fortunato, J. A. Goldberg, K. Hirashima, Y.-F. Jiang, R. R. Kerswell, S. Maddu, J. Miller, P. Mukhopadhyay, S. S. Nixon, J. Shen, R. Watteaux, B. R. Blancard, F. Rozet, L. H. Parker, M. Cranmer, and S. Ho. The Well: A Large-Scale Collection of Diverse Physics Simulations for Machine Learning. In Advances in Neural Information Processing Systems ,volume 37, pages 44989–45037, 2024. V. Patraucean, X. O. He, J. Heyward, C. Zhang, M. S. M. Sajjadi, G.-C. Muraru, A. Zholus, M. Karami, R. Goroshin, Y. Chen, S. Osindero, J. Carreira, and R. Pascanu. TRecViT: A Recurrent Video Transformer. Transactions on Machine Learning Research , 2025. ISSN 2835-8856. M. Raissi, P. Perdikaris, and G. E. Karniadakis. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics , 378:686–707, 2019. ISSN 0021-9991. doi: 10.1016/j.jcp.2018.10.045. O. Ronneberger, P. Fischer, and T. Brox. U-Net: Convolutional Networks for Biomedical Image Segmentation. In N. Navab, J. Hornegger, W. M. Wells, and A. F. Frangi, editors, Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015 , pages 234–241, Cham, 2015. Springer International Publishing. ISBN 978-3-319-24574-4. doi: 10.1007/978-3-319-24574-4_ 28. S. Subramanian, P. Harrington, K. Keutzer, W. Bhimji, D. Morozov, M. W. Mahoney, and A. Gholami. Towards foundation models for scientific machine learning: Characterizing scaling and transfer behavior. In Advances in Neural Information Processing Systems , volume 37, 2024. M. Takamoto, T. Praditia, R. Leiteritz, D. MacKinlay, F. Alesiani, D. Pflüger, and M. Niepert. PDEBench: An Extensive Benchmark for Scientific Machine Learning. In Advances in Neural Information Processing Systems , volume 35, pages 1596–1611, 2022. A. Tran, A. Mathews, L. Xie, and C. S. Ong. Flux neural operator for hyperbolic partial differential equations. Transactions on Machine Learning Research , 2024. ISSN 2835-8856. D. E. Worrall, M. Cranmer, J. N. Kutz, and P. Battaglia. Spectral Shaping for Neural PDE Surrogates. 2024. L. Yang and S. J. Osher. PDE generalization of in-context operator networks: A study on 1D scalar nonlinear conservation laws. Journal of Computational Physics , 519:113379, 2024. ISSN 0021-9991. doi: 10.1016/j.jcp.2024.113379. L. Yang, S. Liu, and S. J. Osher. Fine-tune language models as multi-modal differential equation solvers. Neural Networks , 188:107455, 2025. ISSN 0893-6080. doi: 10.1016/j.neunet.2025. 107455. 11 A Additional details on baselines 
+
+A.1 ICON 
+
+For ICON, we conducted experiments using the code from Yang and Osher [2024], adopting the original experimental setup and protocol as closely as possible. Since the baseline models are designed to predict the solution after ∆t = 0 .005 , we trained one ICON model to predict the same forward time interval. In addition, following the original setting of Yang and Osher [2024], we trained another ICON model to predict the solution after ∆t = 0 .1. We denote these two models as ICON (τ = 0 .005 ) and ICON ( τ = 0 .1), respectively. The performance on the in-distribution test dataset is reported in Table 3. For ICON ( τ = 0 .005 ), we performed autoregressive rollout by fixing the randomly sampled context and recursively feeding the model output back as input. As shown in the table, this leads to very poor rollout performance. In contrast, ICON ( τ = 0 .1) predicts the target state with a single inference step and performs better than the former setting, but it still substantially lags behind the baseline models. Since ICON ( τ = 0 .005 )is effectively not meaningful for long-horizon prediction, we conducted the long-time prediction and OOD test experiments using ICON ( τ = 0 .1). The corresponding results are summarized in Table 4. Table 3: In-distribution prediction accuracy of ICON on the 1D cubic conservation law. We report single-step prediction errors and errors after ∆t = 0 .1 which is autoregressive rollout errors over 20 steps for τ = 0 .005 and single-step for τ = 0 .1. Lower is better. Single step ∆t = 0 .1
+
+Model Rel. l2 Rel. l∞ Rel. l2 Rel. l∞
+
+ICON ( τ = 0 .005 ) 7.71e-3 2.99e-1 1.17e-0 1.41e-0 ICON ( τ = 0 .1) – – 3.82e-1 9.42e-1 Table 4: Generalization performance of ICON on the 1D conservation laws. We report long-time prediction performance on the cubic conservation law using two-step inference with the τ = 0 .1
+
+model, as well as OOD generalization under shock-dominated initial conditions, sine-flux dynamics, and their combination. Lower is better.                             
+
+> Long-time Shock Sine flux Shock + sine flux Model Rel. l2Rel. l∞Rel. l2Rel. l∞Rel. l2Rel. l∞Rel. l2Rel. l∞
+> ICON ( τ= 0 .1)5.07e-1 9.09e-1 3.22e-1 6.22e-1 2.65e-2 2.10e-1 1.86e-1 6.74e-1
+
+A.2 Model Complexity and Computational Cost 
+
+Table 5: Model size and compute budget for the cubic conservation law dataset. Model #Params (M) Training steps GPU hours Inference time (ms/sample) ICON 4.8 × 10 6 1, 000 , 000 6-days 16.06 DPOT 2.3 × 10 6 50,000 19 2.51 DISCO 2.2 × 10 6 50,000 25 9.37 Ours 2.7 × 10 6 50,000 18 1.51 
+
+## B Data generation 
+
+We generate numerical trajectories using classical finite-volume or finite-difference solvers and use them as supervised training data. For each equation family, we sample equation parameters from a 12 prescribed distribution and independently sample initial conditions. Each pair of equation parameters and initial condition defines one trajectory. The equation parameters are stored as metadata but are not provided as model inputs during training or evaluation. Unless otherwise stated, all simulations are performed on the periodic spatial domain x ∈ [0 , 1] .For all newly generated 1D datasets, we use Nx = 100 spatial grid cells and save Nt = 100 time snapshots. We sample 1000 , 100 , and 100 coefficient choices for the training, validation, and test datasets, respectively. For each coefficient choice, we generate 100 independent initial conditions. This results in 100 ,000 training trajectories, 10 ,000 validation trajectories, and 10 ,000 test trajectories. 
+
+B.1 1D Cubic Conservation Laws 
+
+We consider the one-dimensional scalar conservation law 
+
+ut + f (u)x = 0 , x ∈ [0 , 1] ,
+
+with periodic boundary conditions. The flux is given by 
+
+f (u) = au 3 + bu 2 + cu, (a, b, c ) ∼ Unif([ −1, 1] 3).
+
+Initial conditions are sampled from a mean-zero periodic Gaussian random field with covariance kernel 
+
+k(x, x ′) = exp ( − (1 − cos(2 π(x − x′)))) .
+
+The trajectories are generated using PyClaw [Ketcheson et al., 2012] with a custom scalar Riemann solver for the cubic flux. We use the MC total-variation-diminishing limiter, one wave family, desired CFL number 0.5, and maximum CFL number 0.9. The resulting dataset has shape 
+
+[Nc, N init , N t, N x, N q ] = [1000 , 100 , 100 , 100 , 1] 
+
+for the training split, where Nq = 1 is the number of conserved variables. 
+
+OOD dataset simulations For the out-of-distribution experiments, we consider both different types of initial conditions and different equation forms. The shock dominated initial conditions were generated by generating random periodic step functions with variable number of steps and step heights. The minimum and maximum number of steps were set to 1 and 5 respectively, and the minimum and maximum step heights were set to -1 and 1. The different equation form considered was the sine flux-based conservation law, with the flux given as, 
+
+f (u) = a sin( bu ), (a, b ) ∼ Unif([ −1, 1] 3).
+
+For all three types of OOD datasets created (different initial conditions, different equations, different initial conditions and equations), we also sampled 100 coefficient choices and 100 initial conditions per coefficient choice, resulting in 10,000 test trajectories. 
+
+B.2 1D Parametric Shallow Water Equations 
+
+We consider a two-component parametric shallow-water-type conservation law. The state is 
+
+q = ( h, m )⊤, m = hu, 
+
+where h is the water height and m is the momentum. The governing equation is 
+
+qt + F (q)x = 0 , x ∈ [0 , 1] ,
+
+with flux 
+
+F (q) = 
+
+ αm γm 2/h + 12 βh 2
+
+
+
+.
+
+The parameters are sampled as 
+
+(α, γ, β ) ∼ Unif ([0 .5, 1.5] × [0 .5, 1.5] × [8 , 12]) .
+
+The standard shallow water equations correspond to (α, γ, β ) = (1 , 1, g ).13 For the initial conditions, we sample m(0) from a Gaussian random field with a Gaussian covariance function 
+
+k(x, x ′) = σ2
+
+
+
+1 − exp 
+
+
+
+− s2|x − x′|2
+
+l2
+
+ 
+
+,
+
+where we used σ2 = 0 .5 and l = 0 .3.To ensure positivity of the water height, h(0) is sampled from a lognormal random field, whose covariance function was set identical to that of m(0) . In the numerical solver, a small height floor 
+
+hfloor = 10 −8 is used for divisions and square roots. The Gaussian and lognormal random fields on a periodic lattice was generated using the gstools [Müller et al., 2022] package. Trajectories are generated using PyClaw [Ketcheson et al., 2012] with a custom Roe-type approximate Riemann solver. We use the MC total-variation-diminishing limiter, two wave families, desired CFL number 0.5, and maximum CFL number 0.9. The resulting dataset has two state channels, corresponding to h and m, and hence has shape 
+
+[Nc, N init , N t, N x, N q ] = [1000 , 100 , 100 , 100 , 2] 
+
+for the training split. 
+
+OOD dataset simulations For the out-of-distribution experiment, we generated a dataset with different initial condition family for h(0) : shock-dominated versions of h(0) were generated using random periodic step functions as for the cubic conservation law case. The minimum and maximum number of steps were set to 1 and 5 respectively, and the minimum and maximum step heights were set to 0.5 and 4.5 to abide by the non-negativity constraint. The initial conditions for m(0) was kept identical to the in-distribution case, as we found that using step functions for both field results in excessively irregular solutions. Likewise, we sampled 100 coefficient choices and 100 initial conditions per coefficient choice, resulting in 10,000 test trajectories. 
+
+B.3 1D Viscous Burgers Equation 
+
+We consider the parametric viscous Burgers-type equation 
+
+ut + a(u2)x = bu xx , x ∈ [0 , 1] ,
+
+with periodic boundary conditions. The parameters are sampled as 
+
+(a, b ) ∼ Unif ([0 .5, 1.5] × [0 .005 , 0.015]) .
+
+This dataset contains an explicit diffusion term and is included to test whether the proposed architec-ture can handle dynamics beyond strictly hyperbolic conservation laws. Initial conditions are sampled from the same class of one-dimensional Gaussian random fields used for the scalar conservation-law experiments. The equation is solved using an explicit finite-volume/finite-difference scheme: the nonlinear advective term is discretized with a local Rusanov flux, while the diffusion term is discretized using a centered second-order finite difference. Periodic boundary conditions are imposed throughout the simulation. The internal time step is chosen adaptively using both advective and diffusive stability constraints, with CFL number 0.4. The solver is forced to land exactly on each saved output time by shortening the final internal step before a saved snapshot if necessary. The resulting dataset has shape 
+
+[Nc, N init , N t, N x, N q ] = [1000 , 100 , 100 , 100 , 1] 
+
+for the training split. 
+
+OOD dataset simulations For the out-of-distribution experiment, we generated a shock-dominated initial condition dataset. The initial conditions were once again set to periodic random step functions, whose parameters were identical to the cubic conservation law case. Once again, we sampled 100 coefficient choices and 100 initial conditions per coefficient choice, resulting in 10,000 test trajectories. 14

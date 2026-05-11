@@ -1,0 +1,813 @@
+Title: PepSpecBench: A Unified Evaluation Benchmark for Peptide Tandem Mass Spectrometry Prediction
+
+URL Source: https://arxiv.org/pdf/2605.01945v1
+
+Published Time: Tue, 05 May 2026 01:17:21 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+# PepSpecBench: A Unified Evaluation Benchmark for Peptide Tandem Mass Spectrometry Prediction 
+
+Zhiwen Yang 1,3∗
+
+, Pan Liu 1∗, Yifan Li 1, Yunhua Zhong 1, Jun Xia 1,2†
+
+> 1
+
+The Hong Kong University of Science and Technology (Guangzhou). 
+
+> 2
+
+The Hong Kong University of Science and Technology. 
+
+> 3
+
+Yangzhou University. Corresponding author(s). E-mail(s): junxia@hkust-gz.edu.cn; Contributing authors: zhiwenyang2004@gmail.com; panliu@hkust-gz.edu.cn; yli994@connect.hkust-gz.edu.cn; yunhuazhong@connect.hku.hk 
+
+Abstract 
+
+Tandem mass spectrometry provides a high-throughput framework for identifying and quantifying proteins in complex biological samples. In computational pro-teomics, predicting peptide MS/MS spectra is a critical task, enabling downstream applications such as large-scale peptide identification and quantification. While deep learning architectures have substantially improved prediction accuracy, three evaluation challenges obscure the true progress of the field. First, inconsistent data preprocessing and incompatible model output spaces hinder fair model comparison. Second, flawed data splitting strategies can permit hidden sequence leakage and inflate reported performance. Third, existing evaluations typically lack comprehen-sive cross-species benchmarking and systematic assessment of model robustness to influential experimental conditions. To address these challenges, we propose PepSpecBench, a unified benchmark for peptide MS/MS spectrum prediction. Pep-SpecBench standardizes data preprocessing across complementary public datasets, enforces a strict backbone-disjoint splitting strategy to eliminate sequence leakage, and evaluates diverse architectures within a shared fragment-ion representation space. It further introduces a comprehensive multi-species evaluation suite and physically grounded metadata perturbation probes to assess model robustness and instrument awareness. We uncover previously unrecognized performance dis-crepancies and robustness limitations across six representative models, providing actionable insights for future model design, evaluation and practical deployment. 
+
+1 Introduction 
+
+Tandem mass spectrometry (MS/MS) is the primary technology driving modern proteomics, enabling high-throughput identification and quantification of peptides in complex biological samples. MS/MS spectra are commonly interpreted through two complementary paradigms: database- or library-based matching, which is efficient and statistically well controlled but limited by the coverage of candidate sequence databases and empirical spectral libraries, and de novo sequencing, which can operate without a fixed database but remains more challenging in accuracy and downstream integration [ 1, 2]. In this context, in silico MS/MS spectrum prediction provides a practical bridge: by predicting fragment-intensity patterns for candidate peptides, researchers can construct and expand spectral libraries [ 3, 4 ], improve data-independent acquisition (DIA) analysis [ 4], and enhance peptide-
+
+> ∗Equal contribution.
+> †Corresponding author. Preprint.
+> arXiv:2605.01945v1 [cs.LG] 3 May 2026
+
+spectrum match rescoring [ 5, 6]. In recent years, machine learning has provided state-of-the-art performance on this task, with models based on CNNs, RNNs, and Transformers mapping modified peptide sequences to their corresponding mass spectra [7–10]. Despite remarkable success, there exists several key challenges that seriously hinder the further development of peptide MS/MS Prediction: • The lack of standardized evaluation. Although latest approaches have reported increas-ingly high predictive accuracies, assessing the actual capabilities of these models remains a profound challenge. The empirical results are often not comparable due to the lack of a consensus evaluation protocol. Because mass spectrometry data is abundant and highly heterogeneous, researchers routinely apply customized filtering criteria, disparate post-translational modification (PTM) scopes, and ad hoc datasets for training and evaluation. Additionally, existing models predict fragment intensities in entirely incompatible native formats, ranging from 174-dimensional canonical ion vectors [ 7] to 20,000-bin full-spectrum tensors [ 8]. This inconsistency in datasets, output spaces and evaluation protocols precludes direct cross-model comparison and obscures true methodological advancements. • Leakage-prone data splitting. Leakage-prone partitioning severely compromises evalua-tion validity, an issue increasingly recognized in computational biology [ 11 –13 ]. Existing methods frequently utilize random splitting strategies to separate training and testing data. Under these weak partitioning rules, peptides sharing the exact same backbone but differing only by specific PTMs can appear in both sets. Consequently, models can achieve high accuracy by memorizing the structural backbones seen during training rather than learning the underlying fragmentation rules. • Limited robustness characterization. While recent efforts have introduced multi-species benchmarks for other proteomics tasks [ 14 , 15 ], fragment-intensity prediction is still typ-ically evaluated within intra-species settings, leaving cross-species generalization largely untested. Existing evaluations also rarely probe whether models respond appropriately to fragmentation-relevant factors such as peptide length, normalized collision energy, and precursor charge, making it unclear whether high aggregate accuracy reflects physically grounded prediction behavior. To address these problems, we propose PepSpecBench (Figure 1), a unified and leakage-aware benchmark for peptide MS/MS prediction. Rather than serving only as another benchmark table, PepSpecBench is designed as a controlled evaluation framework that brings heterogeneous datasets, model families, output spaces, and robustness tests into a single comparable protocol. Our work makes three main contributions. First, we harmonize PROSPECT [ 16 ] and MassIVE-KB [ 17 ] under a shared data scope and align heterogeneous model outputs into a common fragment-ion representation, enabling direct comparison across six representative predictors spanning recurrent, convolutional, Transformer-based, dictionary-based, and lightweight architectures. Second, we introduce a strict backbone-disjoint splitting protocol to reduce sequence memorization across train and test sets; controlled split ablations show that naive random partitioning can materially inflate apparent accuracy. Third, we extend evaluation beyond aggregate in-domain accuracy through cross-species testing, peptide-property stratification, and inference-time perturbation probes over collision energy and precursor charge, revealing that high in-domain accuracy does not necessarily imply robust OOD behavior or physically grounded use of instrument metadata. 
+
+2 Related Work 
+
+2.1 MS/MS Spectrum Prediction Models 
+
+MS/MS spectrum prediction has evolved from feature-engineered and statistical approaches (MS2PIP [ 18 ] and its updated version [ 19 ]) to deep learning paradigms. By treating peptide fragmenta-tion as a sequence-to-intensity mapping problem, diverse neural architectures have emerged to capture specific physical properties: RNNs capture sequential cleavage dependencies (pDeep [ 20 ], Prosit [ 7]), CNNs extract local sequence motifs (PredFull [ 8]), and Transformers leverage self-attention to model long-range interactions (Prosit Transformer [ 21 ], AlphaPeptDeep [ 9]). Additionally, efficient alternatives utilizing dictionary-based vocabulary learning (UniSpec [ 10 ]) and ultra-fast linear approx-imations (FastSpel [ 3 ]) have been developed. However, these models are developed independently 2Figure 1: The overview of the PepSpecBench framework. The pipeline is systematically designed to ensure fair and diagnostic evaluation through four key stages: (1) standardized data integration, harmonizing PROSPECT and MassIVE-KB under a shared preprocessing scope; (2) leakage-aware data partitioning, enforcing a strict backbone-disjoint splitting strategy; (3) protocolized output projection, aligning diverse model predictions (ranging from discrete ion ladders to continuous full spectra) into a shared representation space; and (4) comprehensive robustness evaluation, assessing cross-species out-of-distribution (OOD) generalization and physical sensitivity. with different PTM scopes and output spaces, predicting intensities in native formats. This structural heterogeneity precludes direct cross-model comparisons and obscures true advancements. 
+
+2.2 Datasets and Benchmarking in Proteomics 
+
+Modern in silico prediction relies heavily on large-scale public repositories (PRIDE [ 22 ], MassIVE-KB [ 17 ]) and curated spectral-library resources (ProteomeTools [ 23 ], PROSPECT [ 16 ]). While recent efforts have established multi-species benchmarks for parallel tasks such as de novo sequencing (Casanovo [ 2 ]) and fragment-presence prediction [ 14 , 15 ], evaluation protocols for specific fragment-intensity prediction remain severely outdated. Existing methods frequently utilize random or modified-sequence splitting strategies. As recently demonstrated across computational biology [ 11 – 13 ], such weak partitioning permits hidden homology leakage, allowing models to memorize structural backbones rather than learning generalizable fragmentation physics. Furthermore, current intensity-prediction evaluations are predominantly human-centric, leaving cross-species robustness untested. A unified benchmark that jointly harmonizes output spaces, enforces strict backbone-disjoint leakage control, and evaluates out-of-distribution (OOD) generalization is urgently needed. 
+
+3 Methods 
+
+3.1 Task and Benchmark Definition 
+
+Let x = ( s, z, e ) denote an input triplet for peptide tandem mass spectrometry (MS/MS) prediction, where s is a modified peptide sequence, z ∈ Z+ is the precursor charge state, and e ∈ R+ is the normalized collision energy (NCE). A model fθ maps x to a non-negative intensity vector that is projected to the shared canonical evaluation space C via a model-specific projection Πm defined in Section 3.2: ˆI(c) = Π m(fθ (x)) . The benchmark target I(c) is the experimentally observed fragment-intensity pattern projected to the same space C. PepSpecBench restricts evaluation to peptides of length L ∈ [6 , 40] , precursor charge z ∈ [1 , 6] , and three common PTMs (acetylation, carbamidomethylation, and oxidation) which have reliable coverage across the selected public spectral-library sources (UNIMOD identifiers in Appendix C). 3Table 1: Descriptive statistics of the benchmark components used in the main paper. All components share the same peptide-length, charge, and PTM scope. For in-domain sources, train/validation/test percentages are reported separately in the same cell. 
+
+Component Domain Length (Mean / Median) Charge (Mean / Median) Spectra with PTMs (%) 
+
+PROSPECT Human 12.54 / 12.0 2.33 / 2.0 50.00 / 50.00 / 50.00 MassIVE-KB Human 18.70 / 17.0 2.81 / 3.0 24.60 / 27.17 / 27.91 Cross-species suite Human reference 14.03 / 13.0 2.55 / 2.0 0.00 Human HeLa 21.01 / 19.0 2.33 / 2.0 36.01 Yeast 18.33 / 17.0 2.26 / 2.0 18.56 E. coli reference 15.50 / 14.0 2.36 / 2.0 0.00 E. coli enriched 19.53 / 17.0 2.27 / 2.0 25.52 C. elegans 15.25 / 14.0 2.89 / 3.0 0.00 A. thaliana 15.40 / 14.0 2.43 / 2.0 0.00 PepSpecBench combines two complementary in-domain sources. PROSPECT [ 16 , 23 , 24 ] is a curated spectral-library resource with broad PTM coverage and multiple NCE settings per peptide, making it well-suited for controlled physical-parameter analyses. 
+
+MassIVE-KB [ 17 ] is a large-scale, community-curated spectral library covering diverse human proteomics measurements. After filtering to the benchmark scope (peptides L ∈ [6 , 40] , charges 
+
+z ∈ [1 , 6] , UNIMOD 1/4/35 PTMs), the dataset still encompasses highly heterogeneous sources. To ensure consistent downstream processing and fair model evaluation across these diverse origins, we apply a unified default Normalized Collision Energy (NCE) value of 25 for all spectra in this dataset. Both sources are normalized to the shared physical scope and reconstructed into standardized 500k/50k/50k train/validation/test subsets. Table 1 summarizes the resulting benchmark components. 
+
+Cross-species evaluation suite. To probe robustness beyond the human training domain, we curate a seven-subset cross-species evaluation suite spanning five species from ProteomeXchange studies [ 25 , 26 ]. Each external subset is truncated to 20k spectra after applying the same filtering rules as the in-domain sources. All cross-species evaluation is conducted in a zero-shot setting: models are trained exclusively on in-domain data and evaluated on cross-species subsets without any fine-tuning or adaptation. Detailed source provenance and distributional summaries are provided in Appendix C, Appendix C.6, and Appendix B. 
+
+Backbone-Disjoint Split. A critical methodological requirement for MS/MS prediction benchmarks is the prevention of homology leakage: if a peptide backbone (the unmodified amino-acid sequence) appears in both the training and test sets, even with different PTM decorations, the model may exploit sequence memorization rather than learning transferable fragmentation physics. We define the peptide backbone b(s) as the amino-acid sequence obtained by stripping all PTM annotations from s. A partition {Dtrain , D val , D test } is Backbone-Disjoint if the backbone sets of any two partitions are mutually exclusive. This blocks both exact-sequence reuse and PTM-variant overlap across splits. For PROSPECT, we enforce backbone disjointness by deterministic hashing of the peptide backbone into train/validation/test partitions. For MassIVE-KB, we preserve the official disjoint splits, apply the same scope filtering within each partition, and empirically verify that the resulting train/validation/test sets maintain strict zero backbone overlap. We contrast this protocol with two weaker alternatives: Naive Random Split (samples are shuffled uniformly at random without regard to backbone identity) and Modified-Sequence Split (splitting by modified sequence strings, which still permits the same backbone to appear with different PTMs across partitions), in a controlled ablation experiment (Section 4.2). Residual sequence similarity under Backbone-Disjoint splitting is quantified in Appendix B.1. 43.2 Baseline Models and Space Alignment 
+
+We integrate six representative baselines that span the principal architectural families in MS/MS prediction. Sequence-centric models predict b/y-ion intensities indexed by cleavage position and fragment charge: Prosit [ 7] (GRU encoder–decoder, ∼2.5M params), Prosit Transformer [ 21 ](Transformer, ∼86M params), and AlphaPeptDeep [ 9] (modular Transformer, ∼1.8M params). Full-spectrum and dictionary models operate over broader ion spaces before projection: PredFull [ 8](residual CNN with squeeze-excitation, ∼8.2M params) and UniSpec [ 10 ] (attention-based dictionary model, ∼12M params). Lightweight : FastSpel [ 3] ( ∼50K parameters) is a linear model whose output is projected to the canonical layout, serving as a lower-bound reference. All baselines are retrained on the benchmark data under the Backbone-Disjoint splits described above. Model-specific adaptations, hyperparameters, and hardware settings are documented in Appendix E and Appendix F. 
+
+Shared Canonical Evaluation Space. Because native output spaces are heterogeneous (sequence-indexed ion tensors, binned full spectra, fragment dictionaries, and dynamic-length vectors), raw model outputs are not directly comparable. We address this by defining a protocolized projection 
+
+that maps every model’s output to a single shared canonical evaluation space; all benchmark metrics are computed exclusively in this space. Let C denote the canonical ion space, which enumerates all combinations of cleavage position, ion type (b/y), and fragment charge up to a fixed maximum: 
+
+dim( C) = ( Lref − 1) × 2 × zmax frag , (1) where Lref and zmax frag are the reference peptide-length and maximum fragment-charge parameters of the canonical space. In the present benchmark, Lref = 40 and zmax frag = 3 , yielding dim( C) = 234 .For each model m, we define a projection function Πm that maps the model’s native output to the canonical space: 
+
+ˆI(c) = Π m
+
+ fθ (x); x ∈ C . (2) The projection Πm is model-specific at the input side, adapting to each model’s native output format, but unified at the output side: all projections produce vectors in the same 234-dimensional space C.Per-model projection details are provided in Appendix D. The resulting masked vectors are used for all metrics defined in Section 3.3; implementation details for model-specific and ground-truth projection are provided in Appendix D. 
+
+3.3 Evaluation Protocols 
+
+Let ˆv, v ∈ RK 
+
+> ≥0
+
+denote the predicted and observed intensity vectors after canonical projection and masking ( K = |{ j : Mj = 1 }| valid positions). We adopt three complementary metrics. 
+
+Spectral Angle (SA) quantifies the angular distance between two non-negative intensity vectors after 
+
+ℓ2-normalization: 
+
+SA(ˆ v, v) = 1
+
+π arccos 
+
+ ˆv⊤v
+
+∥ˆv∥2 ∥v∥2
+
+
+
+, (3) where SA ∈ [0 , 1] and lower is better. Spectral Angle Similarity (SAS) = 1 − SA .
+
+Pearson Correlation Coefficient (PCC) measures the linear agreement between predicted and observed intensities: 
+
+PCC(ˆ v, v) = 
+
+P 
+
+> j
+
+(ˆ vj − ¯ˆv)( vj − ¯v)
+
+qP 
+
+> j
+
+(ˆ vj − ¯ˆv)2 P 
+
+> j
+
+(vj − ¯v)2
+
+, (4) where ¯ˆv and ¯v are the masked-position means. PCC captures whether relative intensity rankings are preserved, complementing the angular geometry measured by SA. 
+
+Evaluation pipeline. For each test sample x, we (i) verify it satisfies the benchmark physical scope, 
+
+(ii) apply protocolized projection Πm to both prediction and ground truth, (iii) construct the valid positional mask M(x), (iv) compute evaluation protocols over masked positions, and (v) aggregate via medians with bootstrap confidence intervals. 5Table 2: In-domain benchmark in the shared canonical space (Backbone-Disjoint split, medians). Best per source in bold. Bootstrap CIs in Appendix F.4.                                            
+
+> MassIVE-KB PROSPECT Model SAS ↑SA ↓PCC ↑SAS ↑SA ↓PCC ↑
+> Prosit Trans. 0.902 0.098 0.951 0.858 0.142 0.885 Prosit 0.901 0.100 0.949 0.862 0.138 0.892
+> AlphaPeptDeep 0.871 0.129 0.915 0.722 0.278 0.593 PredFull 0.833 0.167 0.830 0.797 0.204 0.749 UniSpec 0.663 0.337 0.048 0.807 0.193 0.794 FastSpel 0.524 0.476 0.010 0.621 0.379 0.015
+
+Table 3: Split-ablation metrics for Prosit on PROSPECT (medians). ∆ relative to Backbone-Disjoint.                  
+
+> Split Rule Med. SA Med. SAS Med. PCC ∆vs. Backbone
+> Backbone-Disjoint 0.1376 0.8624 0.8921 —Modified-Sequence 0.1392 0.8608 0.8895 +0.0016 / -0.0016 / -0.0026 Naive Random 0.1254 0.8746 0.9099 -0.0122 / +0.0122 / +0.0178
+
+4 Experiments 
+
+4.1 Unified Intra-Species Benchmarking Top rankings are source-dependent. Table 2 summarizes in-domain performance in the shared canonical evaluation space under Backbone-Disjoint splitting. On MassIVE-KB, Prosit Transformer achieves the best median SA (0.0977), outperforming Prosit (0.0995) by 0.0018 and AlphaPeptDeep (0.1288) by 0.0311. On PROSPECT, the top ranking flips: Prosit leads with SA 0.1376, ahead of Prosit Transformer (0.1419) by 0.0043. This dataset-dependent top ranking is consistent with the composition shift between the two in-domain sources. MassIVE-KB contains longer peptides and higher precursor charges on average (Table 1), and the stratified summaries in Appendix F.6 show that Prosit Transformer is relatively stronger in the harder high-charge regime on MassIVE-KB (z=3 : 0.120 vs. 0.127 for Prosit; z=4 : 0.150 vs. 0.168). PROSPECT, by contrast, is shorter and more controlled; in that setting, Prosit retains a small advantage across several bins ( z=2 : 0.116 vs. 0.125; unmodified/PTM: 0.125/0.151 vs. 0.129/0.155). Thus, the comparative advantage of these architectures is inherently distribution-dependent, indicating no single universally optimal model. 
+
+Mid-tier models expose stronger cross-source instability. Below the top two, the mid-tier ordering also shifts across sources. On PROSPECT, UniSpec (SA 0.1933) slightly outperforms PredFull (0.2035), whereas on MassIVE-KB UniSpec deteriorates sharply to SA 0.3369 with near-zero PCC (0.048), while PredFull remains substantially stronger (SA 0.1673, PCC 0.830). This instability suggests a mismatch between UniSpec’s learned dictionary vocabulary and the more heterogeneous source-specific intensity patterns in MassIVE-KB. FastSpel remains the lower-bound reference on both datasets (SA 0.4757 / 0.3792), confirming that peptide fragmentation cannot be captured adequately by a linear decomposition alone. Fine-grained stratified analyses by charge, PTM type, and length are deferred to Appendix F.6. 
+
+4.2 Impact of Data Leakage Split design is isolated under a fixed model and data source. To quantify whether weaker partition rules inflate apparent performance, we first select a robust and well-established model architecture, represented here by Prosit. We evaluate its performance on the PROSPECT dataset under three distinct partition strategies: Naive Random Split, Modified-Sequence Split, and Backbone-Disjoint Split. To ensure a fair comparison, both the data source and training recipe remain strictly consistent across all tests. Table 3 reports the resulting medians. 
+
+Naive random splitting inflates apparent accuracy. It artificially reduces median SA from 0.1376 (under Backbone-Disjoint) to 0.1254 and increases PCC from 0.8921 to 0.9099. By contrast, the Modified-Sequence Split remains close to Backbone-Disjoint (SA 0.1392 vs. 0.1376; PCC 0.8895 6Table 4: Cross-species generalization (main OOD results). Species entries: SA / SAS (medians). Best OOD per species in bold. E. coli aggregated over both sources. Full results in Appendix C.7.                                                                                     
+
+> MassIVE-KB Trained Model ID (SA) E. coli C. elegans A. thaliana Yeast HeLa
+> Prosit 0.100 0.476/0.524 0.471/0.529 0.484/0.516 0.477/0.523 0.471/0.529 Prosit Tran. 0.098 0.480/0.520 0.472/0.528 0.485/0.515 0.481/0.519 0.475/0.525 PredFull 0.167 0.238 /0.762 0.222 /0.778 0.203 /0.797 0.281 /0.719 0.220 /0.780
+> AlphaPep. 0.129 0.473/0.527 0.470/0.530 0.482/0.518 0.473/0.527 0.468/0.532 UniSpec 0.337 0.388/0.612 0.382/0.618 0.384/0.616 0.393/0.607 0.380/0.620 FastSpel 0.476 0.465/0.535 0.476/0.524 0.469/0.531 0.461/0.539 0.461/0.539
+> PROSPECT Trained Model ID (SA) E. coli C. elegans A. thaliana Yeast HeLa
+> Prosit 0.138 0.286/0.714 0.160 /0.840 0.094 /0.906 0.284/0.716 0.244/0.756 Prosit Tran. 0.142 0.298/0.702 0.169/0.831 0.102/0.898 0.288/0.712 0.259/0.741 PredFull 0.203 0.236 /0.764 0.199/0.801 0.163/0.837 0.236 /0.764 0.196 /0.804
+> AlphaPep. 0.278 0.312/0.688 0.246/0.754 0.157/0.843 0.319/0.681 0.274/0.726 UniSpec 0.193 0.299/0.701 0.188/0.812 0.120/0.880 0.294/0.706 0.251/0.749 FastSpel 0.379 0.369/0.631 0.392/0.609 0.344/0.656 0.370/0.629 0.361/0.639
+
+vs. 0.8921), suggesting that PTM-variant overlap alone does not explain the observed performance inflation in this setting. 
+
+Exact backbone reuse is the dominant leakage pathway. Once identical backbones cross the train– test boundary, the model can reuse previously seen fragmentation patterns instead of generalizing to genuinely unseen peptides. 
+
+4.3 Cross-Species Generalization OOD transfer breaks the in-domain leaderboard. We next test whether the in-domain leaderboard survives zero-shot transfer to five OOD testbeds: four non-human species and HeLa cancer cells as an intra-species domain-shift case. Crucially, we evaluate this cross-species transfer separately for models trained on MassIVE-KB and PROSPECT to disentangle architectural robustness from training-data bias. Table 4 reports the main OOD results. 
+
+MassIVE-KB-trained rankings fail to predict OOD robustness. Under MassIVE-KB training, the in-domain performance hierarchy proves to be a poor predictor of out-of-distribution robustness. Although Prosit and Prosit Transformer are the top models, PredFull dominantly outperforms them across all five OOD testbeds. Strikingly, Appendix C.7 shows that Prosit models reach negative median PCC on several subsets, meaning their predicted rankings become explicitly anti-correlated with observations, whereas PredFull retains robust positive correlations. 
+
+Training source reshapes the OOD leaderboard. When trained on PROSPECT, the leaderboard bifurcates: Prosit reclaims the state-of-the-art on C. elegans and A. thaliana , while PredFull retains its advantage on E. coli and Yeast. This stratified outcome demonstrates that out-of-distribution robustness is not an intrinsic property of a single architecture, but emerges from the complex interplay between the model’s inductive bias and the underlying source data distribution. We note that the apparent OOD advantage of Prosit on A. thaliana (SA 0.094 vs. ID 0.138) is a Simpson’s paradox caused by covariate shift: after matching on NCE and PTM, the ID subset (SA 0.070) outperforms OOD as expected (decomposition in Appendix C.8). 
+
+OOD robustness is architecture–data dependent. PredFull’s OOD advantage is not universally stable; under intra-species shift to HeLa cancer cells, it uniquely degrades in angular error while sequence-centric models lose PCC. Ultimately, PROSPECT-trained models show less cross-species degradation overall. While we cannot causally attribute this solely to source identity due to confound-ing distribution differences, the fundamental conclusion remains: training-source choice significantly alters OOD behavior and dictates which architectural design generalizes best. In-domain bootstrap confidence intervals are in Appendix F.4. 76-10 
+
+> 10-15
+> 15-20
+> 20-25
+> 25-31
+> 31-41
+> Peptide length
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> SA (median)
+
+(a)   
+
+> z=2 z=3 z=4
+> Precursor charge
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> SA distribution
+
+(b) 
+
+> 6-10
+> 10-15
+> 15-20
+> 20-25
+> 25-31
+> 31-41
+> Peptide length
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> ΔSA (vs [6,10) baseline)
+
+(c) 
+
+> 6-10
+> 10-15
+> 15-20
+> 20-25
+> 25-31
+> 31-41
+> Peptide length
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> SA (median)
+
+(d)   
+
+> z=2 z=3 z=4
+> Precursor charge
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> SA distribution
+
+(e) 
+
+> 6-10
+> 10-15
+> 15-20
+> 20-25
+> 25-31
+> 31-41
+> Peptide length
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> ΔSA (vs [6,10) baseline)
+
+(f) 
+
+> 6-10
+> 10-15
+> 15-20
+> 20-25
+> 25-31
+> 31-41
+> Peptide length
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> PCC (median)
+
+(g)   
+
+> z=2 z=3 z=4
+> Precursor charge
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> PCC distribution
+
+(h) 
+
+> 6-10
+> 10-15
+> 15-20
+> 20-25
+> 25-31
+> 31-41
+> Peptide length
+> −0.6
+> −0.5
+> −0.4
+> −0.3
+> −0.2
+> −0.1
+> 0.0
+> ΔPCC (vs [6,10) baseline)
+
+(i) 
+
+> 6-10
+> 10-15
+> 15-20
+> 20-25
+> 25-31
+> 31-41
+> Peptide length
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> PCC (median)
+
+(j)   
+
+> z=2 z=3 z=4
+> Precursor charge
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> PCC distribution
+
+(k) 
+
+> 6-10
+> 10-15
+> 15-20
+> 20-25
+> 25-31
+> 31-41
+> Peptide length
+> −0.4
+> −0.3
+> −0.2
+> −0.1
+> 0.0
+> ΔPCC (vs [6,10) baseline)
+
+(l)    
+
+> Prosit Prosit Trans. PredFull AlphaPeptDeep
+
+Figure 2: Multi-property analysis (top-4 models, shared canonical space). Rows: PROSPECT SA, MassIVE-KB SA, PROSPECT PCC, MassIVE-KB PCC. Columns: peptide length, charge, 
+
+∆SA/ ∆PCC decay by length (baseline = [6,10) bin). Bands: bootstrap CIs. 
+
+4.4 Analysis Across Peptide Properties 
+
+To isolate the impact of distinct peptide properties, we stratify the prediction errors of the top four models by sequence length, precursor charge, and NCE. The resulting performance distributions, visualized in Figure 2, reveal three consistent patterns: 
+
+Longer peptides are harder to predict. As length increases, peptides generate more cleavage sites, more fragment-charge combinations, and higher-order intensity interactions. Quantitatively, the appendix-level stratification shows that on PROSPECT, Prosit’s median SA rises from about 0.10 on short peptides to about 0.21 for L > 25 , while median PCC falls from 0.9367 to 0.7715; the corresponding MassIVE-KB trend spans roughly 0.06 to 0.18. Figure 2 quantifies this as a relative decay rate ∆SA across length bins. 
+
+Higher precursor charge increases prediction difficulty. On MassIVE-KB, Prosit Transformer’s error increases from SA 0.075 at z=2 to 0.150 at z=4 , whereas Prosit rises from 0.072 to 0.168; on PROSPECT, Prosit similarly increases from 0.116 to 0.186. These charge-stratified gaps provide a mechanistic explanation for why Prosit Transformer holds a slight advantage on the more charge-heavy MassIVE-KB distribution. 820 25 30 35 40  
+
+> NCE Override
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> Median SA
+> True NCE=30 Prosit
+> Prosit Trans.
+> PredFull
+> AlphaPeptDeep
+> UniSpec
+> FastSpel
+
+(a) Prosit  
+
+> Prosit Trans.
+> PredFull
+> AlphaPeptDeep
+> UniSpec
+> FastSpel
+> 0.000
+> 0.002
+> 0.004
+> 0.006
+> 0.008
+> 0.010
+> SA (NCE 25  30)
+> -0.0001
+> +0.0000
+> +0.0110
+> +0.0003
+> -0.0000
+> +0.0000
+
+(b) Prosit   
+
+> Prosit Trans.
+> AlphaPeptDeep
+> UniSpec
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> High-SAS Fraction (>0.90)  threshold=0.90
+> 0.034 0.022
+> 0.980
+> 0.027
+
+(c) 
+
+Figure 3: Physical-parameter sensitivity: three experiments side-by-side. (a) NCE Calibration Analysis on PROSPECT: median SA vs. overridden NCE; dashed line = true NCE = 30 . (b) Blind NCE Perturbation on MassIVE-KB: ∆SA from NCE 25 to 30. (c) Charge-State Perturbation on PROSPECT-Mini: fraction of spectra with SAS > 0.90 under z=2 →3.
+
+Higher NCE amplifies fragmentation complexity. Higher NCE bins on PROSPECT produce worse predictions under both SA and PCC, consistent with the physical expectation that more energetic fragmentation generates more complex and noisy spectra. For Prosit, median SA rises from 0.0806 to 0.1974 and median PCC drops from 0.9616 to 0.7888 between the 0.20–0.25 and 0.30–0.35 bins. The corresponding MassIVE-KB NCE plots are visually narrower because that dataset is effectively single-bin in NCE after reconstruction. Detailed stratification is provided in Appendix F.6. 
+
+4.5 Physical Parameter Sensitivity 
+
+To determine whether models encode physically grounded fragmentation behavior, we perform two controlled perturbation experiments. 
+
+NCE calibration depends on multi-NCE training. To test whether models physically ground collision energy, we utilize two complementary probes: an inference-time NCE sweep on PROSPECT and a blind NCE shift (from 25 to 30) on MassIVE-KB (Figure 3A–B, Appendix F.7). Under the 
+
+NCE Calibration Analysis on PROSPECT, the Prosit family correctly achieves minimal error at the true NCE (30), whereas PredFull and UniSpec misalign their minima. Conversely, the Blind NCE Perturbation on MassIVE-KB reveals that models trained on effectively single-NCE data largely ignore NCE metadata, exhibiting near-zero prediction shifts. This confirms that robust NCE calibration requires explicit multi-NCE training distributions. 
+
+Some models ignore charge as a conditioning variable. To determine if models genuinely utilize the precursor charge input, we force an artificial charge shift ( z=2 →3) on identical peptides at inference time and measure the fraction of collapsed, invariant predictions (Figure 3C). This perturbation exposes a conditional-variable ignoring failure in several models. While Prosit, UniSpec and Prosit Transformer correctly adjust their predictions (retaining <4% collapse), AlphaPeptDeep suffers a massive collapse rate (98.0%), over-relying on sequence features while discarding the physically critical charge scalar ( Appendix E.3). Full distributional details are reported in Table 22. 
+
+5 Conclusion and Limitations 
+
+PepSpecBench addresses a central obstacle in peptide MS/MS spectrum prediction and provides a controlled benchmark for fair comparison across representative architectures. Our experiments show that naive random splits overestimate generalization, in-domain leaderboards do not reliably predict cross-species robustness, and high aggregate accuracy does not guarantee physically grounded use of collision energy or precursor charge. 
+
+Limitations and future work. PepSpecBench intentionally focuses on a controlled scope. Future versions should expand to rarer modifications, broader instrument families, and additional acquisition settings. Although backbone-disjoint splitting removes backbone overlap, it does not eliminate all higher-order sequence homology, motivating future homology-aware partitioning. 
+
+Broader impact. More reliable MS/MS prediction benchmarks can support practical computational proteomics applications, including spectral-library expansion, DIA analysis, and peptide-spectrum match rescoring. By emphasizing leakage control and robustness diagnostics, PepSpecBench aims to 9reduce over-optimistic performance claims and encourage models that generalize across biological and experimental settings. A potential negative impact is the misuse of benchmark rankings without considering instrument configuration, training-source bias, or downstream application context. 
+
+Data Availability 
+
+The dataset is publicly available at https://huggingface.co/datasets/Chris-young-2004/ PepSpecBench .
+
+References 
+
+[1] Jürgen Cox and Matthias Mann. MaxQuant enables high peptide identification rates, indi-vidualized p.p.b.-range mass accuracies and proteome-wide protein quantification. Nature Biotechnology , 26(12):1367–1372, 2008. [2] Melih Yilmaz, William E. Fondrie, Wout Bittremieux, Carlo F. Melendez, Rowan Nelson, Varun Ananth, Sewoong Oh, and William Stafford Noble. Sequence-to-sequence translation from mass spectra to peptides with a transformer model. Nature Communications , 15(1):6427, 2024. [3] Mehdi B. Hamaneh and Yi-Kuo Yu. FastSpel: A method for fast spectral library generation. 
+
+Journal of Proteome Research , 2025. [4] Vadim Demichev, Christoph B. Messner, Spyros I. Vernardis, Kathryn S. Lilley, and Markus Ralser. DIA-NN: neural networks and interference correction enable deep proteome coverage in high throughput. Nature Methods , 17(1):41–44, 2020. [5] Lukas Käll, Jesse D. Canterbury, Jason Weston, William Stafford Noble, and Michael J. Mac-Coss. Semi-supervised learning for peptide identification from shotgun proteomics datasets. 
+
+Nature Methods , 4(11):923–925, 2007. [6] Kevin L. Yang, Fengchao Yu, Guo Ci Teo, Kai Li, Vadim Demichev, Markus Ralser, and Alexey I. Nesvizhskii. MSBooster: improving peptide identification rates using deep learning-based features. Nature Communications , 14(1):4539, 2023. [7] Siegfried Gessulat, Tobias Schmidt, Daniel P Zolg, Patroklos Samaras, Karsten Schnatbaum, Johannes Zerweck, Tobias Knaute, Julia Rechenberger, Bernard Delanghe, Andreas Huhmer, et al. Prosit: proteome-wide prediction of peptide tandem mass spectra by deep learning. Nature methods , 16(6):509–518, 2019. [8] Kaiyuan Liu, Sujun Li, Lei Wang, Yuzhen Ye, and Haixu Tang. Full-spectrum prediction of peptides tandem mass spectra using deep neural network. Analytical Chemistry , 92(6): 4275–4283, 2020. [9] Wen-Feng Zeng, Xie-Xuan Zhou, Sander Willems, Constantin Ammar, Maria Wahle, Isabell Bludau, Eugenia Voytik, Maximilian T. Strauss, and Matthias Mann. AlphaPeptDeep: a modular deep learning framework to predict peptide properties for proteomics. Nature Communications ,13(1):7238, 2022. [10] Joel Lapin, Xinjian Yan, and Qian Dong. UniSpec: Deep learning for predicting the full range of peptide fragment ion series to enhance the proteomics data analysis workflow. Analytical Chemistry , 96(7):2906–2914, 2024. [11] Roman Joeres, David B. Blumenthal, and Olga V. Kalinina. Data splitting to avoid information leakage with datasail. Nature Communications , 16(1):3337, 2025. [12] Anton Bushuiev, Roman Bushuiev, Jiˇ rí Sedlár, Tomáš Pluskal, Jiˇ rí Damborský, Stanislav Mazurenko, and Josef Sivic. Revealing data leakage in protein interaction benchmarks. In ICLR 2024 Workshop on Generative and Experimental Perspectives for Biomolecular Design (GEM) ,2024. URL https://openreview.net/forum?id=ORMXYUK5IY .10 [13] Leon Hermann, Tobias Fiedler, Hoang An Nguyen, Melania Nowicka, and Jakub M Bar-toszewicz. Beware of data leakage from protein LLM pretraining. In David A. Knowles and Sara Mostafavi, editors, Proceedings of the 19th Machine Learning in Computational Biology meeting , volume 261 of Proceedings of Machine Learning Research , pages 106–116. PMLR, 05–06 Sep 2024. URL https://proceedings.mlr.press/v261/hermann24a.html .[14] Bo Wen and William Stafford Noble. A multi-species benchmark for training and validating mass spectrometry proteomics machine learning models. Scientific Data , 11(1):1259, 2024. [15] Hao Xu, Zhichao Wang, Shengqi Sang, Pisit Wajanasara, and Nuno Bandeira. Pep2Prob benchmark: Predicting fragment ion probability for MS2-based proteomics, 2025. [16] Omar Shouman, Wassim Gabriel, Victor-George Giurcoiu, Vitor Sternlicht, and Mathias Wil-helm. PROSPECT: Labeled tandem mass spectrometry dataset for machine learning in pro-teomics. In Advances in Neural Information Processing Systems 35 (NeurIPS 2022), Datasets and Benchmarks Track , 2022. [17] Mingxun Wang, Jeremy Hermann, Gabriel M Simon, Vineet Bafna, and Nuno Bandeira. Assembling the community-scale discoverable human proteome. Cell systems , 7(4):412–421, 2018. [18] Sven Degroeve and Lennart Martens. MS2PIP: a tool for MS/MS peak intensity prediction. 
+
+Bioinformatics , 29(24):3199–3203, 2013. [19] Ralf Gabriels, Lennart Martens, and Sven Degroeve. Updated ms 2pip web server delivers fast and accurate ms 2 peak intensity prediction for multiple fragmentation methods, instruments and labeling techniques. Nucleic Acids Research , 47(W1):W295–W299, 2019. [20] Wen-Feng Zeng, Xie-Xuan Zhou, Wen-Jing Zhou, Hao Chi, Jianfeng Zhan, and Si-Min He. pDeep: Predicting MS/MS spectra of peptides with deep learning. Analytical Chemistry , 89 (23):12690–12697, 2017. [21] Markus Ekvall, Patrick Truong, Wassim Gabriel, Mathias Wilhelm, and Lukas Käll. Prosit Transformer: A transformer for prediction of MS2 spectrum intensities. Journal of Proteome Research , 21(5):1359–1364, 2022. [22] Yasset Perez-Riverol, Chakradhar Bandla, Deepti J. Kundu, Selvakumar Kamatchinathan, Jing-wen Bai, Suresh Hewapathirana, Nithu Sara John, Ananth Prakash, Mathias Walzer, Shengbo Wang, and Juan Antonio Vizcaíno. The PRIDE database at 20 years: 2025 update. Nucleic Acids Research , 53(D1):D543–D553, 2025. [23] Daniel P. Zolg, Mathias Wilhelm, Karsten Schnatbaum, Johannes Zerweck, Tobias Knaute, Bernard Delanghe, Derek J. Bailey, Siegfried Gessulat, Hans-Christian Ehrlich, Maximilian Weininger, et al. Building ProteomeTools based on a complete synthetic human proteome. 
+
+Nature Methods , 14(3):259–262, 2017. [24] Wassim Gabriel, Omar Shouman, Ayla Schroeder, Florian Boessl, and Mathias Wilhelm. PROSPECT PTMs: Rich labeled tandem mass spectrometry dataset of modified peptides for machine learning in proteomics. In Advances in Neural Information Processing Systems 37 (NeurIPS 2024), Datasets and Benchmarks Track , 2024. [25] Johannes B. Müller, Philipp E. Geyer, Ana R. Colaço, Peter V. Treit, Maximilian T. Strauss, Mario Oroshi, Sophia Doll, Sebastian Virreira Winter, Jakob M. Bader, Niklas Köhler, Fabian Theis, Alberto Santos, and Matthias Mann. The proteome landscape of the kingdoms of life. 
+
+Nature , 582(7813):592–596, 2020. [26] Zilu Ye, Tanveer S. Batth, Patrick Rüther, and Jesper V. Olsen. A deeper look at carrier proteome effects for single-cell proteomics. Communications Biology , 5(1):150, 2022. [27] Timnit Gebru, Jamie Morgenstern, Brenda Vecchione, Jennifer Wortman Vaughan, Hanna Wallach, Hal Daumé III, and Kate Crawford. Datasheets for datasets. Communications of the ACM , 64(12):86–92, 2021. 11 Appendix A Datasheet for Datasets 
+
+Following the NeurIPS Datasets and Benchmarks track recommendations [ 27 ], we provide a Datasheet for PepSpecBench. 
+
+Motivation. To enable rigorous, reproducible evaluation of MS/MS prediction models with consis-tent splits, PTM handling, and leakage control. 
+
+Composition. (1) PROSPECT-Mini: 500k/50k/50k spectra (train/val/test) from ProteomeTools, balanced Unmod/PTM. (2) MassIVE-KB-Mini: 500k/50k/50k from MassIVE-KB v1 human subset, natural PTM distribution. (3) PepSpecBench-OOD: 7 subsets × 20k spectra covering five species (human, yeast, E. coli , C. elegans , A. thaliana ). 
+
+Collection. PROSPECT and MassIVE-KB are public spectral libraries; we apply filtering ( L ∈
+
+[6 , 40] , z ∈ [1 , 6] , UNIMOD 1/4/35) and backbone-level splitting. OOD data from ProteomeXchange with MaxQuant [1] 0.01 FDR. 
+
+Preprocessing. PTM normalization (regex → canonical UNIMOD), scope filters, deterministic sampling. See Section Appendix C. 
+
+Distribution. PROSPECT-Mini is exactly 50.00% Unmod / 50.00% PTM in all splits by construction. MassIVE-KB-Mini preserves the natural distribution (Train/Val/Test Unmod = 75.40%/72.83%/72.09%). OOD subsets are species-specific 20k-spectrum mini tables with source-dependent PTM rates ranging from 0% in the core proteome subsets to 36.01% in the HeLa trypsin enriched subset. 
+
+Biases. Human-centric training data; instrumentation bias (Q Exactive family dominant); backbone split does not eliminate homology-level leakage (see Limitations). 
+
+Use. Benchmarking MS/MS prediction models; no identification of individuals. Intended for research and method development. 
+
+Appendix B Dataset Visualization 
+
+Figures 4–5 provide visual summaries of the final PepSpecBench-Mini datasets, complementing the benchmark summary in Table 1. −10 0 10 20 30 40 50            
+
+> Peptide Length
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> 0.10
+> Density
+> Length
+> PROSPECT-M
+> MassIVE-KB-M
+> 123456
+> Precursor Charge
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> Fraction
+> Charge
+> PROSPECT-M
+> MassIVE-KB-M
+> 20 25 30 35 40 45 50
+> NCE
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Density
+> NCE
+> PROSPECT-M
+> MassIVE-KB-M
+
+Figure 4: Measured mini-corpus distribution comparison aggregated over train/validation/test. Left: peptide-length KDE. Middle: precursor-charge distribution. Right: NCE histogram. PROSPECT-Mini spans multiple NCE settings, whereas MassIVE-KB-Mini is concentrated at NCE=25. 
+
+Appendix B.1 Homology Leakage: Train–Test Backbone Similarity 
+
+To quantify residual homology-level leakage under our backbone-disjoint split, we compute the minimum Levenshtein edit distance from each test backbone to the nearest train backbone. For the 12 PROSPECT-M MassIVE-KB-M   
+
+> 0
+> 5
+> 10
+> 15
+> 20
+> Percent of spectra
+> PTM Type Breakdown (Train)
+> Ox (UNIMOD:35) CAM (UNIMOD:4) Ace (UNIMOD:1)
+
+Figure 5: PTM-type breakdown on training splits (Ox/CAM/Ace). PROSPECT has balanced representation; MassIVE-KB is dominated by Carbamidomethylation (Cys). PROSPECT dataset, we empirically find a mean minimum edit distance of 1.87 and a median of 2.0. The fraction of test backbones with edit distance 0 (exact match in train) is 0.0%, confirming the efficacy of our backbone-disjoint protocol. However, 13.0% of test backbones have an edit distance of 
+
+≤ 1 (single-amino-acid variants), indicating that residual sequence similarity persists. This motivates our Cross-Species OOD suite, which evaluates model robustness under much larger evolutionary sequence shifts. MassIVE-KB backbone similarity is not computed because its official split already ensures backbone disjointness, which we verified empirically. 
+
+Appendix C Data Processing and Reconstruction Pipeline 
+
+Appendix C.1 Raw Data Acquisition 
+
+We start from publicly available spectral libraries and their associated identifications: • PROSPECT. We download the PROSPECT benchmark data [ 16 , 24 ] and use the authors’ released library-level identifications as our starting point, rather than re-running peptide identification. • MassIVE-KB. We obtain the MassIVE-KB v1 spectral library [ 17 ] and its human-only subset, again reusing the official identifications provided by the library authors. All downstream processing in PepSpecBench operates on table-like representations (parquet files) derived from these libraries, not on raw vendor files. 
+
+Appendix C.2 Canonicalization and Global Filtering 
+
+To harmonize the dual-source corpus, we apply a shared set of quality and scope constraints before any splitting or sampling. This stage produces PTM-normalized tables for both source corpora. 
+
+Quality control and basic filters. For both corpora we: • Restrict precursor charge to z ∈ [1 , 6] and peptide length to L ∈ [6 , 40] amino acids. • Retain only high-confidence spectra (e.g., Andromeda score ≥ 70 and mass error within 20 ppm for PROSPECT), following the original benchmark recommendations. • Drop spectra with missing or malformed metadata required by downstream models (charge, colli-sion energy, raw file identifier, etc.). 
+
+PTM normalization. We standardize PTM annotations to a canonical UNIMOD vocabulary: 13 • Parse modified peptide strings with a regex-based tokenizer and map any recognized PTM to one of the three benchmark PTMs: Acetylation (UNIMOD:1), Carbamidomethylation (UNIMOD:4), and Oxidation (UNIMOD:35). • Discard peptides containing unsupported or ambiguous PTMs to maintain a clean, comparable label space. • For each remaining peptide, derive (i) a normalized sequence where all PTM tags are rewritten as canonical [UNIMOD:x] tokens; (ii) a naked sequence obtained by stripping all PTM tags; and (iii) auxiliary columns such as has_ptm and a coarse ptm_bucket (Ox/CAM/Ace vs. unmodified). This produces a pair of harmonized, PTM-cleaned tables that serve as the sole inputs to the recon-struction and mini-sampling stage, without imposing any particular on-disk layout. 
+
+Appendix C.3 Backbone-Level Splitting 
+
+We enforce strict disjointness at the level of the naked peptide sequence. 
+
+PROSPECT. For PROSPECT, we ignore any existing split markers and re-partition the data using a deterministic hash on the naked sequence: • Compute h = MD5 (naked sequence ) and map it to a bucket in [0 , 99] .• Assign buckets 0–79 to Train, 80 –89 to Validation, and 90 –99 to Test, yielding an 80/10/10 split by backbone (8:1:1). This guarantees that no naked sequence can appear in more than one split, even if it occurs with different PTM patterns. 
+
+MassIVE-KB. For MassIVE-KB, we preserve the official Train/Validation/Test directories released by the library authors and never move peptides across these boundaries. All subsequent downsampling is carried out independently within each official split, ensuring that we do not weaken the original disjointness guarantees. 
+
+Appendix C.4 Construction of PepSpecBench-Mini 
+
+Given the backbone-level splits above, we construct the standardized mini subsets using a determinis-tic streaming sampler over the filtered tables. 
+
+PROSPECT (balanced). Within each PROSPECT split we: • Apply the global filters and PTM normalization described above to each streamed batch. • For every candidate spectrum, compute a deterministic sampling key by hashing the tuple (naked sequence, precursor charge, collision energy, seed). This key defines a total order that is stable across machines. • Accumulate candidates in four buckets per split: unmodified, Ox (UNIMOD:35), CAM (UNI-MOD:4), and Ace (UNIMOD:1). • From these buckets, select a fixed number of spectra per split (500k/50k/50k for Train/Validation/Test in our experiments), enforcing approximately 50% unmodified and 50% modified peptides. Among modified peptides, we further draw approximately equal proportions from the Ox/CAM/Ace buckets without oversampling. Within each bucket, spectra are sorted by the sampling key and the first N are taken (deterministic, reproducible). The resulting tables form the PROSPECT component of PepSpecBench-Mini. 
+
+MassIVE-KB (natural). For MassIVE-KB we instead preserve the empirical PTM and charge distributions: • Process each official split directory independently, streaming over its constituent parquet files in a fixed, deterministic order. 14 • Apply the same global filters and PTM normalization as for PROSPECT, but do not re-balance PTM categories. • Within each split, perform a simple top-N truncation based on the streaming order (files processed in a fixed, deterministic order) to obtain 500k/50k/50k spectra for Train/Validation/Test, respectively. These mini-splits constitute the MassIVE-KB component of PepSpecBench-Mini. For PROSPECT, disjointness is guaranteed by the hash-based partition; for MassIVE-KB, we preserve the official splits. The resulting split sizes are summarized in Table 1. 
+
+Appendix C.5 Quick Random/Sequence Split Construction for Ablation 
+
+For the split-ablation experiment in Section 4.2, we additionally build two deterministic quick split variants from reconstructed PROSPECT data: • Input pool. Concatenate all rows from the reconstructed PROSPECT train/validation/test tables. • Random split. Compute an MD5 bucket from a row-level key ( sample_key plus row index when available), then assign 80/10/10 to Train/Val/Test. • Modified-sequence split. Compute the bucket from modified_sequence , then apply the same 80/10/10 rule. • Implementation. Generated by the benchmark split-construction utility used in this work. The realized quick-split datasets are stored as reconstructed benchmark tables with deterministic compatibility aliases and approximately 600k spectra each (80/10/10 ratio). This quick protocol is used only for split-ablation sensitivity analysis and does not replace the main benchmark split definitions. 
+
+Appendix C.6 Construction of Cross-Species OOD Suite 
+
+To evaluate cross-species out-of-distribution (OOD) generalization under the same PTM scope as the in-domain benchmarks, we construct a cross-species OOD suite comprising seven source datasets across five species. Each source is processed independently to preserve domain identity while producing compact, reproducible evaluation subsets. 
+
+Data sources. Four datasets (human, E. coli , C. elegans , A. thaliana ) are derived from PXD014877 [ 25 ], a large-scale multi-species proteomics study covering 100 organisms. Protein sequence databases were obtained from UniProt KB reference proteomes: H. sapiens (UP000005640), 
+
+A. thaliana (UP000006548), C. elegans (UP000001940), and E. coli (UP000000625). Searches were performed with MaxQuant [ 1 ] under 0.01 FDR control. Three additional datasets ( S. cerevisiae yeast, 
+
+E. coli , and human HeLa trypsin) are drawn from PXD027742 [ 26 ], a study on carrier proteome effects in single-cell proteomics using TMTpro-labeled mixed-species samples. Table 5 summarizes the origin and experimental setup of each OOD subset. For reproducibility, the Sample Size and PTM% columns in Table 5 are computed directly from the finalized OOD mini tables after the same filtering and deterministic top-20k truncation used in evaluation. Table 5: OOD metadata audit: PepSpecBench-OOD mini suite. PXD = ProteomeXchange. PTM% = fraction of spectra containing UNIMOD 1/4/35 after filtering and deterministic top-20k truncation.                                          
+
+> Source Species Instrument Fragmentation Sample Size PTM%
+> homo_sapiens_with_seq H. sapiens Q Exactive HF HCD 20,000 0.00 coli_with_seq E. coli Q Exactive HF HCD 20,000 0.00 c_elegans_with_seq C. elegans Q Exactive HF HCD 20,000 0.00 a_thaliana_with_seq A. thaliana Q Exactive HF HCD 20,000 0.00 Yeast S. cerevisiae Q Exactive HCD 20,000 18.56 Ecoli E. coli Q Exactive HCD 20,000 25.52 HeLa_trypsin H. sapiens (HeLa) Q Exactive HCD 20,000 36.01
+
+ProteomeXchange provenance. Four datasets (human, E. coli , C. elegans , A. thaliana ) from PXD014877 [ 25 ]; three (Yeast, E. coli, HeLa) from PXD027742 [ 26 ]. After the final mini reconstruc-15 tion, the four PXD014877 subsets remain PTM-free under our UNIMOD 1/4/35 scope, whereas the three PXD027742 subsets preserve the intended PTM-enriched contexts. 
+
+Global filters. For every OOD source table, we enforce the same scope constraints as Pep-SpecBench: peptide length L ∈ [6 , 40] and precursor charge z ∈ [1 , 6] .
+
+PTM normalization and whitelisting. We normalize modified sequences using the same regex-based tokenizer as our main reconstruction procedure. Any bracket token is mapped to one of the benchmark PTMs (UNIMOD:1/4/35). Spectra containing any other modification are discarded to ensure model compatibility and a consistent evaluation scope. 
+
+Deterministic ranking and truncation. To obtain a compact yet reproducible OOD evaluation set, we compute a deterministic ranking key for each spectrum: key =MD5( naked sequence ∥charge ∥seed ), with a fixed seed of 42. For each source file we then select the top-20,000 spectra by this key, yielding seven fixed-size evaluation subsets. 
+
+Projection to shared canonical space. For all models, we convert each OOD parquet table to the shared canonical evaluation space C using the same ion-labeling utility as the main benchmark, producing row-aligned outputs. 
+
+Scope alignment and PROSPECT OOD. All three phases—training, in-domain test, and OOD evaluation—use the same physical scope. Models trained on PROSPECT are evaluated on the same OOD suite summarized in Table 4. 
+
+Appendix C.7 Complete OOD Results (All Seven Subsets) 
+
+Table 6 provides the complete OOD evaluation including all seven subsets: four non-human species, two human cell lines with divergent PTM loads (reference line 0% PTM vs HeLa cancer 36% PTM), and two E. coli sources with different PTM levels (0% vs 25.5%). Table 6: Complete cross-species generalization results (all seven OOD subsets). H. sapiens (Ref)=reference cell line (0% PTM); E. coli (I)=PXD014877 (0% PTM); E. coli (II)=PXD027742 (25.5% PTM); HeLa=PXD027742 (36% PTM).                                                                               
+
+> MassIVE-KB Trained Model ID H. sap. (Ref) E. coli (I) C. elegans A. thaliana Yeast E. coli (II) HeLa
+> Prosit 0.100 0.465/0.535/+0.029 0.474/0.526/ −0.001 0.471/0.529/+0.006 0.484/0.516/ −0.035 0.477/0.523/ −0.020 0.477/0.523/ −0.011 0.471/0.529/+0.006 Prosit T. 0.098 0.466/0.534/+0.024 0.477/0.523/ −0.005 0.472/0.528/+0.004 0.485/0.515/ −0.038 0.481/0.519/ −0.029 0.482/0.518/ −0.021 0.475/0.525/ −0.006 PredFull 0.167 0.147 /0.853 /0.869 0.184 /0.816 /0.794 0.222 /0.778 /0.714 0.203 /0.797 /0.751 0.281 /0.719 /0.554 0.292 /0.708 /0.527 0.220 /0.780 /0.717
+> AlphaPep. 0.129 0.462/0.538/+0.042 0.471/0.529/+0.011 0.470/0.530/+0.019 0.482/0.518/ −0.026 0.473/0.527/ −0.006 0.475/0.525/ −0.004 0.468/0.532/+0.017 UniSpec 0.337 0.383/0.618/+0.062 0.379/0.621/+0.066 0.382/0.618/+0.017 0.384/0.616/ −0.016 0.393/0.607/+0.018 0.397/0.603/+0.052 0.380/0.620/+0.097 FastSpel 0.476 0.466/0.534/ −0.005 0.463/0.537/ −0.001 0.476/0.524/ −0.037 0.469/0.531/ −0.034 0.461/0.539/ −0.007 0.466/0.534/ −0.016 0.461/0.539/+0.007
+> PROSPECT Trained Model ID H. sap. (Ref) E. coli (I) C. elegans A. thaliana Yeast E. coli (II) HeLa
+> Prosit 0.138 0.180/0.820/+0.821 0.282/0.718/+0.565 0.160 /0.840 /0.856 0.094 /0.906 /0.950 0.284/0.716/+0.557 0.291/0.709/+0.548 0.244/0.756/+0.664 Prosit T. 0.142 0.196/0.804/+0.786 0.301/0.699/+0.513 0.169/0.831/+0.839 0.102/0.898/+0.941 0.288/0.712/+0.543 0.296/0.704/+0.531 0.259/0.741/+0.624 PredFull 0.203 0.174 /0.826 /0.819 0.222 /0.778 /0.699 0.199/0.801/+0.763 0.163/0.837/+0.837 0.236 /0.764 /0.674 0.250 /0.750 /0.642 0.196 /0.804 /0.770
+> AlphaPep. 0.278 0.241/0.759/+0.688 0.309/0.691/+0.491 0.246/0.754/+0.668 0.157/0.843/+0.862 0.319/0.681/+0.462 0.315/0.685/+0.481 0.274/0.726/+0.589 UniSpec 0.193 0.196/0.804/+0.787 0.303/0.697/+0.512 0.188/0.812/+0.805 0.120/0.880/+0.919 0.294/0.706/+0.533 0.294/0.706/+0.541 0.251/0.749/+0.648 FastSpel 0.379 0.362/0.638/+0.072 0.352/0.648/+0.034 0.392/0.609/+0.022 0.344/0.656/+0.006 0.370/0.629/+0.024 0.385/0.615/+0.018 0.361/0.639/+0.069
+
+Appendix C.8 Covariate-Shift Decomposition of Apparent OOD Advantage 
+
+The PROSPECT-trained Prosit model achieves a lower median SA on A. thaliana (0.094) than on its in-domain PROSPECT test set (0.138), seemingly indicating better OOD than ID performance. This subsection demonstrates that the apparent advantage is entirely explained by covariate distribution shift between the two test populations—a Simpson’s paradox—and that after matching on key covariates, the expected ID >OOD ordering is restored. 
+
+Covariate distribution mismatch. Table 7 contrasts the covariate profiles of the PROSPECT ID test set and the A. thaliana OOD set. The two populations differ substantially along three axes: 16 (1) NCE: PROSPECT spans six NCE values (20–45) with 52% at NCE = 28 or 35, whereas 
+
+A. thaliana is entirely at NCE = 25 ; (2) PTM: PROSPECT is 50% PTM, A. thaliana is 0%; (3) Instrument/fragmentation: NCE = 28 is 68% ITMS and NCE = 35 is 63% CID+ITMS in PROSPECT, while A. thaliana is 100% Orbitrap/HCD. Table 7: Covariate distribution comparison between PROSPECT ID test and A. thaliana OOD.                        
+
+> Covariate PROSPECT ID A. thaliana OOD
+> NCE = 25 fraction 13.5% 100% NCE = 28 fraction 21.2% 0% NCE = 35 fraction 31.0% 0% has_ptm fraction 50.0% 0.0% ITMS fraction 34.1% 0.0% CID fraction 19.6% 0.0% Mean peptide length 12.7 15.4
+
+NCE–instrument confound. The poor performance at NCE = 28 and 35 is not an artifact of collision energy alone. In PROSPECT, these NCE values are strongly confounded with instrument type and fragmentation method (Table 8): NCE = 28 spectra are 68% ITMS-detected (median 217 peaks vs. 51 for FTMS), and NCE = 35 spectra are 63% CID-fragmentated and ITMS-detected. Both ITMS detection and CID fragmentation produce noisier, more complex spectra that are harder for any model to predict. This confound explains why all six models—not just Prosit—show degraded performance at these NCE values. Table 8: NCE × instrument/fragmentation confound in PROSPECT test set. Peak counts reflect spectrum complexity.                                    
+
+> NCE nITMS% CID% Med. peaks Prosit SA
+> 20 5,019 0041 0.083 23 5,472 0048 0.078 25 6,723 0051 0.077 28 10,607 68 0217 0.329 30 6,639 0057 0.083 35 15,476 63 63 134 0.332
+
+Stratified performance restores expected ordering. Table 9 reports PROSPECT ID median SA stratified by NCE and PTM. The “hard” subpopulation (NCE = 28 /35) constitutes 52% of the test set with SA ≈0.33 , inflating the overall median to 0.138. Restricting to the covariate profile matching A. thaliana (NCE = 25 , no PTM) yields SA = 0 .070 , which is lower (better) than the A. thaliana OOD value of 0.094 by 0.024 SA units—consistent with normal OOD degradation. This confirms that the apparent “OOD >ID” paradox is a Simpson’s paradox induced by distribution shift in NCE, PTM, and instrument type. Table 9: Prosit PROSPECT ID performance stratified by covariates (median SA).                      
+
+> Stratum nMed. SA
+> Overall 50,000 0.138 NCE = 25 only 6,723 0.077 NCE = 25 , no PTM 3,309 0.070 NCE = 25 , no PTM, z=2 2,248 0.058 NCE = 28 /35 (hard) 26,083 0.330
+> A. thaliana OOD (reference) 20,000 0.094
+
+Cross-model consistency. The NCE = 28 /35 degradation is not Prosit-specific. Table 10 shows that all neural models perform substantially worse on the NCE = 28 /35 subpopulation than on the remaining NCE values, confirming that the confound is a property of the data, not of any particular architecture. 17 Table 10: Cross-model median SA on PROSPECT ID: hard (NCE = 28 /35) vs. easy (other NCE) subpopulations.                
+
+> Model Overall Hard (NCE 28/35) Easy (other NCE)
+> Prosit 0.138 0.330 0.080 Prosit Trans. 0.142 0.329 0.086 PredFull 0.204 0.248 0.162 AlphaPeptDeep 0.278 0.386 0.159
+
+Appendix D Projection Details 
+
+Table 11 summarizes the model-specific projection Πm for each baseline. All projections share the same output: a 234-dimensional vector in the canonical space C.Table 11: Per-model projection from native output to the shared canonical space C (dim = 234 ).                  
+
+> Model Native Output Projection Πm
+> Prosit / Prosit Trans. 174-d ion tensor ( L≤30 )Extend to 234-d (extend to L=40 )AlphaPeptDeep Dynamic-length ion tensor Truncate/pad to 234-d PredFull 20,000-bin full spectrum Extract b/y bins by theoretical m/z
+> UniSpec Dictionary-indexed vector Map dictionary entries to canonical positions FastSpel Bucket-based ion vector Align to canonical layout, zero-fill gaps
+
+Ground-truth projection. Experimental spectra are first binned into a uniform m/z grid (0.1 Da bins, 0–2000 Da), then intensities at theoretical b/y ion positions are extracted to form I(c) ∈ C . This model-agnostic projection ensures that ground truth is treated identically regardless of which model is being evaluated. 
+
+Valid positional mask. A mask M(x) excludes physically impossible positions: cleavage site 
+
+p > L (s) − 1 or fragment charge zf > z . All metrics are computed exclusively over valid positions. 
+
+Appendix E Adaptation of Baseline Models 
+
+Appendix E.1 PredFull: Global Mass Conditioning Original formulation. PredFull is a CNN-based full-spectrum predictor whose native target is a dense 20,000-bin intensity vector over the m/z range 0–2000 Da. 
+
+Benchmark adaptation. The original implementation was tied to rigid metadata handling and limited PTM support. To support the benchmark PTM scope without redesigning the convolutional backbone, we introduced a global mass-conditioning strategy: N-terminal acetylation is reflected through precursor-mass correction and an auxiliary meta-feature flag, while the data loader is modified to ingest normalized collision energy directly from the benchmark tables. 
+
+Output used in PepSpecBench. PredFull is trained in its native full-spectrum format. For evalua-tion, we extract the subset of bins corresponding to the theoretical b/y ions and project them to the shared canonical space C; all reported metrics use this projected output. 
+
+Full-spectrum binning details. The 20,000-bin representation uses uniform 0.1 Da bins spanning 
+
+m/z 0–2000 Da. To project canonical b/y ions from the full-spectrum output, we compute theoretical 
+
+m/z for each ion and map to the nearest bin index via round( mz /0.1) . This 0.1 Da resolution provides sufficient precision for the benchmark’s canonical ion extraction while maintaining compu-tational efficiency. The same binning configuration is applied identically to all full-spectrum models (PredFull) and to ground-truth spectra during canonical projection, ensuring consistent treatment across model outputs and reference data. 18 Appendix E.2 Prosit: Extended Canonical Ion Tensor Original formulation. Prosit predicts relative intensities of canonical b/y ions and is classically associated with a fixed-size output for peptides up to length 30 and fragment charges up to 3. 
+
+Benchmark adaptation. PepSpecBench extends the peptide-length scope to 40 residues. We therefore replace the original fixed-length target with an extended canonical ion-tensor target that remains restricted to b/y ions and fragment charges up to 3, but now covers all cleavage positions up to length 40. Sequence loading and metadata handling are standardized to the benchmark parquet interface. 
+
+Output used in PepSpecBench. Prosit is trained with an extended canonical ion tensor (covering peptide lengths up to 40) and projected to the shared canonical space C; all reported metrics use this projected output. 
+
+Appendix E.3 AlphaPeptDeep: Flexible Output Adapter Original formulation. AlphaPeptDeep provides a flexible PTM-aware prediction procedure rather than a single fixed benchmark vector. Its output space is organized around charged fragment channels and can be reshaped according to sequence length and supported ion types. 
+
+Benchmark adaptation. For PepSpecBench, we standardized its configuration to ensure compara-bility: • Layers: 4 Transformer layers with 8 heads. • Hidden Dimension: 256. • PTM Handling: Unlike PredFull, AlphaPeptDeep treats PTMs as explicit tokens in the sequence. We restricted its vocabulary to the benchmark’s standard PTM set (Acetylation, Oxidation, Carbamidomethylation) to prevent it from leveraging obscure modifications not available to other models. 
+
+Input metadata wiring. AlphaPeptDeep receives precursor charge and normalized collision energy (NCE) as explicit metadata inputs alongside the peptide sequence. The benchmark adapter extracts 
+
+precursor_charge (or charge ) and collision_energy (or nce ) from the parquet tables, normal-izes NCE to the [0,100] range, and constructs the precursor DataFrame expected by AlphaPeptDeep’s API. This ensures that metadata are correctly passed to the model during both training and inference. 
+
+Charge-state mode collapse diagnosis. Despite correct input wiring, AlphaPeptDeep exhibits severe charge-state mode collapse (98.0% high-SAS fraction under z=2 →3 perturbation, Section 4.5). This indicates that the model effectively ignores the charge-state input during inference, over-relying on the high-dimensional sequence representation. We confirmed that the charge value is correctly propagated through the data pipeline; the collapse is therefore an architectural/training phenomenon rather than an implementation error. This finding highlights a limitation of flexible sequence-centric architectures: they may fail to properly condition on low-dimensional control variables even when these are explicitly provided as inputs. 
+
+Output used in PepSpecBench. AlphaPeptDeep outputs are mapped to an intermediate canonical ion tensor and then projected to the shared canonical space C; all reported metrics use this projected output. 
+
+Appendix E.4 Prosit Transformer: Extended Canonical Ion Tensor Original formulation. Prosit Transformer follows the Prosit-style backbone-ion prediction setup, with a Transformer encoder-decoder replacing the GRU while still targeting canonical b/y ions. 
+
+Benchmark adaptation. We adapted the implementation to support our standardized PTM tokens. While the original model had limited PTM support and shorter sequence constraints, we extended its embedding layer and prediction head to accommodate the benchmark’s “Big 3” modifications and the expanded length range up to 40 residues. 19 Output used in PepSpecBench. Like Prosit, Prosit Transformer is trained with an extended canonical ion tensor (peptide length up to 40) and projected to the shared canonical space C; all reported metrics use this projected output. 
+
+Appendix E.5 UniSpec: Dictionary Reconstruction and Source-Specific Output Original formulation. UniSpec predicts spectral intensities through a learned ion dictionary rather than a fixed canonical backbone tensor. In its original form, this dictionary can cover a broad set of ions, including non-canonical peaks and loss patterns. 
+
+Benchmark adaptation. Directly applying the pre-trained model would create dictionary gaps on the benchmark data, where theoretically relevant ions are absent from the learned vocabulary. We therefore introduce a dedicated dictionary-reconstruction procedure that rebuilds the output vocabulary from benchmark-compliant training data and aligns energy conditioning with the benchmark metadata format. 
+
+Output used in PepSpecBench. All UniSpec outputs are projected to the shared canonical space C
+
+before metric computation, consistent with all other models in the benchmark. 
+
+Appendix E.6 FastSpel: Universal Scale Adaptation and Coverage Limitation Original formulation. FastSpel is a lightweight linear baseline that predicts canonical backbone-ion intensities through discrete (L, z, CE) buckets. 
+
+Benchmark adaptation. To extend support toward the PepSpecBench scope, we removed its internal hard-coded constraints (peptides up to 40 amino acids, precursor charges up to +6) and introduced a CE-Snap matching algorithm during evaluation: collision energy is mapped to the nearest learned discrete bucket, and length/charge are likewise snapped to the closest trained (L, z )
+
+combination when needed. 
+
+Output used in PepSpecBench. FastSpel output is aligned to the shared canonical space C;positions outside the trained bucket combinations are filled with zero. All reported metrics use this projection. 
+
+Appendix F Implementation Details 
+
+All models were trained on a cluster of NVIDIA A100 (80GB) GPUs. We used standardized training loops with architecture-aware hyperparameters following each model’s original publication to ensure fair comparison. • Optimizer: AdamW ( β1 = 0 .9, β2 = 0 .999 , weight decay 1 × 10 −2) for all neural models. • Batch Size: 1024 (scaled based on memory constraints). • Learning Rate Schedule: Cosine annealing with 5% linear warmup. Peak learning rates follow the original publications for each architecture. • Early Stopping: All models were monitored using median Spectral Angle (SA) on the validation set with patience=10 epochs. The checkpoint with the best validation SA was selected for testing. • Loss Function: Each model uses its native training objective as defined in the original publication, ensuring fair evaluation on intended optimization trajectories. 
+
+Appendix F.1 Metric Computation and Reliability Pearson correlation coefficient (PCC) computation. PCC is computed using standard 
+
+numpy.corrcoef over masked valid positions in the shared canonical space (level1, 234-dim). The implementation includes edge-case handling: when either prediction or ground truth has near-zero variance ( σ < 10 −8), PCC returns 0 rather than NaN. This ensures robust aggregation across diverse spectra while preserving standard correlation semantics. 20 Interpretation of negative PCC in OOD settings. Negative PCC values observed for some models on cross-species OOD datasets (e.g., Prosit on Yeast with PCC = −0.020 ) reflect genuine distribution mismatch rather than computation artifacts. When a model trained on human proteomics data encounters yeast peptides with different amino-acid compositions and fragmentation propensities, the predicted intensity rankings can become anti-correlated with observed intensities—a failure mode more severe than random prediction. The PCC calculation itself is standard and correct; the negative values indicate that the model’s human-specific fragmentation statistics fail to transfer to the cross-species domain. 
+
+Appendix F.2 Hyperparameter Configuration 
+
+Table 12 summarizes the key hyperparameters for each baseline model. All configurations follow the respective original publications to ensure each architecture is evaluated on its intended optimization trajectory. Table 12: Hyperparameter configuration for baseline models. All neural models use AdamW optimizer with cosine annealing schedule and 5% warmup.                                              
+
+> Model Core Arch. Params Peak LR Batch Size Loss Function
+> Prosit GRU (Encoder-Decoder) ∼2.5M 1×10 −41024 Masked SA Prosit Trans. Transformer (BERT) ∼86M 5×10 −51024 Masked SA PredFull CNN (ResNet) ∼8.2M 3×10 −41024 Cosine Similarity AlphaPeptDeep Modular Transformer ∼1.8M 1×10 −51024 L1 (native Adam) UniSpec Transformer ∼12M 1×10 −41024 Neg. Cosine Sim. FastSpel Linear (CPU) ∼50K N/A N/A Least Squares
+
+Appendix F.3 Training Time 
+
+Table 13 reports wall-clock training time for all six models on MassIVE-KB and PROSPECT. FastSpel uses pre-trained linear coefficients and requires only minutes; neural models range from 
+
+∼4.5 h (AlphaPeptDeep on MassIVE-KB) to ∼14 h (Prosit Transformer on PROSPECT). †PredFull on PROSPECT reached the cluster wall-clock limit of 50,000 s; the reported value is the time-to-best checkpoint, not the full training completion time. Table 13: Training time (seconds) for all six models. M-KB = MassIVE-KB; PROS = PROSPECT. 
+
+Model M-KB (s) M-KB (h) PROS (s) PROS (h) 
+
+Prosit 33,103 9.2 17,057 4.7 Prosit Trans. 46,792 13.0 49,748 13.8 PredFull 42,884 11.9 50,000 † 13.9 AlphaPeptDeep 15,927 4.4 32,696 9.1 UniSpec 17,150 4.8 47,223 13.1 FastSpel 184 0.05 383 0.11 
+
+Appendix F.4 In-Domain Accuracy Uncertainty 
+
+We report 95% bootstrap confidence intervals (1000 resamples over the 50k test spectra) for in-domain median SA. Table 14 shows that intervals are narrow ( ±0.001 or less) due to the large test set size. 
+
+Appendix F.5 Inference Efficiency 
+
+Tables 15 and 16 report inference throughput on the MassIVE-KB and PROSPECT-Mini test sets. Prosit is the fastest among neural models on both datasets. PredFull is slower due to subprocess-based evaluation and full-spectrum output. 21 Table 14: In-domain median SA with 95% bootstrap CI (1000 resamples over 50k test spectra). 
+
+Source Model Med. SA 95% CI (lo) 95% CI (hi) 
+
+MassIVE-KB Prosit 0.0995 0.0984 0.1006 Prosit Trans. 0.0977 0.0969 0.0986 PredFull 0.1673 0.1666 0.1680 AlphaPeptDeep 0.1288 0.1277 0.1300 UniSpec 0.3369 0.3365 0.3374 FastSpel 0.4757 0.4752 0.4762 PROSPECT Prosit 0.1376 0.1354 0.1397 Prosit Trans. 0.1419 0.1396 0.1444 PredFull 0.2035 0.2022 0.2049 AlphaPeptDeep 0.2779 0.2759 0.2803 UniSpec 0.1933 0.1912 0.1951 FastSpel 0.3792 0.3783 0.3801 Table 15: Inference efficiency on the MassIVE-KB test set. 
+
+Model Spec/s Med. ms/spec 
+
+Prosit 17,300 0.06 Prosit Trans. 1,077 0.92 PredFull ∼45 ∼22 AlphaPeptDeep 5,104 0.20 UniSpec 766 1.45 FastSpel 47 21.4 
+
+Appendix F.6 Stratified Performance by Length and Charge 
+
+Per-model stratification by peptide length ( L ∈ [6 , 40] ), precursor charge ( z = 2 –4), and PTM vs. unmodified is included here as supplementary-only analysis. These summaries are derived from per-sample exports and are intended to complement, not replace, the main-text benchmark tables. We report stratification results from per-sample export for MassIVE-KB (6 models) and PROSPECT. Tables 17 and 18 summarize median SA in the shared canonical space by charge and PTM status. On MassIVE-KB (human tryptic), Prosit and Prosit Transformer achieve Med. SA 0.072–0.075 at z = 2 ,0.120–0.127 at z = 3 , and 0.150–0.168 at z = 4 , with a small Unmod/PTM gap (0.096–0.098 vs. 0.102–0.103). On PROSPECT (balanced PTM coverage), the same models show slightly higher Med. SA ( z = 2 : 0.116–0.125; z = 3 : 0.159–0.163; z = 4 : 0.178–0.186) and a modest PTM gap (Unmod 0.125–0.129 vs. PTM 0.151–0.155). Performance degrades with peptide length on both datasets; on PROSPECT, Prosit Med. SA increases from 0.10 (short peptides) to 0.21 (long peptides, L > 25 ), while on MassIVE-KB the same range spans 0.06 to 0.18 , consistent with longer peptides presenting a harder prediction target. The same pattern is mirrored by median PCC: on PROSPECT, Prosit drops from 0.9367 to 0.7715 and PredFull from 0.8333 to 0.6152 from short to long peptides, while Prosit Transformer degrades more slowly (0.9189 to 0.8237). Figure 6 visualizes median SA in the shared canonical space by peptide length bin for the top four models on both datasets. Performance degrades monotonically with length: Prosit Med. SA increases from ∼0.06–0.10 (short peptides) to ∼0.18–0.24 (long peptides, L > 25 ) on MassIVE-KB, and from ∼0.10–0.12 to ∼0.19–0.21 on PROSPECT, consistent with longer peptides presenting a harder prediction target. Transformer-based models (Prosit, Prosit Transformer) maintain an advantage over PredFull and AlphaPeptDeep across length bins. Figure 2 in the main text re-expresses the same degradation as a relative decay rate ∆SA = SA( L-bin ) − SA( shortest bin ), making architecture-specific degradation slopes directly comparable regardless of absolute performance level. 
+
+Stratification by PTM type. Tables 19 and 20 report median SA in the shared canonical space by modification type (Acetylation, Carbamidomethylation, Oxidation, Unmodified). On MassIVE-KB, 22 Table 16: Inference efficiency on the PROSPECT test set. 
+
+Model Spec/s Med. ms/spec 
+
+Prosit 20,100 0.05 Prosit Trans. 1,087 0.92 PredFull 56 18.0 AlphaPeptDeep 1,835 0.55 UniSpec 404 2.67 FastSpel 55 18.1 Table 17: MassIVE-KB median SA in the shared canonical space by charge and PTM status. 
+
+Model z = 2 z = 3 z = 4 Unmod / PTM Prosit 0.072 0.127 0.168 0.098 / 0.103 Prosit Trans. 0.075 0.120 0.150 0.096 / 0.102 PredFull 0.144 0.189 0.226 0.164 / 0.176 AlphaPeptDeep 0.096 0.162 0.217 0.128 / 0.132 UniSpec 0.333 0.340 0.347 0.339 / 0.333 FastSpel 0.469 0.483 0.485 0.476 / 0.475 Prosit and Prosit Transformer show similar performance across PTM types (Med. SA 0.095–0.166); Acetylation is slightly harder. On PROSPECT, AlphaPeptDeep exhibits larger gaps (CAM 0.297 vs. Unmod 0.269), while Prosit maintains more uniform performance across PTM types. 
+
+Stratification by NCE (PROSPECT). MassIVE-KB-Mini is effectively single-bin in NCE after reconstruction (all test samples in 0.25–0.30), whereas PROSPECT-Mini spans multiple bins (20.98% in 0.20–0.25, 34.66% in 0.25–0.30, and 44.24% in 0.30–0.35). Figure 7 therefore emphasizes PROSPECT for NCE trends. Performance degrades at higher CE under SA and is consistent under PCC: for Prosit, median SA rises from 0.0806 to 0.1974 and median PCC drops from 0.9616 to 0.7888 between 0.20–0.25 and 0.30–0.35. 
+
+Appendix F.7 NCE Sensitivity Supplement 
+
+Table 21 provides the numerical summary for the two NCE perturbation experiments introduced in Section 4.5. 
+
+Appendix F.8 Charge Mode Collapse Supplement 
+
+Table 22 provides the full-run summary for the z=2 →3 perturbation experiment introduced in Section 4.5. The key readout is high_sas_fraction with threshold 0.90; higher values indicate stronger charge-insensitive collapse. All four models are evaluated on N =31 ,498 z=2 spectra, filtered from the PROSPECT-Mini test set (which contains 31,498 z=2 entries out of 50,000 total). For UniSpec, predictions for all 50,000 test spectra were stored in vectors_charge2.npz together with their precursor_charge metadata; we filter this file to the z=2 entries ( N =31 ,498 ) to match the evaluation scope used for the other three models. 23 Table 18: PROSPECT median SA in the shared canonical space by charge and PTM status. FastSpel is omitted as its discrete bucket architecture yields less informative charge/PTM breakdowns. 
+
+Model z = 2 z = 3 z = 4 Unmod / PTM Prosit 0.116 0.159 0.186 0.125 / 0.151 Prosit Trans. 0.125 0.163 0.178 0.129 / 0.155 PredFull 0.180 0.240 0.280 0.195 / 0.212 AlphaPeptDeep 0.246 0.306 0.368 0.269 / 0.285 UniSpec 0.173 0.216 0.238 0.182 / 0.205 [6,10) [10,15) [15,20) [20,25) [25,31) [31,41)         
+
+> Peptide length
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> Level-1 Med. SA
+> MassIVE-KB
+> Prosit Prosit Trans. PredFull AlphaPeptDeep
+> [6,10) [10,15) [15,20) [20,25) [25,31) [31,41)
+> Peptide length
+> PROSPECT
+
+Figure 6: Median SA in the shared canonical space by peptide length bin (MassIVE-KB and PROSPECT). Performance degrades with length; Transformer-based models maintain an advantage across bins. Table 19: MassIVE-KB median SA in the shared canonical space by PTM type (top-4 models; UniSpec and FastSpel omitted for conciseness). 
+
+Model Ace CAM Ox Unmod 
+
+Prosit 0.156 0.099 0.095 0.098 Prosit Trans. 0.166 0.095 0.106 0.096 PredFull 0.199 0.176 0.170 0.164 AlphaPeptDeep 0.187 0.127 0.128 0.128 Table 20: PROSPECT median SA in the shared canonical space by PTM type (top-4 models; UniSpec PROSPECT exports and FastSpel PTM breakdown are omitted). 
+
+Model Ace CAM Ox Unmod 
+
+Prosit 0.189 0.156 0.119 0.125 Prosit Trans. 0.198 0.150 0.125 0.129 PredFull 0.200 0.230 0.211 0.195 AlphaPeptDeep 0.296 0.297 0.262 0.269 Table 21: Physical-parameter sensitivity. NCE Calibration Analysis: NCE at min SA on PROSPECT (true NCE = 30 ). Blind NCE Perturbation: ∆SA on MassIVE-KB ( 25 →30 ). 
+
+Model Calib. min NCE Calib. SA@30 Blind ∆SA 
+
+Prosit 30 0.083 −0.000 Prosit Trans. 30 0.088 +0.000 PredFull 25 0.216 +0.011 AlphaPeptDeep 30 0.159 +0.000 UniSpec 35 0.325 −0.000 FastSpel 35 0.360 +0.000 
+
+24 NCE 0.2-0.3 NCE 0.3-0.4 
+
+> Normalized collision energy
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> Level-1 Med. SA
+
+PROSPECT: Med. SA by NCE 
+
+> Prosit
+> Prosit Trans.
+> PredFull
+> AlphaPeptDeep
+
+Figure 7: PROSPECT: median SA in the shared canonical space by NCE bin. Performance degrades at higher collision energy. Table 22: Full-run charge mode collapse summary for the z=2 →3 perturbation. The high-SAS threshold is 0.90, and SAS is computed between two predictions of the same peptide under forced charge metadata change. 
+
+Model N Eval Med. SAS Q25 Q75 High-SAS Frac. 
+
+Prosit 31,498 0.7666 0.7129 0.8206 0.0339 Prosit Transformer 31,498 0.7483 0.6905 0.8028 0.0220 AlphaPeptDeep 31,498 0.9722 0.9568 0.9834 0.9804 UniSpec 31,498 0.7323 0.6666 0.7977 0.0274 
+
+25

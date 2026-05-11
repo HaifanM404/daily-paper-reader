@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2605.07279v1/fig-001.webp",
+      "caption": "Fig. 2 | Single-step prediction for Cahn-Hilliard (CH) kinetics. (a) Ground-truth concentration fields, PFNet predictions, and pointwise errors at t =50, 200, 500, and 800, covering the early, intermediate, and late stages of coarsening. The predicted fields remain close to the reference solutions throughout the evolution, with errors mainly localized near diffuse interfaces and high-curvature regions. (b) Single-step test error as a function of time step for different gradient-energy coefficients κ = 5, 7, 9, and 11. Solid lines denote the mean error and shaded bands denote the spread over the test set.",
+      "page": 10,
+      "index": 1,
+      "width": 869,
+      "height": 875
+    },
+    {
+      "url": "assets/figures/arxiv/2605.07279v1/fig-002.webp",
+      "caption": "Fig. 4. | Quantitative evaluation of long-horizon rollout for CH kinetics. (a) Rollout error as a function of rollout steps for different gradient-energy coefficients, κ = 5, 7, 9, and 11. Solid lines denote the mean error and shaded bands denote the spread over the test set. (b) Rollout error grouped by the starting stage of the trajectory, with early (t < 200), middle (200 ≤ t <500), and late (t ≥ 500) initial states. Early-stage configurations show the fastest error accumulation, whereas late-stage configurations remain the most stable. (c) Comparison of concentration profiles (ϕNb = 0.55) extracted across the steepest interface for the sharper-interface case κ = 5 after 1, 25, 50, and 100 rollout steps. (d) Corresponding concentration-profile comparison for the smoother-interface case κ = 11.",
+      "page": 14,
+      "index": 2,
+      "width": 869,
+      "height": 899
+    },
+    {
+      "url": "assets/figures/arxiv/2605.07279v1/fig-003.webp",
+      "caption": "Fig. 1 | Physics-embedded architecture of PFNet for microstructure evolution prediction. PFNet employs a diffusion-style U-Net backbone with dual physics-informed conditioning. The input phase-field state ϕt is processed through periodic-padded convolutions across four hierarchical levels (128, 256, 384, 512 channels). Entropy H(ϕt) computed from the current microstructure, is embedded via RBF and added to head features, providing trajectory-adaptive conditioning. The gradient-energy coefficient κ is embedded and injected through feature-wise linear modulation (FiLM) in all residual blocks, enabling parameter-aware predictions. Self-attention (denoted by stars) is applied only at middle resolution (384 channels) and the first bottleneck block to capture longrange patterns efficiently. Skip connections link encoder and decoder at matching resolutions. Periodic padding enforces physical boundary conditions throughout. The architecture unifies phasefield tasks through adaptive input channels and κ conditioning, producing one-step predictions ϕt+1 that preserve microstructural physics.",
+      "page": 8,
+      "index": 3,
+      "width": 889,
+      "height": 408
+    },
+    {
+      "url": "assets/figures/arxiv/2605.07279v1/fig-004.webp",
+      "caption": "Fig. 3. | Representative long-horizon rollouts for CH kinetics. (a) Ground-truth fields, autoregressive PFNet predictions initialized at t = 250, and pointwise errors at rollout horizons Δt = 1, 50, 100, 150, 200, and 250. PFNet preserves the dominant coarsening pathway over extended horizons, while the first visible deviations appear near shrinking droplets, thin ligaments, and incipient coalescence sites. (b) Generalization across different nominal compositions, ϕNb = 0.35, 0.45, 0.55, and 0.65, at a fixed rollout horizon of Δt = 50. Shown are the ground truth at t = 300, the prediction from t = 250 to 300, and the corresponding pointwise error. (c) Generalization across different gradient-energy coefficients, κ = 5, 7, 9, and 11, at a fixed rollout horizon of Δt = 50. Shown are the ground truth at t = 600, the prediction from t = 550 to 600, and the corresponding pointwise error.",
+      "page": 12,
+      "index": 4,
+      "width": 869,
+      "height": 887
+    },
+    {
+      "url": "assets/figures/arxiv/2605.07279v1/fig-005.webp",
+      "caption": "Fig. 5. Extension of PFNet to multichannel martensitic transformation. (a) Single-step error as a function of time step for the martensitic benchmark. After the initial transient, the error decreases rapidly and remains at a low level. (b) Rollout error as a function of rollout steps for the martensitic benchmark. Markers denote mean errors and error bars denote the spread over the test set with different start time. (c) Ground-truth and predicted fields for a representative order parameter η1, at rollout horizons Δt = 1, 10, 20, 50, and 100.",
+      "page": 16,
+      "index": 5,
+      "width": 869,
+      "height": 558
+    }
+  ]
+}
