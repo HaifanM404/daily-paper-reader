@@ -1,0 +1,1049 @@
+Title: ConRAD: Conformal Risk-Aware Neural Databases
+
+URL Source: https://arxiv.org/pdf/2605.03806v1
+
+Published Time: Wed, 06 May 2026 01:06:08 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# ConRAD: Conformal Risk-Aware Neural Databases 
+
+# Sonia Horchidan 
+
+KTH, Stockholm sfhor@kth.se 
+
+# Fabian Zeiher 
+
+KTH, Stockholm zeiher@kth.se 
+
+# Xiangyu Shi 
+
+KTH, Stockholm xiangyus@kth.se 
+
+# Vasiliki Kalavri 
+
+Boston University vkalavri@bu.edu 
+
+# Henrik Boström 
+
+KTH, Stockholm bostromh@kth.se 
+
+# Ioannis Kontoyiannis 
+
+University of Cambridge ik355@cam.ac.uk 
+
+# Paris Carbone 
+
+KTH, Stockholm parisc@kth.se 
+
+## ABSTRACT 
+
+Querying incomplete knowledge graphs with neural predictors is powerful but dangerous. Errors compound across multi-hop pipelines with no formal bound on the completeness of results. We introduce ConRAD, the first framework to enforce declarative recall guarantees natively within a neural graph database query engine. Given a user-specified risk budget, ConRAD automatically derives per-operator prediction thresholds that satisfy the recall target with finite-sample, distribution-free statistical validity via Conformal Risk Control, while maximizing end-to-end precision. To scale calibration across multi-operator query topologies, we introduce a quantile-space scalarization that reduces intractable high-dimensional threshold searches to a single parameter. We further design the conformal gate , a novel physical operator that dynamically bypasses neural inference when local graph evidence suffices, eliminating unnecessary model inferences in dense graph regions. Evaluated across three benchmarks and three query topolo-gies, ConRAD strictly satisfies all risk budgets, with empirical recall falling below the target by at most 0.046 across all settings. It re-duces neural invocations to zero in near-complete graph regions, and achieves precision that matches or exceeds best-case static base-lines that offer no guarantees and require manual threshold search. 
+
+## 1 INTRODUCTION 
+
+Knowledge graphs (KG) operate under the Open World Assumption (OWA), where missing edges represent unobserved facts rather than true negatives [ 1, 23 ]. Neural Graph Databases (NGDBs) aim to ad-dress this incompleteness by composing exact graph retrievals with probabilistic neural predictors [ 9, 24 , 25 , 45 ]. Recent foundation models [ 18 , 19 ] excel at answering complex queries over incom-plete KGs. However, these models are trained to optimize pointwise accuracy on individual predictions [ 52 ], and while post-hoc calibra-tion techniques can improve score reliability at the single-operator level [ 58 ], no existing method provides formal correctness guar-antees when such predictors are composed into multi-hop query plans. When inference-based operators form multi-hop execution pipelines, statistical errors compound non-linearly. An early false negative irreparably prunes valid subtrees, while a false positive floods downstream operators with cascading noise. In standard machine learning practice, practitioners mitigate uncertainty by manually tuning static prediction thresholds or top-𝑘 limits. While this heuristic approach may suffice for isolated predictions, it breaks down entirely under the compositionality of database queries. A globally tuned threshold cannot dynamically adapt to operator heterogeneity or local graph sparsity. By relying on brittle hyperpa-rameter tuning rather than system-managed bounds, this approach Found  98  
+
+> Correct 98
+> Retrieval
+
+100% 
+
+> Precision
+
+13%   
+
+> Recall
+> Found 1200
+> Correct 690
+> Inference
+
+58% 
+
+> Precision
+
+92%   
+
+> Recall
+> Found 720
+> Correct 675
+> ConRAD
+
+94% 
+
+> Precision
+
+90% ≥             
+
+> Recall
+> Q: Find drugs that treat diseases caused by protein BRCA1 with 90% recall. ≥
+> >MATCH (d:Drug)-[:TREATS]->(:Disease)<-[:CAUSES]-(:Protein
+> {name: ‘BRCA1’ }) RETURN dWITH AT LEAST 0.9 MARGINAL RECALL ;
+
+Figure 1: Resolving the precision-recall trade-off on a query with 750 ground truth answers. Pure retrieval fails the recall target (13% vs. ≥ 90% ) due to graph incompleteness. Uncal-ibrated inference meets the recall target (92%) but the pre-cision collapses to 58%. ConRAD enforces recall as a hard constraint ( ≥ 90% ) and treats precision as the optimization objective, achieving 94% precision while strictly satisfying the risk budget. 
+
+effectively forces the application developer to act as the query opti-mizer, manually managing risk across complex query topologies without any mathematical assurances. The consequences are severe in safety-critical deployments. Con-sider a drug safety monitoring application over a biomedical KG. A query such as find all approved drugs that interact with proteins in-volved in pathways associated with cardiac events requires multi-hop conjunctive reasoning across drug → protein, protein → pathway, and pathway → adverse effect relations. The underlying graph is inherently incomplete, as thousands of new biological interactions are published in the literature weekly [ 13 ]. However, if uncalibrated thresholds cause the system to silently miss valid drug candidates, the entire screening pipeline becomes unreliable. Without formal statistical bounds on expected result completeness, adopting proba-bilistic neural predictors in such workflows is not viable [16]. We argue that correctness must transition from developer-tuned hyperparameters to a declarative constraint managed natively by the query engine. In a traditional database system, the user specifies a logical query and the optimizer selects the fastest valid physical plan. Similarly, a neural database should allow users to specify a risk budget, delegating the selection of the most precise execution plan to the system. To realize this vision, we introduce ConRAD ( Con formal Risk- Aware D atabases). To our knowledge, ConRAD is the first framework to provide formal correctness guarantees over composed stochastic query plans in an NGDB. Given a recall target 
+
+> arXiv:2605.03806v1 [cs.DB] 5 May 2026 Sonia Horchidan, Fabian Zeiher, Xiangyu Shi, Vasiliki Kalavri, Henrik Boström, Ioannis Kontoyiannis, and Paris Carbone
+
+Table 1: Summary of main notations.                                                                       
+
+> Symbol Description
+> ˆG=( V ,L,ˆE ) Observed (incomplete) KG with factual triples ˆE.
+> G=( V ,L,E ) Complete ground-truth KG under OWA ( ˆE ⊆ E ) .
+> 𝑞 =𝜔 1◦ · · · ◦ 𝜔 𝑘 Query 𝑞 as a composition of 𝑘 operators.
+> TQuery topology (e.g., 3p ,2u ,2ip ).
+> 𝜔 𝑖 The 𝑖 -th operator in the query plan.
+> 𝑓 (𝑖 )Retrieval over observed triples ˆE.
+> ˜𝑓 (𝑖 )
+> 𝜆 𝑖 Stochastic inference with threshold 𝜆 𝑖 .
+> ¯𝑓 (𝑖 )
+> 𝜆 𝑖 Conformal gate with threshold 𝜆 𝑖 .
+> ˆ𝑌 (𝑖 )Set of output entities produced by operator 𝜔 𝑖 .
+> 𝑌 (𝑖 )Ground truth set (entities reachable in G).
+> 𝝀 =[𝜆 1, . . . , 𝜆 𝑘 ]Vector of thresholds for all operators in query 𝑞 .
+> R ( 𝝀 )Expected end-to-end risk (e.g., FNR) under 𝝀 .
+> C ( 𝝀 )Expected execution cost (e.g., cardinality) under 𝝀 .
+> 𝜸 ∈ΓScalarization strategy.
+> 𝛼 User-specified risk budget (e.g., maximum FNR).
+> 𝜂 ∈ [ 0,1]Global scalar parameter for pipeline strictness.
+> 𝛿 ∈ ( 0,1)Routing threshold in the conformal gate.
+
+(e.g., risk budget 𝛼 = 0.1, requiring 90% recall), ConRAD automati-cally derives per-operator prediction thresholds that jointly satisfy the global risk budget while maximizing end-to-end precision. Our approach is grounded in Conformal Risk Control (CRC) [ 5 ], which guarantees finite-sample statistical validity for black-box models without relying on unrealistic data distribution assumptions. To illustrate this tension, consider the precision–recall trade-off depicted in Figure 1. We execute a query over an incomplete KG where the ground truth contains 750 answers. Pure database retrieval yields perfect precision but recovers only 13% of answers, because graph incompleteness prevents most valid paths from being explored. Replacing deterministic retrieval with uncalibrated neural link prediction recovers more answers but floods the pipeline with false positives. There, while recall incidentally reaches 92%, the user must accept an unpredictable deterioration in result quality, as precision drops to 58%. ConRAD bridges this gap by calibrating a hybrid approach that merges retrieval and inference to maximize precision (94%) while satisfying a user-defined recall target ( ≥ 90% ). Realizing this vision poses three technical challenges. First, stan-dard CRC calibrates a scalar threshold for a single predictor, whereas NGDB query plans require coordinated calibration across multiple operators. Naively partitioning the global risk budget via the union bound ignores inter-operator correlations and is wasteful, as we demonstrate in Sec. 4. Second, the joint threshold space grows ex-ponentially in the number of operators and is non-decomposable: each operator’s threshold shifts the input distribution of every downstream operator, so independent tuning cannot guarantee the joint constraint. Per-query guarantees are unattainable with finite calibration data [ 17 ]. Third, neural inference is both computation-ally expensive and fundamentally unnecessary when the observed graph is locally complete. Invoking a neural model on dense, well-connected regions wastes resources and introduces false positives that degrade downstream precision. These challenges motivate the design of ConRAD. Our contributions are as follows: (1) We formalize the mapping of user-declared recall targets to per-operator threshold vectors as a constrained opti-mization problem, replacing ad-hoc threshold tuning with a system-managed calibration process grounded in finite-sample statistical guarantees. The formulation is agnostic to both the neural scoring model and the underlying graph store (Sec. 3). (2) We extend Conformal Risk Control from scalar to vector cal-ibration over multi-operator query topologies via a quantile-space scalarization that reduces the 𝑘 -dimensional threshold space to a single monotonic parameter, while preserving the nested sets required by CRC (Sec. 4.1). (3) We introduce the conformal gate , a novel physical database operator that dynamically routes between retrieval-based execution and neural inference at each logical operator. By placing exact and neural evidence on a unified calibrated scale, the gate bypasses inference entirely in dense graph regions (Sec. 4.2). (4) We implement what is, to our knowledge, the first fully queryable neural graph database with formal correctness guarantees, integrating UltraQuery [ 19 ] with Neo4j 1. We evaluate on three benchmarks, three query topologies, and data incompleteness levels ranging from 5% to 40%. Con-RAD satisfies recall targets across all settings (max. down-ward deviation: 0.046) and achieves precision matching or exceeding best-case static baselines that offer no guaran-tees. Furthermore, ConRAD reduces neural invocations by up to 100% in well-connected regions under generous risk budgets (Sec. 6.2). Although our evaluation centers on KGs, ConRAD’s formal guarantees extend to any predictive pipeline that composes proba-bilistic operators into a directed acyclic graph, including retrieval-augmented generation (RAG) [ 33 ], multi-stage retrieval [ 31 , 43 ], and learned database components [ 30 , 32 , 41 ]. By transitioning cor-rectness from a manually-tuned parameter to a declarative system constraint, ConRAD provides a principled blueprint for integrating machine learning inference into the broader data processing stack. 
+
+## 2 SETTING AND FOUNDATIONS 
+
+ConRAD targets the execution of complex logical queries over incomplete KGs under OWA. Given a user query and a declarative recall target, ConRAD automatically derives calibrated per-operator thresholds that satisfy the guarantee while maximizing end-to-end precision. Below, we describe ConRAD’s data model, supported queries, execution model, and the statistical foundations it relies on. Table 1 summarizes the notation used throughout the paper. 
+
+## 2.1 Data Model and Supported Queries 
+
+We represent an observed KG as a directed, labeled graph ˆG =
+
+(V , L, ˆE) , where V is the set of entities, L the set of relation types (edge labels), and ˆE ⊆ V × L × V the set of observed triples. We adopt the standard KG triple model used by existing neural query answering frameworks [ 46 , 47 ]. Node and edge properties, as found in property graph models, can be represented by encoding property values as entities connected via dedicated relation types. Under OWA, we assume a complete ground-truth graph G = (V , L, E) 
+
+with ˆE ⊆ E , with E \ ˆE representing true but unobserved facts. 
+
+> 1https://neo4j.com/ ConRAD: Conformal Risk-Aware Neural Databases
+
+ConRAD supports the Existential Positive First-Order (EPFO) fragment of first-order logic, supporting existential quantification (∃), conjunction ( ∧), and disjunction ( ∨) [ 46 ]. Queries are DAGs of operators where leaf nodes are anchor entities and the sink produces the answer set. Three operators map directly to EPFO primitives: projection navigates a relation 𝑟 ∈ L from a source set 
+
+𝑆 ⊆ V to retrieve reachable entities; intersection and union perform set conjunction and disjunction over intermediate results. We evaluate over three standard query topologies [ 19 , 46 , 47 ]that isolate the primary composition primitives: (1) 3p (three-hop projection), a chain that tests cascading error propagation (anal-ogous to a join operation), defined as ℎ 𝑟 1
+
+−→ 𝑡 1
+
+> 𝑟 2
+
+−→ 𝑡 2
+
+> 𝑟 3
+
+−→ ?; (2) 
+
+2u (two-hop union), a parallel topology that maximizes recall by design, defined as (ℎ1
+
+> 𝑟 1
+
+−→ ?) ∪ ( ℎ2
+
+> 𝑟 2
+
+−→ ?); and (3) 2ip (intersect-project), defined as (ℎ1
+
+> 𝑟 1
+
+−→ ?) ∩ ( ℎ2
+
+> 𝑟 2
+
+−→ ?) 𝑟 3
+
+−→ ?, which merges independent evidence streams. 
+
+What ConRAD does not support. ConRAD excludes negation and iterative (recursive) queries. Negation is semantically ill-defined under OWA [ 1 ] and breaks the monotonicity of operator composi-tion (Theorem 4.1), invalidating the nestedness property on which our recall guarantees depend (Sec. 4.1). Iterative queries are ex-cluded because the threshold vector 𝝀 we propose in Sec. 4.1 has fixed dimensionality determined by the query topology. Unbounded recursion would, therefore, require a variable-length threshold vec-tor, which is incompatible with our offline calibration procedure. 
+
+## 2.2 Execution Model 
+
+A key design principle of ConRAD is that each logical operator is backed by two execution primitives: a deterministic retrieval opera-tor that traverses observed edges in ˆG, and a stochastic inference 
+
+operator that scores candidate triples using a neural model. The conformal gate (Sec. 4.2) dynamically composes these primitives. 
+
+Retrieval. The retrieval operator 𝑓 (𝑖 ) executes an exact traversal over ˆE. Given an input set ˆ𝑌 (𝑖 −1) ⊆ V and a relation 𝑟 ∈ L :
+
+𝑓 (𝑖 ) ( ˆ𝑌 (𝑖 −1) , 𝑟 ) = {𝑡 ∈ V | ∃ ℎ ∈ ˆ𝑌 (𝑖 −1) , (ℎ, 𝑟, 𝑡 ) ∈ ˆE} (1) By construction, every returned triple exists in ˆG, guaranteeing zero false positives. However, recall is bounded by graph completeness. 
+
+Inference. The inference operator ˜𝑓 (𝑖 ) 
+
+> 𝜆 𝑖
+
+replaces exact traversal with a learned scoring function 𝜙 : V × L × V → [ 0, 1] provided by a neural model. Given an input set ˆ𝑌 (𝑖 −1) and a relation 𝑟 , the operator admits all candidate entities whose score exceeds a threshold 𝜆 𝑖 :
+
+˜𝑓 (𝑖 ) 
+
+> 𝜆 𝑖
+
+( ˆ𝑌 (𝑖 −1) , 𝑟 ) = {𝑡 ∈ V | ∃ ℎ ∈ ˆ𝑌 (𝑖 −1) , 𝜙 (ℎ, 𝑟, 𝑡 ) ≥ 𝜆 𝑖 } (2) The threshold 𝜆 𝑖 governs the precision–recall trade-off at each operator: lowering 𝜆 𝑖 recovers missing answers but potentially floods downstream operators with false positives. 
+
+The threshold selection problem. In practice, per-operator thresh-olds are typically selected manually, following the standard work-flow of deploying ML models with score-based filtering. This heuris-tic approach offers no runtime guarantees and is inadequate for composed query plans. Neural scores are often uncalibrated (i.e., a softmax score of 0.9 does not imply 90% correctness), their dis-tributions shift across operators and graph neighborhoods, and errors compound non-linearly. The resulting optimization problem is inherently coupled: each operator’s threshold affects the input dis-tribution of every downstream operator, making independent per-operator tuning insufficient. ConRAD eliminates this burden. Given a query 𝑞 = 𝜔 1 ◦ · · · ◦ 𝜔 𝑘 represented as a DAG of 𝑘 operators, Con-RAD automatically derives a threshold vector 𝝀 = [𝜆 1, . . . , 𝜆 𝑘 ] that satisfies a user-declared recall target while maximizing precision. 
+
+## 2.3 Statistical Foundations 
+
+ConRAD’s calibration procedure builds on Conformal prediction methods, which we briefly review in this section. 
+
+2.3.1 Standard Split Conformal Prediction. Intuitively, the Con-formal Prediction (CP) framework calibrates a model by measur-ing how unusual new data points are compared to a reference set [ 4, 50 , 56 ]. In its split variant, CP avoids model retraining by partitioning the data into a held-out calibration set. Consider a calibration dataset of 𝑛 exchangeable tuples, Dcal =
+
+{( 𝑥 𝑖 , 𝑦 𝑖 )} 𝑛 𝑖 =1. We first define a non-conformity score 𝑠 (𝑥, 𝑦 ) ∈ R,which quantifies the disagreement between a tuple’s features 𝑥 and a proposed label 𝑦 from a finite label set Y. For a learned filtering predicate, this could simply be, for instance, one minus the neural confidence, 1 − 𝜙 (𝑥, 𝑦 ). Standard Conformal Prediction computes the empirical quantile ˆ𝑞 of these non-conformity scores on Dcal 
+
+at the level ⌈( 𝑛 + 1)( 1 − 𝛼 )⌉/ 𝑛 , where 𝛼 is the user-defined risk budget. For any new, unseen test tuple (𝑥 𝑛 +1, 𝑦 𝑛 +1) assumed to be exchangeable with the calibration tuples, where 𝑥 𝑛 +1 is observed and 𝑦 𝑛 +1 is the unknown ground truth, we construct a prediction set 𝐶 (𝑥 𝑛 +1) containing all possible labels whose non-conformity scores fall below this threshold: 
+
+𝐶 (𝑥 𝑛 +1) = {𝑦 ∈ Y | 𝑠 (𝑥 𝑛 +1, 𝑦 ) ≤ ˆ𝑞 } (3) This procedure provides a marginal coverage guarantee : the true outcome is guaranteed to be in the prediction set with high proba-bility, formally P(𝑦 𝑛 +1 ∈ 𝐶 (𝑥 𝑛 +1)) ≥ 1 − 𝛼 . However, standard CP controls only miscoverage (0-1 loss). Database workloads require guarantees over aggregate, set-valued metrics (e.g., recall, False Negative Rate). 
+
+2.3.2 Conformal Risk Control. To accommodate these system-level metrics, Conformal Risk Control (CRC) [ 5] generalizes the stan-dard CP framework to bound arbitrary loss functions 𝐿 (𝐶 𝜆 (𝑥 ), 𝑦 ) ∈ [0, 𝐵 ]. CRC introduces a tunable parameter 𝜆 that dictates the "strict-ness" or size of the prediction set 𝐶 𝜆 (𝑥 ). Crucially, the chosen loss function must be non-increasing with respect to 𝜆 . For example, as a selection operator becomes more permissive (larger 𝜆 ), the False Negative Rate stays the same or decreases. The goal of CRC is to identify a threshold ˆ𝜆 that guarantees the expected risk (e.g., FNR) remains strictly below a user-defined risk budget 𝛼 . CRC achieves this by finding the tightest parameter that satisfies a corrected empirical risk bound on the calibration set: 
+
+ˆ𝜆 = inf {𝜆 : 𝑛 𝑛 + 1 b𝑅 (𝜆 ) + 𝐵 𝑛 + 1 ≤ 𝛼 } (4) where b𝑅 (𝜆 ) = 1
+
+> 𝑛
+
+Í𝑛 𝑖 =1 𝐿 (𝐶 𝜆 (𝑥 𝑖 ), 𝑦 𝑖 ) is the empirical risk over Dcal 
+
+and 𝐵 is an upper bound of the loss. The correction terms account for the finite size of the calibration data, guaranteeing that the expected risk on unseen queries remains bounded: 
+
+E[𝐿 (𝐶 ˆ𝜆 (𝑥 𝑛 +1), 𝑦 𝑛 +1)] ≤ 𝛼 (5) Sonia Horchidan, Fabian Zeiher, Xiangyu Shi, Vasiliki Kalavri, Henrik Boström, Ioannis Kontoyiannis, and Paris Carbone 0.5 0.6 0.7 0.8 0.9 1.0     
+
+> Target Recall
+> 0.50
+> 0.75
+> 1.00
+> Empirical Recall
+> Ideal
+> 0.5 0.6 0.7 0.8 0.9
+> Target Recall
+> 0.0
+> 0.5
+> Precision
+
+Figure 2: The cost of independent calibration on a 3-hop query (FB15k-237). (Left) The naive union bound approach consistently overshoots target recall, underutilizing the global risk budget. (Right) Consequently, excessively per-missive thresholds admit cascading false positives, plunging end-to-end precision below 40% for all target recalls. 
+
+CRC calibrates a single operator. Extending it to composed query plans without massive precision degradation is the core challenge we address in Sec. 4.1. 
+
+## 3 PROBLEM FORMULATION 
+
+We formalize the execution of EPFO queries over a Neural Graph Database as a constrained optimization problem, replacing ad-hoc threshold tuning with a system-managed calibration process. Let 
+
+𝑞 = 𝜔 1 ◦ · · · ◦ 𝜔 𝑘 be a query represented as a DAG of 𝑘 opera-tors. The execution of the query is governed by a threshold vector 
+
+𝝀 = [𝜆 1, . . . , 𝜆 𝑘 ] ∈ [ 0, 1]𝑘 , where each 𝜆 𝑖 is assigned to a distinct inference operator ˜𝑓 (𝑖 ) in the query DAG (under any fixed logical ordering). To ensure a uniform threshold interface, we assume each inference operator ˜𝑓 (𝑖 ) produces a normalized score in the range 
+
+[0, 1] (e.g., via a softmax or sigmoid activation). We assume queries are drawn from a distribution D. We define the query-level ground truth 𝑌 (𝑘 ) ⊆ V as the set of entities reachable over the complete graph G, and denote by ˆ𝑌 (𝑘 ) 
+
+> 𝝀
+
+the set of entities retrieved by the final operator in the pipeline under threshold vector 𝝀 .
+
+Risk Constraint. We define the risk function R ( 𝝀 ) as the expected end-to-end False Negative Rate (FNR) over D. A threshold vector 
+
+𝝀 is valid if and only if the expected FNR remains below a user-specified risk budget 𝛼 ∈ ( 0, 1):
+
+R ( 𝝀 ) = E
+
+"
+
+1 − | ˆ𝑌 (𝑘 ) 
+
+> 𝝀
+
+∩ 𝑌 (𝑘 ) ||𝑌 (𝑘 ) |
+
+#
+
+≤ 𝛼 (6) In a query topology of monotonic operations (selections, pro-jections, joins), errors are asymmetric. A false positive adds down-stream overhead but can be filtered by subsequent operators. A false negative is irrecoverable: once a valid tuple is pruned, no down-stream join can restore it. By treating FNR as a hard constraint, ConRAD preserves the database expectation of completeness while delegating precision maximization to the cost objective. Equiva-lently, bounding FNR ≤ 𝛼 guarantees recall ≥ 1 − 𝛼 . We use both formulations interchangeably, referring to 𝛼 as the risk budget and to 1 − 𝛼 as the recall target .
+
+Optimization Objective. Among all valid threshold vectors 𝝀 , the optimizer seeks the plan that maximizes result quality. We minimize expected cardinality of the final answer set: 
+
+C( 𝝀 ) = E
+
+h
+
+| ˆ𝑌 (𝑘 ) 
+
+> 𝝀
+
+|
+
+i
+
+(7) Since the risk constraint already guarantees sufficient true posi-tive coverage, minimizing | ˆ𝑌 (𝑘 ) 
+
+> 𝝀
+
+| directly minimizes false positives, maximizing end-to-end precision. 
+
+Risk-Constrained Optimization. The objective of our optimiza-tion framework is to identify the threshold vector 𝝀 that minimizes 
+
+C without violating the risk constraint. Formally: 
+
+min   
+
+> 𝝀 ∈ [ 0,1]𝑘
+
+C( 𝝀 )
+
+subject to R ( 𝝀 ) ≤ 𝛼, 𝛼 ∈ ( 0, 1) (8) This formulation differs from classical cost-based query optimiza-tion, where all physical plans produce correct and complete results and the optimizer aims to minimize the execution time. In our set-ting, the answer set itself is a function of 𝝀 : the optimizer must navigate the continuous trade-off between selectivity and coverage, finding the tightest threshold vector that still satisfies the recall tar-get. We treat the risk constraint as hard and non-negotiable, backed by finite-sample statistical validity; the cost objective is best-effort. 
+
+## 4 THE CONRAD FRAMEWORK 
+
+We first show that independent per-operator calibration is provably wasteful, then introduce a scalarization strategy that reduces the 
+
+𝑘 -dimensional threshold search to a single parameter, and finally de-sign the conformal gate operator that dynamically routes between retrieval and inference. 
+
+The Pessimism of Independent Calibration. A naive baseline for cali-brating a 𝑘 -operator EPFO query allocates the global risk budget 
+
+𝛼 equally, assigning 𝛼 /𝑘 to each operator and bounding the total risk via the union bound ( R ( 𝜆 ) ≤ Í𝑘 𝑖 =1 𝛼 /𝑘 ). While statistically valid, the union bound assumes worst-case dependence between operators, ignoring the correlations between operators. The effect is systematic over-allocation, as each operator receives a more gen-erous threshold than necessary, and the surplus false positives com-pound across hops. Figure 2 illustrates this for a 3p query topology on FB15k-237 [ 11 ]. At a 50% recall target, independent calibration overshoots to 0.66 empirical recall, demonstrating an inability to constrain cardinality growth. At a 90% target, the thresholds pro-vide no meaningful pruning: empirical recall reaches 0.976 while precision collapses to 0.23. This motivates the joint, pipeline-aware calibration strategy we propose next. 
+
+## 4.1 Conformal Calibration for Composed Plans 
+
+Calibrating 𝑘 thresholds jointly is both expensive and theoretically incompatible with CP. A grid search over [0, 1]𝑘 is intractable for any practical optimizer. Furthermore, CRC requires that lowering a threshold can only grow the result set (nestedness), but moving in multiple dimensions at once can shrink one operator’s output while expanding another’s, breaking this property. Our solution is to collapse the search to one dimension: we derive the full threshold vector 𝝀 from a single scalar parameter 𝜂 ∈ [ 0, 1].
+
+4.1.1 Scalarization Strategies. We define a scalarization as a map-ping M : [0, 1] → [ 0, 1]𝑘 that derives the threshold vector 𝝀 
+
+from a single global parameter 𝜂 . Any component-wise monotonic mapping preserves the nestedness required by CRC, making it sta-tistically valid. A key challenge is that different operators produce confidence scores on incomparable scales. For instance, a score of 0.7 ConRAD: Conformal Risk-Aware Neural Databases (C) Risk-aware Hybrid Execution  
+
+> Retrieval
+> Inference
+> Conformal Gate
+> ()
+
+λ1 = 0.82  
+
+> Retrieval
+> Inference
+> Conformal Gate
+> ()
+
+λ2 = 0.77  
+
+> Canada
+> citizen
+> Turing award
+> awarded_to
+> p1
+> p2
+> Retrieval
+> Inference
+> Conformal Gate
+> ()
+
+λ3 = 0.91  
+
+> p
+> graduated_from
+
+u
+
+> 2ip query template
+
+(A) Query Planning 
+
+> Query Planning
+
+B) Offline Calibration 
+
+> INTERSECT
+> (AND)
+
+(D) Output                                             
+
+> Result List
+> McGill University
+> University of Cambridge
+> University of Edinburgh
+> Marginal recall guarantee
+> ≥90 %
+> 0.05 [0.79, 0.77, 0.9]
+> 0.1 [0.82, 0.77, 0.91]
+> 0.15 [0.83, 0.79, 0.93]
+> ……
+> Risk ( )αThreshold vector ( )λ
+> 2ip
+> 0.05 [0.79, 0.77, 0.9]
+> 0.1 [0.82, 0.77, 0.91]
+> 0.15 [0.83, 0.79, 0.93]
+> ……
+> Risk ( )αThreshold vector ( )λ
+> 2ip
+> 0.05 [0.79, 0.77, 0.9]
+> 0.1 [0.82, 0.77, 0.91]
+> 0.15 [0.83, 0.79, 0.93]
+> ……
+> Risk ( )αThreshold vector ( )λ
+> 2ip
+> 2u queries
+> 3p queries
+> 2ip queries CRC Vector
+> Optimizer
+> Canadian_Citizen(p)
+> INTERSECT
+> (AND)
+> Graduated_from(p, u)
+> MATCH (:Country {name: 'Canada' })-[:citizen]->(p:Person),
+> (:Award {name: 'Turing Award' })-[:awarded_to]->(p)
+> MATCH (p)-[:graduated_from]->(u:University)
+> RETURN uWITH AT LEAST 0.9 MARGINAL RECALL ;
+> Turing_Winner(p)
+
+Figure 3: ConRAD overview. project_1 
+
+> A
+> ?
+> ∩
+> B
+> ?
+> ?
+> project_1
+> project_2
+> project_3
+> project_2
+> project_3
+> 2ip query template
+
+λ = 0.8  Figure 4: 2ip scalarization example. 
+
+may represent high confidence for one predictor and near-random guessing at another. To resolve this, our scalarization operates in quantile space. Figure 4 illustrates this on a 2ip topology. A single global parameter 𝜂 = 0.8 is routed through each operator’s empiri-cal quantile function ˆ𝑄 𝑗 , derived from the calibration set, producing per-operator thresholds ( 𝜆 1 = 0.82 , 𝜆 2 = 0.77 , 𝜆 3 = 0.91 ) that nor-malize across incomparable score distributions. Each threshold can further be scaled by a per-operator exponent 𝛾 𝑗 > 0:
+
+𝜆 𝑗 (𝜂 ) = ˆ𝑄 𝑗 (𝜂 𝛾 𝑗 ), 𝑗 = 1, . . . , 𝑘 (9) The quantile function ˆ𝑄 𝑗 normalizes across operators with dif-ferent score distributions, ensuring consistent selectivity regardless of raw score range. The exponent 𝛾 𝑗 controls how aggressively the 𝑗 -th operator tightens relative to others: a loose-early, tight-late 
+
+𝜸 can preserve recall at initial hops to maximize final precision, while a tight-early, loose-late 𝜸 can aggressively prune intermediate cardinalities, analogous to predicate pushdown. Since any strictly positive 𝜸 yields a component-wise monotonic mapping, all such choices preserve nestedness and are valid under the conformal prediction framework, as we formally prove below. 
+
+4.1.2 Theoretical Validity. We prove that the nested prediction sets required by CRC hold globally across composed query plans for any monotonic scalarization. 
+
+Assumption 1 (Pointwise Scoring). The inference operator ˜𝑓 (𝑖 )
+
+𝜆 𝑖 
+
+evaluates each candidate triple (ℎ, 𝑟, 𝑡 ) independently. The inclusion of entity 𝑡 depends solely on whether 𝜙 (ℎ, 𝑟, 𝑡 ) ≥ 𝜆 𝑖 .
+
+This assumption holds for most standard KG scoring functions [ 12 ,19 , 51 , 54 ], which compute 𝜙 (ℎ, 𝑟, 𝑡 ) as a function of the triple alone. Each inference operator thus evaluates a per-tuple selection pred-icate. A candidate is admitted if and only if its score exceeds 𝜆 𝑖 ,independently of the scores assigned to other candidates. This holds by construction for all threshold-based operators but not for rank-based selections (e.g., top-𝑘 ). 
+
+Theorem 4.1 (Global Monotonicity). Let 𝑞 be an EPFO query satisfying Assumption 1. If the configuration 𝝀 (𝜂 ) is determined by any component-wise non-decreasing scalarization M, then for any 
+
+𝜂 𝑎 < 𝜂 𝑏 :
+
+ˆ𝑌 (𝑘 )
+
+𝝀 (𝜂 𝑏 ) ⊆ ˆ𝑌 (𝑘 )
+
+𝝀 (𝜂 𝑎 )
+
+Consequently, R ( 𝝀 ) is non-decreasing in 𝜂 .
+
+Proof. By induction over the DAG in topological order. 
+
+Base case: For leaf operators, the input is a fixed anchor set inde-pendent of 𝜂 . Since M is component-wise non-decreasing, 𝜂 𝑎 < 𝜂 𝑏 
+
+implies 𝜆 𝑗 (𝜂 𝑎 ) ≤ 𝜆 𝑗 (𝜂 𝑏 ) for all 𝑗 . By Assumption 1, raising a thresh-old can only shrink a neural operator’s output, so ˜𝑓 ( 𝑗 )
+
+𝜆 𝑗 (𝜂 𝑏 ) (𝑆, 𝑟 ) ⊆ 
+
+˜𝑓 ( 𝑗 )
+
+𝜆 𝑗 (𝜂 𝑎 ) (𝑆, 𝑟 ) for any fixed input set 𝑆 .
+
+Inductive step: Assume the subset property holds for all prede-cessors of 𝜔 𝑖 in topological order. Every EPFO operator is input-monotone: if 𝐴 ⊆ 𝐵 then 𝜔 𝑖 (𝐴 ) ⊆ 𝜔 𝑖 (𝐵 ), which holds for projection (fewer sources yield fewer targets), intersection ( 𝐴 𝑗 ⊆ 𝐵 𝑗 implies 
+
+Ñ 𝐴 𝑗 ⊆ Ñ 𝐵 𝑗 ), and union ( 𝐴 𝑗 ⊆ 𝐵 𝑗 implies Ð 𝐴 𝑗 ⊆ Ð 𝐵 𝑗 ). For pro-jection operators, the stricter threshold further shrinks the output. Combined, ˆ𝑌 (𝑖 )
+
+𝝀 (𝜂 𝑏 ) ⊆ ˆ𝑌 (𝑖 )
+
+𝝀 (𝜂 𝑎 ) holds at stage 𝑖 , and by induction to the final output ˆ𝑌 (𝑘 ) .Risk monotonicity follows: since the ground truth 𝑌 (𝑘 ) is fixed, a smaller prediction set can only capture fewer true positives, so 
+
+R ( 𝝀 ) is non-decreasing in 𝜂 . □
+
+This nestedness enables tractable calibration. CRC performs a monotone search over 𝜂 to find the tightest threshold vector satis-fying R ( 𝝀 ) ≤ 𝛼 , with the finite-sample guarantee of Eq. 4 applying directly. All scalarizations in the family of Sec. 4.1.1 are valid by construction. Importantly, the search finds the optimum along a given trajectory but not necessarily the global minimum of C( 𝝀 ).This relaxation is a necessary trade-off for tractability, analogous to heuristic plan-space pruning in classical query optimizers. 
+
+## 4.2 The Conformal Gate 
+
+Invoking a neural model at every hop is expensive and injects unnecessary false positives. We therefore map each logical operator 
+
+𝜔 𝑖 to a conformal gate , a physical operator that dynamically routes Sonia Horchidan, Fabian Zeiher, Xiangyu Shi, Vasiliki Kalavri, Henrik Boström, Ioannis Kontoyiannis, and Paris Carbone 0.81                                  
+
+> 0.72
+> I
+> J
+> K
+> 0.73
+> 0.08 A
+> τ2=0.67
+> 0.87
+> 0.44
+> 0.11
+> B
+> C
+> D
+> E
+> 0.96
+> τ1=0.86
+> 0.06
+> 0.09
+> 0.92
+> 0.73
+> 0.71
+> 0.68
+> E
+> H
+> D
+> F
+> G
+> 0.86
+> τ2=0.67 I
+> K
+> 0.06
+> B
+> EDGFH
+> A
+> C
+> JI
+> 0.98
+> 0.87
+> 0.81
+> 0.97
+> 0.65
+> 0.93
+> 0.98
+> 0.87
+> 0.81
+> 0.97
+> 0.65
+> 0.93
+> 0.92
+> 0.73
+> 0.44
+> 0.11
+> 3
+> 6
+> 4
+> 5
+> 2
+> 0.86
+> α=0.1
+> α=0.2
+> α=0.3
+> 0.07
+> Hop 1
+> 1
+> 3
+> 2
+> 54
+> 6
+> 0.73 0.44
+> 0.11
+> 0.53
+> 0.78
+> 0.86
+> 0.92 78910 11 12
+> Conformal Gate Calibration (2p)
+> Hop 2
+> α=0.1
+> α=0.2
+> α=0.3
+> 7
+> 11
+> 12
+> 8
+> 9
+> 0.98
+> 0.81
+> 0.97
+> 0.65
+> 0.93
+> 0.87
+> 0.98
+> 0.87
+> 0.81
+> 0.97
+> 0.65
+> 0.93
+> 0.98
+> 0.67
+> 0.66
+> 0.97
+> 0.65
+> 0.93
+> 0.06
+> 0.09
+> 0.92
+> 0.73
+> 0.71
+> 0.68
+> E
+> H
+> D
+> F
+> G
+> 0.86
+> τ2=0.67 I
+> K
+> B
+> ED
+> G
+> F
+> H
+> AC
+> J
+> I
+> 0.87
+> 0.44
+> 0.11
+> B
+> C
+> D
+> E
+> 0.96
+> τ1=0.86
+> Hop 1
+> 0.81
+> 0.72
+> I
+> J
+> K
+> 0.73
+> 0.08 A
+> τ2=0.67
+> Hop 2, anchor C
+> Hop 2, anchor B
+> Hybrid Execution ( )
+
+α = 0.2    
+
+> Query: A??
+
+Figure 5: The conformal gate on a two-hop query topology. Left: Calibration maps risk budgets to per-operator thresh-olds; tighter budgets force inclusion of uncertain neural pre-dictions (green). Right: Online execution at 𝛼 = 0.2 demon-strates adaptive routing. Node A’s neighborhood is dense enough for retrieval-only execution (blue), while nodes B and C require hybrid mode to meet the recall target. 
+
+between deterministic retrieval 𝑓 (𝑖 ) and neural inference ˜𝑓 (𝑖 ) 
+
+> 𝜆 𝑖
+
+based on the calibrated threshold 𝜆 𝑖 .For the calibrated threshold 𝜆 𝑖 to act as a universal gate, retrieval results (correct by construction) and neural predictions (uncertain) must be scored on a single comparable scale. A naive approach assigning confidence 1.0 to all retrieval facts creates a mass of tied scores, preventing the calibrator from selecting fine-grained thresholds, as it must either accept or reject all retrieval facts at once. We resolve this by partitioning the score space [0, 1] at a routing threshold 𝛿 ∈ ( 0, 1):
+
+𝑆 (𝜏 ) =
+
+(
+
+𝛿 + ( 1 − 𝛿 ) · H ( 𝜏 ) if 𝜏 ∈ 𝑓 (𝑖 ) ( ˆG) 
+
+𝜙 (𝜏 ) · ( 𝛿 − 𝜖 ) otherwise (10) where 𝜏 = (ℎ, 𝑟, 𝑡 ) is a candidate triple, 𝜖 > 0 is a negligible numer-ical margin, and H is a consistent hash function mapping triples to random scalar values in [0, 1]. Retrieval facts receive scores in 
+
+[𝛿, 1], while neural predictions are strictly bounded to [0, 𝛿 − 𝜖 ).This guarantees that the calibrator prioritizes explicit facts over uncertain predictions. H spreads retrieval scores uniformly across the upper interval, breaking ties and allowing the calibrator to select thresholds at arbitrary granularity, similar to tie-breaking mechanisms used in standard CP methods [ 4 , 56 ]. The tie-breaking enables subsampling within the retrieval-only regime to prevent downstream cardinality blowup. Because CRC calibrates over the joint scores, the choice of 𝛿 does not affect accept/reject behavior. At runtime, the relationship between the calibrated threshold 𝜆 𝑖 
+
+and the routing threshold 𝛿 determines the gate’s execution mode: 
+
+Retrieval-only ( 𝜆 𝑖 ≥ 𝛿 ): The recall target is satisfied by ˆG. The gate executes only 𝑓 (𝑖 ) and subsamples retrieval facts where 𝑆 (𝜏 ) ≥ 𝜆 𝑖 ,pruning intermediate cardinalities with zero inference cost. 
+
+Hybrid ( 𝜆 𝑖 < 𝛿 ): Local graph density is insufficient. The gate returns all retrieval facts and invokes ˜𝑓 (𝑖 ) 
+
+> 𝜆 𝑖
+
+to recover missing answers. Figure 5 illustrates both modes on a two-hop query topology. At 
+
+𝛼 = 0.2, hop 1 calibrates 𝜆 1 = 0.86 : nodes B and C are admitted via retrieval alone. At hop 2, the gate routes adaptively per anchor. Node 
+
+Algorithm 1 Calibration Phase (Offline) 
+
+Require: Risk budget 𝛼 , calibration queries Dcal , query topology 
+
+T with 𝑘 inference operators, routing threshold 𝛿 , can-didate strategies Γ, cardinality objective C
+
+Ensure: Calibrated threshold vector ˆ𝝀  
+
+> 1:
+
+Split Dcal into disjoint subsets Dopt and Dvalid  
+
+> 2:
+
+𝑛 ← |D opt | 
+
+> 3:
+
+for each operator 𝑗 ← 1 to 𝑘 do  
+
+> 4:
+
+Compute scores on Dopt ⊲ Eq. 10  
+
+> 5:
+
+Compute empirical quantile function ˆ𝑄 𝑗  
+
+> 6:
+
+best_c ← ∞  
+
+> 7:
+
+for each strategy 𝜸 ∈ Γ do ⊲ Evaluate scalarization strategies  
+
+> 8:
+
+for each 𝜂 in a discretized grid over [0, 1] do  
+
+> 9:
+
+𝝀 ← [ ˆ𝑄 𝑗 (𝜂 𝛾 𝑗 )] 𝑘 𝑗 =1 ⊲ Scalarization (Eq. 9)  
+
+> 10:
+
+for each (𝑞 𝑖 , 𝑌 𝑖 ) ∈ D opt do  
+
+> 11:
+
+Execute 𝑞 𝑖 under 𝝀 to obtain ˆ𝑌 (𝑘 ) 
+
+> 𝑖, 𝝀
+> 12:
+
+𝐿 𝑖 ← 1 − | ˆ𝑌 (𝑘 ) 
+
+> 𝑖, 𝝀
+
+∩ 𝑌 𝑖 | / | 𝑌 𝑖 | ⊲ Per-query FNR  
+
+> 13:
+
+ˆR𝜂 ← 1
+
+> 𝑛
+
+Í 𝐿 𝑖  
+
+> 14:
+
+ˆ𝜂 ← sup 𝜂 : 𝑛 𝑛 +1 ˆR𝜂 + 𝐵 𝑛 +1 ≤ 𝛼 ⊲ CRC on Dopt  
+
+> 15:
+
+𝝀 ∗ ← [ ˆ𝑄 𝑗 ( ˆ𝜂 𝛾 𝑗 )] 𝑘 𝑗 =1 
+
+> 16:
+
+𝑐 ← Evaluate C( 𝝀 ∗) over Dvalid  
+
+> 17:
+
+if 𝑐 < best_c then  
+
+> 18:
+
+ˆ𝝀 ← 𝝀 ∗; best_c ← 𝑐  
+
+> 19:
+
+return ˆ𝝀 
+
+A’s neighborhood is dense enough for retrieval-only execution, while nodes B and C require hybrid mode to meet the recall target. 
+
+## 5 IMPLEMENTATION 
+
+We now describe the end-to-end implementation of ConRAD, bridg-ing the theoretical guarantees of Sec. 4 with a practical query exe-cution engine. ConRAD is implemented as a middleware layer coor-dinating a deterministic graph store (exposing a standard traversal API) with an external neural scoring service ( 𝜙 (ℎ, 𝑟, 𝑡 ) → [ 0, 1]); ei-ther component can be swapped independently. Figure 3 illustrates the workflow. A user submits a query alongside a declarative recall target. The system (A) parses the query into a logical DAG and maps it to a known query topology, (B) retrieves the pre-computed calibration parameters for that topology and risk budget 𝛼 , (C) com-piles the logical plan into a physical DAG of conformal gates, and (D) returns the result set with a marginal recall guarantee. We detail each stage below, beginning with the offline calibration process that provides the statistical foundation for runtime execution. 
+
+## 5.1 Offline Calibration and Runtime Execution 
+
+For each query topology T and risk budget 𝛼 , the system deter-mines the threshold vector ˆ𝝀 that satisfies the recall target while minimizing result-set cardinality C. This phase runs entirely offline, decoupled from the query critical path. Algorithm 1 details the pro-cedure, which proceeds in three stages over a calibration dataset 
+
+Dcal partitioned into disjoint optimization ( Dopt ) and evaluation (Dvalid ) sets. First, for each inference operator 𝑗 in the topology, we execute the queries in Dopt over the incomplete graph ˆG and collect both retrieval and inference scores, unified via 𝑆 (𝜏 ) (Eq. 10). ConRAD: Conformal Risk-Aware Neural Databases 
+
+The routing threshold 𝛿 is fixed across calibration and online execu-tion, ensuring that 𝝀 induces identical gate behavior in both phases. From these scores, we compute the empirical quantile function ˆ𝑄 𝑗 
+
+for each operator. Second, we evaluate each candidate scalarization strategy 𝜸 ∈ Γ (Sec. 4.1.1), a small predefined set of per-operator exponent vectors, over a discretized grid of 100 values 𝜂 ∈ [ 0, 1].At each grid point, the scalarization (Eq. 9) maps 𝜂 to a threshold vector 𝝀 , and the full pipeline is executed over Dopt to compute the empirical FNR ˆR𝜂 . The CRC correction (Eq. 4) then identifies the largest 𝜂 whose corrected risk remains within budget, yielding a valid threshold vector 𝝀 ∗ for that trajectory. Third, each valid 
+
+𝝀 ∗ is evaluated on the held-out set Dvalid , and the system retains the threshold vector achieving the lowest cardinality C( 𝝀 ∗). The resulting ˆ𝝀 is stored in a lookup table mapping (T , 𝛼 ) → ˆ𝝀 , as shown in Figure 3 (B). This table is computed once per dataset and query topology. Like updating statistics in a traditional DBMS, recalibration is needed only when the graph structure or model weights shift enough to alter score distributions. We quantify this cost in Sec. 6.2 (Table 4). At query time, the planner retrieves the calibrated threshold vector ˆ𝝀 for the given query topology T and risk budget 𝛼 . The logical DAG is compiled into a physical plan of conformal gates 
+
+¯𝑓 (1) 
+
+> 𝜆 1
+
+, . . . , ¯𝑓 (𝑘 ) 
+
+> 𝜆 𝑘
+
+, evaluated in topological order. Each gate compares its operator threshold 𝜆 𝑖 against the routing threshold 𝛿 to select its execution mode: retrieval-only when local graph evidence suffices, or hybrid when inference is needed to meet the recall target. In-tersection and union nodes apply deterministic set operations and introduce no additional uncertainty. The final output ˆ𝑌 (𝑘 ) 
+
+> ˆ𝝀
+
+satisfies a marginal guarantee that the expected end-to-end recall remains above 1 − 𝛼 .
+
+## 5.2 Practical considerations 
+
+Optimization Tractability. Our formulation seeks the tightest threshold vector that satisfies the recall target. To achieve this, the quantile-space scalarization reduces the 𝑘 -dimensional thresh-old space to a one-dimensional search over 𝜂 , enabling tractable calibration with finite-sample guarantees. However, this is not guar-anteed to be the global optimum over the full 𝑘 -dimensional space, as the scalarization constrains the search to a single monotonic path. An unconstrained search could theoretically find threshold vectors yielding smaller prediction sets at the same recall level by tightening one hop more aggressively while loosening another. While advanced search techniques, such as Bayesian optimization or gradient-based searches, could theoretically explore this high-dimensional space, they face two critical hurdles. First, evaluating arbitrary threshold vectors incurs prohibitive computational costs. Second, and more fundamentally, unconstrained multi-dimensional tuning violates the strict nestedness property required by CRC. We view this as an inherent tradeoff between statistical validity and optimization power; the scalarization sacrifices precision optimality in exchange for rigorous finite-sample guarantees that hold without distributional assumptions. 
+
+Ground Truth Requirement. Beyond statistical assumptions, ConRAD’s calibration procedure introduces a practical systems re-quirement: a held-out calibration set of queries with known ground-truth answers. These are necessary to compute non-conformity 
+
+Table 2: Statistics of the KG datasets used in our evaluation.             
+
+> Dataset # Entities # Relations # Triples
+> FB15k-237 14541 237 310116 NELL-995 75492 200 154213 YAGO3-10 123182 37 1089040
+
+scores and derive the calibrated thresholds. While obtaining exhaus-tive ground truth in an open-world setting is inherently challenging, database administrators can bootstrap system initialization using historical query logs with verified results, manual expert validation for a small sample of queries, or synthetic query generation over densely populated, trusted subgraphs. 
+
+Compositionality vs. End-to-End Inference. A common alter-native in neural graph reasoning is end-to-end inference, where a model predicts a multi-hop destination in a single latent step. While such models can offer superior precision by capturing global depen-dencies, they function as black boxes that lack the plan transparency and intermediate filtering required by modern DBMSs. ConRAD explicitly favors a compositional approach by decomposing queries into primitive link-prediction operators. This modularity ensures that each step remains interpretable and allows for frontier prun-ing in dense regions. Importantly, the statistical foundations of ConRAD are operator-agnostic. Future neural query optimizers could treat fused multi-hop predictors as individual physical opera-tors within our conformal framework, trading plan granularity for predictive latency while maintaining the same formal guarantees. 
+
+## 6 EXPERIMENTS 
+
+We evaluate ConRAD on multi-hop EPFO queries over incomplete knowledge graphs, addressing four research questions: (RQ1) Validity: Does ConRAD satisfy user-specified recall targets across diverse query topologies and graph incompleteness levels? (RQ2) Precision: Does ConRAD’s risk-constrained optimization achieve precision competitive with best-case static baselines? (RQ3) Efficiency and Overheads: Does the conformal gate reduce neural invocations by exploiting local graph evidence, and are the offline and online overheads tractable? (RQ4) Robustness: Are the guarantees preserved when the underly-ing neural model is swapped? 
+
+## 6.1 Setup 
+
+Datasets. We evaluate ConRAD on three established knowledge graph benchmarks that span distinct structural regimes (Table 2). FB15k-237 [ 11 ], a densely connected subgraph of Freebase [ 10 ], features a high average degree that stresses the framework’s ability to manage frontier explosion during multi-hop traversals. NELL-995 [ 57 ], constructed via web-scale information extraction, intro-duces the noise and structural irregularity characteristic of real-world knowledge bases. Finally, YAGO3-10 [ 38 ] serves as a high-volume scalability benchmark derived from Wikipedia and Word-Net [ 40 ]. To rigorously assess robustness under degraded conditions, we simulate incompleteness by removing uniformly at random 5%, 20%, and 40% of edges from each dataset. These sparsity levels model realistic deployment scenarios ranging from minor data stal-eness (5%) to severe structural degradation (40%) where nearly half the relational evidence is unavailable. Sonia Horchidan, Fabian Zeiher, Xiangyu Shi, Vasiliki Kalavri, Henrik Boström, Ioannis Kontoyiannis, and Paris Carbone 
+
+The Neural Predictor. We employ the UltraQuery foundation model [ 19 ] as a black-box scoring function 𝜙 . UltraQuery provides inductive, zero-shot predictions without task-specific fine-tuning, allowing us to isolate ConRAD’s calibration efficacy from the un-derlying model quality. While UltraQuery is capable of end-to-end multi-hop predictions in a single inference step, we explicitly deploy it as a per-hop link predictor. This allows us to evaluate ConRAD’s ability to maintain recall guarantees across composed query plans. To test robustness to predictor quality, we also evaluate UltraQuery-T, a variant with different weights and lower predictive accuracy. On the NELL-995 tail-prediction task (i.e., one-hop prediction), UltraQuery-T achieves a significantly lower MRR (48.2% vs. 54.2%) and Hits@10 (67.0% vs. 70.9%) compared to the base model. This lower-fidelity variant tests ConRAD’s ability to adaptively adjust thresholds when paired with a weaker predictor, demonstrating that the recall guarantee is preserved through recalibration alone. 
+
+Baselines. We compare against three execution strategies. neo4j 
+
+executes queries deterministically over the observed graph ˆG, guar-anteeing zero false positives but with recall bounded by graph incompleteness. neural executes queries hop-by-hop using Ultra-Query with fixed, global thresholds ( 𝜃 ∈ { 0.7, 0.8, 0.9, 0.99 }), repre-senting the standard workflow of manual threshold tuning without formal guarantees. hybrid implements the conformal gate with fixed global thresholds ( 𝜃 ∈ { 0.4, 0.5, 0.6, 0.7}) and routing threshold 
+
+𝛿 = 0.5. This baseline represents the best a practitioner can achieve by combining retrieval and inference with manual threshold tuning, without offline calibration or per-operator adaptation. 
+
+Metrics. We report four indicators, averaged over the evaluation query set. First, the Empirical Recall (1 − FNR ) is defined as the frac-tion of ground-truth entities retrieved. Next, Precision is defined as the fraction of returned entities that are ground-truth answers. The 
+
+Abstention Rate is the fraction of queries producing empty result sets ( | ˆ𝑌 (𝑘 ) 
+
+> 𝝀
+
+| = 0). Lastly, the Neural Invocations are defined as the to-tal number of inference operator calls per query, our primary proxy for computational overhead. Queries where the system abstains are assigned zero precision and zero recall. 
+
+Calibration Procedure. We employ a split-conformal strategy, executing 5000 queries per topology over the incomplete graph ˆG.The workload is partitioned into disjoint sets for CRC calibration (|D opt | = 2000 ), cardinality-driven strategy selection ( |D valid | =
+
+2000 ), and final evaluation (1000). For high incompleteness (40%) or large-scale settings (YAGO3-10), the evaluation is reduced to 500 queries to manage materialization overhead. We discretize the scalarization (Section 4.1.1) into a grid of 100 candidate values of 
+
+𝜂 . The candidate strategy set Γ contains five exponent vectors per query topology: a uniform strategy ( 𝛾 𝑗 = 1 for all 𝑗 ), two asymmetric strategies that prioritize early vs. late pruning ( 𝜸 = [1.5, 1.0, 0.5] and 
+
+[0.5, 1.0, 1.5] for 3p), and two balanced variants ( 𝛾 𝑗 = 0.7 and 𝛾 𝑗 =
+
+1.5 for all 𝑗 ). The optimizer selects the strategy yielding the lowest cardinality on Dvalid . The calibration is performed independently per query topology. 
+
+Frontier Management. During calibration, loose thresholds can require materializing up to |V | 3 candidate trajectories for 3p queries. To maintain tractability, we restrict intermediate propagation to the union of ground-truth entities and the top-10 highest-scoring neural 0.75                  
+
+> 1.00
+> Empirical Recall  FB15k-237 NELL-995 YAGO3-10
+> 0.75
+> 1.00
+> Empirical Recall  FB15k-237 NELL-995 YAGO3-10
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> 0.75
+> 1.00
+> Empirical Recall  FB15k-237
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> NELL-995
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> YAGO3-10
+> Ideal 95% CI band 3p 2u 2ip
+
+Figure 6: Validity results across query topologies, and datasets under 20% data incompleteness level. ConRAD of-fers effective recall control over all the tested configurations. 
+
+candidates per hop. First, because conformal thresholds are deter-mined primarily by ground-truth scores, this pruning preserves the calibration guarantees [ 4, 56 ]. Further, valid end-to-end paths can traverse intermediate entities absent from any sub-query’s ground truth, necessitating the inclusion of top-scoring neural candidates. We retain 10 per hop as a practical trade-off between path coverage and materialization cost; varying this from 5 to 20 had negligible ef-fect on the calibrated thresholds. At runtime, calibrated thresholds are applied to all candidates without restriction. 
+
+Experimental Scalability. We restrict the calibration and evalua-tion to queries with intermediate ground-truth frontiers |𝑌 (𝑖 ) | ≤ 50 ,due to the memory overhead of materializing |𝑌 (𝑖 ) | × |V | score matrices on the GPU. This is a pragmatic constraint for batch eval-uation, not a framework limitation; larger frontiers are natively supported via standard techniques such as gradient accumulation or multi-GPU sharding. 
+
+Implementation Details. The graph store is Neo4j v5.20.0, han-dling all retrieval traversals and set operations (intersection, union). Inference uses a PyTorch deployment of UltraQuery on a single NVIDIA H100 NVL (96GB VRAM). The routing threshold 𝛿 is set to 0.5 in all experiments. The hash function H in Eq. 10 is a deter-ministic MD5 hash normalized to [0, 1].
+
+## 6.2 Results 
+
+We evaluate ConRAD on three standard KG datasets across varying recall targets, query topologies, and incompleteness levels. Our experiments demonstrate four key findings: (1) ConRAD strictly satisfies declarative recall targets across all the tested settings. Even under severe 40% graph in-completeness and difficult query topologies, the empirical recall tightly tracks the target with a maximum downward deviation of only 0.0464. (2) ConRAD achieves precision competitive with (and often exceeding) best-case static baselines, reaching up to 96% on FB15k-237 3p queries. Unlike static methods, ConRAD ConRAD: Conformal Risk-Aware Neural Databases 0.6                
+
+> 0.8
+> 1.0
+> Empirical Recall  5% sparsity 5% sparsity 5% sparsity
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> 0.6
+> 0.8
+> 1.0
+> Empirical Recall  40% sparsity
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> 40% sparsity
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> 40% sparsity
+> Ideal 95% CI band 3p 2u 2ip
+
+Figure 7: Validity results across query topologies for the FB15k-237 dataset. ConRAD offers effective recall control across all tested data incompleteness levels. 10 1 0 10 1 10 2
+
+> |Pred| - |GT|
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> Target Recall
+> Ground Truth
+
+Figure 8: Per-query cardinality adaptivity ( |𝑃𝑟𝑒𝑑 | − | 𝐺𝑇 |) on NELL-995 (20% data incompleteness) for 2ip . The tight clus-tering around zero at moderate recall targets (0.6-0.7) indi-cates high precision across most queries. The positive tail at stricter targets shows the system trades off precision for recall on difficult queries. 
+
+eliminates silent coverage violations, maintaining low ab-stention rates even as incompleteness increases to 40%. (3) The conformal gate dynamically optimizes the execution by bypassing neural inference when local graph evidence suffices. At moderate recall targets in near-complete graphs (5% incompleteness), ConRAD reduces total neural invo-cations to 0%, selectively reintroducing inference only as frontiers expand or evidence degrades. (4) ConRAD’s statistical guarantees are robust to predictor quality. Substituting UltraQuery with UltraQuery-T pre-serves the recall target across all query topologies (maxi-mum downward deviation: 0.017). Precision degrades pro-portionally to model quality, confirming that ConRAD pro-vides formal recall guarantees without imposing accuracy requirements on the underlying predictor. 
+
+6.2.1 Validity. To answer RQ1, we evaluate whether ConRAD’s conformal calibration translates into reliable recall control across datasets, query topologies, and incompleteness levels. Figure 6 re-ports empirical recall as a function of the recall target (0.6-0.9) at 20% incompleteness across all three datasets and query topologies. ConRAD consistently satisfies the declared risk budget 𝛼 . Empirical recall tightly tracks or marginally exceeds the target, generally falling within or above the shaded 95% confidence bands (derived from the standard error over the evaluation query set). The bands 
+
+Table 3: Maximum precision subject to empirical recall ≥
+
+0.60 at 20% incompleteness. For each baseline, we report the best-performing threshold. For ConRAD, we report the risk budget 𝛼 yielding the highest precision at the same recall floor. Fails (X) means the method did not reach 60% recall, where X is the maximum achieved. Dataset T neo4j neural (best 𝜃 ) hybrid (best 𝜃 ) conrad (best 𝛼 )                                                                                               
+
+> FB15k-237
+> 3p Fails (0.59) 0.82 ( 𝜃 =0.7)0.95 ( 𝜃 =0.4)0.96 (𝛼 =0.9)
+> 2ip Fails (0.57) 0.70 ( 𝜃 =0.7)0.92 ( 𝜃 =0.4)0.93 (𝛼 =0.9)
+> 2u 0.99 0.99 ( 𝜃 =0.8)1.00 ( 𝜃 =0.4)1.00 (𝛼 =0.9)NELL-995
+> 3p Fails (0.36) 0.70 ( 𝜃 =0.7)0.94 (𝜃 =0.4)0.93 ( 𝛼 =0.9)
+> 2ip Fails (0.57) 0.65 ( 𝜃 =0.7)0.90 ( 𝜃 =0.4)0.90 (𝛼 =0.9)
+> 2u 0.97 0.96 ( 𝜃 =0.9)0.97 ( 𝜃 =0.4)0.99 (𝛼 =0.9)YAGO3-10
+> 3p Fails (0.56) Fails (0.56) 0.85 ( 𝜃 =0.4)0.87 (𝛼 =0.8)
+> 2ip Fails (0.53) Fails (0.50) 0.85 (𝜃 =0.4)0.83 ( 𝛼 =0.9)
+> 2u 0.99 0.93 ( 𝜃 =0.7)0.99 ( 𝜃 =0.5)0.99 (𝛼 =0.8)
+
+widen on YAGO3-10 and at 40% incompleteness, where the evalua-tion set was reduced to 500 queries for tractability. The maximum upward deviation across all settings was 0.0711 (NELL-995, 3p , tar-get 0.70); the maximum downward deviation was 0.0464 (YAGO3-10, 
+
+2ip , target 0.70). Both are consistent with finite-sample calibration and threshold grid quantization [ 4, 56 ]. Across topologies, 2u ex-hibits the tightest tracking: the parallel union structure provides inherent recall redundancy, allowing the calibrator to select tighter, higher-precision thresholds. The 3p topology is the most difficult, as errors compound sequentially across three hops. Yet, the guarantee holds robustly across all datasets. Figure 7 isolates the effect of incompleteness by evaluating Con-RAD on FB15k-237 under 5% (near-complete) and 40% (high incom-pleteness) conditions. Even under these extremes, empirical recall remains tightly bounded to the target. The maximum upward devia-tion was 0.0573 (2ip, 5%, target 0.60), while the maximum downward deviation was 0.0354 (2u, 5%, target 0.60). These results confirm that ConRAD’s guarantees hold across incompleteness levels. The calibration procedure is agnostic to the degree of incompleteness and requires no manual intervention or prior knowledge of the graph’s structural state. While Figures 6 and 7 report aggregate recall, Figure 8 examines per-query behavior. For each query on NELL-995 at 20% incom-pleteness, we plot the difference between predicted and ground-truth answer set sizes against the recall target. At moderate targets (0.6-0.7), a substantial fraction of queries cluster tightly around zero, indicating near-perfect precision. As the target increases, the system admits more candidates, trading precision for recall. The positive tail corresponds to queries over severely incomplete local neighborhoods. Here, retrieval yields few edges, and the inference operator produces low-confidence scores, forcing the system to admit more candidates to meet the risk budget. This confirms that ConRAD does not meet its recall targets by uniformly inflating prediction sets, but it adapts selectivity to the local difficulty of each query. We observe consistent behavior across all datasets and query topologies. We report NELL-995 2ip for brevity. 
+
+6.2.2 Precision. To answer RQ2, we compare ConRAD’s precision against static baselines that require manual threshold tuning and provide no formal recall guarantees. Table 3 reports the maximum Sonia Horchidan, Fabian Zeiher, Xiangyu Shi, Vasiliki Kalavri, Henrik Boström, Ioannis Kontoyiannis, and Paris Carbone 0.6 0.7 0.8 0.9                
+
+> Target Recall
+> 0.0
+> 0.5
+> 1.0
+> Abstention Rate  5% sparsity
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> 20% sparsity
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> 40% sparsity
+> neo4j
+> neural ( =0.7)
+> neural ( =0.8)
+> neural ( =0.9)
+> neural ( =0.99)
+> hybrid ( =0.3)
+> hybrid ( =0.4)
+> hybrid ( =0.5)
+> hybrid ( =0.6)
+> hybrid ( =0.7)
+> conrad
+
+Figure 9: Query abstention rate on FB15k-237 ( 3p ). Static base-lines abstain on up to 60% of queries at 40% data incomplete-ness. ConRAD’s abstention remains stable. 
+
+precision achieved by each execution strategy subject to an empiri-cal recall constraint of ≥ 0.6 at 20% data incompleteness level. For static baselines, we report the best-performing threshold from a coarse grid search. For ConRAD, we report the risk budget 𝛼 that achieves the same recall constraint with the highest precision. At 20% incompleteness, deterministic retrieval ( neo4j ) fails to reach 60% recall for both 3p and 2ip across all three datasets, be-cause a missing edge at any hop prunes all downstream paths. The only topology where retrieval meets the recall floor is 2u , where redundant parallel paths make it resilient to missing edges. All meth-ods achieve near-perfect precision on 2u , confirming that union queries do not stress the predictive pipeline. Conversely, the neural baseline demonstrates why uncalibrated inferences are insufficient for rigorous database querying. While pure inference manages to satisfy the 60% recall constraint on FB15k-237 and NELL-995, it suffers a severe drop in precision. The 
+
+hybrid baseline reaches significantly higher precision ranges, con-firming the value of combining retrieval with inference. However, ConRAD’s system-managed recall bounding consistently matches or exceeds this hybrid ’s exhaustive static thresholding in terms of precision. On FB15k-237, ConRAD reaches 0.96 precision on 3p 
+
+queries compared to 0.95, and 0.94 on intersection queries compared to 0.93. Even on the challenging YAGO3-10 dataset, ConRAD out-performs hybrid on 3p queries (0.87 versus 0.85). Where hybrid 
+
+leads marginally (e.g., YAGO3-10 2ip , 0.85 vs. 0.83), the gap is nar-row. Crucially, the hybrid results reflect the best threshold found by a coarse grid search with no guarantee of transfer to unseen queries. ConRAD derives its thresholds automatically from the de-clared risk budget 𝛼 and provides a formal recall guarantee over the query distribution. We next examine query abstention, where the system returns an empty result set. Figure 9 tracks the abstention rate for FB15k-237 
+
+3p across incompleteness levels. At 5%, abstention is negligible for all baselines. As incompleteness increases to 40%, the static hybrid 
+
+baselines diverge sharply. Configurations with moderate-to-high thresholds abstain on up to 60% of queries, as fixed thresholds that worked at lower incompleteness become too aggressive. These are silent failures, yielding zero recall on the affected instances. ConRAD maintains consistently low abstention across all incom-pleteness levels, staying below 30% even at 40% data incompleteness. Because abstention contributes zero recall to the expected risk, the CRC optimization inherently steers away from threshold vectors 0.6 0.7 0.8 0.9          
+
+> 0
+> 50
+> Neural
+> Invocations (%)
+> 5% sparsity
+> hybrid
+> conrad
+> 0.6 0.7 0.8 0.9
+> 0
+> 50
+> 20% sparsity
+> 0.6 0.7 0.8 0.9
+> Recall
+> Hop 1
+> Hop 2
+> Hop 3
+> Hop
+> 0.6 0.7 0.8 0.9
+> Recall
+> Hop 1
+> Hop 2
+> Hop 3
+> Hybrid
+> Retrieval
+
+Figure 10: Conformal gate efficiency on FB15k-237 3p . Top: aggregate inference invocations as a fraction of total hops. Bottom: per-hop routing decisions. The gate bypasses infer-ence at early hops where retrieval suffices and switches to hybrid mode at later hops as local evidence degrades. 
+
+that produce empty results. Abstention does rise slightly at relaxed recall targets (e.g., 29.2% at target 0.6 vs. 3.3% at target 0.9 under 40% incompleteness). This is a side effect of the precision objec-tive. A generous risk budget allows tighter thresholds that produce smaller prediction sets, which can yield empty results on the hardest queries. At strict recall targets, the optimizer cannot tolerate such abstentions and selects more permissive thresholds accordingly. 
+
+6.2.3 Efficiency. To answer RQ3, we evaluate whether the con-formal gate reduces neural invocations by exploiting local graph evidence. Figure 10 reports the percentage of inference operator calls across the FB15k-237 3p pipeline. The hybrid baseline triggers inference at every hop regardless of local graph density or recall target. ConRAD’s conformal gate bypasses inference when retrieval alone satisfies the calibrated threshold. The savings depend on both the risk budget and the incompleteness level. At a recall target of 0.6 under 5% incompleteness, ConRAD bypasses inference entirely, reducing invocations to zero. As the target increases to 0.7 and 0.9, invocation rates rise to 34.9% and 48.2% respectively. The per-hop routing breakdown reveals where the savings originate. Initial hops often traverse densely connected neighborhoods where retrieval alone satisfies the threshold. At moderate recall targets, the confor-mal gate operates in retrieval-only mode for the first hop, reducing both the immediate inference cost and the intermediate result set size, which limits false-positive propagation to downstream opera-tors. As execution progresses to later hops, or as incompleteness increases to 20%, local graph evidence degrades and the conformal gate switches to hybrid mode to meet the recall target. Despite bypassing inference at early hops, the aggregate invocation rate is dominated by later hops, which process a larger candidate set due to frontier expansion. At 20% incompleteness, ConRAD’s invocation rate plateaus at 50% for recall targets of both 0.8 and 0.9, reflecting this effect. The conformal gate thus concentrates inference where retrieval evidence is insufficient, reducing total model calls while satisfying the recall guarantee. 
+
+6.2.4 Overheads. Table 4 reports wall-clock calibration time across datasets and query topologies at 20% incompleteness. The total cost remains tractable, reaching at most approximately 1.5 hours for the largest setting (YAGO3-10 3p ). A breakdown reveals that score ConRAD: Conformal Risk-Aware Neural Databases 
+
+Table 4: Offline calibration wall-clock time (sec). Each cell reports the Total Time ( 𝜆 Optimization only ), where Total = Scores Computation + 𝜆 Optimization. The scores computa-tion dominates the overhead.                          
+
+> Dataset 3p 2u 2ip
+> FB15k-237 1302.2 (344) 233.1 (4.5) 750.2 (22.1) NELL-995 2095.0 (381.6) 603.3 (7.4) 6142.5 (81.4) YAGO3-10 3711.3 (927.2) 1327.9 (7.7) 4476.7 (91.2) 0.6 0.7 0.8 0.9
+> Target Recall
+> 0.6
+> 0.8
+> 1.0
+> Empirical Recall
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> 0.6 0.7 0.8 0.9
+> Target Recall
+> Ideal 95% CI band 3p 2u 2ip
+
+Figure 11: Robustness to predictor quality (RQ4): ConRAD with UltraQuery-T on NELL-995 (20% sparsity). Despite a weaker underlying model, the recall guarantee is preserved across all three query templates, requiring only offline re-calibration. Maximum precision reaches 0.70 ( 3p ), 0.66 ( 2ip ), and 0.96 ( 2u ), compared to 0.93, 0.9, and 0.99 for UltraQuery under identical conditions (Table 3). 
+
+computation dominates the overhead. On YAGO3-10 2u , it accounts for over 99% of the total time, while the threshold optimization requires only 7.7 seconds. This phase consists entirely of evaluating the neural model over graph triples, a process that can be decou-pled from the optimization itself. In a production environment, the system can gather non-conformity scores asynchronously by piggybacking on online query execution. Once a sufficient sample is collected, the optimizer only needs to trigger the lightweight threshold search to produce updated calibration parameters. Lastly, the runtime overhead introduced by ConRAD is negligi-ble. The gate’s routing logic requires only computing the unified score via a lightweight, deterministic hash function for retrieving facts and a scalar projection for inference scores, followed by a single floating-point comparison against the calibrated threshold per candidate tuple. This ensures that the formal recall guarantees add only constant-time overhead per candidate triple. 
+
+6.2.5 Robustness. To answer RQ4, we evaluate whether ConRAD’s statistical guarantees transfer when the underlying neural model is replaced. We substitute UltraQuery with UltraQuery-T, a less accu-rate variant of the same architecture, and recalibrate on NELL-995 at 20% sparsity. No other system component is modified. Figure 11 shows that the recall guarantee is preserved across all three query templates, with a maximum upward deviation of 0.0259 (target 0.80, 
+
+2u ) and a maximum downward deviation of 0.0169 (target 0.70, 2ip ). Both are well within the finite-sample variance, as noted also in Sec. 6.2.1. As expected, precision degrades relative to UltraQuery, reflecting the weaker model’s noisier score distribution. Maximum precision across templates reaches 0.70 (3p), 0.96 (2u), and 0.66 (2ip), compared to 0.93, 0.9, and 0.99 for UltraQuery under identical con-ditions (Table 3). This confirms that ConRAD cannot compensate for a fundamentally less accurate predictor, but the safety contract remains intact. Practitioners can therefore upgrade or replace the scoring model and restore guarantees through recalibration alone, without modifying the framework or query plans. 
+
+## 7 DISCUSSION 
+
+Marginal Guarantees and Exchangeability. ConRAD provides marginal guarantees, ensuring the recall target is satisfied on aver-age across the query distribution rather than per individual query in-stance. Achieving strict conditional coverage is provably impossible without restrictive distributional assumptions or infinite calibration data [ 17 ]. While this trade-off enables distribution-free guarantees, it fundamentally relies on the exchangeability of calibration and test queries. The premise of exchangeability over non-i.i.d. graph structures has been formally established for Graph Neural Net-works [ 27 ] and specifically for link prediction when queries are sampled uniformly [ 58 ]. However, as we have empirically demon-strated in prior work [ 26 ], conformal guarantees can degrade under severe distribution shifts (e.g., sudden query skew toward unseen, high-variance relations), which is a limitation that applies equally to ConRAD’s predictive pipelines. We discuss potential mitigation strategies, including adaptive conformal methods designed for dis-tribution shift, in Sec. 8. 
+
+Zero-Shot Transfer Constraints. ConRAD requires a represen-tative calibration workload for each deployment setting and does not currently support zero-shot transfer to novel query topolo-gies or out-of-distribution workloads without recalibration. When deploying on a new query template without calibration data, the system must invoke a conservative fallback, such as the union bound alternative described in Sec. 4. However, this limitation does not preclude the modular composition of pre-calibrated branches. If disjoint query branches have already been independently cali-brated, they can be safely composed into novel query topologies via deterministic set operators. In such cases, the system could apply structural risk composition rules to primitive sub-plans rather than at the individual operator level, potentially avoiding the severe precision loss of a pipeline-wide fallback. We leave formal analysis of this compositional strategy to future work. 
+
+## 8 FUTURE WORK 
+
+Compute-Driven Optimization Objectives. While this paper optimizes for end-to-end precision, the cost function introduced in Sec. 3 can alternatively target computational effort. Future work will investigate a compute-driven objective that minimizes query latency and I/O cost. This inherently incentivizes tight thresholds early in the plan to aggressively prune intermediate results, a sto-chastic analogue to classical predicate pushdown. However, this in-troduces a tension with end-to-end precision: tight early thresholds force downstream operators to adopt more permissive thresholds to satisfy the risk budget 𝛼 , admitting more false positives into the final output. Navigating this trade-off offers a rich space for future query optimization research. 
+
+Continuous Online Recalibration. To address the static na-ture of offline calibration and mitigate workload drift, we plan to explore continuous online recalibration. As shown in Sec. 6.2, score computation dominates the offline phase, so the framework Sonia Horchidan, Fabian Zeiher, Xiangyu Shi, Vasiliki Kalavri, Henrik Boström, Ioannis Kontoyiannis, and Paris Carbone 
+
+could naturally support asynchronous recalibration by piggyback-ing score collection onto online query execution and triggering the lightweight threshold optimization incrementally. Furthermore, integrating adaptive conformal methods designed for distribution shift, such as Weighted Conformal Prediction [ 8, 53 ] and Adaptive Conformal Inference [ 20 ], could allow the framework to adapt to evolving graph structures and shifting query distributions. 
+
+Generalization to Broader AI Systems. Finally, the ConRAD methodology applies to any predictive pipeline that forms a DAG of operators where stochastic components produce monotonic predic-tion sets with respect to a threshold parameter. Empirical validation of the framework beyond KGs queries is an important direction for future work. We plan to extend these finite-sample recall guar-antees to other composite architectures, such as RAG pipelines, learned join operators, and complex multi-stage retrieval systems. 
+
+## 9 RELATED WORK 
+
+AI-Integrated Database Systems. Modern data management sys-tems increasingly embed learned components to replace or augment traditional operations, from learned indexes [ 32 ] and query opti-mizers [ 39 ] to systems that execute queries over incomplete data. Prior works optimize queries involving expensive ML-based predi-cates through cascade routing and cost-quality trade-offs (e.g., No-Scope [ 29 ], BlazeIt [ 28 ], VIVA [ 48 ], EVAPORATE [ 7]). Raven [ 30 , 41 ]presents a unified optimization framework for prediction queries that compose data processing operators with ML inference in a sin-gle plan. Neural Graph Databases [ 9, 24 , 25 , 45 ] compose exact graph traversals with neural link prediction, CAESURA [ 55 ] integrates ML inference into relational SQL plans, InferDB [ 49 ] accelerates in-database inference by approximating ML pipelines through index lookups, and compound AI frameworks such as DSPy [ 31 ], LO-TUS [ 43 ], and Palimpzest [ 35 ] orchestrate multi-model workflows over structured and unstructured data. While these frameworks im-prove expressiveness, orchestration, or latency, they fundamentally lack formal, distribution-free guarantees for end-to-end correctness. 
+
+Approximate Query Processing and Uncertainty in Databases. 
+
+Managing uncertainty natively within the query engine is a foun-dational database problem. Traditional Approximate Query Pro-cessing systems such as BlinkDB [ 2], VerdictDB [ 42 ], and online aggregation [ 22 ] provide statistical error bounds, but these quan-tify sampling variance over completely observed data rather than uncertainty from learned models. A cornerstone of database re-search, Probabilistic Databases (e.g., MayBMS [ 6 ], Trio [ 3], and Dalvi and Suciu [ 15 ]) rigorously propagate tuple-level uncertainty through query evaluation. While foundational, these systems typi-cally model a closed world of explicitly annotated probabilities. In contrast, ConRAD addresses open-world incompleteness, where unobserved facts must be dynamically recovered and bounded us-ing uncalibrated neural scoring. To establish formal guarantees over such black-box models, the database community has recently begun adopting Conformal Prediction. For example, dbET [ 34 ] uses CP to bound execution time distributions for cost-based plan selec-tion, Liu et al . [36] apply it to verify learned query optimizers with latency bounds, and ConANN [ 26 ] provides recall guarantees for approximate kNN search. While these methods successfully man-age model-driven uncertainty in databases, they operate exclusively at the single-operator level or target system performance metrics. ConRAD elevates conformal calibration from isolated operators to the multi-hop pipeline level. 
+
+Uncertainty in Knowledge Graph Reasoning. A rich landscape of neural models has been developed for KG reasoning. Link pre-diction models such as TransE [ 12 ], ComplEx [ 54 ], and RotatE [ 51 ]learn expressive scoring functions for individual triples. Concur-rently, neural query embedding frameworks (e.g., Query2Box [ 46 ], BetaE [ 47 ], NQE [ 37 ], GNN-QE [ 60 ]) and foundation models (UL-TRA [ 18 ], UltraQuery [ 19 ]) extend this to complex multi-hop logical queries. However, these models optimize for pointwise accuracy and produce uncalibrated confidence scores. Standard post-hoc calibration techniques (e.g., Platt scaling [ 44 ], temperature scal-ing [ 21 ]) improve point-wise score reliability but provide no finite-sample guarantees for set-valued outputs. To address this, recent work has applied conformal prediction to Graph Neural Networks (CF-GNN [ 27 ]) and individual KG link predictors [ 58 , 59 ], while Bayesian approaches [ 14 ] explicitly model predictive uncertainty in evolving graphs. However, these methods calibrate individual operators in isolation. ConRAD extends rigorous uncertainty quan-tification beyond isolated predictors, delivering dynamically routed, end-to-end recall guarantees for composed query pipelines. 
+
+## 10 CONCLUSIONS 
+
+ConRAD addresses a fundamental gap in modern data systems by transitioning reliability from a manually tuned hyperparameter to a declarative system constraint. By extending Conformal Risk Control to multi-operator query topologies, we provide the first framework capable of delivering finite-sample recall guarantees for complex queries over incomplete knowledge graphs. Our evaluation demonstrates that ConRAD strictly preserves user-specified recall targets across varying query topologies and incompleteness levels, achieving precision competitive with best-case static baselines. As the industry moves toward composing stochastic AI primitives into broader data processing stacks, ConRAD provides a principled methodology for maintaining the database correctness contract without sacrificing the predictive power of learned models. 
+
+## REFERENCES                      
+
+> [1] Serge Abiteboul, Richard Hull, and Victor Vianu. 1995. Foundations of databases .Vol. 8. Addison-Wesley Reading. [2] Sameer Agarwal, Barzan Mozafari, Aurojit Panda, Henry Milner, Samuel Madden, and Ion Stoica. 2013. BlinkDB: queries with bounded errors and bounded response times on very large data. In Proceedings of the 8th ACM European conference on computer systems . 29–42. [3] Charu C Aggarwal. 2009. Trio a system for data uncertainty and lineage. In
+> Managing and Mining Uncertain Data . Springer, 1–35. [4] Anastasios N. Angelopoulos and Stephen Bates. 2023. Conformal Prediction: A Gentle Introduction. Found. Trends Mach. Learn. 16, 4 (2023), 494–591. [5] Anastasios Nikolas Angelopoulos, Stephen Bates, Adam Fisch, Lihua Lei, and Tal Schuster. 2024. Conformal Risk Control. In ICLR . OpenReview.net. [6] Lyublena Antova, Christoph Koch, and Dan Olteanu. 2007. MayBMS: Managing Incomplete Information with Probabilistic World-Set Decompositions. In ICDE .IEEE Computer Society, 1479–1480. [7] Simran Arora, Brandon Yang, Sabri Eyuboglu, Avanika Narayan, Andrew Hojel, Immanuel Trummer, and Christopher Ré. 2023. Language Models Enable Simple Systems for Generating Structured Views of Heterogeneous Data Lakes. Proc. VLDB Endow. 17, 2 (2023), 92–105. https://doi.org/10.14778/3626292.3626294 [8] Rina Foygel Barber, Emmanuel J. Candès, Aaditya Ramdas, and Ryan J. Tibshirani. 2023. Conformal prediction beyond exchangeability. The Annals of Statistics 51, 2 (April 2023). https://doi.org/10.1214/23-AOS2276 [9] Maciej Besta, Patrick Iff, Florian Scheidl, Kazuki Osawa, Nikoli Dryden, Michal Podstawski, Tiancheng Chen, and Torsten Hoefler. 2022. Neural Graph Databases.
+
+ConRAD: Conformal Risk-Aware Neural Databases 
+
+In LoG (Proceedings of Machine Learning Research) , Vol. 198. PMLR, 31. [10] Kurt D. Bollacker, Colin Evans, Praveen K. Paritosh, Tim Sturge, and Jamie Taylor. 2008. Freebase: a collaboratively created graph database for structuring human knowledge. In SIGMOD Conference . ACM, 1247–1250. [11] Antoine Bordes, Nicolas Usunier, Alberto García-Durán, Jason Weston, and Oksana Yakhnenko. 2013. Translating Embeddings for Modeling Multi-relational Data. In NIPS . 2787–2795. [12] Antoine Bordes, Nicolas Usunier, Alberto Garcia-Duran, Jason Weston, and Oksana Yakhnenko. 2013. Translating embeddings for modeling multi-relational data. Advances in neural information processing systems 26 (2013). [13] Payal Chandak, Kexin Huang, and Marinka Zitnik. 2023. Building a knowledge graph to enable precision medicine. Scientific data 10, 1 (2023), 67. [14] Xuelu Chen, Muhao Chen, Weijia Shi, Yizhou Sun, and Carlo Zaniolo. 2019. Embedding Uncertain Knowledge Graphs. In AAAI . AAAI Press, 3363–3370. [15] Nilesh N. Dalvi and Dan Suciu. 2004. Efficient Query Evaluation on Probabilistic Databases. In VLDB . Morgan Kaufmann, 864–875. [16] Vayena Effy, Blasimme Alessandro, and I. Glenn Cohen. 2018. Machine learning in medicine: Addressing ethical challenges. PLOS Medicine 15, 11 (11 2018), e1002689. https://doi.org/10.1371/journal.pmed.1002689 [17] Rina Foygel Barber, Emmanuel J Candes, Aaditya Ramdas, and Ryan J Tibshirani. 2021. The limits of distribution-free conditional predictive inference. Information and Inference: A Journal of the IMA 10, 2 (2021), 455–482. [18] Mikhail Galkin, Xinyu Yuan, Hesham Mostafa, Jian Tang, and Zhaocheng Zhu. 2024. Towards Foundation Models for Knowledge Graph Reasoning. In ICLR .OpenReview.net. [19] Michael Galkin, Jincheng Zhou, Bruno Ribeiro, Jian Tang, and Zhaocheng Zhu. 2024. A Foundation Model for Zero-shot Logical Query Reasoning. In NeurIPS .[20] Isaac Gibbs and Emmanuel Candes. 2021. Adaptive Conformal Inference Under Distribution Shift. In Advances in Neural Information Processing Systems , Vol. 34. Curran Associates, Inc., 1660–1672. https://proceedings.neurips.cc/paper/2021/ hash/0d441de75945e5acbc865406fc9a2559-Abstract.html [21] Chuan Guo, Geoff Pleiss, Yu Sun, and Kilian Q Weinberger. 2017. On calibration of modern neural networks. In International conference on machine learning .PMLR, 1321–1330. [22] Joseph M Hellerstein, Peter J Haas, and Helen J Wang. 1997. Online aggregation. In Proceedings of the 1997 ACM SIGMOD international conference on Management of data . 171–182. [23] Aidan Hogan, Eva Blomqvist, Michael Cochez, Claudia d’Amato, Gerard De Melo, Claudio Gutierrez, Sabrina Kirrane, José Emilio Labra Gayo, Roberto Navigli, Sebastian Neumaier, et al . 2021. Knowledge graphs. ACM Computing Surveys (Csur) 54, 4 (2021), 1–37. [24] Sonia Horchidan. 2023. Query Optimization for Inference-Based Graph Databases. In PhD@VLDB (CEUR Workshop Proceedings) , Vol. 3452. CEUR-WS.org, 33–36. [25] Sonia Horchidan and Paris Carbone. 2023. ORB: Empowering Graph Queries through Inference. In ESWC Workshops (CEUR Workshop Proceedings) , Vol. 3443. CEUR-WS.org. [26] Sonia Horchidan, Fabian Zeiher, Henrik Boström, and Paris Carbone. 2025. Co-nANN: Conformal Approximate Nearest Neighbor Search. Proc. VLDB Endow. 
+
+19, 1 (2025), 29–42. [27] Kexin Huang, Ying Jin, Emmanuel Candes, and Jure Leskovec. 2023. Uncertainty quantification over graph with conformalized graph neural networks. Advances in Neural Information Processing Systems 36 (2023), 26699–26721. [28] Daniel Kang, Peter Bailis, and Matei Zaharia. 2019. BlazeIt: Optimizing Declara-tive Aggregation and Limit Queries for Neural Network-Based Video Analytics. 
+
+Proc. VLDB Endow. 13, 4 (2019), 533–546. [29] Daniel Kang, John Emmons, Firas Abuzaid, Peter Bailis, and Matei Zaharia. 2017. NoScope: Optimizing Neural Network Queries over Video at Scale. Proceedings of the VLDB Endowment 10, 11 (2017). [30] Konstantinos Karanasos, Matteo Interlandi, Fotis Psallidas, Rathijit Sen, Kwanghyun Park, Ivan Popivanov, Doris Xin, Supun Nakandala, Subru Krish-nan, Markus Weimer, Yuan Yu, Raghu Ramakrishnan, and Carlo Curino. 2020. Extending Relational Query Processing with ML Inference. In 10th Conference on Innovative Data Systems Research, CIDR 2020, Amsterdam, The Netherlands, Jan-uary 12-15, 2020, Online Proceedings . www.cidrdb.org. https://vldb.org/cidrdb/ 2020/extending-relational-query-processing-with-ml-inference.html [31] Omar Khattab, Arnav Singhvi, Paridhi Maheshwari, Zhiyuan Zhang, Keshav Santhanam, Sri Vardhamanan, Saiful Haq, Ashutosh Sharma, Thomas T Joshi, Hanna Moazam, et al . 2023. Dspy: Compiling declarative language model calls into self-improving pipelines. arXiv preprint arXiv:2310.03714 (2023). [32] Tim Kraska, Alex Beutel, Ed H. Chi, Jeffrey Dean, and Neoklis Polyzotis. 2018. The Case for Learned Index Structures. In Proceedings of the 2018 International Conference on Management of Data, SIGMOD Conference 2018, Houston, TX, USA, June 10-15, 2018 , Gautam Das, Christopher M. Jermaine, and Philip A. Bernstein (Eds.). ACM, 489–504. https://doi.org/10.1145/3183713.3196909 [33] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-täschel, et al . 2020. Retrieval-augmented generation for knowledge-intensive nlp tasks. Advances in neural information processing systems 33 (2020), 9459–9474. [34] Yifan Li, Xiaohui Yu, Nick Koudas, Shu Lin, Calvin Sun, and Chong Chen. 2023. dbET: Execution Time Distribution-based Plan Selection. Proceedings of the ACM on Management of Data 1, 1 (2023), 1–26. [35] Chunwei Liu, Matthew Russo, Michael J. Cafarella, Lei Cao, Peter Baile Chen, Zui Chen, Michael J. Franklin, Tim Kraska, Samuel Madden, Rana Shahout, and Gerardo Vitagliano. 2025. Palimpzest: Optimizing AI-Powered Analytics with Declarative Query Processing. In CIDR . www.cidrdb.org. [36] Hanwen Liu, Shashank Giridhara, and Ibrahim Sabek. 2025. Conformal Prediction for Verifiable Learned Query Optimization. Proc. VLDB Endow. 18, 8 (2025), 2653– 2666. [37] Haoran Luo, Haihong E, Yuhao Yang, Gengxian Zhou, Yikai Guo, Tianyu Yao, Zichen Tang, Xueyuan Lin, and Kaiyang Wan. 2023. NQE: N-ary Query Embed-ding for Complex Query Answering over Hyper-Relational Knowledge Graphs. In AAAI . AAAI Press, 4543–4551. [38] Farzaneh Mahdisoltani, Joanna Biega, and Fabian M. Suchanek. 2015. YAGO3: A Knowledge Base from Multilingual Wikipedias. In CIDR . www.cidrdb.org. [39] Ryan Marcus, Parimarjan Negi, Hongzi Mao, Nesime Tatbul, Mohammad Al-izadeh, and Tim Kraska. 2022. Bao: Making Learned Query Optimization Practical. 
+
+SIGMOD Rec. 51, 1 (2022), 6–13. https://doi.org/10.1145/3542700.3542703 [40] George A. Miller. 1995. WordNet: A Lexical Database for English. Commun. ACM 38, 11 (1995), 39–41. [41] Kwanghyun Park, Karla Saur, Dalitso Banda, Rathijit Sen, Matteo Interlandi, and Konstantinos Karanasos. 2022. End-to-end Optimization of Machine Learning Prediction Queries. In SIGMOD ’22: International Conference on Management of Data, Philadelphia, PA, USA, June 12 - 17, 2022 , Zachary G. Ives, Angela Bonifati, and Amr El Abbadi (Eds.). ACM, 587–601. https://doi.org/10.1145/3514221. 3526141 [42] Yongjoo Park, Barzan Mozafari, Joseph Sorenson, and Junhao Wang. 2018. Ver-dictdb: Universalizing approximate query processing. In Proceedings of the 2018 International Conference on Management of Data . 1461–1476. [43] Liana Patel, Siddharth Jha, Melissa Pan, Harshit Gupta, Parth Asawa, Carlos Guestrin, and Matei Zaharia. 2025. Semantic Operators and Their Optimization: Enabling LLM-Based Data Processing with Accuracy Guarantees in LOTUS. Proc. VLDB Endow. 18, 11 (July 2025), 4171–4184. https://doi.org/10.14778/3749646. 3749685 [44] John Platt et al . 1999. Probabilistic outputs for support vector machines and com-parisons to regularized likelihood methods. Advances in large margin classifiers 
+
+10, 3 (1999), 61–74. [45] Hongyu Ren, Mikhail Galkin, Zhaocheng Zhu, Jure Leskovec, and Michael Cochez. 2024. Neural Graph Reasoning: A Survey on Complex Logical Query Answering. Trans. Mach. Learn. Res. 2024 (2024). [46] H Ren, W Hu, and J Leskovec. 2020. Query2box: Reasoning Over Knowledge Graphs In Vector Space Using Box Embeddings. In International Conference on Learning Representations (ICLR) .[47] Hongyu Ren and Jure Leskovec. 2020. Beta embeddings for multi-hop logical reasoning in knowledge graphs. Advances in Neural Information Processing Systems 33 (2020), 19716–19726. [48] Francisco Romero, Johann Hauswald, Aditi Partap, Daniel Kang, Matei Zaharia, and Christos Kozyrakis. 2022. Optimizing Video Analytics with Declarative Model Relationships. Proc. VLDB Endow. 16, 3 (2022), 447–460. https://doi.org/ 10.14778/3570690.3570695 [49] Ricardo Salazar-Díaz, Boris Glavic, and Tilmann Rabl. 2024. InferDB: In-Database Machine Learning Inference Using Indexes. Proc. VLDB Endow. 17, 8 (2024), 1830– 1842. https://doi.org/10.14778/3659437.3659441 [50] Glenn Shafer and Vladimir Vovk. 2008. A Tutorial on Conformal Prediction. J. Mach. Learn. Res. 9 (2008), 371–421. [51] Zhiqing Sun, Zhi-Hong Deng, Jian-Yun Nie, and Jian Tang. 2019. Rotate: Knowl-edge graph embedding by relational rotation in complex space. arXiv preprint arXiv:1902.10197 (2019). [52] Pedro Tabacof and Luca Costabello. 2020. Probability Calibration for Knowledge Graph Embedding Models. In International Conference on Learning Representa-tions (ICLR) . https://openreview.net/forum?id=S1g8K1BFwS [53] Ryan J. Tibshirani, Rina Foygel Barber, Emmanuel J. Candès, and Aaditya Ramdas. 2019. Conformal Prediction Under Covariate Shift. In NeurIPS . 2526–2536. [54] Théo Trouillon, Johannes Welbl, Sebastian Riedel, Éric Gaussier, and Guillaume Bouchard. 2016. Complex embeddings for simple link prediction. In International conference on machine learning . PMLR, 2071–2080. [55] Matthias Urban and Carsten Binnig. 2024. CAESURA: Language Mod-els as Multi-Modal Query Planners. In 14th Conference on Innovative Data Systems Research, CIDR 2024, Chaminade, HI, USA, January 14-17, 2024 .www.cidrdb.org. https://vldb.org/cidrdb/2024/caesura-language-models-as-multi-modal-query-planners.html [56] Vladimir Vovk, Alexander Gammerman, and Glenn Shafer. 2005. Algorithmic learning in a random world . Springer. [57] Wenhan Xiong, Thien Hoang, and William Yang Wang. 2017. DeepPath: A Reinforcement Learning Method for Knowledge Graph Reasoning. In EMNLP .Association for Computational Linguistics, 564–573. Sonia Horchidan, Fabian Zeiher, Xiangyu Shi, Vasiliki Kalavri, Henrik Boström, Ioannis Kontoyiannis, and Paris Carbone 
+
+[58] Tianyi Zhao, Jian Kang, and Lu Cheng. 2024. Conformalized Link Prediction on Graph Neural Networks. In KDD . ACM, 4490–4499. [59] Yuqicheng Zhu, Nico Potyka, Jiarong Pan, Bo Xiong, Yunjie He, Evgeny Khar-lamov, and Steffen Staab. 2025. Conformalized answer set prediction for knowl-edge graph embedding. In Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers) . 731–750. [60] Zhaocheng Zhu, Mikhail Galkin, Zuobai Zhang, and Jian Tang. 2022. Neural-symbolic models for logical queries on knowledge graphs. In International con-ference on machine learning . PMLR, 27454–27478.

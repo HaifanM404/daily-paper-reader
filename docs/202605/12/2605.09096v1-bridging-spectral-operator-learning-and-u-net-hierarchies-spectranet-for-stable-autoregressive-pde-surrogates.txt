@@ -1,0 +1,933 @@
+Title: Bridging Spectral Operator Learning and U-Net Hierarchies: SpectraNet for Stable Autoregressive PDE Surrogates
+
+URL Source: https://arxiv.org/pdf/2605.09096v1
+
+Published Time: Tue, 12 May 2026 01:06:28 GMT
+
+Number of Pages: 28
+
+Markdown Content:
+# Bridging Spectral Operator Learning and U-Net Hierarchies: SpectraNet for Stable Autoregressive PDE Surrogates 
+
+Enrique Hern´ andez Noguera 1, Md Meftahul Ferdaus 1, Elias Ioup 2, Mahdi Abdelguerfi 1,
+
+Julian Simeonov 21University of New Orleans, New Orleans, LA, USA 
+
+> 2
+
+Naval Research Laboratory, Stennis Space Center, MS, USA 
+
+{ehernan8, mferdaus, gulfsceidirector }@uno.edu 
+
+## Abstract 
+
+Neural operators for time-dependent PDEs face a structural tension: spectral archi-tectures (FNO and descendants) inherit exponential rollout-error growth from their one-step Lipschitz constant, while hierarchical U-Net operators trade resolution invariance for multi-scale detail. We introduce SpectraNet , an autoregressive neural operator that composes truncated spectral convolutions inside a U-Net hierarchy with a Residual-Target Spectral Block trained under a Semigroup-Consistency Loss . The residual-target parametrization replaces LT stability blow-up with lin-ear T δ drift (Theorem 1, conditional on staying in K), and the spectral path’s parameter count is Θ( Lw 2M 2), independent of grid N . Under a single unified protocol against 16 published neural-operator baselines on Navier–Stokes ν=10 −5
+
+at 64 ×64 , SpectraNet reaches test relative L2=0 .0822 at 2.04 M parameters — 
+
+2.33 × fewer than canonical FNO at ≈ 20% lower error — and wins five of six rows in a cross-PDE comparison against FNO (NS at ν ∈ { 10 −4, 10 −3}, PDEBench Shallow-Water 2D and Diffusion-Reaction, with the Active-Matter row going to FNO inside its seed spread). Trained from scratch at native 128 2 under the same protocol, SpectraNet improves to 0.0724 while FNO regresses to 0.3080 ; we caveat this in Section 7.4 since the unified protocol is not tuned per-architecture per-resolution. Free rollout stays bounded for T =100 where FNO diverges across all 200 test trajectories. On consumer CPU at B=1 , SpectraNet runs sub-200 ms while the full-attention Transformer that wins raw L2 pays ∼ 60 × latency; we do not claim to beat that Transformer on raw L2, only to dominate the lightweight (≤ 5 M parameter, sub-200 ms CPU) Pareto frontier. Source code is available at 
+
+https://github.com/Enrikkk/spectranet .
+
+## 1 Introduction 
+
+Neural operators amortize the cost of solving time-dependent partial differential equations (PDEs) [Li et al., 2021, Kovachki et al., 2023, Schmidt et al., 2026] by learning the solution operator Φ∆t :
+
+ωt 7 → ωt+∆ t from data, then rolling it out autoregressively (AR) to predict trajectories. Two failure modes dominate this regime. First, any one-step error compounds across T rollouts at a rate set by the operator’s one-step Lipschitz constant; for direct-prediction architectures this is generically exponential in T . Second, existing operators choose between resolution invariance and multi-scale detail rather than combining them: spectral architectures (the Fourier Neural Operator, FNO [Li et al., 2021], and its descendants) inherit a fixed band-limit but no spatial hierarchy; U-Net [Ronneberger 
+
+> Preprint.
+> arXiv:2605.09096v1 [cs.LG] 9 May 2026
+
+et al., 2015] hybrids recover detail but lose resolution invariance at down/up-sampling; and transformer operators replace the spectral mixer with attention that scales as O(N 2) in the spatial token count N .
+
+Gap. No published neural operator combines all four ingredients that Theorem 1 and Proposition 2 below identify as jointly necessary at the 64 2–256 2 regime: (i) truncated spectral mixing for resolution-aware approximation, (ii) a U-Net hierarchy for multi-scale capture, (iii) a residual-target rollout parametrization that bounds long-horizon drift, and (iv) a training objective that enforces semigroup consistency at the trajectory level. FNO has only (i); U-FNO [Wen et al., 2022] and U-NO [Rahman et al., 2023] have (i)+(ii); transformers have neither; (iii) and (iv) have not been combined with spectral or U-Net mixers in the AR-rollout regime. 
+
+SpectraNet. We introduce SpectraNet , an autoregressive neural operator that bridges spectral operator learning and U-Net hierarchies through a Residual-Target Spectral Block that parametrizes the per-step update as fθ = id + ∆ θ , together with a Semigroup-Consistency Loss that ties two single-step applications fθ ◦fθ (ωt) to the two-step ground truth ωt+2 . The headline operating point uses three encoder–decoder levels, channel width w=32 , spectral truncation radius M =12 (the number of low-frequency Fourier modes retained per axis), and 2.04 M parameters — 2.33 × fewer than canonical FNO at ≈ 20% lower error on Navier–Stokes (NS) at viscosity ν = 10 −5.
+
+Contributions. (C1) Architecture (Section 4): a 2D autoregressive spectral U-Net with the two named training-time innovations above; the canonical operating point sits on the lightweight ( ≤ 5 Mparameter, sub-200 ms CPU) Pareto frontier of the NS ν=10 −5 leaderboard, dominating every published baseline within that envelope (Table 3). The full-attention NSL Transformer wins raw 
+
+L2 outside this envelope and we do not claim to beat it on accuracy. (C2) Theory (Section 5): an Approximation–Stability decomposition (Theorem 1) bounding the T -step stability term by O(T δ )
+
+under residual-target parametrization vs O(LT ε0) for direct prediction with one-step Lipschitz 
+
+L > 1; Lemma 1(b) is the standard residual-network observation, and the contribution is anchoring it to an empirical operator with measured δ, bL (Table 8). Proposition 2 bounds the spectral path at Θ( Lw 2M 2), independent of N (shared with FNO). (C3) Multi-PDE evidence (Section 7.1): aunified-protocol evaluation over six PDE benchmarks in which SpectraNet beats FNO on five of six rows at 2.33 × smaller parameter count; the NS row is two-seed and the remaining five are single-seed (Section 10). At native 128 2 under the same protocol SpectraNet improves to 0.0724 while FNO regresses to 0.3080 ; caveat in Section 7.4. (C4) Deployment cost (Section 9): a CPU-extended inference-cost study showing SpectraNet runs sub-200 ms on consumer CPU while the full-attention Transformer that wins raw L2 takes ∼ 10 s per sample. 
+
+## 2 Related Work 
+
+We position SpectraNet against four prior families of regular-grid neural operators, each embodying one or two of the four ingredients from Section 1. 
+
+Spectral neural operators. The Fourier Neural Operator [Li et al., 2021] is the ancestor of Spec-traNet’s spectral path: pointwise channel mixes interleaved with truncated spectral convolutions, granting (i) resolution invariance and translation equivariance up to the bandlimit [Ferdaus et al., 2025]. Variants address specific failure modes: F-FNO [Tran et al., 2023] factorizes 2D spectral convolutions for memory; U-FNO [Wen et al., 2022] adds a U-Net hierarchy on top; U-NO [Rahman et al., 2023] extends with multi-resolution spectral mixing; LSM [Wu et al., 2023] learns a basis; MWT [Gupta et al., 2021] uses multi-wavelets. SpectraNet inherits the FNO spectral convolution but adds (a) the Residual-Target Spectral Block (Section 4.4) and (b) the Semigroup-Consistency Loss (Section 4.5). U-FNO/U-NO add the hierarchy but neither has a residual-target rollout or a multi-step training objective; both inherit the direct-prediction LT stability blow-up of Theorem 1(i). 
+
+Transformer operators. Galerkin [Cao, 2021], FactFormer [Li et al., 2023b], OFormer [Li et al., 2023a], Transolver [Wu et al., 2024a], GNOT [Hao et al., 2023] all replace the spectral mixer with sub-
+
+O(N 2) approximate attention. Only the NSL Transformer [Wu et al., 2024b] retains exact softmax and clears FNO at 64 2 — a resolution-dependent result documented in Section D. Proposition 2 predicts these transformers’ parameter cost grows polynomially with grid resolution, borne out by their 39 –277 M counts (Table 3). 2Other regular-grid operators. CNO [Raonic et al., 2023], KNO [Xiong et al., 2024], and ONO [Xiao et al., 2024] round out the class. We exclude graph operators (GINO, MP-PDE) and foundation models (Poseidon, DPOT) as out-of-scope. 
+
+Stability of autoregressive operators. Long-horizon stability has been analyzed via spectral norms [Kovachki et al., 2023], dissipation matching [Lippe et al., 2023], and physics-informed regularizers [Wang et al., 2021]. Lippe et al. [2023] relate rollout instability to the operator’s one-step Lipschitz constant; we adapt this view in Lemma 1 to contrast direct vs residual-target prediction. 
+
+Residual-target rollout and multi-step training. Residual-target prediction ( f = id + ∆ θ ) is a classical identity prior [He et al., 2016] and has been used in autoregressive PDE surrogates before: Brandstetter et al. [2022] adopt the difference parametrization in MP-PDE on graphs, and Lippe et al. [2023] place a denoising correction on top of one-step prediction. The linear-drift observation in Lemma 1(b) is the standard residual-network fact and is not new on its own Pokhrel et al. [2020]. Multi-step / pushforward training objectives that tie composed predictions to multi-step ground truth also have prior instances — the pushforward trick in Brandstetter et al. [2022] and the iterative refinement of Lippe et al. [2023] are close cousins of our two-step Semigroup-Consistency Loss. Our contribution is the specific combination: residual-target rollout embedded in a truncated-spectral U-Net, trained with the two-step semigroup penalty, evaluated under a unified protocol against 
+
+17 baselines, with δ and bL measured on the same benchmark (Table 8 and section 7.3) against a direct-prediction baseline that catastrophically diverges at the same resolution. 
+
+## 3 Problem Formulation 
+
+Let Φ∆t : Hs(Ω) → Hs(Ω) be the time-∆t flow of a PDE on a spatial domain Ω. We seek a parametric neural operator fθ : RH×W ×Tin → RH×W that approximates the one-step flow on a discretization: given a sliding input window of Tin =10 past frames, fθ predicts the next frame. At test time fθ is applied autoregressively to produce a free rollout of horizon Tout =10 frames. Training minimizes the per-sample relative L2 loss LL2 (bω, ω ) = ∥bω − ω∥2/∥ω∥2 with single-step teacher forcing; the headline metric is the joint trajectory relative L2 over all Tout test frames stacked. 
+
+Rollout-error decomposition. Let E(T ) = Eω0 [∥f Tθ (ω0) − ΦT (ω0)∥] be the expected T -step rollout error. Standard arguments [Kovachki et al., 2023, Lippe et al., 2023] decompose 
+
+E(T ) = Eapprox (T )
+
+| {z }
+
+> representation gap
+
++ Estab (T )
+
+| {z }
+
+> rollout amplification
+
+. (1) Theorem 1 formalizes how SpectraNet controls both terms simultaneously. 
+
+Desiderata. A regular-grid neural operator that aims to be Pareto-dominant across cost, accuracy, and rollout horizon should satisfy: (D1) resolution-aware approximation — Eapprox depends on smoothness and truncation budget but not on grid N ; (D2) bounded long-horizon drift — Estab (T )
+
+grows at most linearly in T , ruling out architectures with LT blow-up; (D3) parameter efficiency — the spatial mixer’s parameter count is bounded as N → ∞ ; (D4) multi-scale detail capture beyond a flat band-limit M . Section 4 shows that combining a U-Net hierarchy (D4) with truncated spectral convolutions (D1, D3) and a Residual-Target Spectral Block (D2) satisfies all four, and Section 5 proves D2 (Theorem 1) and D3 (Proposition 2). 
+
+## 4 The SpectraNet Architecture 
+
+4.1 Overview and named modules Base operator. SpectraNet is a parametric map fθ : RH×W ×Tin → RH×W that maps a Tin =10 -frame window of vorticity to the next frame; the full Tout =10 trajectory is produced by autoregressive rollout. The network combines a spectral path (truncated Fourier convolutions) with a U-Net encoder–decoder backbone (additive skips) and a residual-target output layer; layer-by-layer pseudocode and parameter counts are in Section B. SpectraNet introduces two named building blocks: the Residual-Target Spectral Block (Section 4.4) and the Semigroup-Consistency Loss (Section 4.5); the output of the final decoder level is mapped to the predicted vorticity by a two-layer 1×1 MLP head (Section 4.3). 3Initial 
+
+> 10 time steps
+
+. . .   
+
+> 0 1 . . . 8 9 7
+
+. . .   
+
+> 0 1 . . . 10 11 9
+
+. . .     
+
+> 0 1 . . . . . 32
+> 0 1 . . . . . . 64
+
+. . .   
+
+> 0 1 . . . . . . . 128
+
+. . .   
+
+> 0 1 . . . . . . . 128
+
+. . .   
+
+> 0 1 . . . . . . . 128
+
+. . .   
+
+> 0 1 . . . . . . . 128
+
+. . .   
+
+> 0 1 . . . . . . 64
+
+. . . 
+
+. . .   
+
+> 0 1 . . . . . 32
+> Output
+> +
+> +
+> +
+> +
+> grid coordinate addition
+> linear projection
+> encoder block
+> bottleneck
+> decoder block
+> multilayer perceptron
+
+Encoder Decoder   
+
+> Remove
+> from input
+> Add at the end of the input (Rollout)
+> =+
+
+Figure 1: SpectraNet architecture. Input (B, 64 , 64 , 10) + (x, y )-grid is lifted to w=32 channels; a three-level encoder at truncations Mℓ ∈ { 12 , 6, 3} feeds a single-block bottleneck ( M3=1 ); a mirrored decoder upsamples with additive skips ( ⊕); a two-layer 1×1 MLP head (hidden 4w, GeLU) emits residual ∆θ , summed with ωt to recover bωt+1 (Theorem 1). 
+
+4.2 Encoder–bottleneck–decoder backbone Spectral block. Each level ℓ takes a feature map xℓ ∈ RHℓ×Wℓ×Cℓ and applies a parallel spectral path and channel-mixing path: 
+
+yℓ = GeLU 
+
+
+
+Spec Mℓ (xℓ) + MLP 1×1(xℓ) + Conv 1×1(xℓ)
+
+
+
+, (2) where Spec Mℓ is a truncated spectral convolution at radius Mℓ, implemented via the Fast Fourier Transform (FFT), with Mℓ Fourier modes retained per axis (Section B.4); MLP 1×1 is a two-layer pointwise multi-layer perceptron (MLP) with the GeLU non-linearity; and Conv 1×1 is a residual identity branch. Encoder steps follow each block by 2× average-pool down-sampling and a 1×1
+
+projection that doubles the channel count up to a cap 4w. Spectral truncation halves at each level, 
+
+Mℓ = min( ⌊M/ 2ℓ⌋, H ℓ/2) , capped at the level Nyquist; at the headline ( w=32 , M =12 , L=3 ) this gives Mℓ ∈ { 12 , 6, 3, 1} and the encoder/decoder shapes shown in Figure 1. The bottleneck applies Equation (2) once at (8 , 8, 4w) with no down/up-sampling and no attention. Each decoder step bilinearly upsamples, projects channels with a 1×1 conv, merges the encoder skip additively ( ⊕), and applies Equation (2). 
+
+4.3 Output projection Two-layer 1×1 MLP head. The final decoder feature map z ∈ R64 ×64 ×w is mapped to the raw prediction by bω raw 
+
+t+1 = W2 GeLU( W1 z) with W1 ∈ R4w×w, W2 ∈ R1×4w (Section B); at w=32 this is ≈ 4.2 K parameters ( ≈ 0.2% of the total). Two decorated alternatives — a multi-resolution head combining three per-level predictions via a learned softmax weighting, and an efficient KAN layer in place of W2 — are tested in the output-head ablation (Section 8.2); neither improves accuracy and both are excluded to keep the parameter count and the named-component list minimal. 44.4 Residual-Target Spectral Block The central design choice. SpectraNet does not predict ωt+1 directly: the network’s raw output is the per-step residual ∆t = ωt+1 −ωt, and the integrated prediction is 
+
+bωt+1 = ωt + fθ
+
+ ωt−Tin +1: t
+
+, fθ = id + ∆ θ . (3) Training loss is per-sample relative L2 on the raw residual, not on the integrated prediction. This is the analogue of ResNet’s identity-preconditioning [He et al., 2016] for spectral PDE operators. Theorem 1(i) shows it replaces the LT stability blow-up of direct-prediction operators with a linear-in-T drift. At test time we use free rollout (no teacher forcing); we do not employ scheduled sampling. 
+
+4.5 Semigroup-Consistency Loss Trajectory-level penalty on the operator semigroup. In addition to the per-step residual loss, we add a λ-weighted penalty tying two single-step applications to the two-step ground truth: 
+
+Ltrain = LL2 (bω raw 
+
+> t+1
+
+, ∆t) + λ LL2
+
+ fθ ◦fθ (ωt−Tin +1: t), ω t+2 
+
+, (4) with λ = 0 .1. The penalty enforces the discrete operator-semigroup identity Φ2∆ t = Φ ∆t ◦Φ∆t at training time. There is no inference-time penalty: rollout is the same single-step AR loop. Empirically (Section 8) this term contributes −0.0029 in trajectory L2 at no inference cost; Remark 1 explains why the improvement is invisible to the empirical Lipschitz constant. 
+
+## 5 Stability and Resolution Invariance 
+
+We prove two structural properties that distinguish SpectraNet from prior families. Theorem 1 bounds rollout error termwise via Equation (1); Proposition 2 bounds parameter cost independently of grid. The component bounds (Lemma 1 and proposition 1) and all proofs are in Section A. 
+
+Theorem 1 (Approximation–Stability decomposition) . Let fθ approximate the time-∆t flow Φ of an autonomous PDE on a compact set K ⊂ Hs(T2). Then SpectraNet’s design choices control the two terms in Equation (1) separately: (i) for direct prediction with one-step Lipschitz constant 
+
+L, Estab (T ) = O(LT ε0); for SpectraNet’s residual-target parametrization fθ = id + ∆ θ with 
+
+δ = sup K ∥∆θ ∥, Estab (T ) = O(T δ ) (Lemma 1). (ii) Under spectral truncation at radius M , Eapprox 
+
+is bounded by the band-limited tail ∥ω − PM ω∥Hs , independent of grid N ≥ 2M (Proposition 1). Consequently, 
+
+E(T ) ≤ C(s, M ) ∥ω − PM ω∥Hs + T δ, (5) 
+
+replacing the LT blow-up of direct-prediction operators with linear drift. 
+
+Lemma 1 (Linear vs exponential rollout drift) . Let f : RN → RN approximate Φ on K. (a) If 
+
+sup ∥f (u) − Φ( u)∥ ≤ ε0 and f is L-Lipschitz, then for L̸ = 1 the T -step error is bounded by 
+
+∥f T (u0) − ΦT (u0)∥ ≤ ε0(LT −1) /(L−1) , exponential for L > 1. (b) If f (u) = u + ∆( u) with 
+
+sup ∥∆( u)∥ ≤ δ, then ∥f T (u0) − u0∥ ≤ T δ .
+
+Proposition 1 (Resolution invariance of the spectral mixer) . The spectral conv layer f spec  
+
+> M
+
+at truncation M acts identically on rfft coefficients inside the disk ∥k∥ ≤ M at any two grid resolutions 
+
+N1, N 2 ≥ 2M of the same continuous initial condition. The band-limited contribution to the layer’s output is resolution-invariant up to bandlimit-aliasing residual O(N −1min ).
+
+Proposition 2 (Parameter efficiency of SpectraNet’s spectral path) . At width w, depth L, truncation 
+
+M , grid N : PSpectraNet (w, L, M, N ) = Θ( L · w2 · M 2), independent of N . Full self-attention has parameter count Θ( Lw 2) in projections plus Θ( N 2) memory and compute per layer for the attention matrix itself; standard convolution at kernel k matching the spectral mixer’s global reach requires 
+
+L ∼ N/k stacked layers, yielding Θ( w2N k ) parameters. SpectraNet shares the N -independent parameter count with the FNO family — both are spectral operators with the same Fourier-mode budget — and inherits the N -independence from this lineage; the proposition isolates this shared property in contrast to attention and convolution-only mixers, not as a property unique to SpectraNet. 
+
+Empirical anchor. The empirical Lipschitz constant bL estimated via Gaussian perturbations of size 10 −3 is reported in Table 8 (Section C). FNO has bL(T =1) ≈ 1.84 ; Lemma 1(a) is a worst-case 5bound predicting LT -style amplification, qualitatively consistent with the catastrophic divergence observed in Section 7.3 (we do not claim the worst-case bound is tight). SpectraNet has δ ≈ 0.026 ∥ω∥
+
+measured along training trajectories; (b) gives cumulative drift ≤ T δ if ∥∆θ ∥ remains bounded along the rollout, with observed ≈ 4.8× energy growth at T =100 . SpectraNet’s own bL ∈ [8 , 11] in this probe is larger than FNO’s; most of that is the additive identity in f = id + ∆ θ , which inflates the local gradient probe near typical inputs. 
+
+Remark 1. Lemma 1(b) bounds Estab via δ = sup K ∥∆θ ∥ conditional on the rollout trajectory remaining in the compact set K on which δ is taken . We do not prove this in-distribution property; we verify it empirically by running free rollout to T =100 (10 × the training horizon) and confirming SpectraNet’s energy remains bounded across all 200 test trajectories (Section 7.3). The Semigroup-Consistency Loss penalizes a trajectory-level deviation, not sup ∥∇ fθ ∥; we observe bL unchanged by this loss (Table 8). More generally, for residual-target operators f = id + ∆ θ a local-gradient probe like bL is inflated by the identity branch and is not the relevant stability quantity; the relevant quantity is the trajectory-uniform residual bound δ. We report bL in Table 8 as the load-bearing diagnostic for the direct-prediction baselines (FNO and the NSL Transformer) and as a sanity diagnostic for SpectraNet. 
+
+## 6 Experimental Setup 
+
+Datasets. Headline benchmark: Navier–Stokes (NS) vorticity at viscosity ν = 10 −5, the 64 ×64 
+
+dataset NavierStokes V1e-5 N1200 T20.mat [Li et al., 2021] ( 1200 trajectories, 20 time steps; the operator-learning task is to predict an output horizon of Tout =10 frames from an input win-dow of Tin =10 past frames). Cross-PDE evaluation uses NS at ν=10 −3, 10 −4 [Li et al., 2021], PDEBench Shallow-Water 2D and Diffusion-Reaction [Takamoto et al., 2022], and The Well Active-Matter [Ohana et al., 2024]. The native-128 2 resolution experiment uses a 128 ×128 NS ν=10 −5
+
+dataset that we generated in-house following the same vorticity-form pseudo-spectral protocol used by Li et al. [2021] for the public 64 2 release ( 2/3 dealiasing, Crank–Nicolson on the linear part, explicit Euler on the nonlinear advection); the generator is released alongside the code (Section H). Both architectures are then trained from scratch on the 128 2 dataset under the unified protocol. 
+
+Unified protocol. All models are trained under a single protocol: an 850 /150 /200 
+
+train/validation/test split; the AdamW optimizer [Loshchilov and Hutter, 2019] with weight decay 
+
+10 −5; the OneCycleLR learning-rate schedule [Smith and Topin, 2019] with a model-specific peak rate taken from each source paper; 500 training epochs; the per-sample relative L2 loss ∥bω − ω∥2/∥ω∥2
+
+(the standard normalized error metric for neural-operator benchmarks); and random seed 0 unless stated otherwise. Test evaluation is autoregressive free rollout (no teacher forcing). Per-model architectural hyperparameters follow each source paper’s ν=10 −5 default. This is internally fair but does not reproduce paper-default numbers (Section 10). 
+
+Baselines. The full leaderboard of seventeen published neural-operator baselines is run only on the headline NS ν=10 −5 benchmark: spectral (FNO [Li et al., 2021], F-FNO [Tran et al., 2023], U-FNO [Wen et al., 2022], U-NO [Rahman et al., 2023], MWT [Gupta et al., 2021], LSM [Wu et al., 2023], KNO [Xiong et al., 2024]); transformer (NSL Transformer [Wu et al., 2024b], Galerkin [Cao, 2021], OFormer [Li et al., 2023a], Transolver [Wu et al., 2024a], GNOT [Hao et al., 2023], Fact-Former [Li et al., 2023b]); U-Net/conv (NSL U-Net [Wu et al., 2024b], CNO [Raonic et al., 2023]); other (ONO [Xiao et al., 2024]). On the five remaining PDE settings (NS ν ∈ { 10 −4, 10 −3},Shallow-Water 2D, Diffusion-Reaction, Active-Matter) we report SpectraNet head-to-head against the canonical FNO; SpectraNet runs at 2.04 –2.12 M parameters vs FNO’s 4.75 M, so the comparison is at ∼ 2.33 × smaller SpectraNet parameter count, not at matched budget. Expanding the full 
+
+17 -baseline leaderboard — in particular running the closer architectural foils U-FNO and U-NO — across all six PDEs was infeasible within the compute envelope of this work; we treat this as a limitation (Section 10). FNO is reported at two seeds on the headline NS ν=10 −5 row; SpectraNet at two seeds for the headline; both architectures are single-seed on the five remaining PDE rows. A persistence baseline anchors the trivial floor. 
+
+Metrics. Joint trajectory relative L2 over the 200 -sample test set with all Tout =10 steps stacked; parameter count P 
+
+> p
+
+p.numel() (PyTorch convention); inference latency measured at batch sizes 
+
+B ∈ { 1, 32 } on a single NVIDIA H100 (80 GB) GPU and on a consumer Intel i5-1155G7 CPU (single-thread); see Section 9. 6Params NS NS NS Shallow PDEBench TheWell Architecture ν=10 −5 ν=10 −3 ν=10 −4 Water 2D DR AM                                 
+
+> FNO [Li et al., 2021] 4.75 M0.1024 0.0023 0.02307 0.0015 0.0341 0.00149
+> SpectraNet 2.04 M0.0822 0.0011 0.01521 0.0012 0.0201 0.00170
+> Param ratio 2.33 ×fewer ——————
+> Accuracy gain —1.25 ×2.09 ×1.52 ×1.25 ×1.70 ×(FNO, 1.13 ×)
+
+Table 1: Headline per-PDE comparison. Test relative L2 for SpectraNet (ours, 2.04 M params) and canonical FNO ( 4.75 M params) across six PDE benchmarks under the unified protocol of Section 6. SpectraNet wins five of the six rows at 2.33 × fewer parameters; FNO wins the TheWell Active-Matter row by ∼ 13% in a 135 -trajectory small-data regime where the rollout-error penalty’s contribution is structurally suppressed (Section G). Best in bold per row. The NS ν=10 −5 entry is the canonical SpectraNet (two-layer 1×1 MLP output head) at seed 0; the multi-seed and head-decoration sensitivity for this operating point are in Section C.7 ( σ ≤ 0.0001 ). The remaining five PDE rows used checkpoints with the more decorated multi-resolution + KAN output head ( 2.12 M params); the output-head decoration ablation in Section 8.2 shows that decoration is statistically indistinguishable from the canonical two-layer MLP head at the headline operating point. 
+
+## 7 Results 
+
+7.1 Headline cross-PDE comparison Five wins out of six against FNO at smaller parameter count. Table 1 reports SpectraNet ( 2.04 –
+
+2.12 M parameters) vs canonical FNO ( 4.75 M parameters) across six PDE benchmarks under the unified protocol. SpectraNet wins five of six rows — NS at ν ∈ { 10 −5, 10 −4, 10 −3}, PDEBench Shallow-Water 2D, and PDEBench Diffusion-Reaction — at ∼ 2.33 × smaller parameter count. Accuracy gain ranges from 1.25 × on the smoothest regime to 2.09 × on chaotic NS ν=10 −3. The single FNO win is on TheWell Active-Matter, a small ( 135 -trajectory) single-seed setting where both architectures are within the FNO seed-spread observed at NS ν=10 −5 (σ = 0 .0032 ); we therefore do not claim a directional architectural difference on this row (Section G). The headline NS row is multi-seed; the remaining five PDE rows are single-seed within the submission window and should be read as point estimates. 
+
+7.2 Pareto frontier on NS ν=10 −5
+
+SpectraNet occupies the lower-left frontier. Figure 2 plots (L2, params ) and 
+
+(L2, H100 latency at B=1) for the full 17 -baseline leaderboard (Table 3). SpectraNet sits at 
+
+(0 .0822 , 2.04 M, 32 .8 ms ); competing models lie strictly above-and-right on the lightweight frontier. Five of the six lightweight Pareto-frontier points are SpectraNet variants from this work; the remaining frontier point is MWT at 76 K parameters and L2 = 0 .1944 . SpectraNet strictly dominates the five U-Net-/transformer-class baselines with width > 5 M parameters on both axes simultaneously. The full-attention NSL Transformer at (0 .0284 , 4.38 M, 107 .4 ms ) wins raw L2 but pays 3.3× GPU latency at B=1 , 75 × at training-batch B=32 , and ∼ 60 × on consumer CPU (Section 9). 
+
+7.3 Long-horizon free rollout: linear vs exponential drift SpectraNet stays bounded for 10 × the training horizon; FNO catastrophically diverges. Figure 3 reports a free rollout to T =100 . FNO diverges between T =20 and T =50 (rollout energy 6.7 → 3.6×
+
+10 7, 200 /200 test trajectories NaN by T =50 ). SpectraNet stays bounded for the full T =100 horizon — the empirical signature of Theorem 1: FNO has bL(T =1) ≈ 1.84 > 1 (Table 8, exponential growth); SpectraNet’s residual-target parametrization has bounded per-step residual δ ≈ 0.026 ∥ω∥ (linear drift). The full-attention Transformer is also bounded but in a qualitatively different (compressing) regime. 710 5 10 6 10 7 10 8
+
+Parameter count (log scale) 
+
+0.00 
+
+0.05 
+
+0.10 
+
+0.15 
+
+0.20 
+
+0.25 
+
+0.30 
+
+0.35 
+
+0.40 
+
+> Test relative  L2
+> SpectraNet (ours, headline)
+> SpectraNet (ours), w=20 plain
+> Transformer (NSL, full softmax)
+> Galerkin Transformer
+> FNO seed 0
+> U-Net (NSL)
+> MWT
+> ONO
+
+Pareto frontier NS = 10 5, 64×64, unified protocol 
+
+> Baselines (15 models)
+> SpectraNet variants (ours)
+> NSL Transformer (full softmax)
+> Pareto frontier (lightweight)
+
+Figure 2: SpectraNet on the cost–accuracy Pareto frontier (NS ν=10 −5, 64 ×64 ). SpectraNet (red) occupies the lower-left frontier on (L2, params ) and (L2, H100 latency at B=1) . Five of six lightweight Pareto-frontier points are SpectraNet variants. The full-attention NSL Transformer (green star) wins raw L2 at 3.3× the GPU latency at B=1 and 75 × at B=32 .10 20 50 100       
+
+> Rollout step T
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0
+> Blow-up fraction (of 200 test trajectories)
+> (a) Fraction of test trajectories that diverge by step T
+> SpectraNet (ours)
+> SpectraNet w=48 plain (ours)
+> FNO (NSL baseline)
+> Transformer (NSL baseline)
+> 10 20 50 100
+> Rollout step T
+> 10 2
+> 10 6
+> 10 10
+> 10 14
+> 10 18
+> 10 22
+> 10 26
+> mean energy  2
+> T
+> FNO: 200/200 trajectories blow up
+> (b) Vorticity energy vs T (log-y) FNO diverges at T 50
+> SpectraNet (ours)
+> SpectraNet w=48 plain (ours)
+> FNO (NSL baseline)
+> Transformer (NSL baseline)
+
+Figure 3: Free-rollout behavior beyond the training horizon. Free rollout to T =100 for Spec-traNet, the SpectraNet w=48 plain ablation, FNO, and the NSL Transformer ( 200 NS ν=10 −5 test trajectories). (a) Fraction of the 200 test trajectories that have diverged (NaN or vorticity energy past the blow-up threshold) by step T . SpectraNet variants and the Transformer remain at 0.0 throughout; FNO jumps to 1.0 between T =20 and T =50 . (b) Mean vorticity energy ⟨ω2
+
+T ⟩ vs T (log scale); the FNO blow-up signature is the explosive rise from ∼ 10 1 at T =20 to ∼ 10 27 by T =100 (red ×
+
+markers indicate the time steps at which the blow-up fraction reaches 1.00 ). 
+
+7.4 Resolution invariance: native-128 2 training under the unified protocol SpectraNet improves at higher resolution; FNO regresses 3× under the same protocol. Proposi-tions 1 and 2 predict that SpectraNet should train cleanly at higher grids without parameter blow-up. Training both architectures from scratch on 128 ×128 NS ν=10 −5 under the unified protocol: FNO degrades from L2=0 .1024 at 64 2 to 0.3080 at 128 2 (3× worse, train/val gap 7.5× wider); SpectraNet 
+
+improves from 0.0822 to 0.0724 (∼ 12% lower). Multi-seed sanity and training dynamics are in Sections C and C.7. 
+
+Caveat: protocol fairness at 128 2. The unified protocol (peak LR 10 −3, 500 epochs, M =12 
+
+modes, batch size 10 ) is held fixed across resolutions. We did not run a per-architecture per-resolution 8hyperparameter sweep at 128 2 within the submission window, so part of the FNO degradation likely reflects a suboptimal operating point for FNO at 128 2 rather than an irrecoverable architectural limitation. The interpretable claim is that under the same protocol used to train SpectraNet, FNO does not transfer cleanly from 64 2 to 128 2 while SpectraNet does; we do not claim FNO cannot be tuned to a stronger 128 2 number. The 128 2 dataset is generated in-house with the same vorticity-form pseudo-spectral solver Li et al. [2021] use for the public 64 2 release (Section H, generator released with the code). We therefore present this as evidence for the resolution-aware design choice and a starting point for future tuning studies, not as a sharp architectural ranking; the headline cross-condition claim is the unified-protocol result, not a “ 4.25 × gap.” 
+
+## 8 Ablations 
+
+8.1 From canonical FNO to SpectraNet: incremental ablation One ingredient at a time. Table 7 (Section C.5) traces the path from the canonical FNO baseline (4.75 M params, L2=0 .1024 ) to the canonical SpectraNet operating point ( 2.04 M, L2=0 .0822 ), applying one architectural or training change per row: + U-Net hierarchy ( −0.0083 ), + width 
+
+w=32 (−0.0090 ), + Residual-Target Block ( −0.0015 ), + Semigroup-Consistency Loss ( −0.0015 ), 
+
+− decorative multi-resolution + KAN head ( +0 .0001 , −80 K params). The two SpectraNet-specific ingredients each contribute ≈ 2% at no parameter cost. 
+
+8.2 Knock-out micro-experiments Stacked on the residual-target baseline. Table 5 (Section C.3) reports six micro-experiments stacked on the SpectraNet w=32 baseline without the Semigroup-Consistency Loss ( L2=0 .0836 ). Headlines: 
+
+(i) Mode count M ∈ { 12 , 16 , 20 } gives L2 = 0 .0836 , 0.0792 , 0.0787 — monotonic improvement at steep parameter cost ( 2.12 → 3.60 → 5.37 M), selecting M =12 for the lightweight headline and 
+
+M =16 as an accuracy-first Pareto alternative. (ii) Disk truncation (SO(2)-isotropic disk vs box) regresses L2 to 0.0893 at matched M =12 ; we retain the isotropy reasoning for Proposition 1 but cut the disk variant. (iii) Grouped MLP and learnable spectral envelope each yield small ( +0 .0013 
+
+to +0 .0018 ) L2 regressions for marginal parameter reductions; neither is Pareto. (iv) Semigroup-Consistency Loss (λ=0 .1) is the single largest single-knob improvement: −0.0015 in L2 at zero parameter or inference cost. Remark 1 explains why the penalty does not reduce the empirical 
+
+bL; the contribution scales with rollout chaos and shrinks to 0.00004 at ν=10 −4 (Section G). (v) Output-head decoration (multi-resolution head + KAN layer [Liu et al., 2024]) reaches L2=0 .0821 
+
+at 2.12 M params vs canonical 0.0822 at 2.04 M — a 0.0001 difference inside the two-seed noise floor ( σ = 0 .0001 , Section C.7). We keep the simpler MLP head as canonical. (vi) Width and 2D-vs-3D mixing. The width sweep w ∈ { 20 , 32 , 48 , 64 } on the plain backbone selects w=32 
+
+as Pareto-optimal ( L2=0 .0851 ); a 3D-spectral variant pays a 10 × parameter penalty without an accuracy gain (Section C.2). 
+
+## 9 Inference Cost 
+
+Sub-200 ms on consumer CPU; the Transformer crown collapses. Figure 4 plots the Pareto frontier with median CPU latency at B=1 (Intel i5-1155G7, single thread). SpectraNet sits at 
+
+174 ms /sample; the full-attention NSL Transformer that wins raw L2 takes 10 .3 s/sample ( ∼ 60 ×
+
+slower, incompatible with edge deployment). On H100 at B=1 , SpectraNet takes 32 .8 ms vs 13 .4 ms for FNO and 107 .4 ms for the Transformer; at B=32 , SpectraNet amortizes to 1.29 ms /sample vs 
+
+0.57 for FNO and 96 .8 for the Transformer ( 75 × SpectraNet’s cost, consistent with the Θ( w2N 2)
+
+attention bound in Proposition 2(a)). Methodology and per-model breakdowns are in Sections E and E.10. 
+
+## 10 Discussion 
+
+Summary. Under a unified protocol SpectraNet beats FNO on five of six PDE benchmarks at 2.33 ×
+
+smaller parameter count, stays bounded under free rollout to T =100 where FNO catastrophically diverges, and runs sub-200 ms at B=1 on consumer CPU. We do not beat the full-attention NSL 910 2 10 3 10 4     
+
+> CPU latency at B= 1 (ms, log scale; i5-1155G7)
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> Test relative  L2
+> FNO
+> MWT
+> ONO
+> SpectraNet (w=20)
+> SpectraNet (w=32 (canonical))
+> Transformer
+> U_Net
+> CPU deployment Pareto NS = 10 5, 64×64
+> Baselines
+> SpectraNet variants (ours)
+> NSL Transformer (full softmax)
+> Pareto frontier (excl. Transformer)
+
+Figure 4: CPU deployment Pareto frontier. SpectraNet (red) and width-scaling variants occupy the lightweight CPU frontier; the NSL Transformer’s ∼ 10 s per sample rules it out for edge or interactive use. Median over 50 batches on Intel i5-1155G7, single-thread, B=1 .Transformer on raw L2 at 64 2; the contribution is on the lightweight ( ≤ 5 M parameter, sub-200 ms CPU) Pareto frontier. 
+
+Limitations. The headline NS ν=10 −5 row is n=2 seeds; the five cross-PDE rows and the 128 2
+
+comparison are single-seed (Table 9). The unified protocol is held fixed across resolutions and architectures, so the FNO degradation at 128 2 likely mixes a suboptimal FNO operating point with any architectural effect (Section 7.4); the in-house 128 2 dataset uses the same pseudo-spectral solver as Li et al. [2021] (generator released). The cross-PDE comparator is only canonical FNO — the closer foils U-FNO and U-NO are run on the headline leaderboard but not on the cross-PDE rows. Theorem 1’s linear-drift bound is conditional on the rollout remaining in K; we verify this through T =100 but do not prove it (Remark 1). Active-Matter ( 135 trajectories, single-seed) goes to FNO by ∼ 13% , inside the FNO seed-spread at ν=10 −5. Finally, residual-target rollout and multi-step training have prior PDE-surrogate instances (Section 2); the contribution is their combination plus the unified-protocol evaluation. Future work: 3D volumes, irregular geometries, higher-order semigroup-consistency, and a per-architecture per-resolution tuning study at 128 2/256 2. Broader impact: Section I. 
+
+## References 
+
+Johannes Brandstetter, Daniel E. Worrall, and Max Welling. Message passing neural PDE solvers. In 
+
+International Conference on Learning Representations (ICLR) , 2022. Shuhao Cao. Choose a transformer: Fourier or galerkin. NeurIPS , 2021. Md Meftahul Ferdaus, Nathan Alton Cooper, Austin B Schmidt, Pujan Pokhrel, Elias Ioup, Mahdi Abdelguerfi, and Julian Simeonov. A comprehensive review of phase-averaged and phase-resolving wave models for coastal modeling applications. arXiv preprint arXiv:2511.21856 , 2025. Gaurav Gupta, Xiongye Xiao, and Paul Bogdan. Multiwavelet-based operator learning for differential equations. NeurIPS , 2021. Zhongkai Hao, Zhengyi Wang, Hang Su, Chengyang Ying, Yinpeng Dong, Songming Liu, Ze Cheng, Jian Song, and Jun Zhu. Gnot: A general neural operator transformer for operator learning. ICML ,2023. Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. CVPR , 2016. 10 Nikola Kovachki, Zongyi Li, Burigede Liu, Kamyar Azizzadenesheli, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Neural operator: Learning maps between function spaces. JMLR ,2023. Zijie Li, Kazem Meidani, and Amir Barati Farimani. Transformer for partial differential equations’ operator learning. TMLR , 2023a. Zijie Li, Dule Shu, and Amir Barati Farimani. Scalable transformer for pde surrogate modeling. 
+
+NeurIPS , 2023b. Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations. 
+
+ICLR , 2021. Phillip Lippe, Bastiaan S. Veeling, Paris Perdikaris, Richard E. Turner, and Johannes Brandstetter. Pde-refiner: Achieving accurate long rollouts with neural pde solvers. NeurIPS , 2023. Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle, James Halverson, Marin Solja ˇci ´c, Thomas Y. Hou, and Max Tegmark. Kan: Kolmogorov-arnold networks. arXiv preprint arXiv:2404.19756 , 2024. Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. In International Confer-ence on Learning Representations (ICLR) , 2019. Ruben Ohana, Michael McCabe, Lucas Meyer, Rudy Morel, Fruzsina J. Agocs, Miguel Beneitez, Marsha Berger, Blakesley Burkhart, Stuart B. Dalziel, Drummond B. Fielding, Daniel Fortunato, Jared A. Goldberg, Keiya Hirashima, Yan-Fei Jiang, Rich R. Kerswell, Suryanarayana Maddu, Jonah Miller, Payel Mukhopadhyay, Stefan S. Nixon, Jeff Shen, Romain Watteaux, Bruno R ´egaldo-Saint Blancard, Fran c¸ ois Rozet, Liam H. Parker, Miles Cranmer, and Shirley Ho. The Well: a large-scale collection of diverse physics simulations for machine learning. In Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track , 2024. Pujan Pokhrel, Elias Ioup, Md Tamjidul Hoque, Mahdi Abdelguerfi, and Julian Simeonov. Forecasting rogue waves in oceanic waters. In 2020 19th IEEE International Conference on Machine Learning and Applications (ICMLA) , pages 634–640. IEEE, 2020. Md Ashiqur Rahman, Zachary E. Ross, and Kamyar Azizzadenesheli. U-no: U-shaped neural operators. TMLR , 2023. Bogdan Raonic, Roberto Molinaro, Tim De Ryck, Tobias Rohner, Francesca Bartolucci, Rima Alaifari, Siddhartha Mishra, and Emmanuel de Bezenac. Convolutional neural operators for robust and accurate learning of pdes. NeurIPS , 2023. Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks for biomedical image segmentation. In Medical Image Computing and Computer-Assisted Intervention (MICCAI) ,2015. Austin B Schmidt, Pujan Pokhrel, Elias Ioup, David Dobson, and Mahdi Abdelguerfi. An algorithm for modelling differential processes utilising a ratio-coupled loss. Quarterly Journal of the Royal Meteorological Society , page e70078, 2026. Leslie N. Smith and Nicholay Topin. Super-convergence: Very fast training of neural networks using large learning rates. In SPIE Defense + Commercial Sensing: Artificial Intelligence and Machine Learning for Multi-Domain Operations Applications , 2019. Makoto Takamoto, Timothy Praditia, Raphael Leiteritz, Daniel MacKinlay, Francesco Alesiani, Dirk Pfl ¨uger, and Mathias Niepert. PDEBench: An extensive benchmark for scientific machine learning. In Advances in Neural Information Processing Systems Datasets and Benchmarks Track , 2022. Alasdair Tran, Alexander Mathews, Lexing Xie, and Cheng Soon Ong. Factorized fourier neural operators. ICLR , 2023. Sifan Wang, Hanwen Wang, and Paris Perdikaris. Learning the solution operator of parametric partial differential equations with physics-informed deeponets. Science Advances , 2021. 11 Gege Wen, Zongyi Li, Kamyar Azizzadenesheli, Anima Anandkumar, and Sally Benson. U-fno: An enhanced fourier neural operator-based deep-learning model for multiphase flow. Advances in Water Resources , 2022. Haixu Wu, Tengge Hu, Huakun Luo, Jianmin Wang, and Mingsheng Long. Solving high-dimensional pdes with latent spectral models. ICML , 2023. Haixu Wu, Huakun Luo, Haowen Wang, Jianmin Wang, and Mingsheng Long. Transolver: A fast transformer solver for pdes on general geometries. ICML , 2024a. Haixu Wu et al. Neural-solver-library: A library for advanced neural PDE solvers. Software, GitHub repository, 2024b. https://github.com/thuml/Neural-Solver-Library .Zipeng Xiao et al. Improved operator learning by orthogonal attention. ICML , 2024. Wei Xiong, Xiaomeng Huang, Ziyang Zhang, Ruixuan Deng, Pei Sun, and Yang Tian. Koopman neural operator as a mesh-free solver of non-linear pdes. Journal of Computational Physics , 2024. 
+
+## A Proofs of Theorem 1, Lemma 1, and Propositions 1, 2 
+
+Proof of Lemma 1. (a) Direct prediction. Let et = f t(u0) − Φt(u0). The recursion f t −Φt =(f − Φ) ◦ Φt−1 + f ◦ (f t−1 − Φt−1) gives ∥et∥ ≤ ε0 + L∥et−1∥. Telescoping yields ∥eT ∥ ≤ 
+
+ε0(1 + L + L2 + · · · + LT −1) = ε0(LT −1) /(L−1) for L̸ = 1 , exponential in T for L > 1. (b) Residual-target prediction. If f (u) = u + ∆( u), then f T (u0)−u0 = PT −1 
+
+> t=0
+
+∆( f t(u0)) . By the triangle inequality and the bound sup K ∥∆∥ ≤ δ, ∥f T (u0) − u0∥ ≤ PT −1 
+
+> t=0
+
+∥∆( f t(u0)) ∥ ≤ T δ .
+
+Proof of Proposition 1. The truncated spectral conv operates on rfft modes inside the disk {k :
+
+∥k∥ ≤ M }, indexed by integer k. The complex weight tensor depends only on k, not on the spatial discretization grid. By the Nyquist–Shannon sampling theorem, when N ≥ 2M the discrete rfft 
+
+coefficients of a continuous function ω0 ∈ C(T2) for ∥k∥ ≤ M equal the continuous Fourier coefficients up to a bandlimit-aliasing residual of order O(N −1). Hence the spectral conv produces identical band-limited outputs at any two resolutions N1, N 2 ≥ 2M .
+
+Proof of Theorem 1. Combine Lemma 1(b) (stability term) and Proposition 1 (approximation term) in the decomposition of Equation (1). The approximation term is bounded by ∥ω − PM ω∥Hs via standard approximation theory in Hs(T2) [Kovachki et al., 2023]; the stability term is bounded by 
+
+T δ via Lemma 1(b). Summing yields E(T ) ≤ C(s, M )∥ω − PM ω∥Hs + T δ .
+
+Proof of Proposition 2. Each spectral conv layer at truncation M has 2Cin Cout M 2 complex weights (Section B.4); summing over L levels with width w yields Θ( Lw 2M 2), independent of N .For full self-attention with h heads and head dimension dh = w/h , the QKV+output projections cost 
+
+Θ( Lw 2) parameters total (independent of N ); the attention matrix itself adds Θ( LwN 2) compute and Θ( LN 2) activation memory per forward pass, which is what makes attention intractable as 
+
+N grows even though its parameter count is itself N -independent. For a standard convolution at kernel k achieving an effective receptive field of O(L · k) pixels per stack, matching the spectral mixer’s global reach ( ∼ N ) requires L ∼ N/k , yielding Θ( w2N k ) parameters — N -dependent and unbounded. The proposition’s load-bearing claim is the contrast with the convolution case (parameter count Θ( w2N k )) and with attention’s Θ( N 2) activation memory; SpectraNet’s spectral path shares its N -independent parameter count with the FNO family. 
+
+## B Architecture details 
+
+This appendix gives the full architecture of SpectraNet (Section 4) at the level of detail needed for a reviewer to re-implement it. All numbers refer to the headline operating point w=32 , M =12 , L=3 
+
+trained on 64 ×64 vorticity windows. The schematic appears in the main text as Figure 1. 12 B.1 Tensor conventions and base operator 
+
+The base operator fθ : RB×H×W ×Tin → RB×H×W ×1 takes a Tin =10 -frame window of vorticity and emits the next single frame. We use H=W =64 throughout. The time history is carried as the channel dimension; the model itself does no time-axis convolution. The autoregressive rollout described in Section 4.4 applies fθ ten times to recover the full Tout =10 trajectory. 
+
+B.2 Lifting and grid concatenation 
+
+Before the encoder, we concatenate a normalized (x, y ) coordinate grid in [0 , 1] 2 to the input window along the channel axis, producing a Tin +2 -channel tensor. A pointwise linear lift maps Tin +2 → w,where w is the base width ( w=32 at the headline). The lift is a single nn .Linear acting on the channel axis (no spatial mixing); we use a standard linear (not KAN) lift after finding no benefit from KAN-lifting in the Phase A ablations. 
+
+B.3 Encoder, bottleneck, decoder skeleton 
+
+The model is a three-level encoder–bottleneck–decoder. Per-level widths follow {w, 2w, 4w, 4w}
+
+(the channel count saturates at 4w from level 2 onward) and spatial resolution halves at each encoder step: 
+
+(64 , 64 , w )
+
+| {z }
+
+> lvl 0
+
+→ (32 , 32 , 2w)
+
+| {z }
+
+> lvl 1
+
+→ (16 , 16 , 4w)
+
+| {z }
+
+> lvl 2
+
+→ (8 , 8, 4w)
+
+| {z }
+
+> bottleneck
+
+.
+
+Spectral truncation is halved at each level (capped at Mℓ = min( ⌊M/ 2ℓ⌋, level-resolution /2) ), giving 
+
+Mℓ ∈ { 12 , 6, 3, 1} across the four levels. The capping is necessary at the bottleneck where the spatial Nyquist res /2 = 4 is below the nominal M/ 23.Each encoder block is a (truncated spectral conv) → (channel-mixing 1×1 MLP) parallel branch summed with a (residual 1×1 conv) branch and passed through GeLU, followed by 2× spatial average-pool downsampling and a 1×1 projection to the next level’s channel count. Each decoder block bilinearly upsamples to the matching encoder level’s resolution, projects channels with a 1×1
+
+conv, performs additive skip-merge with the saved encoder skip activation, applies the same (spectral conv → MLP) + (residual conv) parallel structure, and emerges into the next decoder level. The bottleneck is a single (spectral conv → MLP) + (residual conv) block at (8 , 8, 4w) resolution with no down/up-sampling. We use neither bottleneck self-attention nor channel/spatial attention — the Phase B/C ablations (Section 8) found both decorative. 
+
+B.4 Truncated spectral convolution 
+
+For each spectral conv layer at truncation M on channel-first input x ∈ RB×Cin ×H×W :1. Compute bx = rfft2( x) ∈ CB×Cin ×H×(W/ 2+1) .2. Truncate to two M ×M blocks of low-frequency modes: the positive-kx block bx+ = bx[: , :, : M, :
+
+M ] and the negative-kx block bx− = bx[: , :, −M :, : M ]. The two blocks reflect the conjugate structure of the real-valued FFT (positive and negative kx modes are stored at opposite ends of the first spatial index). 3. Apply two independent learned complex weights W +, W − ∈ CCin ×Cout ×M ×M via complex einsum: by± 
+
+> b,o,k x,k y
+
+= P 
+
+> i
+
+bx± 
+
+> b,i,k x,k y
+
+W ± 
+
+> i,o,k x,k y
+
+.4. Place the two blocks back into a zero-initialized by ∈ CB×Cout ×H×(W/ 2+1) at indices [: M, : M ]
+
+and [−M :, : M ] respectively, and apply irfft2 with output shape (H, W ).A single layer therefore has 2Cin Cout M 2 complex parameters (equivalently 4Cin Cout M 2 real de-grees of freedom). The rfft2 /irfft2 cost is O(HW log HW ); the einsum is O(BC in Cout M 2) and dominates at our channel counts. Resolution invariance of this layer is the subject of Proposition 1. 
+
+B.5 Channel-mixing MLP and residual branch 
+
+The MLP branch parallel to each spectral conv is a two-layer pointwise 1×1 GeLU MLP with hidden width equal to the input channel count. The residual branch is a single 1×1 conv. Both are standard 13 nn .Conv2d layers; we briefly explored grouped convolutions ( g=4 , see ablation in Section 8.2) and found a marginal 0.0018 L2 penalty for a ∼ 7% parameter saving — not Pareto-improving, so the headline uses g=1 (full channel mixing). 
+
+B.6 Output projection Canonical SpectraNet: two-layer 1×1 MLP head. The finest decoder level emits a feature map 
+
+z ∈ R64 ×64 ×w which is mapped to the single-channel raw prediction bω raw  
+
+> t+1
+
+by a two-layer pointwise MLP with GeLU activation and hidden width 4w = 128 :
+
+bω raw  
+
+> t+1
+
+= W2 GeLU( W1 z), W1 ∈ R4w×w, W2 ∈ R1×4w.
+
+At w = 32 the head contributes ≈ 4.2 K parameters ( 32 ·128 + 128 + 128 ·1 + 1 ), about 0.2% of the canonical 2,040 ,705 total. This is the canonical SpectraNet output, used for the headline NS ν=10 −5
+
+benchmark and reported as 2.04 M parameters. 
+
+Decorated variant tested in ablation. An earlier development pipeline used a more decorated output head, which we report because several auxiliary checkpoints (cross-PDE rows in Table 11, the multi-seed sanity row in Table 9) were trained with it. The decorated head emits one prediction per decoder level by passing the three upsampled feature maps z0, z 1, z 2 through per-level two-layer 1×1
+
+MLP heads hℓ and combining the predictions with a learned softmax weighting: 
+
+bωt+1 =
+
+> 2
+
+X
+
+> ℓ=0
+
+eαℓ
+
+P 
+
+> ℓ′
+
+eαℓ′ hℓ
+
+ zℓ
+
+,
+
+with α0 = α1 = 0 , α2 = 1 at initialization. Inside each hℓ the final 1×1 projection was replaced by an efficient KAN layer [Liu et al., 2024] with grid size 5 and spline order 3. This decorated variant adds 80 K parameters (multi-resolution heads ∼ 66 K, KAN substitution ∼ 14 K). The ablation reported in Section 8.2 shows the decorated variant trains to a test L2 within 0.0001 of the canonical two-layer MLP head at the headline operating point. We adopt the simpler canonical head because the decoration costs parameters with no measurable accuracy return. 
+
+B.7 Residual-target training 
+
+At training time, given a window ωt−Tin +1 : t and ground-truth next frame ωt+1 , the network’s raw output is interpreted as the residual ∆t = ωt+1 − ωt. The integrated prediction is recovered as 
+
+bωt+1 = ωt +fθ (ωt−Tin +1 : t). The training loss is per-sample relative L2 on the raw target ( ∆t) rather than on the integrated prediction:         
+
+> last_in = x_window[..., -1:] # last frame omega_t raw = model(x_window) # network output (predicted Delta_t) y_hat = raw + last_in # integrated prediction omega_{t+1}_hat target = y_true - last_in # residual target Delta_t loss = relative_L2(raw, target)
+
+At inference, the same integration applies: the rollout maintains a sliding Tin -frame window of 
+
+integrated predictions, with the network emitting per-step residuals. 
+
+B.8 Two-step semigroup-consistency penalty 
+
+In addition to the per-step loss, we add a λ-weighted penalty on the two-step prediction fθ ◦ fθ ,applied only at training-window positions where the two-step ground truth ωt+2 exists ( t + 2 ≤ Tout ). Concretely, each batch step computes the loss as         
+
+> raw = model(cur) # one-step y_hat = raw + cur[..., -1:] # integrated L1 = relative_L2(raw, target_residual) if (t + 2) <= T_out: cur2 = concat(cur[..., 1:], y_hat) # advance window raw2 = model(cur2) # two-step y_hat2 = raw2 + y_hat # integrated
+
+14 L2_two = relative_L2(y_hat2, omega_{t+2}) loss = L1 + lambda * L2_two else: loss = L1 
+
+with λ = 0 .1 at the headline. The penalty is the discrete operator-semigroup identity Φ2∆ t = Φ ∆t◦Φ∆t
+
+enforced at training time, where Φ∆t is the true time-∆t flow. There is no inference-time penalty: the rollout is the same single-step AR loop as the baseline without the Semigroup-Consistency Loss. 
+
+B.9 Hyperparameters 
+
+Table 2: Hyperparameters for the headline SpectraNet operating point ( w=32 , residual-target, 
+
+λ=0 .1).                                                                          
+
+> Group Setting Headline value
+> Data Spatial resolution 64 ×64
+> Time history Tin 10
+> Forecast horizon Tout 10 (single-step rollout, step =1 )Train / val / test 850 /150 /200
+> Normalizer none (raw vorticity in/out) Model Levels L3
+> Base width w32
+> Spectral truncation M12 (per-level: {12 ,6,3,1})Per-level channels {32 ,64 ,128 ,128 }
+> Mode-truncation shape box (disk variant rejected; Section 8) Skip merge additive Bottleneck attention none Output projection two-layer 1×1MLP head, GeLU, hidden width 4w(canonical SpectraNet) MLP channel groups 1(no grouping) Spectral envelope / spectral dropout off / off (both rejected; Section 8) Training Optimizer AdamW (decoupled weight-decay Adam, Loshchilov and Hutter 2019), β= (0 .9,0.999) , weight decay 10 −5
+> Learning-rate schedule OneCycleLR [Smith and Topin, 2019], peak 10 −3, per-batch step Epochs 500
+> Batch size 10 (no DataParallel) Loss per-sample relative L2
+> Residual-target parametrization on Semigroup-Consistency Loss weight λ0.1, applied only when ωt+2 exists Seeds reported {0,1}for headline; single-seed for ablations Eval Test rollout autoregressive, free (no teacher forcing) Reported metric joint trajectory rel. L2over Tout
+> Hardware 1×NVIDIA H100 (80 GB), CUDA 12.4, PyTorch 2.4
+
+B.10 Parameter accounting and PyTorch convention 
+
+We report all parameter counts as P
+
+p∈θ p.numel() in the PyTorch standard convention — complex spectral weights count as one element per complex entry, not as two real degrees of freedom. The canonical SpectraNet has 2,040 ,705 parameters at w=32 , M =12 , of which approximately 1.78 Mlive in the complex spectral conv weights, ∼ 250 K in the channel-mixing MLPs and residual 1×1
+
+convs, and the remainder ( ∼ 10 K) in the lift, grid concatenation buffer-free overhead, the per-level downsampling projections, and the two-layer 1×1 MLP output head ( ∼ 4.2 K). The decorated variant tested in Section 8.2 adds ∼ 80 K parameters (multi-resolution heads ∼ 66 K, KAN substitution 
+
+∼ 14 K) for a total of 2,124 ,166 . We adopt the PyTorch convention because it is the standard reported in the neural-operator literature and is what the FNO baseline in our leaderboard already uses; an earlier internal accounting that double-counted complex weights as “real degrees of freedom” produced a misleading 1.16 × parameter ratio against FNO that this convention corrects to the true 
+
+2.33 ×.
+
+## C Detailed numerical results 
+
+This appendix collects the detailed tables for the full benchmark leaderboard, width-scaling sweep, micro-experiment ablation, and multi-seed sanity-check whose headline numbers are quoted inline in Sections 7 and 8. The tables here are the authoritative source for those numbers; any disagreement between prose and table should be resolved in favor of the table. 15 Table 3: Unified-protocol leaderboard, NS ν=10 −5, 64 ×64 . Params reported as P 
+
+> p
+
+p. numel () 
+
+(PyTorch convention). Pareto-frontier rows (excluding the full-attention Transformer) shaded. Row provenance is the published source for baselines and “this work” for our own runs; an internal run identifier (e.g. J23 ) is appended for our runs and is mapped to launch date, SLURM job, and trained-checkpoint path in the supplementary code repository ( runs.csv ). Model Test rel. L2 Params Provenance Transformer (NSL, full softmax) 0.0284 4.38 M Wu et al. [2024b] SpectraNet (ours), M =20 0.0787 5.37 M this work ( J19 )SpectraNet (ours), M =16 0.0792 3.60 M this work ( J18 )
+
+SpectraNet (ours, headline) 0.0822 2.04 M this work ( J23 )SpectraNet (ours), w=32 + residual, seed 0 0.0836 2.12 M this work ( J14 )SpectraNet (ours), w=48 plain 0.0836 4.78 M this work ( 3190 )SpectraNet (ours), w=32 + spectral envelope 0.0849 2.12 M this work ( J24 )SpectraNet (ours), w=32 + residual, seed 1 0.0850 2.12 M this work ( J3222 )SpectraNet (ours), w=32 + grouped channel-mixing MLP 0.0854 1.97 M this work ( J21 )SpectraNet (ours), w=64 plain 0.0869 8.49 M this work ( 3199 )SpectraNet (ours), w=32 + disk truncation 0.0893 2.12 M this work ( J20 )SpectraNet (ours), w=20 plain 0.0941 0.83 M this work ( 3187 )SpectraNet (ours), 3D-spectral variant 0.1006 8.57 M this work ( 3188 )FNO seed 0 0.1024 4.75 M Li et al. [2021] FNO seed 1 0.1069 4.75 M Li et al. [2021] (seed 1) Galerkin Transformer 0.1097 4.39 M Cao [2021] U-FNO 0.1218 39.38 M Wen et al. [2022] U-Net (NSL) 0.1387 276.96 M Wu et al. [2024b] FactFormer 0.1639 3.47 M Li et al. [2023b] U-NO 0.1697 50.80 M Rahman et al. [2023] SpectraNet (ours), single-shot variant 0.1942 14.49 M this work ( 3123 )MWT 0.1944 0.08 M Gupta et al. [2021] LSM 0.1951 19.20 M Wu et al. [2023] OFormer 0.2162 0.55 M Li et al. [2023a] Transolver 0.2247 11.20 M Wu et al. [2024a] F-FNO 0.2331 0.16 M Tran et al. [2023] GNOT 0.2362 1.23 M Hao et al. [2023] KNO2d 0.3092 0.26 M Xiong et al. [2024] CNO 0.3259 2.03 M Raonic et al. [2023] ONO 0.3443 0.12 M Xiao et al. [2024] Persistence (trivial floor) 0.7481 0 this work 
+
+C.1 Full benchmark leaderboard 
+
+Table 3 reports the full 30 -row leaderboard on NS ν=10 −5 at 64 ×64 under the unified protocol (Section 6): all 17 published baselines plus 9 SpectraNet variants from this work and the persistence floor. Pareto-frontier rows (excluding the full-attention NSL Transformer crown) are shaded. The headline SpectraNet operating point is row 4. 
+
+C.2 Width scaling 
+
+Table 4 reports the SpectraNet backbone’s test relative L2 at four widths w ∈ { 20 , 32 , 48 , 64 } under the unified protocol with no Residual-Target Block and no Semigroup-Consistency Loss (the bare U-Net spectral backbone). The width sweep is non-monotone past w=48 : w=64 regresses to L2=0 .0869 
+
+from 0.0836 at w=48 , and adding dropout at w=64 is catastrophically harmful ( L2=0 .1440 ). The model is capacity-limited rather than overfit; we adopt w=32 as the canonical operating point. 
+
+C.3 Micro-experiment ablation 
+
+Table 5 reports the architectural micro-experiments stacked on the SpectraNet w=32 baseline (no Semigroup-Consistency Loss). The headline-affecting interpretation is in Section 8.2; the full table is provided here for completeness. 16 Table 4: Width scaling for the plain SpectraNet backbone (no Residual-Target Spectral Block, no Semigroup-Consistency Loss). Width is non-monotone past w=48 ; dropout at w=64 is catastrophic regardless of weight decay ( wd ), confirming the model is capacity-limited rather than overfit. Params are PyTorch-canonical P 
+
+> p
+
+p. numel () .Width Params Modes Regularization Test L2
+
+20 831 K 12 — 0.0941 32 2.12 M 12 — 0.0851 48 4.78 M 12 — 0.0836 64 8.49 M 12 — 0.0869 64 8.49 M 12 dropout=0.1 0.1440 64 8.49 M 12 wd= 10 −4 0.0873 64 8.49 M 12 dropout+wd 0.1446 Table 5: Architectural micro-experiments stacked on the SpectraNet w=32 + residual baseline (L2=0 .0836 ). Intermediate rows use the decorated output head (multi-resolution + KAN, 2.12 Mparams); the Semigroup-Consistency Loss row produces the largest single-knob improvement among them. The bottom row ( canonical SpectraNet ) removes the decorative head, replacing it with a two-layer 1×1 MLP head on top of the same SCL-trained pipeline: 80 K fewer parameters at a 0.0001 
+
+accuracy difference. Negative ∆L2 values indicate improvement. Variant Params L2 ∆L2 Motivation Baseline: SpectraNet w=32 + residual (no SCL) 2.12 M 0.0836 0.0000 —Spectral mode budget M =16 3.60 M 0.0792 −0.0044 Larger spectral budget Spectral mode budget M =20 5.37 M 0.0787 −0.0049 Larger spectral budget Disk-shaped mode truncation 2.12 M 0.0893 +0 .0057 Removes corner modes Grouped channel-mixing MLP ( g=4 ) 1.97 M 0.0854 +0 .0018 Block-diagonal mix Learnable spectral envelope 2.12 M 0.0849 +0 .0013 Per-channel cutoff kc              
+
+> +Semigroup-Consistency Loss ( λ=0 .1)2.12 M 0.0821 −0.0015 Semigroup consistency Spectral dropout on previous row ( p=0 .1)2.12 M 0.0877 +0 .0041 Mask on outer modes
+> Canonical SpectraNet (drop multi-res + KAN head) 2.04 M 0.0822 −0.0014 Decoration removal
+
+C.4 Resolution transfer 
+
+Table 6 reports the zero-shot 64 2 → 128 2 transfer behavior of canonical SpectraNet (two-layer 1×1
+
+MLP output head), the decorated variant (multi-resolution + KAN head), and the FNO baseline, under two upsampling schemes (bilinear and spectral zero-padding). The headline ratios ( ∼ 2.0−2.2×
+
+for both SpectraNet variants vs 1.02 × for FNO) are discussed in Section 7.4; the side-by-side rules out the head choice as the source of the gap (Proposition 1). 
+
+Mechanism of the resolution-transfer gap. The decorated and canonical output heads incur essentially the same ∼ 2.0−2.2× ratio, so the head is not the dominant source of the zero-shot transfer gap. The remaining structural sources are: (i) the U-Net hierarchy’s spatial down/up-sampling, which changes the spectral mixer’s bottleneck resolution when run at 128 2 (in training the bottleneck is 
+
+8×8; at 128 2 inference it becomes 16 ×16 , altering the receptive field of every level); (ii) the per-level residual MLPs and skip-merge operators, which act per-pixel on activations whose statistics depend on the trained resolution; (iii) the autoregressive rollout (10 sliding-window steps) compounding any per-step resolution bias. Isolating which of (i)–(iii) dominates would require retraining several variants under a controlled study and is beyond the scope of this work. The native-128 2 result of Section 7.4 bypasses the zero-shot question entirely: SpectraNet improves from L2=0 .0822 at 64 2 to 
+
+0.0724 at 128 2 while FNO regresses by 3×, widening the architecture gap to 4.25 ×.
+
+C.5 Incremental ablation table 
+
+The incremental ablation table referenced from Section 8.1. 17 Table 6: Zero-shot resolution transfer 64 2 → 128 2 via spectral zero-padding of the test inputs. Native 
+
+L2 is the model’s own 64 2 result. Ratio = test-L2 at 128 2 / native-64 2. The spectral convolution layer is resolution-invariant by construction (Prop. 1); FNO’s purely spectral output projection inherits this cleanly. The decorated SpectraNet variant (multi-resolution + KAN output head, top block) and the canonical SpectraNet (two-layer 1×1 MLP head, middle block) both incur a ∼ 2.0−2.2×
+
+transfer-ratio degradation: the head decoration is not the source of the resolution-transfer gap. The actual source is discussed in Sec. 7.4. 
+
+Model Upsample Native L2 (64 2) Transfer L2 (128 2) Ratio SpectraNet (multi-res + KAN head) bilinear 0.0836 0.1735 2.08 ×
+
+SpectraNet (multi-res + KAN head) spectral zeropad 0.0836 0.1683 2.01 ×
+
+SpectraNet (canonical, MLP head) bilinear 0.0822 0.1832 2.23 ×
+
+SpectraNet (canonical, MLP head) spectral zeropad 0.0822 0.1821 2.21 ×
+
+FNO bilinear 0.1024 0.1194 1.17 ×
+
+FNO spectral zeropad 0.1024 0.1045 1.02 ×                                          
+
+> Configuration Params L2∆L2Adds ingredient
+> FNO baseline (NSL, AR rollout) [Li et al., 2021, Wu et al., 2024b] 4.75 M0.1024 ——
+> +2D U-Net hierarchy ( w=20 )0.83 M0.0941 −0.0083 D4 (multi-scale)
+> +width scaling to w=32 2.12 M0.0851 −0.0090 capacity tune
+> +Residual-Target Spectral Block 2.12 M0.0836 −0.0015 D2 (linear drift)
+> +Semigroup-Consistency Loss 2.12 M0.0821 −0.0015 trajectory consistency
+> −multi-res head +KAN ( SpectraNet )2.04 M0.0822 +0 .0001 decoration removal
+
+Table 7: Incremental ablation: from canonical FNO to SpectraNet. Each row applies exactly one architectural or training change on top of the previous row; the final row is the headline SpectraNet operating point. Total improvement 0.1024 → 0.0822 (≈ 20% lower L2) at 2.33 × fewer parameters. The two design choices that distinguish SpectraNet from a plain U-Net spectral hybrid — the Residual-Target Spectral Block and the Semigroup-Consistency Loss — each contribute ≈ 2% at no parameter cost; removing the decorative multi-resolution + KAN output head trims 80 K parameters with a 0.0001 accuracy change at the noise floor (Section 8.2). The right-most column traces each step back to a desideratum (D1–D4) of Section 3. 
+
+C.6 Empirical Lipschitz constants 
+
+Table 8 reports the empirical Lipschitz constant bL for FNO, the NSL Transformer, and three Spec-traNet variants. The protocol is described in Remark 1 and consumed inline in Section 5; we collect the table here to keep the main body lean. 
+
+C.7 Multi-seed sanity 
+
+Table 9 reports mean ± sample standard deviation over seeds {0, 1} for the three architectures we re-trained. With n=2 seeds the sample standard deviation is a noisy estimator of the true seed-to-seed spread, so we read the table as a two-seed agreement check rather than a precision claim: all three rows agree across seeds to within the σ ≤ 0.005 threshold pre-registered in our experimental protocol (SpectraNet decorated-head σ = 0 .0001 , plain-residual 0.0010 , FNO 0.0032 ). The cross-row ordering is consistent with the trajectory-level constraint imposed by the two-step Semigroup-Consistency penalty (Theorem 1), but at n=2 we treat this ordering as qualitative; a third seed would be needed for a statistically stronger precision claim, which we flag as a limitation (Section 10). 
+
+## D Why approximate-attention transformers under-perform at 64 2
+
+The NSL Transformer is the only architecture in our leaderboard using exact O(N 2) softmax over all 4096 spatial tokens; every other transformer-family baseline uses some approximate attention (linear, factorized, slice-pooled, point-wise). At 64 2 the O(N 2) matrix is 16 M token pairs per head per layer — tractable on H100. At 128 2 this becomes 1 B pairs and at 256 2, 17 B; this is precisely the regime in which approximate-attention variants were designed to operate. Their under-performance 18 Table 8: Empirical Lipschitz constant bL = sup u,ε ∥f (u+ε) − f (u)∥/∥ε∥ at single-step ( T =1 ) and full-rollout ( T =10 ), estimated from 100 Gaussian perturbations of size 10 −3 on 100 test inputs. The residual-target operators have bL inflated by the + 1 identity term; per Lemma 1, bL is not the load-bearing stability quantity for these architectures. FNO’s bL=1 .84 >1 predicts the catastrophic divergence of Sec. 7.3. Model bL(T =1) mean bL(T =10) mean p95 ( T =1 )Transformer (NSL) 0.17 0.85 0.18 FNO 1.84 33.00 2.09 SpectraNet w=48 plain 8.00 74.70 8.99 SpectraNet w=32 + residual 10.61 116.07 12.93 SpectraNet (multi-res + KAN head, + SCL) 11.08 113.43 12.94 Table 9: Multi-seed and head-decoration stability at the SpectraNet headline operating point. Mean 
+
+± sample standard deviation over seeds {0, 1}. The decorated multi-resolution + KAN head ( 2.12 Mparams, two seeds) and the canonical two-layer 1×1 MLP head ( 2.04 M params, one seed) agree to within the σ of the decorated variant; all rows pass the pre-registered σ ≤ 0.005 stability threshold. Model seed 0 seed 1 Mean Std 
+
+SpectraNet (canonical, MLP head, 2.04 M) 0.0822 — — —SpectraNet + multi-res + KAN head ( 2.12 M) 0.0821 0.0822 0.0821 0.0001 SpectraNet w=32 + residual (no Semigroup-Cons. Loss) 0.0836 0.0850 0.0843 0.0010 FNO (NSL baseline) 0.1024 0.1069 0.1047 0.0032 at 64 2 reflects an approximation cost they need not pay at this resolution. We frame our contribution accordingly: the “small spectral autoregressive” frontier we describe is the right design target at the regime where full attention is not yet tractable but is also not yet necessary , which subsumes a large fraction of practical PDE-surrogate use. The Transformer’s 0.0284 in Table 3 is not a counterexample to the framing of this paper for two reasons. First, the Pareto-frontier claim of Section 7.2 explicitly excludes the Transformer crown from the lightweight frontier; the Transformer’s L2 is reported and discussed explicitly. Second, the Transformer’s win is resolution-dependent: at 128 2 its attention layer requires ∼ 60 × the memory of the spectral mixer used by SpectraNet, and at 256 2 the entire architecture is infeasible without sliding-window or other approximations that re-introduce the precision cost attributed to the other transformer-family baselines. 
+
+## E Timing methodology 
+
+This appendix pins the protocol behind every latency and throughput number in Section 9 and Figure 4, and reports the per-model breakdowns (GPU latency vs parameters, GPU and CPU latency at B=1 , GPU throughput at B=32 , peak GPU memory) that the main-text Pareto figure summarizes. The conventions are designed to make cross-architecture comparisons fair and reproducible. 
+
+E.1 Unit of work 
+
+For every model, one timed iteration corresponds to producing a complete Tout =10 -step prediction for a batch of inputs. For autoregressive models (FNO, SpectraNet variants, the 3D-spectral SpectraNet ablation, Transformer, all NSL models, OFormer) this means ten sequential calls to the network with rolling-window updates, identical to the test rollout in ns nsl.py . For non-autoregressive models (KNO2d, the single-shot SpectraNet variant) the entire 10 -frame output is produced in one forward pass. This keeps wall-clock numbers directly comparable as “time to predict ten NS frames” rather than “time per network forward,” which would systematically advantage non-AR architectures. 19 E.2 Hardware and software GPU. Single H100 (80 GB), CUDA 12.4, PyTorch 2.4, FP32 throughout (matches training preci-sion). Each job is pinned to one specific compute node via #SBATCH --nodelist so that hardware variance does not enter the between-model comparison. torch.compile is disabled unless explicitly noted. CUDA Graphs are disabled. 
+
+CPU. Intel i5-1155G7 (4 cores, base 2.5 GHz ), single thread ( torch.set num threads(1) ), PyTorch 2.4 CPU build, FP32. All CPU runs use time.perf counter (the CPU does not have CUDA event primitives) and an extended warmup ( 20 batches) to amortize JIT-style first-call costs. 
+
+E.3 Timing primitives GPU timing. Each timed iteration uses torch.cuda.Event(enable timing=True) for the start and end events with a torch.cuda.synchronize() immediately before the start event. Event timing is the recommended primitive for asynchronous CUDA work — time.perf counter on its own would over- or under-estimate by the kernel-launch tail latency depending on how full the launch queue is. 
+
+CPU timing. time.perf counter (monotonic, ∼nanosecond resolution) wraps each timed itera-tion. A model.zero grad() is called between iterations to evict any optimizer state. 
+
+E.4 Warmup and repetition 
+
+Every measurement is preceded by 10 untimed forward passes (GPU) or 20 untimed forward passes (CPU) to stabilize kernel selection and allocator state. Warmup is re-run on every batch-size change because PyTorch’s kernel cache is keyed on the input shape. Each measurement then runs 50 timed iterations; we report the median (robust to scheduler hiccups) and the inter-quartile range (p25, p75). Means are not used because a single GC or allocator stall can move the mean by 10% or more without shifting the median. 
+
+E.5 Batch sizes 
+
+We report B ∈ { 1, 4, 32 } where B=1 probes “latency mode” (deployment / interactive use), B=4 
+
+probes the small-batch regime where most edge inference operates, and B=32 probes “throughput mode” (training-equivalent batch). Models that OOM at B=32 are recorded with status OOM and zero numerics rather than crashing the harness. 
+
+E.6 Memory accounting 
+
+Peak GPU memory is captured via torch.cuda.reset peak memory stats() immediately before the timed region and torch.cuda.max memory allocated() / 2**20 immediately after. This counts only PyTorch-allocated memory; CUDA context overhead ( ∼ 350 MB ) is not included. The reported peak is the maximum across the timed region, not the working-set steady state, so it captures both forward activations and any temporary allocations made during AR rollout. 
+
+E.7 Inputs 
+
+Inputs are drawn as random tensors of the correct shape: (B, 64 , 64 , T in =10) for grid-shaped models, 
+
+(B, 4096 , T in ) for token-shaped models such as the NSL Transformer. We are timing forward kernels, not validating accuracy; random inputs avoid coupling the timing harness to disk I/O or dataset loading. We confirmed on a representative subset of models that real-input vs random-input medians agree within 1% at B=1 .
+
+E.8 CSV schema 
+
+Every per-model timing script appends one row per (model, batch size) measurement to a per-model CSV with columns model, params, batch size, latency ms median, latency ms p25, latency ms p75, throughput samples per sec, peak mem mb, gpu, torch version, 
+
+20 timestamp, status . The CPU harness writes the same schema with gpu replaced by the CPU model string. The aggregator ( aggregate timings.py for GPU, aggregate timings cpu.py 
+
+for CPU) joins these per-model CSVs into the single leaderboard speed.csv that powers Figure 4 and the GPU Pareto in Figure 2. 
+
+E.9 What this protocol does not measure 
+
+Three deliberate exclusions: • Mixed precision and quantization. All numbers are FP32. bf16 and INT8 would shift the frontier in favor of the larger models (and especially the Transformer) but would also introduce per-architecture tuning overhead that breaks the unified-protocol promise. • Compile-time optimization. torch.compile is off because its first-call cost is high and irregular across architectures (some models gain 2×, some lose 30% ). A separate sub-section in Section 9 reports a 1-paragraph note on the SpectraNet speedup under torch.compile once the harness is rerun with it enabled. • Cross-resolution timing. The dataset is 64 2; we do not time at 128 2 or 256 2 because we have no native data at those resolutions. The resolution-transfer experiment of Section 7.4 measures accuracy, not latency, at 128 2.
+
+E.10 Per-model breakdowns 
+
+Figures 5 to 8 report the per-model timing data underlying Figure 4. 
+
+Figure 5: GPU latency at B=1 vs parameter count for the unified-protocol leaderboard. Canonical SpectraNet sits in the lower-left quadrant ( 2.04 M parameters, 32 .8 ms ); the full-attention NSL Transformer pays a ∼ 3.3× latency premium for its accuracy, and the largest U-FNO and U-Net baselines pay a parameter-cost premium of one-to-two orders of magnitude without a matching accuracy gain. 21 Figure 6: Single-sample latency on GPU and CPU (B=1 ). Left: NVIDIA H100 (80 GB), FP32, single stream. Right: Intel i5-1155G7 single-thread, FP32. The attention models that win raw L2
+
+on H100 (Transformer, Galerkin, Transolver, GNOT) move to the right of the CPU plot by an order of magnitude and become unsuitable for consumer-CPU deployment; canonical SpectraNet stays sub-200 ms on both axes. 
+
+## F Cross-viscosity zero-shot transfer 
+
+This appendix reports the zero-shot transfer behavior of the headline SpectraNet model and the FNO baseline when evaluated — without any retraining or fine-tuning — on Navier–Stokes data at viscosities ν ∈ { 10 −3, 10 −4} that differ from the training viscosity ν = 10 −5 by one or two orders of magnitude. The result is a robustness probe, not a headline claim. 
+
+F.1 Setup and scope 
+
+We use two FNO-author-released datasets at higher viscosity: ns V1e-3 N5000 T50.mat (5,000 
+
+trajectories at ν = 10 −3) and ns V1e-4 N10000 T30.mat (10 ,000 trajectories at ν = 10 −4). These files were generated separately from the ν = 10 −5 benchmark with likely-different initial-condition draws and possibly different forcing schedules, so the result confounds viscosity shift with initial-condition distribution shift. We sample 200 trajectories from each file with a fixed seed ( 0) and take the first T = 20 frames so the protocol matches the headline ( Tin =10 input window, Tout =10 free rollout, joint trajectory relative L2). Both models are loaded from their best-validation checkpoints on the ν = 10 −5 training set. A second important caveat: higher viscosity means smoother dynamics with less inertial-range content, so absolute L2 comparisons across viscosities are not meaningful as a measure of model quality. The interpretable quantity is the relative ranking of architectures within each viscosity, and the sign of the gap to the persistence floor. 
+
+F.2 Results Reading the table. At both alternative viscosities, SpectraNet strictly outperforms FNO (by 0.18 
+
+at ν = 10 −3 and by 0.06 at ν = 10 −4). The relative architectural advantage of SpectraNet over FNO that we report at training viscosity therefore generalizes qualitatively to neighboring viscosities, despite both models suffering substantial degradation in absolute L2. We do not interpret the absolute numbers (which depend on the smoother high-viscosity dynamics and the IC distribution shift) as evidence the model ”got better” at higher viscosity. 22 Figure 7: GPU throughput at B=32 (samples per second). The training-equivalent batch regime widens the gap between the spectral models (FNO, F-FNO, SpectraNet) and the attention-based mod-els because the latter incur an O(N 2) memory cost per sample that limits parallel batch processing. 
+
+Limitations. (i) The cross-viscosity datasets were not generated with controlled IC matching to the training set; we cannot disentangle viscosity shift from IC shift. (ii) We do not retrain or fine-tune; published cross-viscosity generalization results often involve adapter layers or fine-tuned heads, which we explicitly exclude from this study. (iii) The persistence floor we cite is computed on the training viscosity, not the alternative viscosity — a properly matched persistence baseline would be needed for a definitive claim that “the models still beat persistence.” 
+
+## G Cross-PDE comparison 
+
+The headline benchmark fixes the equation (Navier–Stokes at ν = 10 −5), the resolution ( 64 ×64 ), and the protocol. A natural reviewer concern is whether the SpectraNet-vs-FNO advantage we report is specific to that point or whether it transports across PDE classes and dynamical regimes. This appendix trains both architectures from scratch (no transfer) on five additional dataset/regime combinations; the protocol is held fixed. 23 Figure 8: Peak GPU memory (MiB) measured via torch.cuda.max memory allocated() during the timed region at B=32 . Canonical SpectraNet’s peak memory is bounded by the spectral-truncation budget and is independent of the spatial grid (Proposition 2); the O(N 2)-attention models scale with the token count squared and would become infeasible at 128 2 without sliding-window approximations. 
+
+Why FNO as the only comparator. The 17 -baseline leaderboard at ν = 10 −5 establishes broad-baseline ordering. The cross-PDE rows answer a more specific question: does the architectural advantage that makes SpectraNet outperform FNO at ν = 10 −5 persist under different physics? FNO is the direct architectural foil within the spectral class, so the comparison isolates the contribution of the autoregressive U-Net stack plus residual targeting from confounding choices that vary between unrelated families. Re-running the full 17-baseline bench on every new dataset would dilute the signal and is infeasible within the submission window. 
+
+Datasets. 
+
+• NS ν = 10 −3 (smooth): 1,200 trajectories sampled from the FNO-author release 
+
+ns V1e-3 N5000 T50.mat , restricted to the first 20 of 50 frames. Same incompressible 2D Navier–Stokes vorticity formulation as the headline; viscosity raised by two orders of magnitude makes the dynamics qualitatively smoother (no inertial range, larger characteristic scales). • NS ν = 10 −4 (intermediate): 1,200 trajectories sampled from ns V1e-4 N10000 T30.mat with the same restriction. 24 Table 10: Zero-shot transfer of SpectraNet (canonical headline) and FNO (NSL baseline) from training viscosity ν = 10 −5 to higher viscosities, 200 trajectories per cell, joint trajectory relative L2,mean ± sample standard deviation. The persistence floor on ν = 10 −5 is 0.7481 ; both models still beat persistence at both alternative viscosities, and SpectraNet consistently outperforms FNO. Both models degrade an order of magnitude relative to the native-viscosity headline; this is expected for cross-distribution zero-shot transfer. Architecture ν = 10 −3 test L2 ν = 10 −4 test L2
+
+SpectraNet (canonical headline) 0.577 ± 0.123 0.674 ± 0.130 
+
+FNO (NSL) 0.757 ± 0.130 0.730 ± 0.144 
+
+Native-viscosity reference ( ν = 10 −5): SpectraNet 0.082 —Native-viscosity reference ( ν = 10 −5): FNO 0.102 —Persistence floor at ν = 10 −5 0.748 —• Shallow-Water 2D: 1,000 trajectories from PDEBench’s 2D radial-dam-break solver [Takamoto et al., 2022], downsampled from 128 ×128 to 64 ×64 via stride-2 subsampling and truncated to the first 20 of 101 frames. The water-height field h takes values in [1 , 2] .• PDEBench Diffusion-Reaction (DR): 1,000 trajectories from PDEBench’s 2D coupled diffusion-reaction system [Takamoto et al., 2022] at 64 ×64 , truncated to the first 20 frames. Both activator and inhibitor channels are stacked as input features. • The Well Active-Matter (AM): 225 trajectories from The Well’s active-matter benchmark, 64 ×64 ,
+
+20 frames. Concentration field of a 2D active-fluid simulation; the field varies slowly across the rollout window (global standard deviation σ ≈ 0.0056 , decreasing per-frame), yielding a small absolute L2 floor. For each dataset, both models train under the headline gold-standard protocol: input window Tin = 10 
+
+frames, free rollout Tout = 10 frames, joint trajectory relative L2 loss, AdamW + OneCycleLR for 
+
+500 epochs, seed 0. Splits: 850 /150 /200 for the two NS datasets (matching the headline ratio), 
+
+700 /150 /150 for SW and DR ( 1,000 rather than 1,200 total trajectories), 135 /48 /42 for AM (the canonical parameter-stratified split of The Well’s 225 trajectories). 
+
+G.1 Results 
+
+Table 11: SpectraNet vs. canonical FNO on additional PDE/regime combinations, native-trained under the headline protocol. SpectraNet wins at smaller parameter count on 5 of 6 rows; the 6th 
+
+(TheWell active matter) is the regime where the rollout-error compounding term is structurally suppressed — see Section G for the regime-controlled discussion. The NS ν = 10 −5 row uses the canonical SpectraNet (two-layer 1×1 MLP output head, 2.04 M params); the remaining five rows used checkpoints with the decorated multi-resolution + KAN output head ( 2.12 M params), which the output-head decoration ablation in Section 8.2 shows is statistically indistinguishable from the canonical two-layer MLP head at the headline operating point. Bolded entries indicate the winning architecture per row. 
+
+Dataset SpectraNet params SpectraNet L2 FNO params FNO L2
+
+NS ν = 10 −5 (turbulent, headline) 2.04 M 0.0822 4.75 M 0.1024 
+
+NS ν = 10 −3 (smooth) 2.12 M 0.00110 4.75 M 0.00230 
+
+NS ν = 10 −4 (intermediate) 2.12 M 0.01521 4.75 M 0.02307 
+
+Shallow-Water 2D 2.12 M 0.00120 4.75 M 0.00150 
+
+PDEBench Diffusion-Reaction 2.12 M 0.0201 4.75 M 0.0341 
+
+The Well Active-Matter 2.12 M 0.00170 4.75 M 0.00149 
+
+Reading the table. SpectraNet wins 5 of 6 rows at ∼ 2.24 −2.33 × fewer parameters than FNO (2.04 M canonical / 2.12 M decorated variant vs 4.75 M, PyTorch convention; the canonical Spec-traNet is the NS ν=10 −5 headline at 2.04 M, the other five PDE rows used the 2.12 M decorated 25 checkpoints — see the table caption). The multiplicative SpectraNet-vs-FNO gap on the wins is 
+
+2.09 × at ν = 10 −3 (smoothest), 1.52 × at ν = 10 −4, 1.25 × at ν = 10 −5, 1.25 × on Shallow-Water, and 1.70 × on PDEBench Diffusion-Reaction. We report the empirical trend without committing to a single causal explanation; the mechanism would require additional regime-controlled ablations to isolate. 
+
+The Active-Matter row (the architectural tie). On The Well Active-Matter, FNO ( L2=0 .00149 )edges out SpectraNet ( L2=0 .00170 ) by ∼ 13% . We read this not as evidence against the SpectraNet thesis but as the regime-controlled prediction of Section 8’s rollout-error analysis: the two-step semigroup-consistency penalty’s contribution scales with rollout chaos, and shrinks to 0.00004 
+
+already at ν = 10 −4. Active-Matter’s concentration field varies slowly across the 20 -frame window (global σ ≈ 0.0056 , decreasing per-frame), so the per-step error compounding term that SpectraNet’s Semigroup-Consistency Loss attacks is structurally suppressed . The comparison reduces to a roughly architecture-agnostic small-data, small-error regime; the persistence baseline ( ut+1 =ut for the full window) reaches L2=0 .00254 on this dataset, so both architectures do learn meaningfully ( 33% 
+
+better than persistence for SpectraNet, 41% for FNO), but the margin between them is the residual after most of the predictable signal has already been extracted by either spectral mixer. In addition, Active-Matter is the smallest dataset in the table by an order of magnitude ( 135 training trajectories vs 700 + on every other row), and the comparison is single-seed; we do not claim SpectraNet is architecturally worse on AM, only that the gap between the two spectral mixers is below the noise floor at this dataset scale. SpectraNet wins on every row where the rollout-chaos term is non-trivial, and ties on the row where it is structurally absent. 
+
+Limitations. (i) Single seed per cell on the auxiliary rows. Multi-seed robustness was demonstrated on the headline ν = 10 −5 row (SpectraNet: σ = 0 .0001 over seeds {0, 1}; plain residual: σ = 0 .0010 ;FNO: σ = 0 .0032 — all under the pre-registered σ ≤ 0.005 threshold, Table 9). We did not re-train under additional seeds on the auxiliary datasets within the submission window; the absolute spread on those rows is bounded by the same architecture’s demonstrated stability at ν = 10 −5. The Active-Matter tie ( 0.00170 vs 0.00149 ) lies inside the FNO seed-spread observed at ν = 10 −5 (σ = 0 .0032 ), so we report the result without claiming a directional architectural difference. (ii) Only SpectraNet and FNO are run on the auxiliary datasets; the broader 17 -baseline leaderboard is not replicated. FNO is chosen as the direct architectural foil within the spectral class. (iii) The Shallow-Water comparison uses a single PDEBench solver; we make no claim about hyperbolic systems in general. (iv) The Active-Matter dataset is small ( 135 training trajectories) and single-seed; we do not claim a reliable architectural ranking at this dataset scale, only that both architectures meaningfully beat persistence (L2 = 0 .00254 ). 
+
+## H Reproducibility 
+
+This appendix documents the artifacts released alongside the paper and the exact procedure to reproduce the headline numbers from scratch. 
+
+H.1 Released artifacts Code. A public GitHub repository ( https://github.com/Enrikkk/spectranet ) contains: • spectranet/ — installable Python package with the SpectraNet model, spectral and KAN layers, data loaders, losses, and utilities. • scripts/train spectranet.py — one unified SpectraNet trainer for all seven datasets (archi-tecture construction, autoregressive rollout, Residual-Target objective, Semigroup-Consistency Loss, two-layer 1×1 MLP output head; the decorated multi-resolution + KAN head used in the decoration ablation is also implemented and toggled via CLI flags). Per-dataset runs are selected by configs/spectranet {ns v1e5,ns v1e4,ns v1e3,sw,dr,am,ns v1e5 128 }.yaml .• scripts/train baseline.py — the unified trainer for the nine [Wu et al., 2024b] models (LSM, F-FNO, U-FNO, U-NO, MWT, Galerkin Transformer, FNO, U-Net, Transformer), driven by the per-baseline YAML configs in configs/ .26 • baselines/ — adapter scripts (ns kno.py , ns oformer.py , ns factformer.py ,
+
+ns transolver.py , ns gnot.py , ns ono.py , ns cno.py ) that wire the upstream third-party operators to our gold-standard protocol, plus install baselines.sh which clones each upstream repo at a pinned commit. • scripts/eval lipschitz.py , scripts/eval long horizon.py ,
+
+scripts/eval resolution transfer.py , scripts/eval cross viscosity.py —inference-only evaluation scripts that populate the corresponding tables. • scripts/generate ns 128.py — the Li et al. [2021] vorticity-form pseudo-spectral solver used to produce native-128 2 NS data ( 2/3 dealiasing, Crank–Nicolson on the linear part, explicit Euler on nonlinear advection). • timing/ — the inference-cost harness for GPU and CPU (warmup, repetition, cuda.Event vs 
+
+perf counter timing primitives, batch-size sweeps). 
+
+Datasets. The headline NS ν = 10 −5 benchmark is the public release 
+
+NavierStokes V1e-5 N1200 T20.mat from [Li et al., 2021]. Cross-viscosity probes use the FNO-author releases ns V1e-3 N5000 T50.mat and ns V1e-4 N10000 T30.mat . Cross-PDE probes use PDEBench Shallow-Water 2D ( 2D rdb NA NA.h5 from [Takamoto et al., 2022], DARUS file ID 133021 ), PDEBench Diffusion-Reaction ( 2D diff-react NA NA.h5 , file ID 133017 ), and The Well active matter (HuggingFace polymathic-ai/active matter ). The native-128 2 NS dataset is generated in-house by our solver ( generate ns v1e5 128.py , listed above) following the Li et al. [2021] vorticity-form pseudo-spectral protocol used for the public 64 2 release, and is shipped as ns V1e-5 N1200 T20 S128.mat (1200 trajectories, 128 ×128 , 20 frames, 1.57 GB) on Zenodo with DOI to be issued at acceptance. This dataset underlies the native-128 2 comparison reported in Section 7.4. 
+
+Trained checkpoints. The canonical SpectraNet headline checkpoint ( w=32 , two-layer 1×1 MLP output head), the SpectraNet w=48 plain ablation checkpoint, the multi-seed checkpoints for the SpectraNet w=32 + residual ablation rung, the FNO baseline checkpoint, and the NSL Transformer checkpoint are released alongside the code. Each checkpoint ships with a * config.json manifest containing the exact CLI invocation, parameter count, best-validation epoch, and final test L2.
+
+H.2 Environment specification 
+
+• Python. 3.10 (CPython). • PyTorch. 2.4 + CUDA 12.4. torch.compile is disabled in all reported timings. • Other Python deps. numpy 1.24 , scipy 1.11 , h5py 3.10 , matplotlib 3.8, huggingface hub 
+
+0.20 , the well 1.2. A pinned requirements.txt ships with the code. • Cluster. An institutional 4× NVIDIA H100 80 GB cluster (SLURM partition H100 , QOS 
+
+h100 normal , 3 concurrent jobs/user limit). Single-job per node; no inter-node communica-tion. • CPU timing host. Intel i5-1155G7, single-thread, no torch.compile , no MKL/OpenMP fan-out, 16 GB RAM. 
+
+H.3 Headline reproduction recipe 
+
+To reproduce the canonical SpectraNet test L2 = 0 .0822 on a fresh single-H100 host: 1. Download NavierStokes V1e-5 N1200 T20.mat from the FNO author release. 2. Install the pinned environment: pip install -r requirements.txt .3. Run python scripts/train spectranet.py --config configs/spectranet ns v1e5.yaml --data root ./data .4. Expected wall: ∼ 100 min on a single H100. The trainer writes 
+
+runs/plots/<tag> test results.csv with 200 per-trajectory test L2 values; the reported headline is mean(test l2 best) .The decorated variant in Table 5 (bottom row) adds back the multi-resolution + KAN output head; it is reproduced by overriding --output mode multiscale kan (or by dropping no kan: true 
+
+27 from the YAML). The other variants in Table 5 differ only in a single CLI override ( --mlp groups 4, --mode truncation disk , --spectral envelope , --modes 16 , --modes 20 ); CLI flags override config values. 
+
+H.4 Numerical reproducibility 
+
+We use a single seed (torch.manual seed(0) + numpy.random.seed(0) +
+
+generator.manual seed(0) on the DataLoader) for all reported point estimates; multi-seed results (Table 9) use seeds {0, 1}. We do not use deterministic cuDNN modes; cross-platform bit-identical reproduction is not guaranteed, but seed-0 reproductions on H100 + PyTorch 2.4 +CUDA 12 .4 should agree to four decimal places on the headline test L2.
+
+## I Broader impact 
+
+This work studies neural-operator surrogates for two-dimensional incompressible Navier–Stokes turbulence on synthetic, publicly-released benchmark data; no human-subject or personal data is used. The intended downstream uses are scientific (turbulence research, climate-model component surrogates, engineering fluid simulation) and edge-deployment of partial-differential-equation solvers (real-time control, interactive simulation tooling). Faster, lower-cost surrogates could incidentally accelerate dual-use applications such as aerospace or hydrodynamic design; this risk is diffuse and not specific to the architectural contributions reported here, which apply across all incompressible-flow regimes. We release code, data-preprocessing scripts, and trained checkpoints to support reproducibility and to make accuracy–cost trade-offs visible to deployment decisions (Section 9). The long-horizon-stability results in particular argue against the deployment of architectures that exhibit catastrophic divergence beyond the training horizon in safety-relevant rollouts. 28

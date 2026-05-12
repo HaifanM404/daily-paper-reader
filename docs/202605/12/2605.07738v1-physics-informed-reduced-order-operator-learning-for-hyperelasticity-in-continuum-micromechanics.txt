@@ -1,0 +1,831 @@
+Title: Physics-Informed Reduced-Order Operator Learning for Hyperelasticity in Continuum Micromechanics
+
+URL Source: https://arxiv.org/pdf/2605.07738v1
+
+Published Time: Mon, 11 May 2026 01:33:30 GMT
+
+Number of Pages: 22
+
+Markdown Content:
+## Physics-Informed Reduced-Order Operator Learning for Hyperelasticity in Continuum Micromechanics 
+
+Hamidreza Eivazi ∗, Henning Wessels 
+
+> Division Data-Driven Modeling of Mechanical Systems, Institute of Applied Mechanics, Technische Universit¨ at Braunschweig, Pockelsstr. 3, 38106 Braunschweig, Germany
+
+Abstract 
+
+Physics-informed operator learning is an attractive candidate for surrogate modeling of microstructures, especially in multiscale finite-element simulations. Its practical use, however, is often limited by the high cost of loss evaluation. We address this bottleneck by combining the Equilibrium Neural Operator (EquiNO) with the QR-based discrete empirical interpolation method (Q-DEIM). EquiNO learns only the modal coe ffi cients of reduced displacement-fluctuation and first Piola-Kirchho ff stress representations built from periodic and divergence-free bases, thereby enforcing periodicity and mechanical equilibrium by construction. Q-DEIM then identifies a small set of spatial points through a column-pivoted QR factorization of the stress basis and restricts constitutive evaluations during training to these points alone. This makes full-batch second-order optimization practical for three-dimensional representative volume elements (RVEs). Homogenized first Piola–Kirchho ff stresses are recovered directly from the o ffl ine-averaged reduced stress modes, without the need to reconstruct the full stress field at inference time. We validate the framework on two three-dimensional finite-strain hyperelastic RVEs. Q-DEIM reduces the per-step training cost by roughly three orders of magnitude relative to full-field loss evaluation, while reduced homogenization achieves speed-up factors of order 10 3 to 10 4 over direct full-field computations. Despite relying on only a small number of o ffl ine snapshot loading paths for basis construction, the method accurately interpolates and extrapolates both microscopic stress fields and homogenized stresses, with prediction quality improving systematically as more snapshots are added. These results demonstrate that the integration of constrained reduced representations, hyper-reduced loss evaluation, and reduced homogenization makes physics-informed operator learning substantially more practical for three-dimensional computational micromechanics. 
+
+Keywords: Physics-informed operator learning, Reduced-order modeling, Homogenization, Multiscale simulation 
+
+1. Introduction 
+
+Heterogeneous materials derive their e ff ective behavior from complex local deformation and stress fields evolving on the microscale. Numerical homogenization and related multiscale frameworks therefore require the repeated solution of boundary-value problems on representative microstructures, which quickly becomes computationally prohibitive in many-query settings and for nonlinear material behavior [ 1 , 2, 3 , 4]. This    
+
+> Email addresses: {h.eivazi,h.wessels }@tu-braunschweig.de (HE, HW)
+> ∗Corresponding author
+> Preprint submitted to Elsevier May 11, 2026
+> arXiv:2605.07738v1 [physics.comp-ph] 8 May 2026
+
+motivates surrogate models that can approximate not only homogenized quantities but also the underlying local fields in a physically meaningful way. Operator learning provides a natural framework for such surrogates, where the goal is to learn mappings between function spaces rather than pointwise input-output relations [ 5 , 6, 7]. In practice, however, many successful operator-learning methods are closely connected to reduced-order modeling (ROM): they represent families of solutions in low-dimensional latent spaces, reduced bases, or learned manifolds. Linear constructions such as POD-DeepONet and PCA-based operator learners make this connection explicit [ 8 , 9], while more recent works combine operator learning with nonlinear model reduction and manifold decoders to better capture solution sets that are poorly approximated by linear subspaces [ 10 , 11 , 12 ]. A low-dimensional state representation alone does not guarantee computational e ffi ciency. For nonlinear problems, the cost of evaluating constitutive responses, residuals, and quadrature terms can still scale with the full discretization. This is the motivation behind hyper-reduction techniques such as DEIM and Q-DEIM [ 13 , 14 ], empirical cubature and related optimized integration rules [ 15 , 16 ], and reduced multiscale formulations tailored to computational homogenization [ 17 , 18 , 19 , 20 ]. Across these developments, a common theme is that e ffi cient nonlinear surrogates require both reduced representations and reduced evaluation of the underlying physics. In parallel, neural networks have become an important tool for constitutive modeling. Physics-augmented constitutive surrogates use invariants, energy-based outputs, and architectural constraints to encode objectivity, symmetry, thermodynamic consistency, or convexity by design [ 21 , 22 , 23 , 24 , 25 ]. These ideas are especially important for anisotropic hyperelasticity, where structural tensors provide a principled description of material symmetry. Recent works formulate anisotropic hyperelastic surrogates through generalized structural tensors and isotropic tensor functions [ 26 ] and systematically construct irreducible integrity bases for anisotropic hyperelasticity from the structural tensor concept [ 27 ]. Moreover, recent constitutive learners such as constitutive Kolmogorov–Arnold networks (CKANs) show that these models can combine expressive nonlinear approximations with symbolic interpretability [ 28 ]. Reduced representations have also been used directly within learned material models, for example through POD-based plasticity surrogates [ 29 ]. These developments highlight the importance of physics-structured learning, but they primarily target constitutive response modeling rather than the full microscale field operator. A complementary route is to learn the parametric microscale field response directly. Physics-informed operator learning combines operator networks with governing equations, weak forms, or discretized residuals so that local deformation and stress fields can be predicted while respecting the underlying mechanics [30 , 31 , 32 , 33 , 34 ]. This perspective is especially attractive for microstructures because it retains access to local fields, interfaces naturally with homogenization, and connects directly to reduced representations of the solution manifold. Yet the corresponding ideas are often developed separately: operator learning emphasizes parametric field mappings, ROM emphasizes low-dimensional structure, hyper-reduction emphasizes e ffi -cient nonlinear evaluation, and neural constitutive modeling emphasizes material symmetry and physical admissibility. 
+
+Our Contribution In this paper, we combine these threads in an extension of the Equilibrium Neural Operator (EquiNO) [ 35 ] to finite-strain hyperelastic microstructures. The proposed framework learns only the modal coe ffi cients of periodic displacement-fluctuation and stress representations, enforces periodicity and equilibrium by construction through the reduced basis, and uses Q-DEIM to hyper-reduce the physics-informed loss. In this way, operator learning, reduced-order modeling, and hyper-reduction are integrated into a single physics-informed surrogate for e ffi cient prediction of local fields and homogenized responses in three-dimensional microstructures. The main innovations of the present work are summarized as follows: 2• The EquiNO framework is extended to three-dimensional finite-strain hyperelastic RVEs while retain-ing periodicity and equilibrium by construction through the reduced basis representation. 
+
+• The combination of EquiNO and Q-DEIM reduces the training-side loss evaluation by roughly three orders of magnitude relative to full-field evaluation, which also makes full-batch training of a physics-informed operator practical in the present three-dimensional setting. 
+
+• With the proposed Q-DEIM reduction, physics-informed training on 233 unsupervised loading paths takes approximately half the time required for one finite-element simulation of a single loading path with the periodic homogenization solver. 
+
+• Homogenized stresses are evaluated directly from the reduced stress representation by averaging the modes o ffl ine, which enables very fast computation of macroscopic quantities without reconstructing the full-field stress. 
+
+Structure of the paper After the introduction, the methodology is presented in section 2. The numerical results and discussion are provided in section 3, and section 4 closes the paper with a summary and outlook. The source code, data, trained models, and supplementary materials associated with this study will be made available on GitHub. 
+
+2. Physics-informed learning for continuum micromechanics 
+
+In this section, we present the methodology used to learn the finite-strain hyperelastic microscale response of heterogeneous RVEs with EquiNO. The central idea is to learn only the modal coe ffi cients of reduced fluctuation and stress representations, while periodicity and equilibrium are enforced by construction through the chosen bases. We first introduce the governing equations of periodic homogenization, then formulate the physics-informed operator-learning problem, discuss the Q-DEIM-based hyper-reduction of the loss, describe the training procedure, and finally summarize the reduced homogenization step used to provide macroscopic quantities for FE 2 simulations. 
+
+2.1. Governing equations of hyperelasticity in micromechanics 
+
+The microscale problem is formulated as a finite-strain periodic homogenization problem for concurrent FE 2 computations. Instead of evaluating a constitutive law directly at the macroscale integration point, an initial-boundary-value problem is solved on a representative volume element (RVE) to obtain the local fields and, through homogenization, the e ff ective stress and tangent response. In this work, we consider quasi-static hyperelastic constituents and restrict attention to periodic boundary conditions at the microscale. For a discussion of alternative boundary conditions in computational homogenization, we refer to Miehe and Koch [4]. Let Ω ⊂ R3 denote the RVE in the reference configuration, 
+
+Ω = 
+
+
+
+x = {x1, x2, x3}T ∈ R3 − Li
+
+2 ≤ xi ≤ Li
+
+2 , i = 1, 2, 3
+
+
+
+, (1) where Li are the edge lengths of the unit cell. The heterogeneous microstructure is composed of matrix and fiber phases such that 
+
+Ω = Ω m ∪ Ω f , Ωm ∩ Ω f = ∅. (2) 3Here, Ωm, Ω f ⊂ R3 denote the matrix and fiber domains, respectively. For a prescribed macroscopic deformation gradient ¯F ∈ R3×3, the motion of the RVE is decomposed into an a ffi ne part and a periodic fluctuation field, 
+
+φ(x) = ¯F x + ˜u(x), (3) which implies the local deformation gradient 
+
+F(x) = ∇φ(x) = ¯F + ∇ ˜u(x), x ∈ Ω. (4) Here, φ : Ω → R3 denotes the deformation mapping, ˜u : Ω → R3 is the displacement fluctuation field, and 
+
+F : Ω → R3×3 is the deformation gradient. Periodicity is enforced on the fluctuation field. Hence, for two corresponding points x+ ∈ ∂Ω+ and x− ∈ ∂Ω− on opposite boundaries, we require ˜u(x+) = ˜u(x−), (5a) 
+
+φ(x+) − φ(x−) = ¯F  x+ − x− , (5b) 
+
+Z
+
+> Ω
+
+˜u dΩ = 0, (5c) where x± ∈ R3, ∂Ω± ⊂ R3, and 0 ∈ R3; equation (5c) removes rigid-body modes. The periodic homogenization problem consists of finding ˜u such that the balance of linear momentum is satisfied in the reference configuration, 
+
+∇ · P(x) = 0, x ∈ Ω, (6) neglecting body forces and inertia. The stress measure P is the first Piola–Kirchho ff stress tensor and follows from a hyperelastic constitutive law 
+
+P(x) = ∂Ψ
+
+∂F (x, F), (7) where P : Ω → R3×3 and the stored-energy density Ψ : Ω × R3×3 → R is defined phase-wise as 
+
+Ψ(x, F) =
+
+
+
+Ψm(F), x ∈ Ωm,
+
+Ψ f (F), x ∈ Ω f . (8) In this study, both phases are modeled as isotropic compressible hyperelastic materials with 
+
+Ψα(F) = μα
+
+2 (I1 − ln I3 − 3) + λα
+
+4 (I3 − ln I3 − 1) , α ∈ { m, f }, (9) where λα, μ α ∈ R>0 are the Lam´ e parameters and 
+
+C = FT F, I1 = tr ( C), I3 = det( C). (10) Thus, C ∈ R3×3 and I1, I3 ∈ R. Therefore, for each prescribed macroscopic deformation gradient ¯F, the microscale boundary-value problem determines the fluctuation field ˜u as well as the local deformation and stress fields, which are subsequently used to construct the surrogate operator and the homogenized response. 42.2. Physics-informed operator learning via EquiNO 
+
+The goal of operator learning is to approximate the solution operator of the microscale boundary-value problem. In the present setting, this operator maps a prescribed macroscopic deformation gradient ¯F to the corresponding local fields on the RVE. In particular, we seek an approximation of the form 
+
+Gθ : ( ¯ F, x) 7 → ( ˜ u(x), P(x)) , (11) where Gθ : R3×3 × Ω → R3 × R3×3 is a parameterized model and θ ∈ Rnθ collects its trainable parameters. Unlike conventional supervised operator-learning approaches, which are typically trained from paired input-output data, our objective is to identify this operator from a limited set of snapshots and the governing equations introduced in section 2.1. EquiNO [ 35 ] follows the POD-DeepONet [ 8] viewpoint that the field dependence on the spatial coordinate is represented through a reduced basis, whereas the dependence on the loading parameter is represented through learned modal coe ffi cients. Let p˜u ∈ N and p ∈ N denote the numbers of retained fluctuation and stress modes, respectively. Using the reduced bases introduced above, we define two branch networks, 
+
+b˜u( ¯ F) ≈ N˜u( ¯ F; θ˜u), (12a) 
+
+bP( ¯ F) ≈ NP( ¯ F; θP), (12b) which predict the coe ffi cients of the fluctuation and stress bases, respectively. The notation N˜u( ¯F; θ˜u) and 
+
+NP( ¯F; θP) denotes the complete branch maps from the macroscopic deformation gradient to the modal coe ffi cients. In the implementation, ¯F is first transformed to the macroscopic Green–Lagrange strain tensor ¯E = 12 ( ¯FT ¯F − I), and the six independent components of ¯E are then used as the input features of the neural networks. Here, b˜u( ¯F), N˜u( ¯F; θ˜u) ∈ Rp˜u and bP( ¯F), NP( ¯F; θP) ∈ Rp. This yields the reduced representations ˜u(x, ¯F) = ΦT 
+
+> ˜u
+
+(x) N˜u( ¯ F; θ˜u), (13a) ˜F(x, ¯F) = ¯F + ∇ΦT 
+
+> ˜u
+
+(x) N˜u( ¯ F; θ˜u), (13b) ˜P(x, ¯F; θP) = ΦT
+
+> P
+
+(x) NP( ¯ F; θP). (13c) The corresponding bases satisfy Φ˜u(x) ∈ Rp˜u×3 and ΦP(x) ∈ Rp×rP with rP = 9, so that ˜u(x, ¯F) ∈ R3
+
+and ˜F(x, ¯F), ˜P(x, ¯F; ·) ∈ R3×3. The defining idea of EquiNO is that the fluctuation field is expanded in periodic modes and the first Piola–Kirchho ff stress in divergence-free stress modes. As a result, the predicted fluctuation field satisfies the periodic boundary conditions by construction, while the projected stress field ˜P(x, ¯F; θP) = ΦT
+
+> P
+
+(x) NP( ¯ F; θP) (14) satisfies the balance of linear momentum by construction, up to discretization errors inherited from the snapshot basis. To incorporate the constitutive relation, we compute a second stress field from the kinematically admissi-ble deformation gradient, ˜P˜u(x, ¯F; θ˜u) = ∂Ψ
+
+∂F
+
+ ¯F + ∇ΦT 
+
+> ˜u
+
+(x) N˜u( ¯ F; θ˜u) . (15) This constitutive stress field satisfies the kinematic relation and the constitutive law, while the projected stress field satisfies equilibrium. Training EquiNO therefore amounts to matching these two stress representations 5over a set of unsupervised macroscopic deformation gradients { ¯F fi }N f
+
+> i=1
+
+,
+
+L(θ˜u, θP) = 1
+
+N f m r PN fX
+
+> i=1
+
+˜P˜u(ζ, ¯F fi ; θ˜u) − ˜P(ζ, ¯F fi ; θP) 22 , (16) where N f , m, rP ∈ N, with m denoting the number of spatial evaluation points and rP the number of stress components. Moreover, L ∈ R≥0 is a scalar stress-consistency loss. In contrast to soft-constrained physics-informed operator networks, this formulation does not require separate penalty terms for equilibrium and boundary conditions. Instead, these constraints are hard-enforced through the reduced representation itself, and the optimization is driven by a single stress-consistency loss. 
+
+2.3. Hyper-reduction of the physics-informed loss 
+
+The reduced bases introduced in the previous subsection are obtained by POD from a limited set of microscale snapshots; the detailed basis construction follows our previous EquiNO formulation in Eivazi et al. [35] . In the present work, the key additional ingredient is a hyper-reduction of the stress-consistency loss. Although the POD representation already reduces the number of unknowns, evaluating the loss over all spatial points of a three-dimensional microstructure remains expensive. To address this issue, we apply the QR-based discrete empirical interpolation method (Q-DEIM) [ 14 ] to identify a small set of representative spatial points, referred to as magic points, at which the loss is enforced. Let ΦP ∈ R(m×rP)×p denote the stacked POD basis of the first Piola–Kirchho ff stress field sampled at the 
+
+m spatial points {x j}mj=1, where rP = 9 for three-dimensional problems and p is the number of retained stress modes. We reshape this basis into a matrix in which each row corresponds to one spatial point and all stress components and modes are grouped column-wise, resulting in bΦP ∈ Rm×(rP p). Applying Q-DEIM to the reshaped basis amounts to computing a column-pivoted QR factorization of its transpose, 
+
+bΦ T 
+
+> P
+
+Π = Q R , (17) where Π ∈ Rm×m is a permutation matrix, Q ∈ R(rP p)×(rP p), and R ∈ R(rP p)×m. The Q-DEIM sampling indices are then given by the first q pivots, 
+
+Iq = { π1, . . . , π q }, {xπℓ }q 
+
+> ℓ=1
+
+⊂ { x j}mj=1, (18) where q denotes the number of selected magic points. In the present work, we choose q = p unless stated otherwise, although the number of Q-DEIM points is not required to coincide with the number of POD modes in general. These indices define a sampling operator SIq ∈ { 0, 1}q×m that extracts the selected spatial locations. Using this operator, the stress consistency term is evaluated only at the Q-DEIM points instead of over the full spatial discretization. In this representation, the predicted stress field is viewed pointwise as an m × rP
+
+array, and the operator SIq selects spatial rows while retaining all rP stress components at each selected point. For a set of unsupervised macroscopic deformation gradients { ¯F fi }N f
+
+> i=1
+
+, the reduced loss reads 
+
+Lq(θ˜u, θP) = 1
+
+N f q r PN fX
+
+> i=1
+
+SIq
+
+  ˜P(ζ, ¯F fi ; θ˜u) − ˜P(ζ, ¯F fi ; θP) 22 . (19) Here, q ∈ N and Lq ∈ R≥0. This hyper-reduced formulation substantially decreases the cost of training while 6preserving the dominant spatial structure encoded in the stress basis. In practice, Q-DEIM makes the finite-strain three-dimensional setting computationally tractable without altering the reduced-order representation itself. 
+
+2.4. Data generation and training 
+
+EquiNO [ 35 ] is identified in a self-supervised manner from the governing equations and a set of snapshot loading states. Following the sampling strategy described in Kalina et al. [26] , we sample in the six-dimensional space 
+
+S := (¯ λ1, ¯λ2, ¯J, θ 1, θ 2, θ 3) ∈ R>0 × R>0 × R>0 × R × R × R, (20) by Latin Hypercube Sampling (LHS) [ 36 ]. For each sampled state, a loading path from ¯F = I to the final deformation is generated by linearly interpolating in ¯λ1, ¯λ2, and ¯J within ni increments while keeping θ1, θ2,and θ3 fixed. The resulting deformation states are then used to evaluate the stress-consistency objective in equation (16) or, in the hyper-reduced setting, equation (19). The optimization is performed with the Adam optimizer [ 37 ] and the limited-memory Broyden–Fletcher– Goldfarb–Shanno (L-BFGS) algorithm [ 38 ] in full-batch mode. This is feasible because Q-DEIM reduces the number of spatial evaluation points entering the loss and thereby lowers the cost of each optimization step su ffi ciently for three-dimensional finite-strain RVEs. Accordingly, the coe ffi cient networks are trained directly with deterministic full-batch optimization until the loss converges. 
+
+2.5. Computational homogenization 
+
+For computational homogenization in the finite-strain setting, the quantity of interest is the homogenized first Piola–Kirchho ff stress tensor. For a prescribed macroscopic deformation gradient ¯F, it is defined as the volume average of the microscopic stress field, ¯P( ¯ F) = 1
+
+|Ω|
+
+Z
+
+> Ω
+
+P(x, ¯F) d Ω. (21) Thus, ¯P( ¯F) ∈ R3×3. Using the finite element discretization of the RVE, this average is evaluated by numerical quadrature as ¯P( ¯ F) ≈ 1
+
+|Ω|
+
+> m
+
+X
+
+> i=1
+
+ωi P(ζi, ¯F), (22) where ωi ∈ R>0 and ζi ∈ Ω denote the quadrature weights and integration points, respectively. In EquiNO, homogenization is performed directly on the equilibrium-preserving reduced stress rep-resentation. It is a post-processing step, only considered after training. Averaging the stress basis o ffl ine yields ¯ΦP = 1
+
+|Ω|
+
+Z
+
+> Ω
+
+ΦP(x) d Ω ≈ 1
+
+|Ω|
+
+> m
+
+X
+
+> i=1
+
+ωi ΦP(ζi), (23) with ¯ ΦP ∈ Rp×rP , and therefore ¯P( ¯ F) = ¯ΦT 
+
+> P
+
+bP( ¯ F) ≈ ¯ΦT 
+
+> P
+
+NP( ¯ F; θP). (24) Hence, the homogenized response can be computed directly from the predicted modal coe ffi cients without reconstructing the full local stress field over the RVE. This yields an e ffi cient reduced-order evaluation of the 7macroscopic constitutive response. The material tangent is then obtained as ¯A = ∂ ¯P
+
+∂ ¯F , (25) where ¯A ∈ R3×3×3×3 is the fourth-order material tangent. This quantity can be computed by automatic di ff erentiation of equation (24). Thus, EquiNO provides the homogenized first Piola–Kirchho ff stress and tangent quantities required by the macroscale FE 2 solver in reduced-order form. 
+
+3. Results and discussion 
+
+In this section, we assess the performance of EquiNO in a sequence of numerical studies. We first introduce the considered microstructures, material parameters, loading conditions and evaluation metrics. We then discuss the computational e ffi ciency of the reduced loss evaluation and reduced homogenization, before assessing in-range and out-of-range generalization for representative RVEs in terms of local and homogenized responses. 
+
+3.1. Problem setup 
+
+Following the setting of Kalina et al. [26] , we consider two two-phase soft composites shown in figure 1: an RVE with stochastic fiber distribution and an RVE with hexagonal fiber arrangement. The corresponding fiber volume fractions are ϕ = 26% and ϕ = 21%, respectively. The geometries and periodic meshes are generated with the Python interface of Gmsh [ 39 ], and the corresponding reference solutions are obtained with FEniCS /DOLFIN [ 40 , 41 ] by solving the finite-strain periodic homogenization problem introduced in section 2. The stochastic-fiber mesh contains 50,282 nodes and 27,031 quadratic tetrahedral elements,        
+
+> (a) Stochastic fibers. (b) Hexagonal fibers.
+> Figure 1: Microstructures considered in the study. Blue and grey colors indicate the fiber and matrix phases, respectively. The fiber volume fractions are ϕ=26% and ϕ=21% from left to right.
+
+whereas the hexagonal-fiber mesh contains 44,802 nodes and 23,443 quadratic tetrahedral elements. We use four quadrature points per element and take these quadrature points as the spatial collocation points for the operator-learning and field evaluation. This results in 108,124 collocation points for the stochastic-fiber RVE and 93,772 collocation points for the hexagonal-fiber RVE before Q-DEIM reduction. These discretizations provide high-resolution, high-fidelity full-field data for operator-learning and evaluation. All phases are modeled as compressible isotropic hyperelastic materials. As in Kalina et al. [26] , we use the two-parameter neo-Hookean energy proposed by Ciarlet [42] . Unless stated otherwise, the matrix phase is characterized by 
+
+Em = 1.0 and νm = 0.40, whereas the fiber phase, that is, fibers or particles, uses Ei = 10 .0 and νi = 0.44. 83.2. Deformation sampling 
+
+We generate two disjoint sets of loading paths with the strategy discussed in section 2.4. The first contains 
+
+n fp unsupervised paths used for physics-informed training, whereas the second contains nsp supervised paths for POD basis construction and testing. Each path is discretized into ni increments, resulting in N f = n fpn fi
+
+sampled deformation states for training and Ns = nspnsi states for the supervised snapshot and test pool. After applying the filtering procedure proposed in Kalina et al. [26] to remove duplicate states and reduce the sample set, we retain n fp = 233 unsupervised paths and nsp = 50 supervised paths. Of the supervised paths, 
+
+np are used to construct the POD bases and the remaining ntp = nsp − np are reserved for testing. In all cases, we use n fi = 10 and nsi = 5 increments per path. Therefore, for each RVE, a data set D containing N = npnsi
+
+full-field snapshots, 
+
+D = n ˜u i(ξ, ¯F i), Pi(ζ, ¯F i)oNi=1 , (26) are considered for constructing the POD bases, where the symbols ξ, ζ ∈ Ω denote the spatial sampling locations of the displacement and stress snapshots, respectively. Figure 2 compares the loading paths in the macroscopic Green–Lagrange strain space for the in-range and out-of-range settings with np = 10 snapshot loading paths and ntp = 40 test loading paths. The snapshot, test, and unsupervised training paths are shown in blue, orange, and red, respectively, with the unsupervised set containing n fp = 233 loading paths used for physics-informed training. In the in-range setting shown in the middle panel, the snapshot loading paths are selected from the full sampled loading space, that is, no additional restriction on the strain norm ∥ ¯E∥ is imposed when constructing the POD basis. In the out-of-range setting shown in the right panel, the snapshot loading paths are restricted to states satisfying ∥ ¯E∥ ≤ β ∥ ¯E∥max , where ∥ ¯E∥max denotes the maximum strain norm over the sampled loading space. Test paths containing states beyond this threshold are then used to quantify out-of-range generalization. 
+
+3.3. Evaluation metrics 
+
+The microscopic errors reported in the main text are mean relative L2 errors. For an evaluation set with 
+
+Neval samples, a predicted field ˜ Xi, and the corresponding reference field Xi, we define 
+
+εX = 1
+
+Neval 
+
+> Neval
+
+X
+
+> i=1
+
+Xi − ˜Xi
+
+> 2
+
+Xi 2
+
+× 100 , X ∈ { F, P}. (27) For the microscopic fields F and P, each sample is vectorized before evaluating the Euclidean norms, εP, ε F,respectively, so that all element, quadrature-point, and tensor components contribute to the same relative error measure. The metric εP therefore quantifies the full-field stress-prediction error in the same spatially resolved sense as the loss introduced in equation 16. Analogously, we report εPq , which is the relative error only evaluated at Q-DEIM points, c.f. equation 19. Learning curves report the evolution of εPq over the optimization, whereas εtrain  
+
+> Pq
+
+denotes its value at the final training step. We report εtrain  
+
+> Pq
+
+to make the final training residual comparable in scale with the stress errors εP reported for unseen test states. For a homogenized quantity Y ∈ { ¯P, ¯A}, we collect all components over the evaluation set in the vectors 
+
+yY , ˜yY ∈ RdY , where dY is the total number of flattened entries. The coe ffi cient of determination and normalized mean absolute error are then defined compactly as 
+
+R2 
+
+> Y
+
+= 1 − ∥yY − ˜yY ∥22
+
+∥yY − μY 1∥22
+
+, μY = 1
+
+dY
+
+> dY
+
+X
+
+> k=1
+
+yY,k, (28) 9−0.2  
+
+> 0.0
+> 0.2
+> ¯E22
+> −0.2
+> 0.0
+> 0.2
+> ¯E33
+> −0.2
+> 0.0
+> 0.2
+> ¯E23
+> −0.2
+> 0.0
+> 0.2
+> ¯E13
+> −0.20.00.2
+
+¯E11   
+
+> −0.2
+> 0.0
+> 0.2
+> ¯E12
+> −0.20.00.2
+
+¯E22   
+
+> −0.20.00.2
+
+¯E33   
+
+> −0.20.00.2
+
+¯E23   
+
+> −0.20.00.2
+
+¯E13 (a) Unsupervised samples. −0.2  
+
+> 0.0
+> 0.2
+> ¯E22
+> −0.2
+> 0.0
+> 0.2
+> ¯E33
+> −0.2
+> 0.0
+> 0.2
+> ¯E23
+> −0.2
+> 0.0
+> 0.2
+> ¯E13
+> −0.20.00.2
+
+¯E11   
+
+> −0.2
+> 0.0
+> 0.2
+> ¯E12
+> −0.20.00.2
+
+¯E22   
+
+> −0.20.00.2
+
+¯E33   
+
+> −0.20.00.2
+
+¯E23   
+
+> −0.20.00.2
+
+¯E13 
+
+(b) In-range setting. −0.2  
+
+> 0.0
+> 0.2
+> ¯E22
+> −0.2
+> 0.0
+> 0.2
+> ¯E33
+> −0.2
+> 0.0
+> 0.2
+> ¯E23
+> −0.2
+> 0.0
+> 0.2
+> ¯E13
+> −0.20.00.2
+
+¯E11   
+
+> −0.2
+> 0.0
+> 0.2
+> ¯E12
+> −0.20.00.2
+
+¯E22   
+
+> −0.20.00.2
+
+¯E33   
+
+> −0.20.00.2
+
+¯E23   
+
+> −0.20.00.2
+
+¯E13 (c) Out-of-range setting. 
+
+Figure 2: Unsupervised loading paths (red), snapshot loading paths (blue) and unseen test loading paths (orange) in the macroscopic Green–Lagrange strain space. The left panel corresponds to the unsupervised samples, while the middle and right panels corresponds to the in-range and out-of-range settings with β = 0.4, respectively. Both in-range and out-of-range settings use np = 10 snapshot loading paths. 
+
+10 NMAE Y = ∥yY − ˜yY ∥1 /dY
+
+max 1≤k≤dY yY,k − min 1≤k≤dY yY,k
+
+× 100 . (29) Thus, R2 
+
+> Y
+
+∈ (−∞ , 1] and NMAE Y ∈ R≥0. The NMAE normalizes the mean absolute error by the range of the reference values and is therefore reported in percent. To quantify the computational benefit of the reduced evaluations, we report two forward-pass speed-up factors, both measured for one full-batch evaluation. The first factor, 
+
+sQDEIM = tfb full 
+
+tfb QDEIM 
+
+, (30) measures the reduction in the cost of the physics-informed loss evaluation when the constitutive response is computed at all spatial points of the RVE versus only at the selected Q-DEIM points. Since this evaluation is carried out at every training step, sQDEIM quantifies the training-side forward-pass speed-up induced by Q-DEIM. The second factor, 
+
+shom = tfb full →hom 
+
+tfb hom 
+
+, (31) measures the speed-up obtained when the homogenized first Piola–Kirchho ff stress is computed directly from the branch-stress coe ffi cients and the pre-averaged stress modes, instead of first reconstructing the full-field stress and then homogenizing it. This quantity is particularly relevant for deployment in multiscale FE 2
+
+simulations, where the microscale model is queried repeatedly at macroscale quadrature points and Newton iterations. In that setting, avoiding the reconstruction of local full-field stresses can substantially reduce the constitutive-query cost seen by the macroscale solver. In summary, the first factor sQDEIM measures the speed-up relevant to the training, and the second factor shom indicates the speed-up in the prediction of homogenized first Piola–Kirchho ff stresses. 
+
+3.4. Computational e ffi ciency 
+
+As shown later in tables 1 and 3, the proposed reduced evaluations consistently yield speed-up factors of order 10 3 for sQDEIM and of order 10 3 to 10 4 for shom relative to the corresponding full-field computations. These gains are central for operator learning of RVEs in three-dimensional finite-strain settings, because otherwise the repeated full-field constitutive evaluations required during physics-informed training dominate the computational cost. The reported values are empirical timing ratios rather than asymptotic complexity estimates, and we present them directly as rounded dimensionless factors in the tables. Figure 3 shows the e ff ect of the number of Q-DEIM points on the accuracy, measured in terms of εP, and the speed-up factor sQDEIM for the stochastic-fiber RVE. Similar trends are observed for the hexagonal-fiber RVE and therefore not reported here. The number of snapshot load paths is np = 20, and the number of POD modes has been determined to p = 38 such that the ratio between the cumulative sum and the total sum of singular values exceeds 0 .9999. The figure illustrates that for q ≥ 35, the error εP is on the order of 1% and does not decrease further. Using fewer Q-DEIM points leads to higher errors, while using more points does not significantly improve accuracy but reduces the speed-up factor. The models reported in this study are trained on a MacBook Pro equipped with an Apple M2 chip, using CPU execution only. With the proposed Q-DEIM reduction, physics-informed training of EquiNO on 233 unsupervised loading paths takes on the order of ten minutes for the considered three-dimensional RVE examples. For reference, solving one loading path with the present finite-element periodic homogenization solver takes approximately eighteen minutes. Thus, after the limited supervised snapshot set has been 11 5 15 25 35 45 55 Number of Q-DEIM points                   
+
+> 10 0
+> 10 1
+> 10 2
+> εP (%)
+> 515 25 35 45 55 Number of Q-DEIM points
+> 10 3
+> 2×10 3
+> 3×10 3
+> 4×10 3
+> sQDEIM Figure 3: Mean relative L2errors (left) and speed-up factors (right) for the stochastic RVE versus the number of Q-DEIM points in the in-range setting with np=20 and a 2 ×64 network discussed in section 3.5.
+
+generated for basis construction, the physics-informed training can incorporate a large number of additional loading states at a cost below that of a single loading-path finite-element simulation. Figure 4 illustrates a representative optimization history for EquiNO with the Q-DEIM-reduced loss for both RVEs. The error is shown in terms of the mean relative L2 error for the predicted first Piola–Kirchho ff 
+
+stress field at the Q-DEIM points, denoted by εPq . It can be observed that the loss decreases smoothly and 1 2500 5000 7500 10000 
+
+Optimization step     
+
+> 10 0
+> 10 2
+> 10 4
+> εPq (%) 12500 5000 7500 10000
+
+Optimization step         
+
+> 10 0
+> 10 2
+> 10 4
+> εPq (%)
+> Figure 4: Representative learning curve for the stochastic-fiber (left) and hexagonal-fiber (right) RVEs in the out-of-range setting with np=20, β=0.4, and a 2 ×64 network discussed in section 3.6. Blue shows the optimization steps with Adam, while orange shows the optimization steps with L-BFGS.
+
+steadily over the optimization, with a significant drop in the early iterations. The final error level is around 1% for the predicted first Piola–Kirchho ff stress field at the Q-DEIM points for the unsupervised input loading states used for training, which is consistent with the results reported for the test loading states in tables 1 and 3. This indicates that the physics-informed training e ff ectively guides the two stress representations toward the unique solution of the governing equations, first rapidly during the initial optimization phase and then toward an accurate converged state. The corresponding component-wise learning curves are reported in appendix A; see figure A.8. The reduced loss evaluation makes it feasible to optimize the model in full-batch mode with L-BFGS over a large set of sampled loading states. This is important in the present three-dimensional finite-strain setting, because a full-field loss evaluation would require storing and processing constitutive quantities at all spatial points for all sampled boundary conditions within each optimization step. For su ffi ciently large batches, this full-field formulation becomes memory-intensive and, in practice, is often prohibitive, especially on GPUs. By restricting the loss evaluation to the selected Q-DEIM points, the memory footprint and per-step cost are reduced enough to make deterministic full-batch optimization practical. The following subsections show that the computational advantages of Q-DEIM hyperreduction are achieved without compromising accuracy. In particular, we evaluate in-range and out-of-range generalization. In-range generalization refers to test loading paths that remain within the prescribed loading range used to generate the snapshot paths, whereas out-of-range generalization refers to test paths that extend beyond the 12 restricted snapshot range used for basis construction. 
+
+3.5. In-range generalization 
+
+Stochastic-fiber RVE: Table 1 summarizes the in-range results for the stochastic-fiber RVE for di ff erent numbers of snapshot loading paths np, the resulting POD dimensions p, and di ff erent network sizes. For each                                                                                                                                                                                                                                    
+
+> Table 1: In-range generalization errors for the stochastic-fiber RVE for di ff erent numbers of snapshot loading paths np, the corresponding POD dimensions p, and di ff erent network sizes. The last two columns report the forward-pass speed-up factors defined in section 3.4. Test setup Full-field errors Homogenized errors Speed-up factors
+> nppNN size εF(%) εP(%) εtrain
+> Pq(%) R2¯PNMAE ¯P(%) R2¯ANMAE ¯A(%) sQDEIM shom
+> 10 23 1×16 0.30 5.16 6.35 0.9906 0.32 0.9829 0.78 3×10 34×10 4
+> 10 23 1×32 0.21 2.77 3.75 0.9968 0.18 0.9920 0.56 3×10 33×10 4
+> 10 23 1×64 0.18 2.07 2.70 0.9984 0.13 0.9942 0.46 2×10 32×10 4
+> 10 23 2×16 0.23 3.08 4.15 0.9964 0.20 0.9925 0.56 3×10 33×10 4
+> 10 23 2×32 0.18 2.14 2.72 0.9986 0.13 0.9952 0.44 2×10 32×10 4
+> 10 23 2×64 0.17 1.86 2.33 0.9986 0.12 0.9959 0.39 2×10 38×10 3
+> 20 38 1×16 0.31 5.06 6.20 0.9899 0.30 0.9845 0.77 2×10 36×10 4
+> 20 38 1×32 0.19 2.57 3.08 0.9979 0.15 0.9942 0.49 2×10 34×10 4
+> 20 38 1×64 0.13 1.96 2.28 0.9988 0.10 0.9953 0.42 2×10 32×10 4
+> 20 38 2×16 0.25 4.47 5.33 0.9936 0.24 0.9862 0.71 2×10 34×10 4
+> 20 38 2×32 0.13 1.79 2.12 0.9990 0.10 0.9960 0.40 2×10 33×10 4
+> 20 38 2×64 0.09 1.09 1.10 0.9997 0.05 0.9976 0.30 1×10 31×10 4
+
+snapshot set, the number of retained modes is chosen such that the ratio between the cumulative sum and the total sum of singular values exceeds 0 .9999, which leads here to p = 23 for np = 10 and p = 38 for np = 20. The microscopic accuracy is assessed by εF and εP, whereas the macroscopic response is evaluated by R2¯P
+
+and NMAE ¯P; all metrics are defined in section 3.3. The table also reports εtrain  
+
+> Pq
+
+, the mean relative L2 error at the Q-DEIM points on the training states. The last two columns report the forward-pass speed-up factors 
+
+sQDEIM and shom introduced in section 3.4. The results for np = 10 already show that accurate surrogates can be obtained from a very limited o ffl ine snapshot set. In particular, the 1 × 32 network trained with only ten snapshot loading paths reaches εF = 0.21%, εP = 2.77%, R2¯P = 0.9968, and NMAE ¯P = 0.18%, while still providing speed-up factors of order 10 3 for sQDEIM and order 10 4 for shom . At fixed np, increasing the network width improves the prediction quality more clearly than adding an additional hidden layer. The best overall performance in table 1 is obtained for np = 20 with the 2 × 64 network, which yields 
+
+R2¯P = 0.9997 together with the smallest microscopic and macroscopic errors, a Q-DEIM speed-up of order 10 3, and a reduced-homogenization speed-up close to 10 4. Results corresponding to this model are shown in figure 5. The sample displayed in figure 5 is the test case with the median relative L2 error among all test samples. Its predicted local stress fields P11 , P22 , and P33 closely reproduce the reference solutions, while the corresponding absolute errors remain small throughout the RVE. The Q-DEIM points are illustrated in the top left panel of figure 5. Samples with minimum and maximum relative L2 errors are shown in appendix A. The homogenized material tangent is also recovered accurately for the same best stochastic-fiber model. Here, ¯A is obtained by di ff erentiating the homogenized first Piola–Kirchho ff stress predicted by the reduced stress model, that is, from the branch-stress coe ffi cients and the homogenized POD modes, with respect to the 13 -8.53e-02 -5.34e-02 -2.15e-02 
+
+> P11  / MPa -8.53e-02 -5.34e-02 -2.15e-02
+> ˜P11  / MPa 0.00e+00 2.12e-03 4.25e-03
+> |P11  − ˜P11 | / MPa -7.11e-02 -4.16e-02 -1.22e-02
+> P22  / MPa -7.11e-02 -4.16e-02 -1.22e-02
+> ˜P22  / MPa 0.00e+00 1.93e-03 3.86e-03
+> |P22  − ˜P22 | / MPa -2.97e-01 -1.65e-01 -3.37e-02
+> P33  / MPa -2.97e-01 -1.65e-01 -3.37e-02
+> ˜P33  / MPa 0.00e+00 1.73e-03 3.45e-03
+> |P33  − ˜P33 | / MPa
+
+Figure 5: Comparison of reference, predicted, and absolute-error fields for the microscopic first Piola–Kirchho ff stress components of the stochastic-fiber RVE for the test sample with the median relative L2 error among all in-range test samples. Columns from left to right show the reference solution, the EquiNO prediction, and the absolute error. Rows from top to bottom correspond to P11 ,
+
+P22 , and P33 . Results are shown for the best in-range model with np = 20, p = 38, and a 2 × 64 network. The Q-DEIM points are illustrated in the top left panel. 
+
+macroscopic deformation gradient. The tangent therefore provides a stricter test of the reduced representation. For the np = 20, p = 38, 2 × 64 model, the tangent prediction reaches R2¯A = 0.9976 and NMAE ¯A = 0.30%. 
+
+Hexagonal-fiber RVE: Table 2 summarizes the corresponding in-range results for the hexagonal-fiber RVE. The POD truncation criterion gives p = 22 for np = 10 and p = 37 for np = 20, so the larger snapshot set again leads to a richer stress basis. As in the stochastic-fiber case, the table reports full-field errors, homogenized-stress and homogenized-tangent errors, the training error εtrain 
+
+Pq at the Q-DEIM points, and the forward-pass speed-up factors sQDEIM and shom . The hexagonal-fiber results show that accurate predictions are also obtained for the more structured RVE. With only np = 10 snapshot loading paths, the 1 × 32 network reaches εF = 0.19%, εP = 2.97%, R2¯P = 0.9945, and NMAE ¯P = 0.23%, while retaining speed-up factors of order 10 3 for sQDEIM and order 10 4 for shom . For np = 20, the smaller networks show larger errors because the retained basis dimension increases to p = 37, but the wider two-layer network resolves the additional modes e ff ectively. The best performance in table 2 is obtained by the np = 20, p = 37, 2 × 64 model, with εF = 0.09%, εP = 1.37%, R2¯P = 0.9990, and NMAE ¯P = 0.10%. Results corresponding to this best hexagonal-fiber model are shown in figure 6. The displayed sample is the test case with the median relative 
+
+L2 error among all in-range test samples. The predicted stress components P11 , P22 , and P33 reproduce the reference fields across the fiber arrangement, and the absolute-error fields remain small relative to the stress variations in the RVE. The homogenized material tangent is also predicted accurately for the same model. For the np = 20, p = 37, 2 × 64 model, the tangent prediction reaches R2¯A = 0.9951 and NMAE ¯A = 0.41%. 14 Table 2: In-range generalization errors for the hexagonal-fiber RVE for di ff erent numbers of snapshot loading paths np, the corresponding POD dimensions p, and di ff erent network sizes. The last two columns report the forward-pass speed-up factors defined in section 3.4. Test setup Full-field errors Homogenized errors Speed-up factors 
+
+np p NN size εF (%) εP (%) εtrain  
+
+> Pq
+
+(%) R2¯P NMAE ¯P (%) R2¯A NMAE ¯A (%) sQDEIM shom 
+
+10 22 1 × 16 0.27 4.48 6.04 0.9918 0.32 0.9815 0.79 2 × 10 3 4 × 10 4
+
+10 22 1 × 32 0.19 2.97 4.05 0.9945 0.23 0.9913 0.56 2 × 10 3 3 × 10 4
+
+10 22 1 × 64 0.16 2.60 3.69 0.9967 0.19 0.9925 0.54 2 × 10 3 2 × 10 4
+
+10 22 2 × 16 0.21 3.51 4.94 0.9937 0.27 0.9879 0.71 2 × 10 3 3 × 10 4
+
+10 22 2 × 32 0.15 2.38 3.25 0.9975 0.16 0.9946 0.49 2 × 10 3 2 × 10 4
+
+10 22 2 × 64 0.14 2.24 3.06 0.9975 0.16 0.9946 0.47 1 × 10 3 6 × 10 3
+
+20 37 1 × 16 0.32 7.49 10.68 0.9719 0.50 0.9578 1.21 2 × 10 3 5 × 10 4
+
+20 37 1 × 32 0.21 4.65 6.35 0.9902 0.30 0.9835 0.78 2 × 10 3 3 × 10 4
+
+20 37 1 × 64 0.15 2.95 4.14 0.9962 0.19 0.9912 0.56 2 × 10 3 2 × 10 4
+
+20 37 2 × 16 0.30 6.19 9.15 0.9813 0.42 0.9722 1.00 2 × 10 3 4 × 10 4
+
+20 37 2 × 32 0.14 2.71 4.05 0.9965 0.19 0.9903 0.60 2 × 10 3 2 × 10 4
+
+20 37 2 × 64 0.09 1.37 2.08 0.9990 0.10 0.9951 0.41 1 × 10 3 8 × 10 3
+
+3.6. Out-of-range generalization 
+
+For the out-of-range study, we restrict the snapshot loading paths to the region ∥ ¯E∥ ≤ 0.4 ∥ ¯E∥max and evaluate the trained model on test paths that extend beyond this threshold. The corresponding loading-path distribution is shown in the right panel of figure 2 for the case of np = 10, where the blue paths remain confined to the inner region of the strain space, while the orange paths probe larger deformation states outside the snapshot domain. The quantitative out-of-range results are summarized in table 3 for both 
+
+Table 3: Out-of-range generalization errors for the stochastic-fiber and hexagonal-fiber RVEs for β = 0.4 using the 2 ×64 network and di ff erent numbers of snapshot loading paths np. The table reports full-field errors, homogenized first Piola–Kirchho ff stress and material-tangent errors, and the forward-pass speed-up factors defined in section 3.4. Test setup Full-field errors Homogenized errors Speed-up factors RVE np p NN size εF (%) εP (%) εtrain  
+
+> Pq
+
+(%) R2¯P NMAE ¯P (%) R2¯A NMAE ¯A (%) sQDEIM shom 
+
+Sto. 10 22 2 × 64 0.19 1.92 2.46 0.9987 0.09 0.9958 0.33 2 × 10 3 8 × 10 3
+
+Sto. 20 37 2 × 64 0.11 1.15 1.15 0.9994 0.05 0.9968 0.27 2 × 10 3 1 × 10 4
+
+Hex. 10 22 2 × 64 0.24 3.51 5.03 0.9821 0.24 0.9768 0.68 2 × 10 3 7 × 10 3
+
+Hex. 20 35 2 × 64 0.10 1.07 1.16 0.9995 0.05 0.9969 0.29 1 × 10 3 8 × 10 3
+
+stochastic-fiber and hexagonal-fiber RVEs. The table reports the same full-field errors εF and εP, the training error εtrain  
+
+> Pq
+
+at the Q-DEIM points, and the homogenized errors for the first Piola–Kirchho ff stress and material tangent, measured by R2¯P, NMAE ¯P, R2¯A, and NMAE ¯A. With only np = 10 restricted snapshot loading paths, the stochastic-fiber RVE already gives accurate out-of-range predictions, with a full-field stress error of 
+
+εP = 1.92% and a homogenized-stress error of NMAE ¯P = 0.09%. The hexagonal-fiber RVE is more sensitive in this low-snapshot regime, giving εP = 3.51% and NMAE ¯P = 0.24%. This is consistent with the larger training error at the Q-DEIM points for the hexagonal-fiber case, which indicates that the restricted 15 -4.49e-02 -3.29e-02 -2.09e-02 
+
+> P11  / MPa -4.49e-02 -3.29e-02 -2.09e-02
+> ˜P11  / MPa 0.00e+00 8.34e-04 1.67e-03
+> |P11  − ˜P11 | / MPa -3.82e-02 -2.96e-02 -2.10e-02
+> P22  / MPa -3.82e-02 -2.96e-02 -2.10e-02
+> ˜P22  / MPa 0.00e+00 7.43e-04 1.49e-03
+> |P22  − ˜P22 | / MPa -1.24e-02 7.41e-02 1.61e-01
+> P33  / MPa -1.24e-02 7.41e-02 1.61e-01
+> ˜P33  / MPa 0.00e+00 6.19e-04 1.24e-03
+> |P33  − ˜P33 | / MPa
+
+Figure 6: Comparison of reference, predicted, and absolute-error fields for the microscopic first Piola–Kirchho ff stress components of the hexagonal-fiber RVE for the test sample with the median relative L2 error among all in-range test samples. Columns from left to right show the reference solution, the EquiNO prediction, and the absolute error. Rows from top to bottom correspond to P11 ,
+
+P22 , and P33 . Results are shown for the best in-range model with np = 20, p = 37, and a 2 × 64 network. The Q-DEIM points are illustrated in the top left panel. 
+
+basis and limited number of snapshot paths make this setting more challenging. Increasing the number of restricted snapshot loading paths to np = 20 substantially improves both RVEs. The full-field stress error decreases to εP = 1.15% for the stochastic-fiber RVE and to εP = 1.07% for the hexagonal-fiber RVE, while the homogenized-stress error is reduced to NMAE ¯P = 0.05% in both cases. The material tangent is also recovered accurately in this out-of-range setting, with NMAE ¯A below 0 .30% for both RVEs. The forward-pass speed-up factors remain of order 10 3 for the Q-DEIM loss evaluation, while the reduced homogenization speed-up ranges from 7 × 10 3 to 1 × 10 4.The corresponding parity plots for the homogenized first Piola–Kirchho ff stress in the out-of-range setting are shown in figure 7 for the np = 20 models. The unseen test samples remain close to the diagonal for both RVEs, complementing the homogenized first Piola–Kirchho ff stress and tangent metrics in table 3. These results show that EquiNO remains robust even when the test trajectories leave the strain range covered by the snapshot loading paths used for basis construction. 
+
+4. Summary and conclusions 
+
+In this work, we extended the Equilibrium Neural Operator (EquiNO) to three-dimensional finite-strain hyperelastic RVEs and combined it with Q-DEIM to obtain an e ffi cient physics-informed surrogate for local fields and homogenized first Piola–Kirchho ff stresses. The formulation retains the central idea of EquiNO, namely to represent the displacement fluctuation and first Piola–Kirchho ff stress in reduced bases that satisfy periodicity and equilibrium by construction, and transfers it to the finite-strain setting. The numerical results 16 −1 0 1               
+
+> Reference ¯Pij / MPa
+> −1.0
+> −0.5
+> 0.0
+> 0.5
+> 1.0
+> Prediction ¯Pij  / MPa  R2= 0 .9994
+> 05
+> Reference ¯Aijkl / MPa
+> 0
+> 5
+> Prediction ¯Aijkl  / MPa  R2= 0 .9968 (a) Stochastic-fiber RVE. −0.50.00.5
+> Reference ¯Pij / MPa
+> −0.5
+> 0.0
+> 0.5
+> Prediction ¯Pij  / MPa  R2= 0 .9996
+> 05
+> Reference ¯Aijkl / MPa
+> 0
+> 5
+> Prediction ¯Aijkl  / MPa  R2= 0 .9969 (b) Hexagonal-fiber RVE.
+> Figure 7: Parity plots for the homogenized first Piola–Kirchho ff stress of the stochastic-fiber (left) and the hexagonal-fiber (right) RVEs for the out-of-range setting, showing the aggregated comparison over all first Piola–Kirchho ff stress components. Samples correspond to snapshot loading paths (blue) and unseen test loading paths (orange).
+
+for stochastic-fiber and hexagonal-fiber RVEs show that the resulting model delivers accurate in-range and out-of-range predictions of microscopic stress fields and homogenized first Piola–Kirchho ff stresses, while requiring only a limited number of o ffl ine snapshot loading paths for basis construction. The main computational gain of the present framework is enabled by three ingredients. First, Q-DEIM reduces the cost of the physics-informed loss evaluation so that full-batch training with L-BFGS becomes practical for large sets of sampled loading states in three-dimensional RVEs. Second, the reduced operator representation confines the learned problem to modal coe ffi cients rather than full-field degrees of freedom, which lowers the optimization cost while preserving the relevant mechanics by construction. Third, homogenized first Piola–Kirchho ff stresses are obtained directly from the reduced stress representation by averaging the modes o ffl ine, so macroscopic outputs can be evaluated without reconstructing the full-field stress. Together, these steps yield training-side speed-up factors of order 10 3 and reduced-homogenization speed-up factors of order 10 3 to 10 4 relative to the corresponding full-field computations. In the present examples, physics-informed training on 233 unsupervised loading paths takes approximately half the time required for one finite-element simulation of a single loading path with the periodic homogenization solver. This makes physics-informed operator learning substantially more practical for microstructure problems in which direct full-field training and evaluation would otherwise be limited by computational cost and memory usage. A natural next step is the extension of the present framework to inelastic microstructures. There, the main challenge is the introduction of history dependence through internal variables and path-dependent constitutive updates. The results of the present work indicate that the combination of constrained reduced representations, hyper-reduced loss evaluation, and reduced homogenization is a promising basis for addressing this additional complexity. 
+
+Data Availability 
+
+The source code, datasets, trained models, and supplementary materials associated with this study will be available on GitHub. 17 References 
+
+[1] B. Hassani, E. Hinton, A review of homogenization and topology optimization i—homogenization theory for media with periodic structure, Comput. & Struct. 69 (1998) 707–717. doi: https://doi.org/10.1016/S0045-7949(98)00131-X .[2] M. Geers, V. Kouznetsova, W. Brekelmans, Multi-scale computational homogenization: Trends and challenges, J. Comput. Appl. Math. 234 (2010) 2175–2182. doi: https://doi.org/10.1016/j.cam.2009.08.077 , fourth International Confer-ence on Advanced COmputational Methods in ENgineering (ACOMEN 2008). [3] K. Matou ˇs, M. G. Geers, V. G. Kouznetsova, A. Gillman, A review of predictive nonlinear theories for multiscale modeling of heterogeneous materials, J. Comput. Phys. 330 (2017) 192–220. doi: https://doi.org/10.1016/j.jcp.2016.10.070 .[4] C. Miehe, A. Koch, Computational micro-to-macro transitions of discretized microstructures undergoing small strains, Arch. Appl. Mech. 72 (2002) 300–317. [5] N. Kovachki, Z. Li, B. Liu, K. Azizzadenesheli, K. Bhattacharya, A. Stuart, A. Anandkumar, Neural operator: Learning maps between function spaces, arXiv preprint arXiv:2108.08481 (2023). doi: 10.48550/arXiv.2108.08481 .[6] L. Lu, P. Jin, G. Pang, Z. Zhang, G. E. Karniadakis, Learning nonlinear operators via DeepONet based on the universal approximation theorem of operators, Nat. Mach. Intell. 3 (2021) 218–229. doi: 10.1038/s42256-021-00302-5 .[7] Z. Li, N. Kovachki, K. Azizzadenesheli, B. Liu, K. Bhattacharya, A. Stuart, A. Anandkumar, Fourier neural operator for parametric partial di ff erential equations, arXiv preprint arXiv:2010.08895 (2020). doi: https://doi.org/10.48550/arXiv. 2010.08895 .[8] L. Lu, X. Meng, S. Cai, Z. Mao, S. Goswami, Z. Zhang, G. E. Karniadakis, A comprehensive and fair comparison of two neural operators (with practical extensions) based on FAIR data, Comput. Methods Appl. Mech. Eng. 393 (2022) 114778. doi: https://doi.org/10.1016/j.cma.2022.114778 .[9] K. Bhattacharya, B. Hosseini, N. B. Kovachki, A. M. Stuart, Model reduction and neural networks for parametric PDEs, arXiv preprint arXiv:2005.03180 (2020). doi: 10.48550/arXiv.2005.03180 .[10] H. Eivazi, S. Wittek, A. Rausch, Nonlinear model reduction for operator learning, 2024. doi: 10.48550/arXiv.2403.18735 .
+
+arXiv:2403.18735 , tiny Papers at ICLR 2024. [11] P. Chen, T. Hu, J. Guilleminot, A nonlinear-manifold reduced-order model and operator learning for partial di ff erential equations with sharp solution gradients, Comput. Methods Appl. Mech. Eng. 419 (2024) 116684. doi: https://doi.org/10. 1016/j.cma.2023.116684 .[12] J. H. Seidman, G. Kissas, P. Perdikaris, G. J. Pappas, NOMAD: Nonlinear manifold decoders for operator learning, in: Advances in Neural Information Processing Systems, volume 35, 2022. [13] S. Chaturantabut, D. C. Sorensen, Nonlinear model reduction via discrete empirical interpolation, SIAM J. on Sci. Comput. 32 (2010) 2737–2764. doi: 10.1137/090766498 .[14] Z. Drma ˇc, S. Gugercin, A new selection operator for the discrete empirical interpolation method—improved a priori error bound and extensions, SIAM J. on Sci. Comput. 38 (2016) A631–A648. doi: 10.1137/15M1019271 .[15] J. A. Hern ´andez, M. A. Caicedo, A. Ferrer, Dimensional hyper-reduction of nonlinear finite element models via empirical cubature, Comput. Methods Appl. Mech. Eng. 313 (2017) 687–722. doi: https://doi.org/10.1016/j.cma.2016.10. 022 .[16] R. A. van Tuijl, C. Harnish, K. Matou ˇs, J. J. C. Remmers, M. G. D. Geers, Wavelet based reduced order models for microstructural analyses, Comput. Mech. 63 (2019) 535–554. doi: https://doi.org/10.1007/s00466-018-1608-3 .[17] J. A. Hern ´andez, J. Oliver, A. E. Huespe, M. A. Caicedo, J. C. Cante, High-performance model reduction techniques in computational multiscale homogenization, Comput. Methods Appl. Mech. Eng. 276 (2014) 149–189. doi: https://doi. org/10.1016/j.cma.2014.03.011 .[18] J. A. Hern ´andez, A multiscale method for periodic structures using domain decomposition and ECM-hyperreduction, Comput. Methods Appl. Mech. Eng. 368 (2020) 113192. doi: https://doi.org/10.1016/j.cma.2020.113192 .[19] M. Raschi, O. Lloberas-Valls, A. Huespe, J. Oliver, High performance reduction technique for multiscale finite element modeling (HPR-FE 2): Towards industrial multiscale FE software, Comput. Methods Appl. Mech. Eng. 375 (2021) 113580. doi: https://doi.org/10.1016/j.cma.2020.113580 .[20] N. Lange, G. H ¨utter, B. Kiefer, Empirical hyper element integration method (EHEIM) with unified integration criteria for effi cient hyper-reduced FE 2 simulations, Mech. Mater. 210 (2025) 105444. doi: https://doi.org/10.1016/j.mechmat. 2025.105444 .[21] K. Linka, M. Hillg”artner, K. P. Abdolazizi, R. C. Aydin, M. Itskov, C. J. Cyron, Constitutive artificial neural networks: A fast and general approach to predictive data-driven constitutive modeling by deep learning, J. Comput. Phys. 429 (2021) 110010. [22] D. K. Klein, R. Ortigosa, J. Mart ´ınez-Frutos, O. Weeger, Finite electro-elasticity with physics-augmented neural networks, Comput. Methods Appl. Mech. Eng. 400 (2022) 115501. doi: https://doi.org/10.1016/j.cma.2022.115501 .[23] D. K. Klein, F. J. Roth, I. Valizadeh, O. Weeger, Parametrized polyconvex hyperelasticity with physics-augmented neural networks, Data-Centric Eng. 4 (2023) e25. doi: 10.1017/dce.2023.21 .
+
+18 [24] L. Linden, D. K. Klein, K. A. Kalina, J. Brummund, O. Weeger, M. K ¨astner, Neural networks meet hyperelasticity: A guide to enforcing physics, J. Mech. Phys. Solids 179 (2023) 105363. doi: https://doi.org/10.1016/j.jmps.2023.105363 .[25] M. Rosenkranz, K. A. Kalina, J. Brummund, W. Sun, M. K ¨astner, Viscoelasticty with physics-augmented neural networks: model formulation and training methods without prescribed internal variables, Comput. Mech. 74 (2024) 1279–1301. doi: 10.1007/s00466-024-02477-1 .[26] K. A. Kalina, J. Brummund, W. Sun, M. K ¨astner, Neural networks meet anisotropic hyperelasticity: A framework based on generalized structure tensors and isotropic tensor functions, Comput. Methods Appl. Mech. Eng. 437 (2025) 117725. doi: https://doi.org/10.1016/j.cma.2024.117725 .[27] B. M. Riemer, J. Brummund, K. A. Kalina, A. H. G. Milor, F. Dammaß, M. K ¨astner, Construction of irreducible integrity basis for anisotropic hyperelasticity via structural tensors, 2025. doi: 10.48550/arXiv.2512.04014 . arXiv:2512.04014 .[28] K. P. Abdolazizi, R. C. Aydin, C. J. Cyron, K. Linka, Constitutive kolmogorov–arnold networks (CKANs): Combining accuracy and interpretability in data-driven material modeling, 2025. doi: 10.48550/arXiv.2502.05682 . arXiv:2502.05682 .[29] D. Huang, K. C. C. Tse, Y. Lu, C. T. Wu, A machine learning based plasticity model using proper orthogonal decomposition, Comput. Methods Appl. Mech. Eng. 365 (2020) 113008. doi: https://doi.org/10.1016/j.cma.2020.113008 .[30] M. Raissi, P. Perdikaris, G. Karniadakis, Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial di ff erential equations, J. Comput. Phys. 378 (2019) 686–707. doi: https://doi.org/10.1016/j.jcp.2018.10.045 .[31] S. Goswami, M. Yin, Y. Yu, G. E. Karniadakis, A physics-informed variational deeponet for predicting crack path in quasi-brittle materials, Comput. Methods Appl. Mech. Eng. 391 (2022) 114587. doi: https://doi.org/10.1016/j.cma.2022.114587 .[32] M. S. Eshaghi, C. Anitescu, M. Thombre, Y. Wang, X. Zhuang, T. Rabczuk, Variational physics-informed neural operator (VINO) for solving partial di ff erential equations, Comput. Methods Appl. Mech. Eng. 437 (2025) 117785. doi: https: //doi.org/10.1016/j.cma.2025.117785 .[33] S. Rezaei, R. N. Asl, S. Faroughi, M. Asgharzadeh, A. Harandi, R. N. Koopas, G. Laschet, S. Reese, M. Apel, A finite operator learning technique for mapping the elastic properties of microstructures to their mechanical deformations, Int. J. for Numer. Methods Eng. 126 (2025) e7637. doi: https://doi.org/10.1002/nme.7637 .[34] A. Harandi, H. Danesh, K. Linka, S. Reese, S. Rezaei, Spifol: A spectral-based physics-informed finite operator learning for prediction of mechanical behavior of microstructures, J. Mech. Phys. Solids 203 (2025) 106219. doi: https://doi.org/10. 1016/j.jmps.2025.106219 .[35] H. Eivazi, J.-A. Tr ¨oger, S. Wittek, S. Hartmann, A. Rausch, EquiNO: A physics-informed neural operator for multiscale simulations, J. Comput. Phys. 554 (2026) 114745. doi: https://doi.org/10.1016/j.jcp.2026.114745 .[36] M. D. McKay, R. J. Beckman, W. J. Conover, A comparison of three methods for selecting values of input variables in the analysis of output from a computer code, Technometrics 21 (1979) 239–245. [37] D. P. Kingma, J. Ba, Adam: A method for stochastic optimization, in: 3rd International Conference on Learning Representations (ICLR), 2015. ArXiv:1412.6980. [38] D. C. Liu, J. Nocedal, On the limited memory BFGS method for large scale optimization, Math. Program. 45 (1989) 503–528. doi: 10.1007/BF01589116 .[39] C. Geuzaine, J.-F. Remacle, Gmsh: A 3-d finite element mesh generator with built-in pre- and post-processing facilities, Int. J. for Numer. Methods Eng. 79 (2009) 1309–1331. doi: 10.1002/nme.2579 .[40] M. S. Alnæs, J. Blechta, J. Hake, A. Johansson, B. Kehlet, A. Logg, C. Richardson, J. Ring, M. E. Rognes, G. N. Wells, The FEniCS project version 1.5, Arch. Numer. Softw. 3 (2015) 9–23. doi: 10.11588/ans.2015.100.20553 .[41] A. Logg, G. N. Wells, DOLFIN: Automated finite element computing, ACM Trans. on Math. Softw. 37 (2010) 20:1–20:28. doi: 10.1145/1731022.1731030 .[42] P. G. Ciarlet, Mathematical Elasticity. Volume I: Three-Dimensional Elasticity, North-Holland, Amsterdam, 1988. 
+
+19 A. Supplementary results 
+
+This appendix collects additional diagnostics that complement the main in-range and out-of-range results. First, we report component-wise learning curves for the first Piola–Kirchho ff stress at the Q-DEIM points in figure A.8, which show how each stress component contributes to the reduced physics-informed loss during training. 10 0  
+
+> 10 2
+> 10 4
+> εPq, 11  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 12  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 13  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 21  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 22  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 23  (%)
+> 15000 10000
+
+Optimization step   
+
+> 10 0
+> 10 2
+> 10 4
+> εPq, 31  (%)
+> 15000 10000
+
+Optimization step   
+
+> 10 0
+> 10 2
+> 10 4
+> εPq, 32  (%)
+> 15000 10000
+
+Optimization step  
+
+> 10 0
+> 10 2
+> 10 4
+> εPq, 33  (%)
+> Adam L-BFGS
+
+(a) Stochastic-fiber RVE. 10 0  
+
+> 10 2
+> 10 4
+> εPq, 11  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 12  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 13  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 21  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 22  (%)
+> 10 0
+> 10 2
+> 10 4
+> εPq, 23  (%)
+> 15000 10000
+
+Optimization step   
+
+> 10 0
+> 10 2
+> 10 4
+> εPq, 31  (%)
+> 15000 10000
+
+Optimization step   
+
+> 10 0
+> 10 2
+> 10 4
+> εPq, 32  (%)
+> 15000 10000
+
+Optimization step   
+
+> 10 0
+> 10 2
+> 10 4
+> εPq, 33  (%)
+> Adam L-BFGS
+
+(b) Hexagonal-fiber RVE. 
+
+Figure A.8: Component-wise learning curves for the first Piola–Kirchho ff stress on the Q-DEIM points in the out-of-range setting corresponding to figure 4. The results are shown for the stochastic-fiber and hexagonal-fiber RVEs with np = 20, β = 0.4, and a 2 × 64 network. 
+
+We also include additional field visualizations for the stochastic-fiber and hexagonal-fiber RVEs, showing the in-range test samples with the minimum and maximum relative L2 errors in figures A.9 to A.12. These cases complement the median-error examples shown in the main text and provide a broader view of the spatial stress-prediction accuracy. 
+
+20 -2.09e-02 -8.15e-03 4.57e-03 
+
+> P11  / MPa -2.09e-02 -8.15e-03 4.57e-03
+> ˜P11  / MPa 0.00e+00 2.04e-04 4.08e-04
+> |P11  − ˜P11 | / MPa -1.85e-02 -4.95e-03 8.59e-03
+> P22  / MPa -1.85e-02 -4.95e-03 8.59e-03
+> ˜P22  / MPa 0.00e+00 2.00e-04 4.00e-04
+> |P22  − ˜P22 | / MPa 1.15e-02 1.37e-01 2.63e-01
+> P33  / MPa 1.15e-02 1.37e-01 2.63e-01
+> ˜P33  / MPa 0.00e+00 1.61e-04 3.22e-04
+> |P33  − ˜P33 | / MPa
+
+Figure A.9: Comparison of reference, predicted, and absolute-error fields for the microscopic first Piola–Kirchho ff stress components of the stochastic-fiber RVE for the test sample with the minimum relative L2 error among all in-range test samples. See figure 5 for the description of the visualization. -2.32e-01 3.74e-03 2.40e-01 
+
+> P11  / MPa -2.32e-01 3.74e-03 2.40e-01
+> ˜P11  / MPa 0.00e+00 1.59e-02 3.17e-02
+> |P11  − ˜P11 | / MPa -8.88e-02 1.25e-01 3.38e-01
+> P22  / MPa -8.88e-02 1.25e-01 3.38e-01
+> ˜P22  / MPa 0.00e+00 1.36e-02 2.72e-02
+> |P22  − ˜P22 | / MPa -9.90e-02 7.57e-02 2.51e-01
+> P33  / MPa -9.90e-02 7.57e-02 2.51e-01
+> ˜P33  / MPa 0.00e+00 1.21e-02 2.42e-02
+> |P33  − ˜P33 | / MPa
+
+Figure A.10: Comparison of reference, predicted, and absolute-error fields for the microscopic first Piola–Kirchho ff stress components of the stochastic-fiber RVE for the test sample with the maximum relative L2 error among all in-range test samples. See figure 5 for the description of the visualization. 
+
+21 -2.26e-02 -9.18e-03 4.22e-03 
+
+> P11  / MPa -2.26e-02 -9.18e-03 4.22e-03
+> ˜P11  / MPa 0.00e+00 1.10e-04 2.21e-04
+> |P11  − ˜P11 | / MPa -1.92e-02 -6.04e-03 7.17e-03
+> P22  / MPa -1.92e-02 -6.04e-03 7.17e-03
+> ˜P22  / MPa 0.00e+00 1.16e-04 2.33e-04
+> |P22  − ˜P22 | / MPa 1.05e-02 1.34e-01 2.58e-01
+> P33  / MPa 1.05e-02 1.34e-01 2.58e-01
+> ˜P33  / MPa 0.00e+00 1.01e-04 2.02e-04
+> |P33  − ˜P33 | / MPa
+
+Figure A.11: Comparison of reference, predicted, and absolute-error fields for the microscopic first Piola–Kirchho ff stress components of the hexagonal-fiber RVE for the test sample with the minimum relative L2 error among all in-range test samples. See figure 6 for the description of the visualization. -2.48e-01 -1.03e-01 4.17e-02 
+
+> P11  / MPa -2.48e-01 -1.03e-01 4.17e-02
+> ˜P11  / MPa 0.00e+00 1.05e-02 2.11e-02
+> |P11  − ˜P11 | / MPa -8.92e-02 1.49e-02 1.19e-01
+> P22  / MPa -8.92e-02 1.49e-02 1.19e-01
+> ˜P22  / MPa 0.00e+00 1.02e-02 2.04e-02
+> |P22  − ˜P22 | / MPa -1.08e-01 6.15e-03 1.20e-01
+> P33  / MPa -1.08e-01 6.15e-03 1.20e-01
+> ˜P33  / MPa 0.00e+00 8.67e-03 1.73e-02
+> |P33  − ˜P33 | / MPa
+
+Figure A.12: Comparison of reference, predicted, and absolute-error fields for the microscopic first Piola–Kirchho ff stress components of the hexagonal-fiber RVE for the test sample with the maximum relative L2 error among all in-range test samples. See figure 6 for the description of the visualization. 
+
+22

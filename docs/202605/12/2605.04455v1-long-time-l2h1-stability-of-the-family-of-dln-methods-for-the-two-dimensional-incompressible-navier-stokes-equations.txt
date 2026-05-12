@@ -1,0 +1,3892 @@
+Title: Long-time $L^2$&$H^1$-stability of the Family of DLN Methods for the Two-dimensional Incompressible Navier-Stokes Equations
+
+URL Source: https://arxiv.org/pdf/2605.04455v1
+
+Published Time: Thu, 07 May 2026 00:25:13 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+## Long-time L2&H1-stability of the Family of DLN Methods for the Two-dimensional Incompressible Navier-Stokes Equations 
+
+ISABEL BARRIO SANCHEZ ∗, WENLONG PEI † , AND CATALIN TRENCHEA ‡
+
+Abstract. In this report, we study the long-time stability of the family of one-leg DLN methods for the two-dimensional incompressible Navier-Stokes equations. The family of DLN methods (with one parameter θ), non-linear energy stable ( G-stable) and second-order accurate under arbitrary time grids, has been widely applied to the simulations of various fluid models with success. We derive a new version of the G-stability identity for the family of DLN methods under uniform time grids and mild time constraints. Then we utilize this crucial auxiliary tool and the discrete uniform Gr¨ onwall inequality lemma to prove the uniform-in-time stability of the numerical solutions. Essentially, the bounds are independent of the time interval and the initial conditions, consistent with the theories of the continuous case. 
+
+Key words. Two-dimensional Navier-Stokes equations, the DLN methods, G-stability, uniform-in-time stability 
+
+AMS subject classifications. 65M12, 35Q30, 76D05, 76M25 
+
+1. Introduction. The incompressible Navier-Stokes equations (NSE), which de-scribe the relationship between velocity, pressure, and body force in viscous fluid flows, have been applied to numerous fields, including weather prediction, climate model-ing, blood flow simulation, and oceanic fluid dynamics [9,13,30,34,38,39]. Herein, we consider the imcompresible NSE on the domain Ω ⊂ R2 with boundary ∂Ω of class 
+
+C2
+
+ut + ( u · ∇ )u − ν∆u + ∇p = f, 
+
+∇ · u = 0 , (NSE) where u = ( u1, u 2) is the velocity, p the pressure, ν the kinematics viscosity, and f ∈
+
+L∞(R+; ( L2(Ω)) 2) body forces applied to the fluid. The equations are supplemented with the initial condition u(x, 0) = u0(x) ∈ (H10 (Ω)) 2 and non-slip boundary condition 
+
+u|∂Ω = 0. As known to all, the model energy in (NSE) is uniformly bounded in time [8, 31], 
+
+∥u(t)∥2 ≤ ∥ u0∥2e−νλ 1t + 1
+
+ν2λ21
+
+(1 − e−νλ 1t)∥f ∥2
+
+L∞(R+;L2(Ω) 2), (1.1) where ∥ · ∥ is the L2(Ω)-norm and λ1 is the smallest eigenvalue of the Stokes opera-tor. Moreover, u can be uniformly bounded in H1-norm by a function of the initial condition u0 and body force f
+
+∥∇ u(t)∥2 ≤ K(∥∇ u0∥, ∥f ∥L∞(R+;( L2(Ω)) 2)
+
+). (1.2) As the time reaches a certain level T∗(∥∇ u0∥, ∥f ∥L∞(R+;L2(Ω) 2)), the dependence of bounds on the initial condition u0 can be removed [31], i.e. for t ≥ T∗,
+
+∥u(t)∥2
+
+H1(Ω) 2 ≤ K(∥f ∥L∞(R+;L2(Ω) 2)
+
+), (1.3)  
+
+> ∗
+
+Department of Mathematics, University of Pittsburgh, Pittsburgh, PA 15260, USA. Email: ISB42@pitt.edu. Partially supported by NSF grant DMS-2208220.  
+
+> †
+
+Department of Mathematics, University of Pittsburgh, Pittsburgh, PA 15260, USA. Email: wep17@pitt.edu.  
+
+> ‡
+
+Department of Mathematics, University of Pittsburgh, Pittsburgh, PA 15260, USA. Email: trenchea@pitt.edu. Partially supported by NSF grant DMS-2208220. 1
+
+> arXiv:2605.04455v1 [math.NA] 6 May 2026
+
+which implies the dependence of initial conditions is transient due to the existence of a continuous global attractor. For reliable simulation in practice, it’s essential to select numerical algorithms that possess the behavior of their continuous counterparts. Inspired by the work of Tone and Wirosoetisno for the fully implicit backward Euler time discretization [33], great efforts for both semi-discretization in time [11,26,27,35–37] and fully-discretized approximation [1–4,6,14,28,32,40,41] have been devoted to the proof of this significant result. The family of methods of Dahlquist, Liniger and Nevanlinna [7] with one pa-rameter θ ∈ [0 , 1] (herein the DLN methods), known for non-linear stable ( G-stable) and second order accurate under arbitrary time grids, has demonstrated its success in approximations of typical dynamic systems [20] and various fluid models such as the unsteady Stokes-Darcy model [24,25], incompressible NSE [18,22,23], Smagrinsky model [29], phase field model [5] and the fourth-order active fluids [42, 43]. We derive a new version of G-stability identity for the family of the constant time-stepping DLN methods (with θ ∈ (0 , 1)), which is a pivotal auxiliary tool for the proof of long-time stability results in (1.1)-(1.3). Hence, we employ the family of fully implicit DLN methods (with θ ∈ (0 , 1)) for the two-dimensional incompressible NSE under uniform time grids and prove that the uniform-in-time bounds for the solutions are irrelevant to initial conditions, using only the semi-discretization in time to avoid the Courant-Friedrichs-Lewy (CFL) condition that most fully discrete formulations incur. Given the uniform time grids {tn} with the constant step size ∆ t = tn − tn−1,the family of DLN schemes for (NSE) (with parameter θ ∈ (0 , 1)) for the initial value problem of form y′(t) = g(t, y (t)) , y (0) = y0 reads 
+
+> 2
+
+∑
+
+> ℓ=0
+
+αℓyn−1+ ℓ = ∆ tg 
+
+( 2∑
+
+> ℓ=0
+
+βℓ tn−1+ ℓ,
+
+> 2
+
+∑
+
+> ℓ=0
+
+βℓ yn−1+ ℓ
+
+)
+
+, n = 1 , . . . (DLN) where ∆ t is the time step, yn represents the DLN solution at tn, and the {αℓ, β ℓ}ℓ=0 ,1,2
+
+coefficients in (DLN) are 
+
+
+
+α2 β2
+
+α1 β1
+
+α0 β0
+
+ =
+
+ 
+
+> 12
+
+(θ + 1) 14 (2 + θ − θ2)
+
+−θ 12 θ212 (θ − 1) 14 (2 − θ − θ2)
+
+ .
+
+For any sequence {zn}∞ 
+
+> n
+
+, we denote zn,β = ∑2 
+
+> ℓ=0
+
+βℓzn−1+ ℓ for convenience. 
+
+Scheme 1 ( Fully-implicit DLN algorithms for (NSE) ). Given two previous solutions of velocity and pressue {un, p n}, {un−1, p n−1}, we solve un+1 and pn+1 by 
+
+
+
+1∆t
+
+> 2
+
+∑
+
+> ℓ=0
+
+αℓun−1+ ℓ − ν∆un,β + un,β · ∇ un,β + ∇pn,β = f (tn,β ),
+
+∇ · un,β = 0 .
+
+(1.4) For the remainder of the report, we mainly focus on the proof of long-time stability of Scheme 1 in L2(Ω) and H1(Ω) norm, showing that the discrete counterparts of (1.1)-(1.3) hold. The report is organized as follows. In Section 2, we present notations and necessary preliminaries, including a new energy identity as an essential tool for the deviation of the discrete global attractor. Rigorous proof of long-time stability of Scheme 1 in L2(Ω)- and H1(Ω)-norm are provided in Section 3 and Section 4 respectively. Section 5 summarizes the main results. 
+
+> 2
+
+2. Notations and preliminaries. Given the domain Ω ⊂ R2, we need the fol-lowing Sobolev spaces for mathematical setting of the problem 
+
+V = {v ∈ H10 (Ω) 2 : ∇v = 0 },H = {v ∈ L2(Ω) 2 : ∇ · v = 0 , v ·⃗n| ∂Ω = 0 },
+
+where ⃗n is the unit vector outward on ∂Ω. The space H is endowed with the L 2(Ω) inner product ( u, v ) = ∫ 
+
+> Ω
+
+u · vdx and the corresponding norm ∥u∥ = ( u, u )1/2 for u, v ∈
+
+H. The space V is equipped with the inner product ( ∇u, ∇v)(∇u, ∇v) = 
+
+∫
+
+> Ω2
+
+∑
+
+> i,j =1
+
+∂u ∂x i
+
+(x) ∂v ∂x i
+
+(x)dx, 
+
+and the corrsponding norm ∥∇ u∥ = ( ∇u, ∇v)1/2 for u, v ∈ V . Throughout the whole paper, we assume that the body force f ∈ L∞(R+; H) and denote ∥f ∥∞ = ∥f ∥L∞(R+;H).We define the bounded linear operator A from V into its dual space V ′ by 
+
+⟨Au, v ⟩V ′,V = ( ∇u, ∇v)By the regularity theory for the Stokes equation [30], the domain of A on space H is 
+
+D(A) = H2(Ω) 2 ∩ V . Obviously, we have the inclusions D(A) ⊂ V ⊂ H. We denote the smallest eigenvalue of A as λ1 > 0 and have Poincar´ e-Friedrichs inequality 
+
+∥u∥ ≤ 1
+
+√λ1
+
+∥∇ u∥, u ∈ V, (2.1) and Ladyzhenskaya inequality in two spatial dimensions [10, 15, 16] 
+
+∥u∥L4(Ω) ≤ 2−1/4∥u∥1/2∥∇ u∥1/2, u ∈ V. (2.2) We need the following H2-bound for the Laplacian [17, pp.7] 
+
+∥D2u∥ ≤ CΩ∥∆u∥, u ∈ H2(Ω) 2 ∩ H10 (Ω) 2, (2.3) where CΩ is the positive constant only depending on Ω and CΩ = 1 if Ω is convex [12, pp.132]. We denote the trilinear operator b(u, v, w ) = ( u · ∇ v, w ) for any u, v, w ∈ V . By Gauss divergence theorem, b is skew-symmetric: 
+
+b(u, v, w ) = −b(u, w, v ), b(u, v, v ) = 0 , ∀u, v, w ∈ V. (2.4) By H¨ older’s inequality, Ladyzhenskaya inequality in (2.2) and Agmon inequality, it’s easy to derive the following estimates for the operator b
+
+|b(u, v, w )| ≤ Cb, 2∥u∥1/2∥∇ u∥1/2∥∇ v∥∥ w∥1/2∥∇ w∥1/2, ∀u, v, w ∈ V. (2.5) By (2.5), we can define the bilinear operator B from V × V into V ′ by 
+
+⟨B(u, v ), w ⟩V ′,V = b(u, v, w ), ∀u, v, w ∈ V. 
+
+By the above operators we’ve introduced, (NSE) can be written as [21] 
+
+ut + νAu + B(u, u ) = f, u(0) = u0,
+
+> 3
+
+and Scheme 1 becomes 1∆t
+
+> 2
+
+∑
+
+> ℓ=0
+
+αℓun−1+ ℓ + νAu n,β + B(un,β , u n,β ) = f (tn,β ). (2.6) 
+
+Definition 2.1. For θ ∈ (0 , 1) , we define the symmetric semi-positive definite 
+
+G(θ)-matrix 
+
+G(θ) = 
+
+( 14 (1 + θ)I2 00 14 (1 − θ)I2
+
+)
+
+,
+
+where I2 ∈ R2×2 is the identity matrix. The corresponding G-norm is defined as 
+
+∥∥∥∥uv
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
+= [ u⊤ v⊤]G(θ)
+
+[uv
+
+]
+
+= 14 (1 + θ)∥u∥2 + 14 (1 − θ)∥v∥2, ∀u, v ∈ L2(Ω) .
+
+Lemma 2.2. Given the sequence {yn}∞ 
+
+> n=0
+
+⊂ L2(Ω) and θ ∈ (0 , 1) the following 
+
+G-stability identity holds 
+
+( 2∑
+
+> ℓ=0
+
+αℓyn−1+ ℓ, y n,β 
+
+)
+
+=
+
+∥∥∥∥yn+1 
+
+yn
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
+−
+
+∥∥∥∥ yn
+
+yn−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++
+
+∥∥∥
+
+> 2
+
+∑
+
+> ℓ
+
+aℓyn−1+ ℓ
+
+∥∥∥2
+
+, (2.7) 
+
+where the coefficients of numerical dissipation are 
+
+a1 = −
+
+√θ(1 − θ2)
+
+√2 , a2 = − 12 a1, a0 = − 12 a1.
+
+Proof . See [18, 19]. 
+
+Lemma 2.3. For any n ≥ 1 and θ ∈ (0 , 1) , the approximations of Scheme 1 satisfy 
+
+∥∥∥∥un+1 
+
+un
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
+−
+
+∥∥∥∥ un
+
+un−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++
+
+∥∥∥
+
+> 2
+
+∑
+
+> ℓ
+
+aℓun−1+ ℓ
+
+∥∥∥2
+
++ ν∆tλ 1
+
+2 ∥un,β ∥2 ≤ ∆t∥f ∥2
+
+> ∞
+
+2νλ 1
+
+. (2.8) 
+
+Proof . We test (2.6) with ∆ tu n,β , use G-stability identity in (2.7) and the skew-symmetric property of b in (2.4) to achieve 
+
+∥∥∥∥un+1 
+
+un
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
+−
+
+∥∥∥∥ un
+
+un−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++
+
+∥∥∥
+
+> 2
+
+∑
+
+> ℓ
+
+aℓun−1+ ℓ
+
+∥∥∥2
+
++ ν∆t∥∇ un,β ∥2 ≤ ∆t(f (tn,β ), u n,β 
+
+).
+
+By Cauchy-Schwarz inequality, Young’s inequality and Poincar´ e-Friedrichs inequality in (2.1) 
+
+∥∥∥∥un+1 
+
+un
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
+−
+
+∥∥∥∥ un
+
+un−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++
+
+∥∥∥
+
+> 2
+
+∑
+
+> ℓ
+
+aℓun−1+ ℓ
+
+∥∥∥2
+
++ ν∆t
+
+2 ∥∇ un,β ∥2 ≤ ∆t
+
+2νλ 1
+
+∥f (tn,β )∥2.
+
+(2.9) We apply Poincar´ e-Friedrichs inequality in (2.1) to the above inequality and achieve (2.8). 
+
+> 4
+
+Lemma 2.4. If the time step ∆t satisfies 
+
+∆t < 1
+
+νλ 1
+
+min 
+
+{ 8θ(1 − θ2)(8 − 6θ2 + 3 θ4) , 2(1 − θ)
+
+}
+
+:= C∆t, (2.10) 
+
+there exist ϵ > 0, a, b, c ∈ R, and the positive definite matrix 
+
+H(θ) = 
+
+( h11 (θ)Id 00 h22 (θ)Id
+
+)
+
+, (2.11) 
+
+such that the left hand side of (2.8) can be written as 
+
+∥∥∥∥un+1 
+
+un
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
+−
+
+∥∥∥∥ un
+
+un−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++
+
+∥∥∥
+
+> 2
+
+∑
+
+> ℓ=0
+
+aℓun−1+ ℓ
+
+∥∥∥2
+
++ ν∆tλ 1
+
+2 ∥un,β ∥2 (2.12) = (1 + ϵ)
+
+∥∥∥∥un+1 
+
+un
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
+−
+
+∥∥∥∥ un
+
+un−1
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
++ ∥∥au n+1 + bu n + cu n−1
+
+∥∥2,
+
+where the H-norm associated with the H(θ) matrix in (2.11) is defined as 
+
+∥∥∥∥uv
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
+= [ u⊤ v⊤]H(θ)
+
+[uv
+
+]
+
+= h11 (θ)∥u∥2 
+
+> Rd
+
++ h22 (θ)∥v∥2 
+
+> Rd
+
+, ∀u, v ∈ Rd. (2.13) 
+
+Here 
+
+h11 (θ) > θ3
+
+2
+
+[
+
+1 − 12 θ(1 − θ)
+
+]
+
+> 0, h22 (θ) > 116 θ(1 − θ)2(1 + θ)(2 + θ) > 0, (2.14) 
+
+and 
+
+max {h11 (θ), h 22 (θ)} < C h(θ), 14 < 1
+
+ϵ < Cϵ(θ)
+
+νλ 1∆t , (2.15) 
+
+for some functions Ch(θ), Cϵ(θ) > 0 only depending on θ.Proof . See Appendix A. 
+
+Lemma 2.5. Given the sequence {yn}∞ 
+
+> n=1
+
+⊂ L2(Ω) and θ ∈ (0 , 1) , the following two identities hold 
+
+( 2∑
+
+> ℓ=0
+
+αℓyn−1+ ℓ, y n+1 
+
+)
+
+(2.16) =
+
+∥∥∥∥yn+1 
+
+yn
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
+−
+
+∥∥∥∥ yn
+
+yn−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ θ
+
+2 ∥yn+1 − yn∥2 + 14 (1 − θ)∥yn+1 − yn−1∥2,
+
+(yn,β , y n+1 
+
+) (2.17) = (2 β2 − 1) ∥yn+1 ∥2 + β1
+
+2 ∥yn+1 + yn∥2 + β0
+
+2 ∥yn+1 + yn−1∥2
+
++
+
+( β0 + β1
+
+2 ∥yn+1 ∥2 + β0
+
+2 ∥yn∥2)
+
+−
+
+( β0 + β1
+
+2 ∥yn∥2 + β0
+
+2 ∥yn−1∥2)
+
+.
+
+Proof . Just algebraic calculation. 
+
+> 5
+
+3. Long-time stability in L2-norm. We make the following notation 
+
+K1(∥u0∥, ∥u0∥, ∥f ∥∞) = Ch(θ)(∥u1∥2 + ∥u0∥2) + Cϵ(θ)2ν2λ21
+
+∥f ∥2
+
+> ∞
+
+, (3.1) 
+
+K2(∥u0∥, ∥u1∥, ∥f ∥∞) =: 
+
+{ K1
+
+> θ3
+> 2
+
+[
+
+1 − 12 θ(1 − θ)
+
+]}1/2
+
+, (3.2) where Ch(θ) and Cϵ(θ) are positive constants in Lemma 2.4. 
+
+Theorem 3.1. If the time step ∆t satisfies (2.10) , the approximate velocity of Scheme 1 satisfies 
+
+∥∥∥∥ uN
+
+uN −1
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
+≤ 1(1 + ϵ)N −1
+
+∥∥∥∥u1
+
+u0
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
++ Cϵ(θ)2ν2λ21
+
+∥f ∥2
+
+> ∞
+
+, N = 2 , · · · (3.3) 
+
+where ∥ · ∥ H(θ) is the H-norm defined in (2.13) . From (3.3) , we have 
+
+∥uN ∥ ≤ K2, N = 2 , · · · . (3.4) 
+
+Moreover for any N ≥ 1, and i = 1 , · · · , N − 1
+
+ν∆t 
+
+> N−1
+
+∑
+
+> n=i
+
+∥∇ un,β ∥2 ≤ 2
+
+∥∥∥∥ ui
+
+ui−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ (N − i)∆ tνλ 1
+
+∥f ∥2
+
+> ∞
+
+, (3.5) 
+
+and 
+
+∆t ν(2 β2 − 1) 8 
+
+> N−1
+
+∑
+
+> j=i
+
+∥∇ uj+1 ∥2 (3.6) +
+
+∥∥∥∥ uN
+
+uN −1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ ∆ tν 
+
+[ 14 ∥∇ uN ∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ uN −1∥2]
+
++ 
+
+> N−1
+
+∑
+
+> j=i
+
+( θ
+
+2 ∥uj+1 − uj ∥2 + 14 (1 − θ)∥uj+1 − uj−1∥2)
+
++ ν∆t 
+
+> N−1
+
+∑
+
+> j=i
+
+( β1
+
+2 ∥(∇uj+1 − ∇ uj )∥2 + β0
+
+2 ∥(∇uj+1 − ∇ uj−1)∥2)
+
+≤
+
+(
+
+1 + K42 (β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+) ∥∥∥∥ ui
+
+ui−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ ∆ tν 
+
+[ 14 ∥∇ ui∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ ui−1∥2]
+
++ (N − i)∆ tν(2 β2 − 1) λ1
+
+(
+
+2 + K42 (β20 + β21 )2
+
+2ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
+Proof . By (2.8) and (2.12), we drop the numerical dissipation term and use induction to obtain 
+
+∥∥∥∥ uN
+
+uN −1
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
+≤ 11 + ε
+
+∥∥∥∥uN −1
+
+uN −2
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
++
+
+( 11 + ε
+
+) ∆t
+
+2νλ 1
+
+∥f ∥2
+
+> ∞
+
+= 1(1 + ε)2
+
+∥∥∥∥uN −2
+
+uN −3
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
+, +
+
+[ 1(1 + ε)2 + 11 + ε
+
+] ∆t
+
+2νλ 1
+
+∥f ∥2
+
+> ∞
+> 6
+
+≤ · · · ≤ 1(1 + ε)N −1
+
+∥∥∥∥u1
+
+u0
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
++
+
+[ 1(1 + ε)N −1 + · · · + 1(1 + ε)2 + 11 + ε
+
+] ∆t
+
+2νλ 1
+
+∥f ∥2
+
+> ∞
+
+≤ 1(1 + ε)N −1
+
+∥∥∥∥u1
+
+u0
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
++ 1
+
+ε
+
+∆t
+
+2νλ 1
+
+∥f ∥2
+
+> ∞
+
+, ∀N = 2 , · · · .
+
+which implies (3.3) by (2.15). We combine (2.14) and (3.3) to achieve 
+
+θ3
+
+2
+
+[
+
+1 − 12 θ(1 − θ)
+
+]
+
+∥uN ∥2 ≤
+
+∥∥∥∥ uN
+
+uN −1
+
+∥∥∥∥
+
+> 2
+> H(θ)
+
+≤ K1,
+
+where K1 is defined in (3.1). Thus by the notation in (3.2), we have ∥uN ∥2 ≤ K2
+
+for all N ≥ 2. Adding up (2.9) over n from i to N − 1, and dropping the numerical dissipation term, 
+
+ν∆t
+
+2 
+
+> N−1
+
+∑
+
+> n=i
+
+∥∇ un,β ∥2 ≤
+
+∥∥∥∥ ui
+
+ui−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ ∆t
+
+2νλ 1 
+
+> N−1
+
+∑
+
+> n=i
+
+∥f (tn,β )∥2
+
+≤
+
+∥∥∥∥ ui
+
+ui−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ (N − i)∆ t
+
+2νλ 1
+
+∥f ∥2
+
+> ∞
+
+,
+
+which yields (3.5). For the proof of (3.6), we apply the dual operator in (2.6) to un+1 
+
+( 2∑
+
+> ℓ=0
+
+αℓun−1+ ℓ, u n+1 
+
+)
+
++ ν∆t(∇un,β , ∇un+1 ) + ∆ tb (un,β · ∇ un,β , u n+1 ) (3.7) = ( f (tn,β ), u n+1 ).
+
+For the non-linear term in (3.7), by the skew-symmetric property of b in (2.4), H¨ older’s inequality, Ladyzhenskaya inequallity in (2.2), uniform bound of u in (3.4), and Young’s inequality 
+
+b(un,β · ∇ un,β , u n+1 ) (3.8) =β1(un,β · ∇ un, u n+1 ) + β0b(un,β · ∇ un−1, u n+1 )
+
+≤β12−1/2∥un,β ∥ 12 ∥∇ un,β ∥ 12 ∥∇ un∥∥ un+1 ∥ 12 ∥∇ un+1 ∥ 12
+
++ β02−1/2∥un,β ∥ 12 ∥∇ un,β ∥ 12 ∥∇ un−1∥∥ un+1 ∥ 12 ∥∇ un+1 ∥ 12
+
+≤β12−1/2( 2∑
+
+> ℓ=0
+
+βℓ∥un−1+ ℓ∥
+
+) 12
+
+∥∇ un,β ∥ 12 ∥∇ un∥K1/22 ∥∇ un+1 ∥ 12
+
++ β02−1/2( 2∑
+
+> ℓ=0
+
+βℓ∥un−1+ ℓ∥
+
+) 12
+
+∥∇ un,β ∥ 12 ∥∇ un−1∥K1/22 ∥∇ un+1 ∥ 12
+
+≤β12−1/2K2∥∇ un,β ∥ 12 ∥∇ un∥∥∇ un+1 ∥ 12 + β02−1/2K2∥∇ un,β ∥ 12 ∥∇ un−1∥∥∇ un+1 ∥ 12
+
+≤ 12
+
+ν(2 β2 − 1) 4 ∥∇ un∥2 + 124
+
+ν(2 β2 − 1) 
+
+(
+
+β12−1/2K2∥∇ un,β ∥ 12 ∥∇ un+1 ∥ 12
+
+)2
+
++ 12
+
+ν(2 β2 − 1) 4 ∥∇ un−1∥2 + 124
+
+ν(2 β2 − 1) 
+
+(
+
+β02−1/2K2∥∇ un,β ∥ 12 ∥∇ un+1 ∥ 12
+
+)2
+
+> 7
+
+= ν(2 β2 − 1) 8
+
+(∥∇ un∥2 + ∥∇ un−1∥2) + (β21 + β20 )K22
+
+ν(2 β2 − 1) ∥∇ un,β ∥∥∇ un+1 ∥≤ ν(2 β2 − 1) 8
+
+(4∥∇ un+1 ∥2 + ∥∇ un∥2 + ∥∇ un−1∥2) + K42 (β20 + β21 )2
+
+2ν3(2 β2 − 1) 3 ∥∇ un,β ∥2.
+
+We use (2.16), (2.17) and (3.8) to have 
+
+∥∥∥∥un+1 
+
+un
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
+−
+
+∥∥∥∥ un
+
+un−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ θ
+
+2 ∥un+1 − un∥2 + 14 (1 − θ)∥un+1 − un−1∥2 (3.9) + ∆ t ν(2 β2 − 1) 4 ∥∇ un+1 ∥2 + ∆ tν 
+
+[ 14 ∥∇ un+1 ∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ un∥2]
+
+− ∆tν 
+
+[ 14 ∥∇ un∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ un−1∥2]
+
++ν∆t
+
+( β1
+
+2 ∥(∇un+1 +∇un)∥2 + β0
+
+2 ∥(∇un+1 +∇un−1)∥2)
+
+−∆t K42 (β20 + β21 )2
+
+2ν3(2 β2 − 1) 3 ∥∇ un,β ∥2
+
+≤ (α2un+1 + α1un + α0un−1, u n+1 
+
+)+ν∆t(∇un,β , ∇un+1 )+∆ tb (un,β · ∇ un,β , u n+1 ).
+
+By Cauchy-Schwarz inequality, Poincar´ e inequality in (2.1), Young’s inequality and (3.9), (3.7) becomes 
+
+∥∥∥∥un+1 
+
+un
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ θ
+
+2 ∥un+1 − un∥2 + 14 (1 − θ)∥un+1 − un−1∥2
+
++ ∆ t ν(2 β2 − 1) 8 ∥∇ un+1 ∥2 + ∆ tν 
+
+[ 14 ∥∇ un+1 ∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ un∥2]
+
++ ν∆t
+
+( β1
+
+2 ∥(∇un+1 + ∇un)∥2 + β0
+
+2 ∥(∇un+1 + ∇un−1)∥2)
+
+≤
+
+∥∥∥∥ un
+
+un−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ ∆ tν 
+
+[ 14 ∥∇ un∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ un−1∥2]
+
+∆t K42 (β20 + β21 )2
+
+2ν3(2 β2 − 1) 3 ∥∇ un,β ∥2 + 2∆ tν(2 β2 − 1) λ1
+
+∥f ∥2
+
+> ∞
+
+.
+
+Adding up for n from i to N − 1 yields 
+
+∥∥∥∥ uN
+
+uN −1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ ∆ tν 
+
+[ 14 ∥∇ uN ∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ uN −1∥2]
+
++ ∆ t ν(2 β2 − 1) 8 
+
+> N−1
+
+∑
+
+> j=i
+
+∥∇ uj+1 ∥2 + 
+
+> N−1
+
+∑
+
+> j=i
+
+( θ
+
+2 ∥uj+1 − uj ∥2 + 14 (1 − θ)∥uj+1 − uj−1∥2)
+
++ ν∆t 
+
+> N−1
+
+∑
+
+> j=i
+
+( β1
+
+2 ∥(∇uj+1 − ∇ uj )∥2 + β0
+
+2 ∥(∇uj+1 − ∇ uj−1)∥2)
+
+≤
+
+∥∥∥∥ ui
+
+ui−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ ∆ tν 
+
+[ 14 ∥∇ ui∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ ui−1∥2]
+
++ K42 (β20 + β21 )2
+
+2ν3(2 β2 − 1) 3 ∆t 
+
+> N−1
+
+∑
+
+> j=i
+
+∥∇ uj,β ∥2 + 2( N − i)∆ tν(2 β2 − 1) λ1
+
+∥f ∥2
+
+> ∞
+
+,
+
+> 8
+
+which by (3.5) yields (3.6). We denote ̂
+
+Ch(θ) = Ch(θ)
+
+> θ3
+> 2
+
+[
+
+1 − 12 θ(1 − θ)
+
+] , ρ0 = Cϵ(θ)
+
+ν2λ21θ3
+
+[
+
+1 − 12 θ(1 − θ)
+
+] ∥f ∥2
+
+> ∞
+
+. (3.10) We have the following lemma about the upper bound of model energy independent of the initial conditions. 
+
+Corollary 3.2. Under the time step restriction in (2.10) , if N is large enough such that 
+
+(N − 1)∆ t > T ∗
+
+(∥u0∥, ∥u1∥, ∥f ∥∞
+
+) = 4Cϵ(θ)
+
+νλ 1
+
+ln 
+
+(̂ Ch(θ)(∥u1∥2 + ∥u0∥2)
+
+ρ0
+
+)
+
+, (3.11) 
+
+the approximate velocity in Scheme 1 satisfies 
+
+∥uN ∥2 ≤ 2ρ0, (3.12) 
+
+Proof . By (3.3) in Theorem 3.1, (2.14)-(2.15) in Lemma 2.4 
+
+θ3
+
+2
+
+[
+
+1 − 12 θ(1 − θ)
+
+]
+
+∥uN ∥2 (3.13) 
+
+≤ 1(1 + ϵ)N −1 Ch(θ)(∥u1∥2 + ∥u0∥2) + Cε(θ)2ν2λ21
+
+∥f ∥2
+
+> ∞
+
+.
+
+We use the notation in (3.10) and have 
+
+∥uN ∥2 ≤ 1(1 + ϵ)N −1̂ Ch(θ)(∥u1∥2 + ∥u0∥2) + ρ0.
+
+By the fact that 1 + x ≥ exp( x/ 4) , ∀x ∈ (0 , 4) ,
+
+and ϵ ∈ (0 , 4) in (2.15), (3.13) becomes 
+
+∥uN ∥2 ≤ exp ( − (N − 1) ϵ/ 4)̂ Ch(θ)(∥u1∥2 + ∥u0∥2) + ρ0. (3.14) Let N0 to be the minimal integer N such that 
+
+N − 1 > 4Cϵ(θ)
+
+ν∆tλ 1
+
+ln 
+
+(̂ Ch(θ)(∥u1∥2 + ∥u0∥2)
+
+ρ0
+
+)
+
+.
+
+Then for N ≥ N0, we have (3.11) and by (2.15) 
+
+N − 1 > 4
+
+ϵ ln 
+
+(̂ Ch(θ)(∥u1∥2 + ∥u0∥2)
+
+ρ0
+
+)
+
+or exp ( − (N − 1) ϵ/ 4)̂ Ch(θ)(∥u1∥2 + ∥u0∥2) < ρ 0. (3.15) We combine (3.14) and (3.15) to achieve (3.12). 
+
+> 9
+
+4. Long-time stability in H1-norm. To seek a uniform bound for ∥∇ uN ∥
+
+independent of initial conditions, we first derive the bound on a finite time interval and then use this bound on successive intervals, via a discrete uniform Gr¨ onwall Lemma [33, pp.37-38]. We make the following notations 
+
+κ1 = 27(2 − θ2)C2ΩK22
+
+16 ν3 , (4.1) 
+
+κ2 = 3 + 8(2 − θ2)K22
+
+ν2(2 − θ)2(1 + θ) , (4.2) 
+
+κ3 = 27(2 − θ2)C2Ωρ0
+
+8ν3 , (4.3) 
+
+κ4 = 3 + 16(2 − θ2)ρ0
+
+ν2(2 − θ)2(1 + θ) , (4.4) 
+
+An+1 =
+
+∥∥∥∥∥
+
+∇un+1 
+
+∇un
+
+∥∥∥∥∥
+
+> 2
+> G(θ)
+
+, (4.5) and proceed by proving an intermediate recurrence inequality for An.
+
+Lemma 4.1. Assuming that ∆t satisfies (2.10) , we have 
+
+An+1 − An ≤ 12ν ∆t∥f ∥2 
+
+> ∞
+
++ ∆ tκ 1An+1 ∥∇ un,β ∥2 + ∆ tκ 1An∥∇ un,β ∥2, (4.6) 
+
+and 
+
+An+1 ≤ κ2An + ∆tν ∥f ∥2
+
+> ∞
+
+, (4.7) 
+
+Moreover, if n is large enough such that (n − 2)∆ t > T ∗,
+
+An+1 − An ≤ 12ν ∆t∥f ∥2 
+
+> ∞
+
++ ∆ tκ 3An+1 ∥∇ un,β ∥2 + ∆ tκ 3An∥∇ un,β ∥2, (4.8) 
+
+and 
+
+An+1 ≤ κ4An + ∆tν ∥f ∥2
+
+> ∞
+
+, (4.9) 
+
+where κ1, κ2, κ3, κ4, and An are given in (4.1) -(4.5) .Proof . We apply the operator in (2.6) on −∆un,β , and utilize G-stability identity in (2.7), Cauchy-Schwarz inequality, Young’s inequality yield 
+
+An+1 − An +
+
+∥∥∥
+
+> 2
+
+∑
+
+> ℓ=0
+
+aℓ ∇un−1+ ℓ
+
+∥∥∥2
+
++ ν
+
+2 ∆t
+
+∥∥∥∆un,β 
+
+∥∥∥2
+
+(4.10) 
+
+≤ 12ν ∆t∥f (tn,β )∥2 
+
+> L2(Ω)
+
++ ∆ tb (un,β , u n,β , ∆un,β ).
+
+By H¨ older’s inequality, Ladyzhenskaya inequality in (2.2) and the H2-bound for the Laplacian in (2.3) 
+
+b(un,β , u n,β , ∆un,β ) (4.11) 
+
+≤∥ un,β ∥L4 ∥∇ un,β ∥L4 ∥∆un,β ∥
+
+> 10
+
+≤2−1/4∥un,β ∥1/2∥∇ un,β ∥1/22−1/4∥∇ un,β ∥1/2∥D2un,β ∥1/2∥∆un,β ∥≤2−1/2C1/2Ω ∥un,β ∥1/2∥∇ un,β ∥∥ ∆un,β ∥3/2
+
+≤ 27 C2Ω
+
+16 ν3 ∥un,β ∥2∥∇ un,β ∥4 + ν
+
+4 ∥∆un,β ∥2.
+
+We combine (4.10) and (4.11) to obtain 
+
+An+1 − An ≤ 12ν ∆t∥f ∥2 
+
+> ∞
+
++ 27 C2Ω
+
+16 ν3 ∆t∥un,β ∥2 
+
+> L2
+
+∥∇ un,β ∥4. (4.12) Now, using the Cauchy-Schwarz inequality, we have 
+
+∥∇ un,β ∥2 =
+
+∥∥∥β2∇un+1 +
+
+( 12 − β2
+
+)
+
+∇un +
+
+( 12 − β0
+
+)
+
+∇un + β0∇un−1
+
+∥∥∥2
+
+(4.13) 
+
+≤2
+
+∥∥∥β2∇un+1 +
+
+( 12 − β2
+
+)
+
+∇un
+
+∥∥∥2
+
++ 2 
+
+∥∥∥( 12 − β0
+
+)
+
+∇un + β0∇un−1
+
+∥∥∥2
+
+≤ 2
+
+[
+
+β22
+
+22
+
+1 + θ +
+
+( 12 − β2
+
+)2 22
+
+1 − θ
+
+]︸ ︷︷ ︸
+
+> 2−θ2
+
+An+1 + 2 
+
+[( 12 − β0
+
+)2 22
+
+1 + θ + β20
+
+22
+
+1 − θ
+
+]︸ ︷︷ ︸
+
+> 2−θ2
+
+An.
+
+By (3.4) in Theorem 3.1, (4.12), (4.13), 
+
+An+1 − An ≤ ∆t
+
+2ν ∥f ∥2 
+
+> ∞
+
++ 27 C2Ω(2 − θ2)K22
+
+16 ν3 ∆t(An+1 + An)∥∇ un,β ∥2.
+
+which results in (4.6) by using the notation in (4.1). Similarly, by (3.12) in Corollary 3.2, we replace K22 by 2 ρ0 to have (4.8). Then we apply (2.6) on ∆ t(α2un+1 + α1un + α0un−1), use G-stability identity in (2.7), Cauchy-Schwarz inequality, and discard the numerical dissipation term to obtain 12 ∥α2un+1 + α1un + α0un−1∥2 + ν∆tA n+1 (4.14) 
+
+≤ ν∆tA n + (∆ t)2
+
+2 ∥f ∥2 
+
+> ∞
+
+− ∆tb (un,β , u n,β , α 2un+1 + α1un + α0un−1
+
+).
+
+By skew-symmetric property of b in (2.4), Ladyzhenskaya inequality in (2.2), Young’s inequality, (4.13) and (3.4) 
+
+− b(un,β , u n,β , α 2un+1 + α1un + α0un−1) (4.15) = − b(un,β , u n,β , α2
+
+β2
+
+un,β − α2
+
+β2
+
+un,β + α2un+1 + α1un + α0un−1
+
+)
+
+= − b(un,β , u n,β , − α2
+
+β2
+
+β1un − α2
+
+β2
+
+β0un−1 + α1un + α0un−1
+
+)
+
+=b(un,β , (α1 − α2
+
+β2
+
+β1
+
+)un + (α0 − α2
+
+β2
+
+β0
+
+)un−1, u n,β 
+
+)
+
+≤2−1/2∥un,β ∥∥∇ un,β ∥
+
+∥∥∥(α1 − α2
+
+β2
+
+β1
+
+)∇un + (α0 − α2
+
+β2
+
+β0
+
+)∇un−1
+
+∥∥∥
+
+≤ ν
+
+2(2 − θ2) ∥∇ un,β ∥2 + (2 − θ2)4ν ∥un,β ∥2∥∥∥(α1 − α2
+
+β2
+
+β1
+
+)∇un + (α0 − α2
+
+β2
+
+β0
+
+)∇un−1
+
+∥∥∥2
+
+≤ ν
+
+2 (An+1 + An) + (2 − θ2)K22
+
+4νβ 22
+
+∥∥∥(α1β2 − α2β1
+
+)∇un + (α0β2 − α2β0
+
+)∇un−1
+
+∥∥∥2
+
+.
+
+> 11
+
+By similar argument to (4.13), 
+
+∥∥∥(α1β2 − α2β1
+
+)∇un + (α0β2 − α2β0
+
+)∇un−1
+
+∥∥∥2
+
+(4.16) 
+
+≤
+
+[
+
+(α1β2 − α2β1)2 41 + θ + ( α0β2 − α2β0)2 41 − θ
+
+︸ ︷︷ ︸
+
+> =1+ θ
+
+]
+
+An.
+
+By (4.15) and (4.16), (4.14) becomes 
+
+ν∆t
+
+2 An+1 ≤ 3ν∆t
+
+2 An + 4(2 − θ2)K22 ∆tν(2 − θ)2(1 + θ) An + (∆ t)2
+
+2 ∥f ∥2
+
+> ∞
+
+,
+
+which yields (4.7). If n is large enough such that ( n−2)∆ t > T ∗, by (3.12) in Corollary 3.2, we replace K22 by 2 ρ0 to obtain (4.9). 
+
+Lemma 4.2. Given k > 0, an integer n∗ > 0, and positive sequences {ξn}, {ηn},
+
+{ζn} such that 
+
+ξn ≤ ξn−1(1 + kη n−1) + kζ n, n = 1 , 2, · · · , n ∗,
+
+we have for any n ∈ { 2, · · · , n ∗},
+
+ξn ≤ ξ0 exp 
+
+( n−1∑
+
+> i=0
+
+kη i
+
+)
+
++
+
+> n
+
+∑
+
+> i=1
+
+kζ i exp 
+
+( n−1∑
+
+> j=i
+
+kη j
+
+)
+
++ kζ n.
+
+Proof . See [33, pp.35-36]. We use Lemma 4.2 to prove the boundedness of ∥∇ un∥ on finite time interval [0 , T ]. 
+
+Theorem 4.3. Under the time step condition (2.10) , for n = 2 , 3, · · · , N := 
+
+⌊T / ∆t⌋, we have 
+
+An ≤K3
+
+(
+
+∥u1∥, ∥u0∥, ∥∇ u1∥, ∥∇ u0∥, ∥f ∥∞, (n − 1)∆ t
+
+)
+
+, (4.17) 
+
+where K3 is the following function increaing in all of its arguments 
+
+K3 =
+
+{∥ ∥∥∥∇u1
+
+∇u0
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ κ1C∆t∥f ∥2
+
+> ∞
+
+ν2
+
+(
+
+2
+
+∥∥∥∥u1
+
+u0
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ (n − 1)∆ tν ∥f ∥2
+
+> ∞
+
+)
+
++ (n − 1)∆ t
+
+2ν ∥f ∥2
+
+> ∞
+
+}
+
+× exp 
+
+( κ1(κ2 + 1) 
+
+ν
+
+(
+
+2
+
+∥∥∥∥u1
+
+u0
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ (n − 1)∆ tν ∥f ∥2
+
+> ∞
+
+))
+
+and C∆t is the upper bound for ∆t in the restriction (2.10) .Proof . We combine (4.6)-(4.7) and obtain, for n = 1 , 2, · · · , N − 1
+
+An+1 − An ≤ ∆t
+
+2ν ∥f ∥2 
+
+> ∞
+
++ ∆ tκ 1∥∇ un,β ∥2(
+
+κ2An + ∆tν ∥f ∥2
+
+> ∞
+
+)
+
++ ∆ tκ 1An∥∇ un,β ∥2
+
+=κ1(κ2 + 1)∆ t∥∇ un,β ∥2An + κ1∆tν ∥f ∥2
+
+> ∞
+
+∆t∥∇ un,β ∥2 + ∆t
+
+2ν ∥f ∥2
+
+> ∞
+
+≤κ1(κ2 + 1)∆ t∥∇ un,β ∥2An + κ1C∆t
+
+ν ∥f ∥2
+
+> ∞
+
+∆t∥∇ un,β ∥2 + ∆t
+
+2ν ∥f ∥2
+
+> ∞
+
+.
+
+> 12
+
+We apply the discrete Gr¨ onwall in Lemma 4.2 to to the above inequality and let 
+
+k = ∆ t, ξn = An+1 , ηn−1 = κ1(κ2 + 1) ∥∇ un,β ∥2,ζn = κ1C∆t
+
+ν ∥f ∥2
+
+> ∞
+
+∥∇ un,β ∥2 + 12ν ∥f ∥2
+
+> ∞
+
+in Lemma 4.2 to obtain 
+
+An+1 ≤
+
+(
+
+A1 +
+
+> n
+
+∑
+
+> i=1
+
+∆tζ i
+
+)
+
+exp 
+
+(
+
+κ1(κ2 + 1) 
+
+> n
+
+∑
+
+> i=1
+
+∆t∥∇ ui,β ∥2)
+
+. (4.18) By (3.5), we have ∆t
+
+> n
+
+∑
+
+> i=1
+
+∥∇ ui,β ∥2 ≤ 1
+
+ν
+
+(
+
+2
+
+∥∥∥∥u1
+
+u0
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ n∆tν ∥f ∥2
+
+> ∞
+
+)
+
+, (4.19) and 
+
+> n
+
+∑
+
+> i=1
+
+∆tζ i = κ1C∆t
+
+ν ∥f ∥2
+
+> ∞
+> n
+
+∑
+
+> i=1
+
+∆t∥∇ un,β ∥2 + n∆t
+
+2ν ∥f ∥2 
+
+> ∞
+
+(4.20) 
+
+≤ κ1C∆t
+
+ν2 ∥f ∥2
+
+> ∞
+
+(
+
+2
+
+∥∥∥∥u1
+
+u0
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ n∆tν ∥f ∥2
+
+> ∞
+
+)
+
++ n∆t
+
+2ν ∥f ∥2
+
+> ∞
+
+.
+
+We combine (4.18)-(4.20) to obtain (4.17). Then we extend the result to infinite time by the following more general version of discrete Gr¨ onwall inequality. 
+
+Lemma 4.4. Given k > 0, positive integers n1, n2, n∗ such that n1 < n ∗,
+
+n1 + n2 + 1 ≤ n∗, and positive sequences {ξn}, {ηn}, {ζn} such that 
+
+ξn ≤ ξn−1(1 + kη n−1) + kζ n, n = n1, · · · , n ∗,
+
+and given the bounds 
+
+> n′+n2
+
+∑
+
+> n=n′
+
+kη n ≤ a1(n1, n ∗),
+
+> n′+n2
+
+∑
+
+> n=n′
+
+kζ n ≤ a2(n1, n ∗),
+
+> n′+n2
+
+∑
+
+> n=n′
+
+kξ n ≤ a3(n1, n ∗),
+
+for any n′ such that n1 ≤ n′ ≤ n∗ − n2, we have 
+
+ξn ≤
+
+( a3(n1, n ∗)
+
+kn 2
+
++ a2(n1, n ∗)
+
+)
+
+exp (a1(n1, n ∗)), (4.21) 
+
+for any n such that n1 + n2 + 1 ≤ n ≤ n∗.Proof . See [33, pp.37-38]. We fix some positive number r > 5C∆t and have Nr = ⌊r/ ∆t⌋ > 5 if the time step restriction in (2.10) holds. We denote 
+
+K4(∥f ∥∞, T ∗) := (1 + θ)ρ0
+
+2̂ Ch(θ) exp 
+
+( νλ 1T∗
+
+4Cϵ(θ)
+
+)
+
++ T∗ + 2 C∆t
+
+ν ∥f ∥2
+
+> ∞
+
+, (4.22) 
+
+K5(∥∇ u1∥, ∥∇ u0∥, ∥f ∥∞, T ∗, r ) (4.23) 
+
+> 13
+
+:= 
+
+(
+
+A1 + κ1C∆t∥f ∥2
+
+> ∞
+
+K4
+
+ν2 + T∗ + 2 C∆t
+
+2ν ∥f ∥2
+
+> ∞
+
+)
+
+exp ( κ1(κ2 + 1) K4
+
+ν
+
+),K6(∥∇ u1∥, ∥∇ u0∥, ∥f ∥∞, T ∗):= (2 β2 − 1) r
+
+4(4 + 3 θ)K5
+
+exp 
+
+( κ3(κ4 + 1) 
+
+ν
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+))
+
+,ρ1(∥f ∥∞, r ) (4.24) := 
+
+{
+
+1 + 16 ρ0
+
+ν(2 β2 − 1) r
+
+(
+
+1 + 4ρ40(β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+)
+
++ 32 
+
+ν2(2 β2 − 1) 2λ1
+
+(
+
+1 + ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
++ κ3C∆t
+
+ν2 ∥f ∥2
+
+> ∞
+
+(
+
+2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+)
+
++ r∥f ∥2
+
+> ∞
+
+2ν
+
+}
+
+exp 
+
+(2κ3(κ4 + 1) 
+
+ν
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+))
+
+,ρ2(∥f ∥∞, r ) (4.25) := 
+
+[
+
+ρ1 + κ3C∆t∥f ∥2
+
+> ∞
+
+ν2
+
+(
+
+2(1 + θ)ρ0 + rν ∥f ∥2
+
+> ∞
+
+)
+
++ r
+
+2ν ∥f ∥2
+
+> ∞
+
+]
+
+×× exp 
+
+( 2κ3(κ4 + 1) 
+
+ν
+
+(
+
+2(1 + θ)ρ0 + rν ∥f ∥2
+
+> ∞
+
+)) 
+
+,ρ3(∥f ∥∞, r ) := (2 β2 − 1) r
+
+4(4 + 3 θ)ρ1
+
+exp 
+
+( κ3(κ4 + 1) 
+
+ν
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+))
+
+.
+
+Theorem 4.5. Under the time step condition 
+
+∆t < min {C∆t, K 6, ρ 3
+
+}, (4.26) 
+
+for N large enough such that (N − 2)∆ t > T ∗ + r, we have 
+
+AN ≤ ρ2, (4.27) 
+
+where ρ2 in (4.25) is independent of the initial conditions u1, u0.Proof . Let N0 be the minumum integer such that ( N0 − 2) > T ∗. By (4.8) and (4.9) in Lemma 4.1, for n = N0 − 1, N 0, · · · , we have 
+
+An+1 − An ≤κ3(κ4 + 1)∆ t∥∇ un,β ∥2An + κ3C∆t∥f ∥2
+
+> ∞
+
+ν ∆t∥∇ un,β ∥2 + ∆t∥f ∥2
+
+> ∞
+
+2ν ,
+
+(4.28) where κ3 and κ4 in (4.24)-(4.25) are independent of the initial conditions u0 and u1.Now we fixed some integer r > 0 large enough such that Nr = ⌊r/ ∆t⌋ > 5. We apply Lemma 4.4 with n1 = N0 + 1, n2 = Nr − 3, n∗ = n1 + n2 + 1 = N0 + Nr − 1 and set 
+
+k = ∆ t, ξn = An+1 , ηn−1 = κ3(κ4 + 1) ∥∇ un,β ∥2,ζn = κ3C∆t
+
+ν ∥f ∥2
+
+> ∞
+
+∥∇ un,β ∥2 + 12ν ∥f ∥2
+
+> ∞
+
+,
+
+in Lemma 4.4 to have for n′ = N0 + 1, N0 + 2 
+
+> n′+n2
+
+∑
+
+> n=n′
+
+kη n (4.29) =κ3(κ4 + 1) 
+
+> n′+n2
+
+∑
+
+> n=n′
+
+∆t∥∇ un,β ∥2
+
+> 14
+
+≤ κ3(κ4 + 1) 
+
+ν
+
+(
+
+2
+
+∥∥∥∥ un′
+
+un′−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ (( n′ + n2 + 1) − n′)∆ tνλ 1
+
+∥f ∥2
+
+> ∞
+
+)
+
+(by (3.5)) 
+
+≤ κ3(κ4 + 1) 
+
+ν
+
+( 1 + θ
+
+2 ∥un′ ∥2
+
+︸ ︷︷ ︸ 
+
+> ≤2ρ0
+
++ 1 − θ
+
+2 ∥un′−1∥2
+
+︸ ︷︷ ︸
+
+> ≤2ρ0
+
++ (n2 + 1)∆ tνλ 1
+
+∥f ∥2
+
+> ∞
+
+)
+
+(by (3.12)) 
+
+≤ κ3(κ4 + 1) 
+
+ν
+
+(
+
+2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+)
+
+,
+
+and 
+
+> n′+n2
+
+∑
+
+> n=n′
+
+kξ n =
+
+> n′+n2
+
+∑
+
+> n=n′
+
+∆t( 1 + θ
+
+4 ∥∇ un+1 ∥2 + 1 − θ
+
+4 ∥∇ un∥2)
+
+≤
+
+> n′+n2+1
+
+∑
+
+> n=n′
+
+∆t( 1 + θ
+
+4 + 1 − θ
+
+4
+
+)∥∇ un∥2
+
+= 12
+
+> N0+Nr
+
+∑
+
+> n=N0+1
+
+∆t∥∇ un∥2
+
+By the similar argument to the proof of (3.6), we have for i ≥ N0 and N ≥ i + 1 
+
+ν∆t (2 β2 − 1) 8
+
+> N
+
+∑
+
+> j=i+1
+
+∥∇ uj ∥2
+
+≤
+
+(
+
+1 + (2 ρ0)2(β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+) ∥∥∥∥ ui
+
+ui−1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ ∆ tν 
+
+[ 14 ∥∇ ui∥2 +
+
+( β0
+
+2 + (2 β2 − 1) 8
+
+)
+
+∥∇ ui−1∥2]
+
++ (N − i)∆ tν(2 β2 − 1) λ1
+
+(
+
+2 + (2 ρ0)2(β20 + β21 )2
+
+2ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
+≤
+
+(
+
+1 + 4ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+)
+
+ρ0 + ν∆t
+
+( 14 ∥∇ ui∥2 + (1 − θ)(4 + 3 θ)16 ∥∇ ui−1∥2)
+
++ (N − i)∆ tν(2 β2 − 1) λ1
+
+(
+
+2 + 2ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
+,
+
+or equivalently, 
+
+> N
+
+∑
+
+> j=i+1
+
+∆t∥∇ uj ∥2 ≤ 8ρ0
+
+ν(2 β2 − 1) 
+
+(
+
+1 + 4ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+)
+
++ 2∆ t(4 + 3 θ)(2 β2 − 1) Ai (4.30) + 16( N − i)∆ tν2(2 β2 − 1) 2λ1
+
+(
+
+1 + ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
+.
+
+We let i = N0 and N = N0 + Nr in (4.30) and obtain 
+
+> n′+n2
+
+∑
+
+> n=n′
+
+kξ n ≤ 12
+
+> N0+Nr
+
+∑
+
+> n=N0+1
+
+∆t∥∇ un∥2 (4.31) 
+
+≤ 4ρ0
+
+ν(2 β2 − 1) 
+
+(
+
+1 + 4ρ40(β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+)
+
++ ∆t(4 + 3 θ)(2 β2 − 1) AN0
+
+> 15
+
++ 8Nr∆tν2(2 β2 − 1) 2λ1
+
+(
+
+1 + ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
+.
+
+By (4.29) 
+
+> n′+n2
+
+∑
+
+> n=n′
+
+kζ n = κ3C∆t
+
+ν ∥f ∥2
+
+> ∞
+> n′+n2
+
+∑
+
+> n=n′
+
+∆t∥∇ un,β ∥2 + ∥f ∥2
+
+> ∞
+
+2ν
+
+> n′+n2
+
+∑
+
+> n=n′
+
+∆t (4.32) 
+
+≤ κ3C∆t
+
+ν2 ∥f ∥2
+
+> ∞
+
+(
+
+2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+)
+
++ r∥f ∥2
+
+> ∞
+
+2ν .
+
+We combine (4.29), (4.31), (4.32) and apply Lemma 4.4 to (4.28) 
+
+AN0+Nr (4.33) 
+
+≤
+
+{ 4ρ0
+
+ν(2 β2 − 1)( Nr − 3)∆ t
+
+(
+
+1 + 4ρ40(β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+)
+
++ ∆t(4 + 3 θ)(2 β2 − 1)( Nr − 3)∆ t AN0
+
++ 8Nr∆tν2(2 β2 − 1) 2λ1(Nr − 3)∆ t
+
+(
+
+1 + ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
++ κ3C∆t
+
+ν2 ∥f ∥2
+
+> ∞
+
+(
+
+2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+)
+
++ r∥f ∥2
+
+> ∞
+
+2ν
+
+}
+
+exp 
+
+( κ3(κ4 + 1) 
+
+ν
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+))
+
+≤
+
+{ 16 ρ0
+
+ν(2 β2 − 1) r
+
+(
+
+1 + 4ρ40(β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+)
+
++ 4(4 + 3 θ)∆ t
+
+(2 β2 − 1) r AN0
+
++ 32 
+
+ν2(2 β2 − 1) 2λ1
+
+(
+
+1 + ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
++ κ3C∆t
+
+ν2 ∥f ∥2
+
+> ∞
+
+(
+
+2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+)
+
++ r∥f ∥2
+
+> ∞
+
+2ν
+
+}
+
+exp 
+
+( κ3(κ4 + 1) 
+
+ν
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+))
+
+,
+
+where the last inequality is done by the facts that Nr∆t < r and that ( Nr − 3)∆ t >  
+
+> 14
+
+(Nr + 1)∆ t > r 
+
+> 4
+
+. By (3.11) 
+
+∥u1∥2 + ∥u0∥2 = ρ0̂
+
+Ch(θ) exp 
+
+( νλ 1T∗
+
+4Cϵ(θ)
+
+)
+
+. (4.34) By (4.17) in Theorem 4.3, (4.22), (4.23), (4.34) and the fact that ( N0 − 1)∆ t < T ∗ +2∆ t, we have AN0 ≤ K5. If ∆ t satisfies (4.26), we have 4(4 + 3 θ)∆ t
+
+(2 β2 − 1) r AN0 ≤ 4(4 + 3 θ)∆ tK 5
+
+(2 β2 − 1) r ≤ exp 
+
+( κ3(κ4 + 1) 
+
+ν
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+))
+
+,
+
+and (4.33) becomes 
+
+AN0+Nr ≤ ρ1(∥f ∥∞, r ), (4.35) where ρ1(∥f ∥∞, r ) in (4.24) is independent of initial conditions. We use similar ar-gument to the proof of Theorem 4.3 and replace the initial conditions by uN0+Nr ,
+
+uN0+Nr −1 to have for n = N0 + Nr + 1 , · · · , N 0 + 2 Nr
+
+An ≤
+
+{
+
+AN0+Nr + κ3C∆t∥f ∥2
+
+> ∞
+
+ν2
+
+(
+
+2
+
+∥∥∥∥ uN0+Nr
+
+uN0+Nr −1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ Nr∆tν ∥f ∥2
+
+> ∞
+
+)
+
++ Nr∆t
+
+2ν ∥f ∥2
+
+> ∞
+
+}
+
+> 16
+
+× exp 
+
+( κ3(κ4 + 1) 
+
+ν
+
+(
+
+2
+
+∥∥∥∥ uN0+Nr
+
+uN0+Nr −1
+
+∥∥∥∥
+
+> 2
+> G(θ)
+
++ Nr∆tν ∥f ∥2
+
+> ∞
+
+)) 
+
+.
+
+By (3.12) in Corollary 3.2, (4.35) and the fact Nr∆t < r , we have 
+
+An ≤ ρ2(∥f ∥∞, r ),
+
+where ρ2(∥f ∥∞, r ) in (4.25) is independent of initial conditions. Then we apply Lemma 4.4 with n1 = N0 + Nr + 1, n2 = Nr − 3, and n∗ = N0 + 2 Nr − 1, 
+
+AN0+2 Nr (4.36) 
+
+≤
+
+{ 16 ρ0
+
+ν(2 β2 − 1) r
+
+(
+
+1 + 4ρ40(β20 + β21 )2
+
+ν4(2 β2 − 1) 3
+
+)
+
++ 4(4 + 3 θ)∆ t
+
+(2 β2 − 1) r AN0+Nr
+
++ 32 
+
+ν2(2 β2 − 1) 2λ1
+
+(
+
+1 + ρ20(β20 + β21 )2
+
+ν4(2 β2 − 1) 2
+
+)
+
+∥f ∥2
+
+> ∞
+
++ κ3C∆t
+
+ν2 ∥f ∥2
+
+> ∞
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+) + r∥f ∥2
+
+> ∞
+
+2ν
+
+}
+
+exp 
+
+( κ3(κ4 + 1) 
+
+ν
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+))
+
+,
+
+By (4.26) and (4.35), 4(4 + 3 θ)∆ t
+
+(2 β2 − 1) r AN0+Nr ≤ 4(4 + 3 θ)∆ tρ 1
+
+(2 β2 − 1) r ≤ exp 
+
+( κ3(κ4 + 1) 
+
+ν
+
+(2ρ0 + rνλ 1
+
+∥f ∥2
+
+> ∞
+
+))
+
+.
+
+Hence (4.36) becomes 
+
+AN0+2 Nr ≤ ρ1. (4.37) We use (4.37) and similar argument to the proof of Theorem 4.3 with initial condition 
+
+AN0+2 Nr to obtain for n = N0 + 2 Nr + 1 , · · · , N 0 + 3 Nr,
+
+An ≤ ρ2.
+
+Then we apply Lemma 4.4 with n1 = N0 +2 Nr +1, n2 = Nr −3, and n∗ = N0 +3 Nr −1, Under the time step (4.26), we have AN0+3 Nr ≤ ρ1. We iterate the above process and have (4.27) for N large enough such that ( N − 2)∆ t > T ∗ + r.
+
+5. Conclusion. In this report, we employ the family of semi-discrete-in-time DLN formulations for the two-dimensional Navier-Stokes equations and prove the uniform-in-time stability in L2- and H1-norm via a newly-derived G-stability identity for the family of DLN schemes under uniform time grids in Appendix A. The stability in L2-norm holds under this auxiliary identity and the time step restriction in (2.10). For the proof of stability in H1-norm, we first establish the boundedness of solutions for the finite time interval and then use the discrete uniform Gr¨ onwall lemma to derive the uniform upper bound for later time under the time step constraint in (4.26) by iteration. Essentially, the discrete global attractors are independent of initial conditions and true for all values of method parameter θ ∈ (0 , 1). Since the family of DLN methods enjoys the non-linear stability and high accuracy under arbitrary time grids, we are encouraged to extend the results to the variable time step scenario in the future. 
+
+> 17
+
+6. Acknowledgement. Isabel Barrio Sanchez and Catalin Trenchea are par-tially supported by the National Science Foundation under grant DMS-2208220. 
+
+Appendix A. Proof of Lemma 2.4. 
+
+Proof . If there exists ϵ > 0, a, b, c ∈ R, and the positive definite matrix H(θ) in (2.11) such that (2.12) holds, then we obtain the following system by matching the coefficients of terms ∥un+1 ∥2, ∥un∥2, ∥un−1∥2, ( un+1 , u n), ( un+1 , u n−1), ( un, u n−1)
+
+
+
+(1 + ϵ)h11 + a2 = (1 + θ)(2 + θ − θ2)8 + ν∆tλ 1β22
+
+2 , (∥un+1 ∥2)(1 + ϵ)h22 − h11 + b2 = ν∆tλ 1β21
+
+2 − θ3
+
+2 , (∥un∥2)
+
+c2 − h22 = (1 − θ)( θ2 + θ − 2) 8 + ν∆tλ 1β20
+
+2 , (∥un−1∥2)2ab = ν∆tλ 1β2β1 − a21, (un+1 , u n)2ac = ν∆tλ 1β2β0 + a21
+
+2 , (un+1 , u n−1)2bc = ν∆tλ 1β1β0 − a21, (un, u n−1).
+
+(A.1) We add the above six equations together, and use the fact β2 + β1 + β0 = 1 to have 
+
+ϵ(h11 + h22 ) + ( a + b + c)2 = ν∆tλ 1
+
+2 .
+
+Now we assume that ϵ(h11 + h22 ) = μ ν∆tλ 1 
+
+> 2
+
+for some μ ∈ (0 , 1) and obtain (a + b + c)2 = (1 − μ) ν∆tλ 1
+
+2 , ⇔ b + ( a + c) = ±
+
+√ (1 − μ)ν∆tλ 1
+
+2 := ±√x. 
+
+We consider the ′+′ case b + ( a + c) = √x and add the fourth and sixth equations of system (A.1) together 
+
+b(a + c) = ν∆tλ 1β1(β2 + β0)2 − a21 = ν∆tλ 1θ2(2 − θ2)8 − θ(1 − θ2)2 := E. 
+
+Hence ( a + c) and b are two roots of the following quadratic equation 
+
+X2 − √xX + E = 0 .
+
+Hence we need μ ∈ (0 , 1) and ∆ t > 0 such that the discriminant of the above quadratic equation D satisfies D = x − 4E ≥ 0. Then we consider the case 
+
+b = 12
+
+(√x − √D
+
+)
+
+, a + c = 12
+
+(√x + √D
+
+)
+
+, (A.2) Then we combine (A.2) and the fifth equation of (A.1), and obtain that a, c are two roots of the following quadratic equation about Y with the discriminant D
+
+Y 2 − 12
+
+(√x + √D)Y +
+
+( ν∆tλ 1β2β0
+
+2 + a21
+
+4
+
+)
+
+= 0 ,
+
+D = 14
+
+(√x + √D)2 − 4
+
+( ν∆tλ 1β2β0
+
+2 + a21
+
+4
+
+)
+
+. (A.3) We consider the following case 
+
+c = 12
+
+[ 12
+
+(√x + √D) + √D
+
+]
+
+, a = 12
+
+[ 12
+
+(√x + √D) − √D
+
+]
+
+, b = 12
+
+(√x − √D).
+
+> 18
+
+By algebraic calculation, 
+
+√D =
+
+√√√√√
+
+12 x + 12
+
+√x√D −
+
+[ ν∆tλ 1β1(β2 + β0)2 + 2 ν∆tλ 1β2β0
+
+︸ ︷︷ ︸
+
+> =F
+
+]
+
+. (A.4) We use the fourth equation of (A.1) again and achieve 
+
+√ 12 x + 12
+
+√x√D − F (√x − √D) = ν∆tλ 1β1(β0 − β2)We square the above equation and obtain a linear function of x (terms of x2 are cancelled) 
+
+{
+
+4F E −
+
+[
+
+ν∆tλ 1β1(β2 − β0)
+
+]2}2
+
+= 4( E − F )x
+
+{[
+
+ν∆tλ 1β1(β2 − β0)
+
+]2
+
+− 4E2
+
+}
+
+.
+
+The requirement x ≥ 0 yields 4( E − F )
+
+{[
+
+ν∆tλ 1β1(β2 − β0)
+
+]2
+
+− 4E2
+
+}
+
+=16 
+
+(
+
+a21 + 2 ν∆tλ 1β2β0
+
+︸ ︷︷ ︸
+
+> >0
+
+)( 
+
+a21 − ν∆tλ 1β1β0
+
+)( 
+
+a21 − ν∆tλ 1β1β2
+
+)
+
+> 0.
+
+We need the time step restriction ∆t < 4(1 − θ)
+
+νλ 1θ(2 − θ) , (A.5) and solve for xx =
+
+{
+
+4F E −
+
+[
+
+ν∆tλ 1β1(β2 − β0)
+
+]2}2
+
+4( E − F )
+
+{[
+
+ν∆tλ 1β1(β2 − β0)
+
+]2
+
+− 4E2
+
+} ≥ 0. (A.6) From (A.6), D = x − 4E > 0 as long as E < 0, which is ensured by the time step restriction in (A.5). By the facts that E < 0 and F > 0, we can show that D > 0 in (A.4). We have solved a, b, c in the numerical dissipation term in (2.12). Now we employ the following new time step restriction ∆t < 2(1 − θ)
+
+νλ 1
+
+, (A.7) which is more restrictive than the limit in (A.5). By the third equation of (A.1) and the updated time step restriction in (A.7) 
+
+h22 =c2 + (1 − θ)(2 − θ − θ2)8 − ν∆tλ 1β20
+
+2
+
+>c 2 + (1 − θ)(2 − θ − θ2)8 − (1 − θ)
+
+[ 14
+
+(2 − θ − θ2)]2
+
+(A.8) 
+
+> 19
+
+=c2 + θ(1 − θ)2(1 + θ)(2 + θ)16 ≥ θ(1 − θ)2(1 + θ)(2 + θ)16 > 0.
+
+To solve for h11 , we multiply first equation of (A.1) by h22 and second equation of (A.1) by h11 
+
+(1 + ϵ)h11 h22 + a2h22 = (1 + θ)(2 + θ − θ2)8 h22 + ν∆tλ 1β22
+
+2 h22 , (A.9) (1 + ϵ)h22 h11 − h211 + b2h11 = ν∆tλ 1β21
+
+2 h11 − θ3
+
+2 h11 . (A.10) We subtract (A.10) from (A.9) and obtain the following quadratic equation of h11 
+
+h211 +
+
+( ν∆tλ 1β21
+
+2 − θ3
+
+2 − b2)
+
+h11 +
+
+[
+
+a2 − (1 + θ)(2 + θ − θ2)8 − ν∆tλ 1β22
+
+2
+
+]
+
+h22 = 0 .
+
+(A.11) We assume that the two roots of the quadratic equation (A.11) are h+11 (the larger one) and h− 
+
+> 11
+
+and have 
+
+h+11 + h− 
+
+> 11
+
+= −
+
+( ν∆tλ 1β21
+
+2 − θ3
+
+2 − b2)
+
+, (A.12) 
+
+h+11 h− 
+
+> 11
+
+=
+
+[
+
+a2 − (1 + θ)(2 + θ − θ2)8 − ν∆tλ 1β22
+
+2
+
+]
+
+h22 .
+
+By (A.7) and (A.12) 
+
+h+11 + h− 
+
+> 11
+
+= b2 + θ3
+
+2
+
+[
+
+1 − ν∆tλ 1θ
+
+4
+
+]
+
+> b 2 + θ3
+
+2
+
+[1 − 12 θ(1 − θ)] > 0. (A.13) Since we have shown that h22 > 0 and 
+
+a2 − (1 + θ)(2 + θ − θ2)8 − ν∆tλ 1β22
+
+2=
+
+√x + √D
+
+4
+
+> 14
+
+(√x + √D)2 − D
+
+12
+
+(√x + √D) + √D
+
+︸ ︷︷ ︸ 
+
+> >12
+
+(√x+√D
+
+)
+
+−
+
+( ν∆tλ 1β2β0
+
+2 + a21
+
+4
+
+)
+
+− (1 + θ)β2
+
+2 − ν∆tλ 1β22
+
+2
+
+< 12
+
+(√x + √D)2 − D −
+
+( ν∆tλ 1β2β0
+
+2 + a21
+
+4
+
+)
+
+− (1 + θ)(2 + θ − θ2)8 − ν∆tλ 1β22
+
+2= − ν∆tλ 1β2θ
+
+4 − (1 + θ)4 < 0,
+
+we have shown h+11 h− 
+
+> 11
+
+< 0. Thus we can solve h+11 via the quadratic equation in (A.11) 
+
+h11 = h+11 = 12
+
+{
+
+−
+
+( ν∆tλ 1β21
+
+2 − θ3
+
+2 − b2)︸ ︷︷ ︸
+
+> >0
+
+(A.14) +
+
+√√√√√( ν∆tλ 1β21
+
+2 − θ3
+
+2 −b2
+
+)2
+
++4 
+
+[ ν∆tλ 1β22
+
+2 + (1 + θ)(2 + θ − θ2)8 −a2]
+
+h22 
+
+︸ ︷︷ ︸
+
+> >0
+
+}
+
+> 20
+
+= −
+
+( ν∆tλ 1β21
+
+2 − θ3
+
+2 − b2)
+
+≥ θ3
+
+2
+
+[
+
+1 − 12 θ(1 − θ)
+
+]
+
+> 0,
+
+where the lower bound is by (A.13). We combine (A.8) and (A.14) to have (2.14). Finally we solve for ϵ and derive a lower bound for 1 /ϵ . For convenienece, we denote 
+
+B = ν∆tλ 1β21
+
+2 − θ3
+
+2 − b2 (< 0) , C = ν∆tλ 1β22
+
+2 + (1 + θ)(2 + θ − θ2)8 − a2 (> 0) ,
+
+(A.15) and obtain via the second equation of (A.1) 
+
+ϵ =
+
+√B2 + 4 Ch 22 − (2 h22 − B)2h22 
+
+(A.16) To show ϵ > 0, it suffice to show that B2 + 4 Ch 22 > (2 h22 − B)2 due to the facts that 
+
+h22 > 0 and 2 h22 − B > 0. By algebraic calculation, 
+
+B2 + 4 Ch 22 − (2 h22 − B)2 = 4 h22 (B + C − h22 ) = 4 h22 
+
+( ν∆tλ 1
+
+2 − x
+
+)
+
+. (A.17) We need ν∆tλ 1 
+
+> 2
+
+− x > 0 and obtain ∆t < 4(1 − θ2)3νλ 1θ(1 − 14 θ2) ,
+
+which is less restrictive than (A.7). Hence we keep the time step limit in (A.7). By (A.16) and (A.17), we have 1
+
+ϵ =
+
+√B2 + 4 Ch 22 + (2h22 − B)
+
+2(B + C − h22 
+
+) =
+
+√B2 + 4 Ch 22 + (2h22 − B)
+
+2( ν∆tλ 1 
+
+> 2
+
+− x) (A.18) We claim that under the time step restriction in (2.10), x < ν∆tλ 1 
+
+> 4
+
+. The requirement 
+
+x < ν∆tλ 1 
+
+> 4
+
+is equivalent to the following inequality 
+
+− 2β22 β21 β20
+
+(
+
+ν∆tλ 1
+
+)3
+
++ 2 
+
+(
+
+1 − 34 θ2)
+
+a21β2β1β0
+
+(
+
+ν∆tλ 1
+
+)2
+
+− a4(
+
+ν∆tλ 1
+
+){ 12
+
+(1 − 34 θ2)2 + 38 θ2(
+
+1 − 14 θ2)}
+
++ a61 > 0. (A.19) To ensure that (A.19) holds, it suffices to have the following two inequalities 
+
+− 2β22 β21 β20
+
+(
+
+ν∆tλ 1
+
+)3
+
++ 2 
+
+(
+
+1 − 34 θ2)
+
+a21β2β1β0
+
+(
+
+ν∆tλ 1
+
+)2
+
+> 0,
+
+− a4(
+
+ν∆tλ 1
+
+){ 12
+
+(1 − 34 θ2)2 + 38 θ2(
+
+1 − 14 θ2)}
+
++ a61 > 0.
+
+For the first equation, ∆t < 4(4 − 3θ2)
+
+νλ 1θ(2 − θ)(2 + θ) ,
+
+> 21
+
+which is less restrictive the the restriction in (A.7). For the second equation, we obtain the time step restriction ∆t < 8θ(1 − θ2)
+
+νλ 1(8 − 6θ2 + 3 θ4) .
+
+Therefore under the time step restriction in (2.10), we have x < ν∆tλ 1 
+
+> 4
+
+and by (A.18) 1
+
+ϵ < 2
+
+νλ 1∆t
+
+[√ B2 + 4 Ch 22 + (2h22 − B)]
+
+. (A.20) By (A.15) and (2.10) and the fact that 0 < (2h22 − B) < √B2 + 4 Ch 22 
+
+√B2 + 4 Ch 22 + (2h22 − B) (A.21) =2 
+
+√√√√√(
+
+b2 + θ3
+
+2 − ν∆tλ 1β21
+
+︸ ︷︷ ︸
+
+> >0
+
+)2
+
++ 4 
+
+[
+
+ν∆tλ 1β22 + (1 + θ)(2 + θ − θ2)8 − a2
+
+︸ ︷︷ ︸
+
+> >0
+
+]
+
+h22 
+
+≤2
+
+√√√√√(
+
+b2 + θ3
+
+2
+
+)2
+
++4 
+
+[ ν∆tλ 1β22
+
+2 + (1 + θ)(2 + θ − θ2)8
+
+][ 
+
+c2 + (1 − θ)(2 −θ−θ2)8 − ν∆tλ 1β20
+
+2︸ ︷︷ ︸
+
+> >0
+
+]
+
+≤2
+
+√(
+
+b2 + θ3
+
+2
+
+)2
+
++ 4 
+
+[
+
+(1 − θ)β22 + (1 + θ)(2 + θ − θ2)8
+
+][ 
+
+c2 + (1 − θ)(2 − θ − θ2)8
+
+]
+
+.
+
+By algebraic calculation and the time step restriction in (2.10) 
+
+a2 + b2 + c2 =x − ν∆tλ 1
+
+(β2β1 + β1β0 + β2β0
+
+) + 34 θ(1 − θ2) (A.22) 
+
+≤ ν∆tλ 1
+
+4 − ν∆tλ 1
+
+(β2β1 + β1β0 + β2β0
+
+) + 34 θ(1 − θ2)
+
+≤ ν∆tλ 1
+
+4 + ν∆tλ 1
+
+3 (β2 + β1 + β0
+
+︸ ︷︷ ︸
+
+> =1
+
+)2 + 34 θ(1 − θ2)
+
+≤ (1 − θ)12 (9 θ2 + 9 θ + 14) .
+
+We combine (A.20)-(A.22) to have 1 
+
+> ϵ
+
+< Cϵ(θ) 
+
+> νλ 1∆t
+
+for some positive constant Cϵ(θ) only depending on θ. Then we claim ϵ has a upper bound: by (A.16),(A.8), (A.17) and (2.10) 
+
+ϵ =2
+
+( ν∆tλ 1 
+
+> 2
+
+− x
+
+)√B2 + 4 Ch 22 + (2 h22 − B) ≤ ν∆tλ 1
+
+2(2 h22 − B) ≤ ν∆tλ 1
+
+4h22 
+
+<
+
+> 8θ(1 −θ2)(8 −6θ2+3 θ4)
+
+4 θ(1 −θ)2(1+ θ)(2+ θ)16 
+
+< 4.
+
+Hence we have proved 1 
+
+> ϵ
+
+> 14 . Finally by (A.8), (A.14), and (A.22), we have a positive upper bound (only depending on θ) for h11 and h22 , which completes the proof of (2.15). 
+
+> REFERENCES 22
+
+[1] M. Akbas, S. Kaya, and L. G. Rebholz. On the stability at all times of linearly extrapolated BDF2 timestepping for multiphysics incompressible flow problems. Numer. Methods Partial Differential Equations, 33(4):999–1017, 2017. [2] M. Akbas Belenli, L. G. Rebholz, and F. Tone. A note on the importance of mass conservation in long-time stability of Navier-Stokes simulations using finite elements. Appl. Math. Lett., 45:98–102, 2015. [3] S. Breckling and S. Shields. The long-time L2 and H1 stability of linearly extrapolated second-order time-stepping schemes for the 2D incompressible Navier-Stokes equations. Appl. Math. Comput., 342:263–279, 2019. [4] H. Chen, S. Sun, and T. Zhang. Energy stability analysis of some fully discrete numerical schemes for incompressible Navier-Stokes equations on staggered grids. J. Sci. Comput., 75(1):427–456, 2018. [5] Y. Chen, D. Luo, W. Pei, and Y. Xing. Efficient variable time-stepping adaptive DLN algo-rithms for the Allen-Cahn equation. J. Sci. Comput., 104(3):Paper No. 67, 28, 2025. [6] K. Cheng and C. Wang. Long time stability of high order multistep numerical schemes for two-dimensional incompressible Navier-Stokes equations. SIAM J. Numer. Anal., 54(5):3123– 3144, 2016. [7] G. G. Dahlquist, W. Liniger, and O. Nevanlinna. Stability of two-step methods for variable integration steps. SIAM J. Numer. Anal., 20(5):1071–1085, 1983. [8] C. Foias, O. Manley, R. Rosa, and R. Temam. Navier-Stokes equations and turbulence, vol-ume 83 of Encyclopedia of Mathematics and its Applications. Cambridge University Press, Cambridge, 2001. [9] L. Formaggia, A. Quarteroni, and A. Veneziani, editors. Cardiovascular mathematics, volume 1 of MS&A. Modeling, Simulation and Applications. Springer-Verlag, Milan, 2009. Modeling and simulation of the circulatory system. [10] G. P. Galdi. An introduction to the mathematical theory of the Navier-Stokes equations. Steady-state problems. Springer Monographs in Mathematics. Springer, New York, second edition, 2011. [11] S. Gottlieb, F. Tone, C. Wang, X. Wang, and D. Wirosoetisno. Long time stability of a classical efficient scheme for two-dimensional Navier-Stokes equations. SIAM J. Numer. Anal., 50(1):126–150, 2012. [12] P. Grisvard. Elliptic problems in nonsmooth domains, volume 24 of Monographs and Studies in Mathematics. Pitman (Advanced Publishing Program), Boston, MA, 1985. [13] M. D. Gunzburger. Perspectives in flow control and optimization, volume 5 of Advances in Design and Control. Society for Industrial and Applied Mathematics (SIAM), Philadelphia, PA, 2003. [14] T. Heister, M. A. Olshanskii, and L. G. Rebholz. Unconditional long-time stability of a velocity-vorticity method for the 2D Navier-Stokes equations. Numer. Math., 135(1):143–167, 2017. [15] O. A. Ladyˇ zenskaja. Solution “in the large” of the boundary value problem for the Navier-Stokes equations in two space variables. Soviet Physics. Dokl., 3:1128–1131, 1958. Translation of Dokl. Akad. Nauk SSSR 123 (1958), 427–429. [16] O. A. Ladyˇ zenskaja. Solution “in the large” of the nonstationary boundary value problem for the Navier-Stokes system with two space variables. Comm. Pure Appl. Math., 12:427–433, 1959. [17] O. A. Ladyˇ zenskaja. The mathematical theory of viscous incompressible flow. Mathematics and its Applications, Vol. 2. Gordon and Breach Science Publishers, New York-London-Paris, second English edition, 1969. [18] W. Layton, W. Pei, Y. Qin, and C. Trenchea. Analysis of the variable step method of Dahlquist, Liniger and Nevanlinna for fluid flow. Numer. Methods Partial Differential Equations, 38(6):1713–1737, 2022. [19] W. Layton, W. Pei, and C. Trenchea. Refactorization of a variable step, unconditionally stable method of Dahlquist, Liniger and Nevanlinna. Appl. Math. Lett., 125:Paper No. 107789, 7, 2022. [20] W. Layton, W. Pei, and C. Trenchea. Time step adaptivity in the method of Dahlquist, Liniger and Nevanlinna. Advances in Computational Science and Engineering, 1(3):320–350, 2023. [21] J. Leray. ´Etude de diverses ´ equations int´ egrales non lin´ eaires et de quelques probl` emes que pose l’hydrodynamique. J. Math. Pures Appl. (9), 12:1–82, 1933. [22] W. Pei. The semi-implicit DLN algorithm for the Navier-Stokes equations. Numerical Algorithms, 97(4):1673–1713, 2024. [23] W. Pei. The variable time-stepping DLN-ensemble algorithms for incompressible Navier-Stokes equations. Numerical Algorithms, 2025. [24] Y. Qin, L. Chen, Y. Wang, Y. Li, and J. Li. An adaptive time-stepping DLN decoupled 23 algorithm for the coupled Stokes-Darcy model. Appl. Numer. Math., 188:106–128, 2023. [25] Y. Qin, Y. Hou, W. Pei, and J. Li. A variable time-stepping algorithm for the unsteady Stokes/Darcy model. J. Comput. Appl. Math., 394:Paper No. 113521, 14, 2021. [26] L. Rebholz and F. Tone. Long-time H1-stability of BDF2 time stepping for 2D Navier-Stokes equations. Appl. Math. Lett., 141:Paper No. 108624, 8, 2023. [27] I. B. Sanchez, C. Trenchea, and W. Pei. Long-time H1-stability of the Cauchy one-leg Theta-method for the Navier-Stokes equations. arXiv preprint arXiv:2603.27861, 2026. [28] J. Shen. Long time stability and convergence for fully discrete nonlinear Galerkin methods. Appl. Anal., 38(4):201–229, 1990. [29] F. Siddiqua and W. Pei. Variable time step method of Dahlquist, Liniger and Nevanlinna (DLN) for a corrected Smagorinsky model. International Journal of Numerical Analysis and Modeling, 21(6):879–909, 2024. [30] R. Temam. Navier-Stokes equations. Theory and numerical analysis. Studies in Mathematics and its Applications. Vol. 2. North-Holland Publishing Co., Amsterdam-New York-Oxford, 1977. [31] R. Temam. Infinite-dimensional dynamical systems in mechanics and physics, volume 68 of Applied Mathematical Sciences. Springer-Verlag, New York, second edition, 1997. [32] F. Tone. On the long-time stability of the Crank-Nicolson scheme for the 2D Navier-Stokes equations. Numer. Methods Partial Differential Equations, 23(5):1235–1248, 2007. [33] F. Tone and D. Wirosoetisno. On the long-time stability of the implicit Euler scheme for the two-dimensional Navier-Stokes equations. SIAM J. Numer. Anal., 44(1):29–40, 2006. [34] G. K. Vallis. Atmospheric and oceanic fluid dynamics. Cambridge University Press, Cambridge, 2006. Fundamentals and large-scale circulation. [35] H. Wang, X. Wang, and M. Zhang. Unconditionally long-time stable variable-step second-order exponential time-differencing schemes for the incompressible NSE. arXiv preprint arXiv:2602.10268, 2026. [36] X. Wang. Approximation of stationary statistical properties of dissipative dynamical systems: time discretization. Math. Comp., 79(269):259–280, 2010. [37] X. Wang. An efficient second order in time scheme for approximating long time statistical properties of the two dimensional Navier-Stokes equations. Numer. Math., 121(4):753– 779, 2012. [38] T. T. Warner. Numerical weather and climate prediction. Cambridge University Press, Cam-bridge, 2011. [39] W. M. Washington and C. L. Parkinson. Introduction to three-dimensional climate modeling. G—Reference, Information and Interdisciplinary Subjects Series. University Science Books, 2005. [40] C. Xie and K. Wang. Uniform finite element error estimates with power-type asymptotic constants for unsteady Navier-Stokes equations. Entropy, 24(7):Paper No. 948, 21, 2022. [41] T. Zhang and J. Yuan. Unconditional stability and optimal error estimates of Euler implicit/explicit-SAV scheme for the Navier-Stokes equations. J. Sci. Comput., 90(1):Paper No. 1, 20, 2022. [42] N. Zheng, Q. Guan, W. Pei, and W. Zhao. A divergence constrained mixed finite element method for thermally driven active fluid model. Applied Numerical Mathematics, 227:81– 107, 2026. [43] N. Zheng, X. Guo, W. Pei, and W. Zhao. Mixed finite element methods for an incompressible fourth-order active fluid model. Journal of Scientific Computing, 106(3):65, 2026. 24

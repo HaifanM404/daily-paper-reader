@@ -1,0 +1,110 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-001.webp",
+      "caption": "Table 11: SpectraNet vs. canonical FNO on additional PDE/regime combinations, native-trained under the headline protocol. SpectraNet wins at smaller parameter count on 5 of 6 rows; the 6th (TheWell active matter) is the regime where the rollout-error compounding term is structurally suppressed — see Section G for the regime-controlled discussion. The NS ν=10−5 row uses the canonical SpectraNet (two-layer 1×1 MLP output head, 2.04M params); the remaining five rows used checkpoints with the decorated multi-resolution + KAN output head (2.12M params), which the output-head decoration ablation in Section 8.2 shows is statistically indistinguishable from the canonical two-layer MLP head at the headline operating point. Bolded entries indicate the winning architecture per row.",
+      "page": 25,
+      "index": 1,
+      "width": 830,
+      "height": 196
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-002.webp",
+      "caption": "Table 2: Hyperparameters for the headline SpectraNet operating point (w=32, residual-target, λ=0.1).",
+      "page": 15,
+      "index": 2,
+      "width": 830,
+      "height": 418
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-003.webp",
+      "caption": "Figure 5: GPU latency at B=1 vs parameter count for the unified-protocol leaderboard. Canonical SpectraNet sits in the lower-left quadrant (2.04M parameters, 32.8ms); the full-attention NSL Transformer pays a ∼ 3.3× latency premium for its accuracy, and the largest U-FNO and U-Net baselines pay a parameter-cost premium of one-to-two orders of magnitude without a matching accuracy gain.",
+      "page": 21,
+      "index": 3,
+      "width": 764,
+      "height": 572
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-004.webp",
+      "caption": "Figure 6: Single-sample latency on GPU and CPU (B=1). Left: NVIDIA H100 (80 GB), FP32, single stream. Right: Intel i5-1155G7 single-thread, FP32. The attention models that win raw L2 on H100 (Transformer, Galerkin, Transolver, GNOT) move to the right of the CPU plot by an order of magnitude and become unsuitable for consumer-CPU deployment; canonical SpectraNet stays sub-200ms on both axes.",
+      "page": 22,
+      "index": 4,
+      "width": 790,
+      "height": 432
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-005.webp",
+      "caption": "Figure 4: CPU deployment Pareto frontier. SpectraNet (red) and width-scaling variants occupy the lightweight CPU frontier; the NSL Transformer’s ∼10 s per sample rules it out for edge or interactive use. Median over 50 batches on Intel i5-1155G7, single-thread, B=1.",
+      "page": 10,
+      "index": 5,
+      "width": 687,
+      "height": 405
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-006.webp",
+      "caption": "Table 6: Zero-shot resolution transfer 642→1282 via spectral zero-padding of the test inputs. Native L2 is the model’s own 642 result. Ratio = test-L2 at 1282 / native-642. The spectral convolution layer is resolution-invariant by construction (Prop. 1); FNO’s purely spectral output projection inherits this cleanly. The decorated SpectraNet variant (multi-resolution + KAN output head, top block) and the canonical SpectraNet (two-layer 1×1 MLP head, middle block) both incur a ∼2.0−2.2× transfer-ratio degradation: the head decoration is not the source of the resolution-transfer gap. The actual source is discussed in Sec. 7.4.",
+      "page": 18,
+      "index": 6,
+      "width": 830,
+      "height": 209
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-007.webp",
+      "caption": "Figure 7: GPU throughput at B=32 (samples per second). The training-equivalent batch regime widens the gap between the spectral models (FNO, F-FNO, SpectraNet) and the attention-based models because the latter incur an O(N2) memory cost per sample that limits parallel batch processing.",
+      "page": 23,
+      "index": 7,
+      "width": 764,
+      "height": 837
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-008.webp",
+      "caption": "Figure 2: SpectraNet on the cost–accuracy Pareto frontier (NS ν=10−5, 64×64). SpectraNet (red) occupies the lower-left frontier on (L2, params) and (L2,H100 latency at B=1). Five of six lightweight Pareto-frontier points are SpectraNet variants. The full-attention NSL Transformer (green star) wins raw L2 at 3.3× the GPU latency at B=1 and 75× at B=32.",
+      "page": 8,
+      "index": 8,
+      "width": 744,
+      "height": 460
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-009.webp",
+      "caption": "Figure 3: Free-rollout behavior beyond the training horizon. Free rollout to T=100 for SpectraNet, the SpectraNet w=48 plain ablation, FNO, and the NSL Transformer (200 NS ν=10−5 test trajectories). (a) Fraction of the 200 test trajectories that have diverged (NaN or vorticity energy past the blow-up threshold) by step T . SpectraNet variants and the Transformer remain at 0.0 throughout; FNO jumps to 1.0 between T=20 and T=50. (b) Mean vorticity energy ⟨ω2 T ⟩ vs T (log scale); the FNO blow-up signature is the explosive rise from ∼101 at T=20 to ∼1027 by T=100 (red × markers indicate the time steps at which the blow-up fraction reaches 1.00).",
+      "page": 8,
+      "index": 9,
+      "width": 730,
+      "height": 252
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-010.webp",
+      "caption": "Figure 1: SpectraNet architecture. Input (B, 64, 64, 10) + (x, y)-grid is lifted to w=32 channels; a three-level encoder at truncations Mℓ∈{12, 6, 3} feeds a single-block bottleneck (M3=1); a mirrored decoder upsamples with additive skips (⊕); a two-layer 1×1 MLP head (hidden 4w, GeLU) emits residual ∆θ, summed with ωt to recover ω̂t+1 (Theorem 1).",
+      "page": 4,
+      "index": 10,
+      "width": 785,
+      "height": 533
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-011.webp",
+      "caption": "Table 5: Architectural micro-experiments stacked on the SpectraNet w=32 + residual baseline (L2=0.0836). Intermediate rows use the decorated output head (multi-resolution + KAN, 2.12M params); the Semigroup-Consistency Loss row produces the largest single-knob improvement among them. The bottom row (canonical SpectraNet) removes the decorative head, replacing it with a two-layer 1×1 MLP head on top of the same SCL-trained pipeline: 80K fewer parameters at a 0.0001 accuracy difference. Negative ∆L2 values indicate improvement.",
+      "page": 17,
+      "index": 11,
+      "width": 830,
+      "height": 235
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-012.webp",
+      "caption": "Figure 8: Peak GPU memory (MiB) measured via torch.cuda.max memory allocated() during the timed region at B=32. Canonical SpectraNet’s peak memory is bounded by the spectral-truncation budget and is independent of the spatial grid (Proposition 2); the O(N2)-attention models scale with the token count squared and would become infeasible at 1282 without sliding-window approximations.",
+      "page": 24,
+      "index": 12,
+      "width": 764,
+      "height": 837
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09096v1/fig-013.webp",
+      "caption": "Table 3: Unified-protocol leaderboard, NS ν=10−5, 64×64. Params reported as ∑ p p.numel() (PyTorch convention). Pareto-frontier rows (excluding the full-attention Transformer) shaded. Row provenance is the published source for baselines and “this work” for our own runs; an internal run identifier (e.g. J23) is appended for our runs and is mapped to launch date, SLURM job, and trained-checkpoint path in the supplementary code repository (runs.csv).",
+      "page": 16,
+      "index": 13,
+      "width": 844,
+      "height": 689
+    }
+  ]
+}
