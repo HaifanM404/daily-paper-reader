@@ -1,0 +1,174 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-001.webp",
+      "caption": "Fig. 9: Accuracy vs. realized total newly generated decode tokens per problem for Markovian RSA configurations on AIME’25 (left) and HMMT’25 (right). The token axis excludes the original problem prompt, aggregation-prompt prefill, and copied carry-forward tails, and corresponds to∑",
+      "page": 21,
+      "index": 1,
+      "width": 524,
+      "height": 263
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-002.webp",
+      "caption": "Fig. 10: APEX-shortlist performance under the light, high, and extra-high Markovian RSA configurations from Table XIII. The extra-high configuration reaches 51.8% using approximately 5.5M newly generated decode tokens per problem. GPT-OSS-120B (high) and DeepSeek-V3.2 comparator scores are taken from the MathArena leaderboard (Dekoninck et al., 2026). These external comparator scores are shown for context only and may use different inference protocols.",
+      "page": 21,
+      "index": 2,
+      "width": 524,
+      "height": 350
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-003.webp",
+      "caption": "Fig. 12: We briefly review the Compressed Convolutional Attention block (Figliolia et al., 2025).",
+      "page": 30,
+      "index": 3,
+      "width": 488,
+      "height": 562
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-004.webp",
+      "caption": "Fig. 1: ZAYA1-8B with Markovian RSA test-time compute vs. substantially larger reasoning models on AIME’25, HMMT’25, and LCB-v6. Hatched bars show the boost from Markovian RSA over single-rollout ZAYA1-8B. With 0.7B active parameters and the 40K/4K Markovian RSA configuration (Section VI-C), ZAYA1-8B reaches 91.9% on AIME’25 and 89.6% on HMMT’25, narrowing the gap to larger proprietary and open-weight reasoning models. ZAYA1-8B numbers (single-rollout and TTC) are evaluated in the Zyphra harness on the pre-behavioral checkpoint after math+code+TTC RL and before the final lightweight behavioral-RL polishing stage; comparator numbers are taken from official release materials (see Table XI for sources). The final behavioral stage targets chat style, instruction following, and preference behavior rather than math/code/TTC capability.",
+      "page": 2,
+      "index": 4,
+      "width": 1017,
+      "height": 580
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-005.webp",
+      "caption": "Fig. 11: Test-time compute scaling for ZAYA1-8B and Qwen34B-Thinking-2507. Both models use the same TTC procedure (Markovian RSA with T = 2, β = 16K, and τ = 4K) with the final response budget of 40K for both the TTC and non-TTC runs (the recommended sampling parameters in the model card were used for the Qwen model), so performance differences reflect model-level differences in the ability to exploit aggregation. ZAYA1-8B saw long-CoT reasoning data during midtraining and aggregation-based data during SFT and RL; Qwen3-4B-Thinking-2507 was not trained for this specific aggregation workflow. We interpret the gap as evidence of training-design effects rather than method differences.",
+      "page": 22,
+      "index": 5,
+      "width": 474,
+      "height": 291
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-006.webp",
+      "caption": "Fig. 2: Active-parameter scaling across HMMT’26, AIME’26, and LiveCodeBench-v6. ZAYA1-8B is shown at 0.7B active parameters and compared against larger open-weight and frontier models where available. Bubble area denotes total parameter count where available.",
+      "page": 3,
+      "index": 6,
+      "width": 1029,
+      "height": 805
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-007.webp",
+      "caption": "Fig. 14: Aggregated tokenwise metrics for gibberish responses compared to normal responses.",
+      "page": 33,
+      "index": 7,
+      "width": 515,
+      "height": 506
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-008.webp",
+      "caption": "Fig. 6: Per-token probability comparison (log scaled frequency): vLLM (engine, used for rollout generation) vs. trainer prefill (used for gradients) with incremental precision improvements. BF16: naive uniform BF16 implementation in inference and prefill. BF16+FP32: addition of selective upcasting of a subset of operations to FP32. BF16+FP32+RR: additional improvement from implementing router replay on trainer prefill from cached indices of rollout. Each point is a token from a 128-prompt, G = 16 evaluation batch with 4K-token completions on ZAYA1-8B. Identity line shown (dashes). For BF16+FP32+RR, KL divergence = 1.3× 10−4, Pearson r > 0.9996.",
+      "page": 13,
+      "index": 8,
+      "width": 976,
+      "height": 322
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-009.webp",
+      "caption": "Fig. 5: Schematic of our post-training process for ZAYA1-8B. Post-training progressed through SFT followed by four sequential RL stages. The first stage built general reasoning capabilities on math and puzzles and was then followed by two stages of code + TTC training. The model was then polished through a short behavioral RLHF phase which focused more on chat and user interaction.",
+      "page": 8,
+      "index": 9,
+      "width": 1050,
+      "height": 333
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-010.webp",
+      "caption": "TABLE I: ZAYA1-8B model configuration. Exact parameter counts are shown; the rounded release convention refers to the model as 0.7B active and 8B total. Architectural constants follow the ZAYA1 base configuration used for pretraining and continued post-training.",
+      "page": 4,
+      "index": 10,
+      "width": 632,
+      "height": 500
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-011.webp",
+      "caption": "Fig. 3: ZAYA1-8B model architecture. Two of the three main architectural changes are shown here: CCA for the attention block and the ZAYA1 router. The ZAYA1 router replaces the linear router with an MLP-based router consisting of a down-projection, EDA, and a three-layer MLP.",
+      "page": 4,
+      "index": 11,
+      "width": 648,
+      "height": 550
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-012.webp",
+      "caption": "TABLE X: Inference-profile view of Markovian RSA. Markovian RSA preserves the batched candidate-generation structure of RSA while bounding the state forwarded between rounds. Setting T = 0 gives N independent responses with no aggregation; this becomes Best-of-N only if an external selector, verifier, or answer-selection rule is applied. Setting C = 1 gives the Delethink bounded-continuation regime, and setting τ = β recovers full-chain RSA.",
+      "page": 19,
+      "index": 12,
+      "width": 1076,
+      "height": 300
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-013.webp",
+      "caption": "Fig. 8: One round of Markovian RSA. From a population of N candidate reasoning traces (left), we extract the final τ tokens of each trace as its tail. To produce each new candidate for the next round, we sample C tails uniformly at random and present them to the model as candidate solutions in an aggregation prompt. The model produces a new reasoning trace, whose tail joins the next round’s population. Aggregation context size and per-round attention cost depend only on C and τ , and are independent of the per-rollout thinking budget β.",
+      "page": 19,
+      "index": 13,
+      "width": 1022,
+      "height": 450
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-014.webp",
+      "caption": "TABLE IX: Aggregate effect of post-training. SFT and final ZAYA1-8B checkpoints are evaluated with the same harness and benchmark-specific sampling settings. This table reports the aggregate effect of the post-training recipe; it is not a per-stage ablation.",
+      "page": 17,
+      "index": 14,
+      "width": 816,
+      "height": 358
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-015.webp",
+      "caption": "TABLE VIII: Scaling comparison against larger open-weight reasoning models, ordered by total parameter count. All numbers are run on the Zyphra evaluation harness.",
+      "page": 17,
+      "index": 15,
+      "width": 1018,
+      "height": 225
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-016.webp",
+      "caption": "Fig. 13: Expert redundancy diagnostic. Panels (a) and (b) show global mean overlap for input and output projections; bar labels report the random-normalized ratio ρ. Panels (c) and (d) show raw overlap averaged over depth quartiles. The dashed horizontal line is the random-subspace baseline d/D = 0.0625. ZAYA1-8B is not an outlier toward higher expert overlap: its first-projection input overlap is close to Qwen and below LFM2 and OLMoE, while its output-projection overlap is intermediate between LFM2 and the lower-overlap OLMoE/Qwen group.",
+      "page": 32,
+      "index": 16,
+      "width": 1076,
+      "height": 512
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-017.webp",
+      "caption": "TABLE XIV: Hardware configuration of the compute, storage, and login nodes.",
+      "page": 31,
+      "index": 17,
+      "width": 1076,
+      "height": 579
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-018.webp",
+      "caption": "TABLE XI: ZAYA1-8B single-rollout and TTC numbers in this table are evaluated on the pre-behavioral checkpoint after math+code+TTC RL and before the final lightweight behavioral-RL polishing stage, using the Zyphra evaluation harness. The final behavioral stage targets chat style, instruction following, and preference behavior rather than math/code/TTC capability. ZAYA1-8B + Markovian RSA uses the 40K/4K configuration from Section VI-C. Numbers for comparator models marked † are taken from external sources. DeepSeek-R1-0528, Qwen3-235B-A22B-Thinking-2507, and Gemini-2.5 Pro are from the Qwen3-235B-A22B-Thinking-2507 model card (Qwen Team, 2025). DeepSeek-V3.2 is from the DeepSeek-V3.2 technical report (DeepSeek-AI, 2025c); the GPT-5-High row is reproduced from the comparison table in that report rather than from an OpenAI release table.",
+      "page": 20,
+      "index": 18,
+      "width": 1072,
+      "height": 342
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-019.webp",
+      "caption": "Fig. 4: Normalized router-load entropy, averaged over MoE layers, as a function of training step from initialization of a 1.8B-parameter experimental model. For each global batch and layer, let pi denote the fraction of routed tokens assigned to expert i, with E total experts. We report H(p)/ lnE, where H(p) = − ∑E i=1 pi ln pi is the Shannon entropy of the empirical expert-load distribution.",
+      "page": 5,
+      "index": 19,
+      "width": 500,
+      "height": 339
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-020.webp",
+      "caption": "TABLE VII: In-class comparison against models of comparable sizes. ZAYA1-8B used the following sampling settings: T=1.0, top-p=0.95, top-k disabled for math, knowledge, and instruction; T=0.6, top-p=0.95, top-k=20 for code, agentic, and style. We used the recommended sampling settings in the model cards for the other models in this table. EQBench and Creative Writing v3 use the official judge, anthropic/claude-3.7-sonnet.",
+      "page": 16,
+      "index": 20,
+      "width": 995,
+      "height": 505
+    },
+    {
+      "url": "assets/figures/arxiv/2605.05365v1/fig-021.webp",
+      "caption": "Fig. 7: Comparison of ZAYA1-8B performance against open-weight reasoning models on various evaluations. The under-bar plots model sizes in active and total parameters on a log scale to give a sense of the scale of the various models.",
+      "page": 16,
+      "index": 21,
+      "width": 1042,
+      "height": 556
+    }
+  ]
+}

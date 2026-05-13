@@ -1,0 +1,150 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-001.webp",
+      "caption": "Figure 10: Reasoning faithfulness (ρi; Equation 18) for each system, coloured by outcome (teal = correct, orange = incorrect). The dotted horizontal line marks the median across all systems (ρ = +0.83). Faithfulness is not systematically related to decision correctness.",
+      "page": 43,
+      "index": 1,
+      "width": 540,
+      "height": 402
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-002.webp",
+      "caption": "Table 9: Metric comparison for the agent’s selected pose (pose_01) and the ground-truth best pose (pose_03) in system 4JFL. Both poses are classified as PARTIAL_POCKET. pose_01 leads on most metrics; pose_03 has superior hydrogen-bond geometry.",
+      "page": 38,
+      "index": 2,
+      "width": 622,
+      "height": 231
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-003.webp",
+      "caption": "Figure 4: Partition-stratified best-pose identification accuracy for the agentic pipeline (teal) and Smina scoring (orange) on the Smina-success (Acc+) and Smina-failure (Acc−) partitions of the ten-system benchmark. Dashed horizontal segments indicate the partition-specific random baseline (mean of 1/Ni across the five systems in each partition). Each partition contains n = 5 systems; the achievable accuracy values are {0, 20, 40, 60, 80, 100}%.",
+      "page": 30,
+      "index": 3,
+      "width": 590,
+      "height": 442
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-004.webp",
+      "caption": "Figure 1: Architecture of the AgenticPosesRanker framework. The pipeline accepts a protein structure (PDB) and one or more docked ligand poses (SDF) as inputs. After protein filtering and complex construction, each pose is evaluated by six primary analysis tools covering non-covalent interactions, solvent exposure, conformational strain, steric clashes, polar desolvation penalties, and chemical identity verification (via SMILES extraction, not used for ranking). Three derived tools then assess interaction quality, binding mode, and ligand efficiency from the primary outputs. All tool results are written to anonymised analysis files identified only by eight-character SHA-256-derived codes, preventing the LLM from inferring pose identity or ordering. The anonymised files are submitted together with a domain-specific system prompt to a GPT-5 agent with chain-of-thought reasoning enabled. The agent returns a ranked list of poses with a structured justification referencing specific metric values. Anonymous codes are automatically replaced with original pose names in the final output.",
+      "page": 7,
+      "index": 4,
+      "width": 976,
+      "height": 551
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-005.webp",
+      "caption": "Table 4: Partition-stratified accuracy of the agentic pipeline across the ten benchmark systems. Systems are classified by the joint outcome of the Smina and agent decisions: Category A (both correct), B (Smina correct, agent incorrect, regression), C (Smina incorrect, agent correct, recovery), and D (both incorrect). Partition-specific random baselines use the mean of 1/Ni across the five systems in each partition, where Ni is the number of candidate poses for system i.",
+      "page": 29,
+      "index": 5,
+      "width": 722,
+      "height": 236
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-006.webp",
+      "caption": "Table 1: The ten protein-ligand systems selected for benchmark evaluation. Systems are grouped by Smina scoring outcome (success or failure). Poses is the number of docked conformations retained after curation. Best-pose RMSD is the heavy-atom symmetry-corrected RMSD (Å) of the near-native pose closest to the crystallographic binding mode. Affinity rank is the 1-based position of that near-native pose when all poses are sorted by Smina minimizedAffinity (most negative first); a rank of 1 indicates that Smina correctly assigned the best score to the near-native pose. The five failure systems span a range of scoring displacements from near-miss (rank 2) to severe (rank 20), testing the agent’s ability to recover the correct pose at varying levels of scoring-function error. The five protein families represented, hydrolase, nuclear receptor, transferase, lyase, and isomerase, ensure structural and functional diversity within the benchmark.",
+      "page": 22,
+      "index": 6,
+      "width": 940,
+      "height": 317
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-007.webp",
+      "caption": "Table 10: Reasoning faithfulness per system, measured as the Spearman rank correlation ρi between the agent’s self-reported tool weights wi and the absolute metric separations |δi| (Equation 18). Higher ρi indicates that the agent assigns more weight to tools on which the selected pose genuinely stands out.",
+      "page": 42,
+      "index": 7,
+      "width": 377,
+      "height": 324
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-008.webp",
+      "caption": "Table 6: Metric comparison for the agent’s selected pose (pose_02) and the ground-truth best pose (pose_01) in system 3HS4. pose_02 dominates on nearly every metric the agent evaluates; pose_01 does not appear in the agent’s top-7 ranking.",
+      "page": 33,
+      "index": 8,
+      "width": 627,
+      "height": 256
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-009.webp",
+      "caption": "Figure 14: Distribution of self-reported tool weights across ten systems. Box plots show the median and interquartile range; individual points are coloured by selection outcome (green = correct, orange = incorrect). IQ receives the most consistent weighting; penalty tools show higher relative variability.",
+      "page": 46,
+      "index": 9,
+      "width": 686,
+      "height": 377
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-010.webp",
+      "caption": "Figure 13: Top-k relaxed accuracy. The agent’s accuracy (circles, solid line) rises from 50% at k = 1 to 70% at k = 3 and then plateaus; the plateau is a configuration artefact caused by the prompt instructing the agent to emit a short ranked shortlist (typically four to five poses) rather than a full ordering, not a property of its underlying ranking ability. Smina’s affinity-based ranking (triangles, solid line) matches the agent through k = 3 and then continues to 100% at k = 20 because it ranks every docked conformation. Head-to-head comparison is therefore meaningful only at matched ranks k ≤ 3. The random-selection baseline (squares, dashed line) grows as k/n̄poses.",
+      "page": 45,
+      "index": 10,
+      "width": 540,
+      "height": 356
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-011.webp",
+      "caption": "Figure 3: (a) Heavy-atom symmetry-corrected RMSD to the crystallographic binding mode for the agent-selected pose (orange), the ground-truth best pose (teal), and the Smina-selected pose (green) across all ten benchmark systems. The dashed red line marks the 2.0 Å near-native threshold. Tick labels below bars indicate correct (Y) or incorrect (N) agent identifications. (b) RMSD deviation ∆RMSD (Equation 13) for the five misidentified systems, with shading indicating mild (green; none observed), moderate (orange; 1.0 ≤ ∆RMSD < 2.0 Å), and severe (red; ∆RMSD ≥ 2.0 Å) categories.",
+      "page": 28,
+      "index": 11,
+      "width": 979,
+      "height": 402
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-012.webp",
+      "caption": "Table 8: Metric comparison for system 3OXC across the agent’s selected pose (pose_02, RMSD 0.63 Å), Smina’s top-ranked pose (pose_01, RMSD 11.00 Å), and the agent’s runner-up (pose_06, RMSD 9.51 Å). All three are classified as DEEP_POCKET by the binding mode classifier.",
+      "page": 36,
+      "index": 12,
+      "width": 798,
+      "height": 233
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-013.webp",
+      "caption": "Figure 7: System 3OXC: overlay of the agent’s selected pose_02 (green; RMSD 0.63 Å) and the rejected runner-up pose_06 (orange; RMSD 9.51 Å). Both achieved DEEP_POCKET classification with comparable interaction profiles (TQS 16.81 vs. 17.56), but the agent selected pose_02 on the basis of a 20 kcal/mol conformational strain advantage (46.06 vs. 66.42 kcal/mol). The crystallographic ligand is shown in grey.",
+      "page": 36,
+      "index": 13,
+      "width": 540,
+      "height": 416
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-014.webp",
+      "caption": "Figure 12: Confidence calibration. Bars show the number of correct (green) and incorrect (orange) systems at each self-reported confidence level. The descriptive ordering (high-confidence 50% accuracy, medium-confidence 75%) is opposite to what empirical calibration would predict, but cannot be resolved inferentially at n = 10 (Fisher exact test, p = 1.000; reported descriptively).",
+      "page": 44,
+      "index": 14,
+      "width": 540,
+      "height": 389
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-015.webp",
+      "caption": "Figure 11: Outcome-stratified tool weight comparison (Equation 19). Each pair of bars shows the mean self-reported weight for correctly identified systems (teal) and incorrectly identified systems (orange). Weight profiles are remarkably similar, indicating that the failure mode lies in the tool-suite’s discriminative power rather than in the agent’s attention allocation.",
+      "page": 44,
+      "index": 15,
+      "width": 640,
+      "height": 352
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-016.webp",
+      "caption": "Figure 9: Metric separation (δi,t; Equation 17) for each system (rows) and tool category (columns). Panel (a): agentselected pose; panel (b): ground-truth (lowest-RMSD) pose. The two panels are identical for correctly identified systems and differ only for failure cases. Red cells indicate that the target pose is more favourable than the candidate-pool mean; blue cells indicate a less favourable selection. Per-partition means appear below the second black line.",
+      "page": 41,
+      "index": 16,
+      "width": 979,
+      "height": 450
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-017.webp",
+      "caption": "Table 3: Per-system RMSD of the agent’s selected pose to the crystallographic binding mode, the ground-truth bestpose RMSD, the RMSD deviation ∆RMSD (Equation 13), and the resulting severity category. Correct identifications (∆RMSD = 0) are marked with a tick; misidentifications are categorised as moderate (1.0 ≤ ∆RMSD < 2.0 Å) or severe (∆RMSD ≥ 2.0 Å). All RMSD values are symmetry-corrected heavy-atom RMSDs computed against the crystallographic ligand conformation.",
+      "page": 27,
+      "index": 17,
+      "width": 948,
+      "height": 260
+    },
+    {
+      "url": "assets/figures/arxiv/2605.03707v1/fig-018.webp",
+      "caption": "Figure 2: Best-pose identification accuracy for the agentic pipeline and the Smina scoring baseline, with 95% Wilson score confidence intervals (error bars). The dashed line indicates the expected accuracy under uniformly random selection (7.7%; Equation 14). Both methods achieve 50.0% accuracy (n = 10 systems), though their per-system agreement patterns differ (see Section 4.4).",
+      "page": 27,
+      "index": 18,
+      "width": 590,
+      "height": 529
+    }
+  ]
+}
