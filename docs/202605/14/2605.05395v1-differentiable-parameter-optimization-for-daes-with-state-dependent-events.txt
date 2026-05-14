@@ -1,0 +1,1059 @@
+Title: Differentiable Parameter Optimization for DAEs with State-Dependent Events
+
+URL Source: https://arxiv.org/pdf/2605.05395v1
+
+Published Time: Fri, 08 May 2026 00:14:30 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# DIFFERENTIABLE PARAMETER OPTIMIZATION FOR DAE S WITH 
+
+# STATE -D EPENDENT EVENTS 
+
+Ion Matei 
+
+Fujitsu Research of America 
+
+imatei@fujitsu.com 
+
+Maksym Zhenirovskyy 
+
+Fujitsu Research of America 
+
+mzhenirovskyy@fujitsu.com 
+
+Anthony Wong 
+
+Fujitsu Research of America 
+
+awong@fujitsu.com 
+
+# ABSTRACT 
+
+Differential-algebraic equations (DAEs) with state-dependent events arise in systems whose contin-uous dynamics are constrained by algebraic equations and interrupted by mode changes, switching logic, impacts, or state reinitializations. Gradient-based parameter learning for such systems is chal-lenging because algebraic variables are implicitly defined, event times depend on the parameters, and reset maps introduce discontinuities. This paper studies differentiable parameter optimization for semi-explicit DAEs with events. We formulate the learning problem as a constrained least-squares problem with DAE dynamics, algebraic constraints, guard equations, and reset maps. We then de-velop two complementary gradient-computation strategies. The first is an automatic-differentiation-through-simulation method that solves algebraic variables inside the vector field, differentiates the algebraic solve using the implicit function theorem, and handles events through segmented differ-entiable integration. The second is an explicit discrete-adjoint method that represents the forward simulation as an event-split residual system and computes gradients by solving for the Lagrange multipliers of smooth-segment and event residuals. The formulation clarifies that residual terms in the adjoint method are equality constraints, not heuristic penalties. We compare the two approaches in terms of gradient interpretation, event-time handling, implementation complexity, and local va-lidity. Both methods provide gradients for the event path selected by the forward simulation and are valid under fixed event ordering and transversal guard crossings. 
+
+# 1 Introduction 
+
+Differential-algebraic equations (DAEs) are a common modeling formalism for physical and engineered systems whose dynamics combine differential evolution with algebraic constraints. They arise in electrical circuits, constrained mechanical systems, chemical processes, power networks, and equation-based modeling environments. Classical ref-erences on numerical DAE integration and sensitivity analysis provide the foundation for this setting [1, 13]. In many of these applications, the continuous dynamics are interrupted by discrete events: switches open or close, con-trollers change modes, constraints become active, impacts occur, or state variables are reinitialized when thresholds are crossed. The resulting models are hybrid DAEs: they evolve continuously between events, but their state and alge-braic variables must remain consistent across event-triggered discontinuities. This view is consistent with the Model-ica DAE representation, where equations may define DAEs with discontinuities, variable structure, and discrete-event control [19]. Parameter estimation and design optimization for hybrid DAEs are challenging because the simulator is not simply a smooth map from parameters to outputs. The algebraic variables are implicitly defined by constraints and must be recomputed during integration and after reinitialization. Event times are also parameter-dependent; changing a parameter can shift the instant at which a guard condition is reached, thereby changing the time intervals over which the continuous dynamics are integrated. Finally, events introduce discontinuities through reset maps. Even when the event sequence is fixed, gradients must account for continuous dynamics, event-time sensitivities, reset maps, and post-event algebraic consistency. Recent differentiable ODE solvers have made gradient-based learning practical for continuous-time models. Libraries such as torchdiffeq [6] and diffrax [16] support backpropagation through ODE solvers and include differentiable 
+
+> arXiv:2605.05395v1 [cs.LG] 6 May 2026
+
+Differentiable Parameter Optimization for DAEs with State-Dependent Events event handling through odeint event , with standard examples such as the bouncing ball model [7, 8]. Related Neural ODE work also considers event-sequence modeling, where events serve as observations or inputs to a latent continuous-time model rather than as hard physical constraints [18]. These developments show that differentiable simulation with events is useful and increasingly accessible. However, most existing work is formulated for ODEs or latent ODE architectures. It does not directly address parameter learning for DAEs, where algebraic constraints must be solved and differentiated consistently throughout the event-driven simulation. This paper studies differentiable parameter learning for semi-explicit DAEs with state-dependent events. We consider systems of the form 
+
+˙x(t) = f (t, x (t), z (t), p ), 0 = g(t, x (t), z (t), p ), y(t) = h(t, x (t), z (t), p ),
+
+where x are differential states, z are algebraic variables, and p are parameters to be learned. Events are specified by guard functions 
+
+ϕe(t, x, z, p ) = 0 ,
+
+together with reinitialization rules that map pre-event variables to post-event variables. The learning problem is posed as output matching under the DAE dynamics, algebraic equations, event guards, and reset maps. We develop and compare two gradient-computation strategies. The first is an automatic-differentiation (AD)-through-simulation method. It treats the simulator as a reduced map from parameters to predicted outputs and differentiates the composed loss directly. For DAEs, this requires differentiating through the algebraic solve used inside the vector field. We implement this using JAX and diffrax [16], with a custom JVP for the algebraic solve based on the implicit function theorem, segmented event handling, composite guard detection, and right-continuous target-time evaluation. The second strategy is an explicit discrete-adjoint method. Instead of differentiating through the simulator as a black-box computation graph, it constructs an event-split discrete residual system. Smooth segments are constrained by DAE integration residuals, while event blocks enforce guard conditions, reinitialization equations, continuity of unchanged variables, and post-event algebraic consistency. The residuals are not added as heuristic penalty terms. They are equality constraints, or equivalently Lagrange terms that vanish on feasible trajectories. Their multipliers define the adjoint variables, and the resulting backward sweep computes parameter gradients without explicitly forming full trajectory and event-time sensitivity matrices. The contribution of this paper is a unified treatment of differentiable parameter learning for DAEs with state-dependent events. Specifically, we: 1. formulate parameter learning for hybrid DAEs as a constrained least-squares problem with algebraic con-straints, event guards, and reset maps; 2. present an AD-through-simulation implementation in which algebraic variables are differentiated through an implicit-function-theorem custom JVP and events are handled by segmented differentiable integration; 3. derive an explicit discrete-adjoint formulation in which residuals are equality constraints and the associated multipliers are solved by a backward event-split sweep; 4. compare the two approaches in terms of gradient interpretation, event-time handling, implementation com-plexity, and local validity under a fixed event sequence. Both approaches compute gradients that are local to the event path selected by the forward simulation. They assume transversal event crossings and no change in the number, identity, or ordering of events under sufficiently small param-eter perturbations. These assumptions are standard for differentiating piecewise-smooth hybrid trajectories and clarify the limitations of gradient-based optimization near grazing events, simultaneous events, or event sequence changes. This local-path interpretation is closely related to sensitivity updates in hybrid systems, often expressed through jump conditions or saltation matrices at event times [17, 23]. These conditions describe how first-order perturbations are propagated across a state-triggered discontinuity, and they provide a useful conceptual link between hybrid-system sensitivity analysis and the event-time terms appearing in the gradient formulations studied here. We applied the two approaches to two examples: an electrical circuit with events and to a planar bouncing ball examples, where the events are triggered by ball impacts. The code that generated the experimental results summarized in this paper can be found at https://github.com/ionmatei/diff-dae-events/ .
+
+Paper structure: Section 2 formulates parameter learning for DAEs with state-dependent events as a constrained least-squares problem. Section 3 presents the AD-through-simulation approach, including implicit differentiation of the algebraic solve and segmented event handling. Section 4 develops the explicit discrete-adjoint formulation based on event-split residual constraints. Section 6 compares the proposed approaches with related differentiable ODE and event-learning methods. Section 7 concludes the paper and outlines future directions. The appendices include additional mathematical and implementation details. 2Differentiable Parameter Optimization for DAEs with State-Dependent Events 
+
+# 2 Problem Formulation 
+
+Let 
+
+0 = τ0 < τ 1 < · · · < τ M < τ M +1 = T
+
+denote the event times generated by the hybrid DAE. On each interval (τm, τ m+1 ), the system satisfies 
+
+˙xm(t) = f (t, x m(t), z m(t), p ), 0 = g(t, x m(t), z m(t), p ).
+
+At an event time τm, an active guard satisfies 
+
+ϕem (τm, x −
+
+> m
+
+, z −
+
+> m
+
+, p ) = 0 ,
+
+and a reset map or reinitialization equation relates the pre-event and post-event variables, 
+
+(x+
+
+> m
+
+, z +
+
+> m
+
+) = Ψ em (τm, x −
+
+> m
+
+, z −
+
+> m
+
+, p ),
+
+with the understanding that algebraic variables may be recomputed after the differential state is reset. Given output data ydata  
+
+> i
+
+at observation times ti, the parameter-estimation problem can be written as 
+
+min 
+
+> p, {xm,z m},{τm}
+
+12
+
+> Nobs
+
+X
+
+> i=1
+
+h(ti, x (ti), z (ti), p ) − ydata 
+
+> i
+> 22
+
+s.t. ˙xm(t) − f (t, x m(t), z m(t), p ) = 0 ,g(t, x m(t), z m(t), p ) = 0 ,Em(τm, w −
+
+> m
+
+, w +
+
+> m
+
+, p ) = 0 , m = 1 , . . . , M, 
+
+where w = ( x, z ) and Em collects the guard condition, reset equations, continuity conditions for variables not modi-fied by the event, and post-event algebraic consistency. This constrained formulation is the common starting point for both methods studied in this paper. The AD-through-simulation method eliminates the trajectory variables by executing the simulator and differentiating the reduced map from parameters to outputs. The discrete-adjoint method keeps the residual constraints explicit after discretization and solves for the corresponding Lagrange multipliers. 
+
+# 3 AD-through-Simulation for DAEs with Events 
+
+The AD-through-simulation approach treats the event-driven DAE simulator as a differentiable program. For a selected parameter vector popt , the simulator produces predicted outputs 
+
+bY (popt ) = 
+
+
+
+ˆy(t1; popt )
+
+...
+
+ˆy(tN ; popt )
+
+ .
+
+The reduced learning problem is then 
+
+min 
+
+> popt
+
+bJ (popt ) = J ( bY (popt )) ,
+
+and the gradient is computed by automatic differentiation: 
+
+∇popt 
+
+bJ = AD 
+
+h
+
+J ( bY (popt )) 
+
+i
+
+.
+
+The main DAE-specific issue is the algebraic variable. During integration, z is defined implicitly by 
+
+g(t, x, z, p ) = 0 .
+
+We write the solution as 
+
+z = ζ(t, x, p ), g(t, x, ζ (t, x, p ), p ) = 0 .
+
+The differential state is advanced using the reduced vector field 
+
+˙x = f (t, x, ζ (t, x, p ), p ).
+
+3Differentiable Parameter Optimization for DAEs with State-Dependent Events In the implementation, the algebraic solve is performed by chord Newton iterations and differentiated using a custom JVP derived from the implicit function theorem. Thus, gradients propagate through the algebraic constraint without differentiating through every Newton iteration. Events are handled by segmented integration. At the beginning of each segment, all guard functions are evaluated and guards that are already active are masked out to avoid immediate retriggering. The remaining active guards are combined into a scalar event condition, 
+
+Φ( t, x, p ) = min  
+
+> e∈A
+
+ϕe(t, x, ζ (t, x, p ), p ),
+
+where A is the set of active guards. A root finder locates the first zero crossing of this composite guard. The corre-sponding event index is selected, the reset map is applied, the algebraic variables are recomputed, and the next segment starts from the post-event state. To make this process compatible with JIT compilation, the simulator is written as fixed-length scans over a prescribed maximum number of event-bounded segments. Physical segments are recorded until the terminal time is reached; re-maining iterations are padding segments. Target-time evaluation is performed by reintegrating each recorded segment with the requested target times clipped to that segment. The output at each target time is selected from the latest real segment whose closed interval contains the target, giving the right-continuous convention 
+
+ˆy(τm) = h(τm, x (τ +
+
+> m
+
+), z (τ +
+
+> m
+
+), p ).
+
+The resulting loss and gradient are evaluated with a JIT-compiled value and grad call. These gradients pass through the algebraic solve, ODE integration, event-time computation, reset maps, target-time selection, and output recon-struction. They are local to the event sequence selected by the forward simulation. A useful way to interpret this method is that it differentiates the numerical algorithm actually executed by the simu-lator. This includes solver steps, algebraic solves, event-time refinement, reset maps, and target-time selection. The advantage is that the gradient is tightly coupled to the solver tolerance and implementation used for the forward pass. The drawback is that reverse-mode AD must retain or reconstruct the computational trace of the segmented simulation. This can become expensive when the number of states, events, or solver steps grows. More details can be found in Appendix A. 
+
+# 4 Discrete-Adjoint Parameter Learning for DAEs with Events 
+
+The AD-through-simulation approach requires a simulator whose numerical operations are visible to the automatic-differentiation system. Many mature DAE solvers, however, are available only as external numerical engines. The discrete-adjoint approach targets this setting. It uses the external solver to generate the event-split forward trajectory at the current parameter values, including the event times and pre- and post-event states. These quantities are then used to construct a differentiable discrete residual system, from which the Lagrange multipliers and parameter gradient are computed explicitly. The discrete-adjoint method starts from the same constrained parameter estimation problem, but keeps the constraints explicit after discretization. The forward solve produces an event-split trajectory: smooth segments between events and event records containing the event time, active event index, pre-event state, and post-event state. Let segment m be bounded by event times τm and τm+1 . The implementation stores normalized time coordinates 
+
+0 = ηm, 0 < η m, 1 < · · · < η m,N m−1 = 1 ,
+
+and reconstructs physical node times as 
+
+tm,k = τm + ηm,k (τm+1 − τm).
+
+Thus, event times determine both the segment boundaries and the physical time steps used in the residuals. For 
+
+wm,k =
+
+xm,k 
+
+zm,k 
+
+
+
+,
+
+the smooth-step residual is the trapezoidal DAE residual 
+
+Rm,k =
+
+−xm,k +1 + xm,k + hm,k  
+
+> 2
+
+[f (tm,k , x m,k , z m,k , p ) + f (tm,k +1 , x m,k +1 , z m,k +1 , p )] 
+
+g(tm,k +1 , x m,k +1 , z m,k +1 , p )
+
+
+
+= 0 ,
+
+4Differentiable Parameter Optimization for DAEs with State-Dependent Events where hm,k = tm,k +1 − tm,k . Event blocks are represented by residuals of the form 
+
+Em(τm, w −
+
+> m
+
+, w +
+
+> m
+
+, p ) = 0 ,
+
+which enforce the guard condition, reset equations, continuity of unchanged variables, and algebraic consistency after the event. The finite-dimensional constrained problem is therefore 
+
+min  
+
+> W,τ,p
+
+Jh(W, τ, p )s.t. Rm,k (W, τ, p ) = 0 ,Em(W, τ, p ) = 0 ,
+
+where W denote the collection of the state and algebraic variables. Problem (4) is not a penalty relaxation. It is the discrete constrained form of the same parameter-estimation problem. The corresponding discrete Lagrangian is 
+
+Lh = Jh(W, τ, p ) + X
+
+> m,k
+
+λ⊤
+
+> m,k
+
+Rm,k (W, τ, p ) + X
+
+> m
+
+μ⊤
+
+> m
+
+Em(W, τ, p ).
+
+Because the residuals vanish on feasible trajectories, Lh = Jh for any multipliers. The multipliers are chosen so that the stationarity conditions with respect to W and τ eliminate the need to compute explicit trajectory and event-time sensitivities. The gradient is then obtained from 
+
+dJh
+
+dp = ∂Lh
+
+∂p .
+
+Computationally, the gradient is evaluated by a reverse block sweep. Smooth segment blocks solve local adjoint sys-tems associated with the trapezoidal DAE residuals. Event blocks solve event-adjoint equations associated with the guard and reinitialization residuals. Because event times define adjacent segment boundaries, event-time stationarity couples an event block with the segment immediately before it. The implementation handles this by storing an affine pending-event adjoint and resolving its scalar coefficient when the preceding segment is swept. The discrete-adjoint route trades implementation convenience for control over the gradient calculation. Its accuracy is tied to the resid-ual discretization used for the adjoint calculation, not necessarily to the tolerance of the forward DAE solver. This distinction explains why a high-accuracy forward solve does not automatically imply a high-accuracy discrete-adjoint gradient: the adjoint residual mesh and quadrature must be sufficiently accurate for the optimization problem. Con-versely, because the method does not require differentiating through the solver internals, it can be paired with mature external DAE solvers and can expose smaller linear systems when symbolic preprocessing or tearing is available. More details can be found in Appendix B. 
+
+# 5 Experiments 
+
+We evaluate the proposed gradient pipeline on two hybrid-system parameter identification problems. The first is an electrical ladder network with a state-dependent reinit event, and is used to compare the implicit-AD route (diffrax with a JAX-AD-friendly algebraic solver) against the discrete-adjoint route (Sundials/IDA forward solve, padded backward sweep for computing the multipliers). The second is a planar multi-ball system with contact-driven reinit events; we use it to study how each route scales with the number of balls N and to position our JAX-AD pipeline against the established PyTorch-AD baseline. The code for generating the experimental results can be found at https: //github.com/ionmatei/diff-dae-events/ .
+
+5.1 Cauer ladder with a state-dependent event 
+
+The Cauer DAE has 7 differential states (capacitor voltages C1–C5 and inductor currents L1, L2), 5 algebraic states, and 7 positive-valued parameters θ = ( C1, C 2, C 3, C 4, C 5, L 1, L 2). A single when clause resets C3 when its voltage crosses 0.5 V. The trajectory over 20 seconds exhibits 11 event firings. We initialize the parameters from the truth via a log-uniform multiplicative bias of half-width 0.1 (so each component lies in [θ⋆ ·e−0.1, θ ⋆ ·e+0 .1], i.e. a ±10% band) and run Adam for 500 iterations with step size 10 −2 on 500 uniform target points. Both routes use the same sigmoid blending sharpness β = 150 across event boundaries to widen the loss basin by smoothing the effects of the events (see A.5). Table 1 reports the relative error per parameter, the final loss of the chosen snapshot, and the wall-clock cost. The implicit-AD route attains a lower final loss than the discrete-adjoint route ( 1.69 × 10 −6 vs. 4.00 × 10 −4). It also 5Differentiable Parameter Optimization for DAEs with State-Dependent Events recovers several parameters to below one percent relative error, although the remaining error on C5 indicates that some parameter directions are weakly identifiable from the chosen output and time grid. The discrete-adjoint route recovers C3, C4, and L1 accurately, but retains larger residual errors on C1, C5, and L2. Figure 1 overlays the optimized trajectories on the ground truth, and Figures 2 shows the loss histories. Table 1: Cauer ladder with a state-dependent reinit event. Per-parameter relative error |θ − θ⋆|/|θ⋆|, expressed in percent, after Adam optimization with a ±10% initial bias and 500 iterations. Best-loss snapshot reported. AD: im-plicit differentiation through diffrax with a JAX-AD-friendly algebraic solver. DA: discrete adjoint via Sundials/IDA forward and padded backward sweep.                                      
+
+> Method C1C2C3C4C5L1L2Loss Time/iter Initial 2.78 4.50 8.77 9.22 6.47 8.61 2.16 7.20e-3 —AD 0.29 1.84 0.01 0.09 3.28 1.13 0.04 1.69e-6 0.03 s DA 2.97 1.80 0.02 0.03 5.44 0.53 1.09 4.00e-4 0.042 s
+> (a) Implicit-AD route. (b) Discrete-adjoint route.
+
+Figure 1: Cauer ladder: optimized vs. true trajectories at the best-loss snapshot. Both routes capture the qualitative event structure; the AD route additionally matches the post-reset oscillation envelope. The parameter errors should be interpreted in the context of output sensitivity and identifiability. Different parameter combinations can produce nearly indistinguishable output trajectories, especially along weakly identifiable directions. Therefore, matching the output loss is the primary optimization objective, while exact parameter recovery depends on the informativeness of the measured outputs and the time grid. From the optimization perspective any parameter combination that minimize the loss is acceptable (i.e., there may be multiple local minima). The accuracy gap between the two routes on this benchmark traces back to two effects. First, the discrete-adjoint pipeline constructs the Jacobian based on a trapezoidal-step approach, so its gradient quality is bounded by the adjoint mesh density rather than by the forward solver tolerance. Second, the loss surface near the truth is anisotropic and dominated by long-time-scale plateaus between events; with a uniform target grid the trapezoidal Jacobians of the discrete adjoint accumulate a small but coherent bias along the soft directions, observable here as the residual error on C5 and C1. The implicit-AD pipeline gradient inherits the diffrax tolerance ( rtol=atol=10 −6)directly. The price is that AD must hold the entire diffrax tape per segment in JAX memory; on this 7-parameter system this is negligible, but it scales with the number of state dimensions and the length of the dense-output tape, a distinction that drives the next experiment. The reported loss function values are computed based on the best parameters without the segment blending that has a smoothing effect. 6Differentiable Parameter Optimization for DAEs with State-Dependent Events  
+
+> (a) AD loss history. (b) DA loss history.
+
+Figure 2: Cauer ladder: Adam loss histories on log scale. The AD curve descends ∼5 decades whereas the DA curve plateaus at ∼ 10 −4; the gap is consistent across the last ∼ 100 iterations. Table 2: Multi-ball bouncing system with N ∈ { 3, 7, 15 } balls. Per-parameter relative error in %, final validation loss, and total wall-clock time. Budget: 300 iters for N ∈ { 3, 7} and 600 iters for N = 15 . Times measured on a single CPU thread.                                                                         
+
+> NMethod |∆g|/g |∆eg|/e g|∆eb|/e bLoss Iter Total time ms/it 3
+> jax ad 0.002 0.000 0.001 1.40e-9 300 33.4sec 73.9
+> jax da 0.27 1.16 0.16 9.38e-5 300 22.1sec 61.9
+> pytorch ad 0.003 0.001 0.003 3.89e-9 300 168.6sec 554.4 7
+> jax ad 0.002 0.001 0.001 1.63e-9 300 33.4sec 71.2
+> jax da 0.15 0.09 0.10 7.76e-6 300 84.0sec 254.8
+> pytorch ad 0.013 0.010 0.010 6.61e-8 300 525.5sec 1740.4 15
+> jax ad 0.07 0.19 0.42 1.35e-5 600 77.2sec 110.1
+> jax da 0.21 2.67 4.04 9.28e-4 495 595.7sec 1157.5
+> pytorch ad 0.000 0.005 0.001 3.88e-8 423 2826.9sec 6652.2
+
+5.2 Multi-ball planar bouncing system: scaling with N
+
+We consider a planar system of N identical bouncing balls in a square box of half-width 10 , with elastic collisions against the four walls (restitution eb) and inelastic ground impacts (restitution eg ). The dynamics is an ODE with state-dependent events, 4N +  N
+
+> 2
+
+ event clauses for N ∈ { 3, 7, 15 }. We optimize three identifiable parameters 
+
+θ = ( g, e g , e b) from a randomly biased start ( ±10% log-uniform). All three identification routes share the same 500 
+
+points uniform target grid, the same Adam step size, and the same convergence tolerance; the only differences are how the gradient is obtained and which framework holds the autograd tape: 
+
+jax ad our JAX/diffrax pipeline with implicit AD, same algebraic-solver custom-jvp as in 5.1. 
+
+jax da the JAX padded-discrete-adjoint pipeline of 5.1, ported to ODE-with-events. 
+
+pytorch ad PyTorch baseline using torchdiffeq with hand-written event-time root-finding, AD through the entire segmented integration tape. Table 2 summarizes the result. Per-parameter relative errors are reported as percentages, the final validation loss is on a denser held-out target grid, and timing is total wall-clock for the budget of iterations actually used. Three observations stand out. 
+
+(i) Per-iteration scaling with N . The JAX-AD pipeline is the flattest: 74 → 71 → 110 ms/iter as N goes from 3
+
+to 15 . JIT compilation amortizes across iterations, so the marginal cost is dominated by the diffrax forward and the segment-wise solve; both stay vectorized in N . The PyTorch-AD baseline scales steeply ( 554 → 1740 → 6652 ms/iter, roughly 3× per N → 2N ), reflecting the unfused per-event-segment work and the overhead of torchdiffeq ’s adaptive stepper rebuilding its graph each call. The JAX-DA pipeline sits between the two and inherits the discrete-adjoint cost of building per-step Jacobians, which scales with the segment count and hence with the event density. 7Differentiable Parameter Optimization for DAEs with State-Dependent Events       
+
+> (a) N= 3 .
+> (b) N= 7 .
+> (c) N= 15 .
+
+Figure 3: Bouncing balls: prediction error vs. wall-clock time. The horizontal axis exposes the throughput differential: the JAX-AD curve reaches the same accuracy plateau as the PyTorch-AD curve in 5× to 35 × less wall-clock time across the three problem sizes. 8Differentiable Parameter Optimization for DAEs with State-Dependent Events 
+
+(ii) Accuracy/throughput frontier. At N ∈ { 3, 7}, our JAX-AD pipeline strictly dominates: it reaches a lower loss (by ∼ 2×) in ∼ 5 × –16 × less wall time. At N = 15 the comparison flips: PyTorch-AD reaches 3.9× 10 −8 versus JAX-AD’s 1.4×10 −5 but at 37 × the cost. Whether the extra accuracy is worth it depends on the downstream task; for parameter identification under noisy measurements, the JAX-AD result is well within the noise floor of any realistic measurement model. 
+
+(iii) When the discrete adjoint trails. The JAX-DA results mirror the Cauer experiment: the route is competitive on small problems but the gradient bias induced by the per-segment trapezoidal mesh and the uniform target grid grows with N , ending at ∼ 4% on eb at N = 15 . This is not a fundamental property of the discrete adjoint, finer per-segment meshes would close the gap, but it is a property of the padded fixed-shape JIT regime that makes the route fast on small problems. 
+
+# 6 Discussion and Comparison with Existing Approaches 
+
+Most differentiable continuous-time learning methods are formulated for ODEs. Neural ODEs introduced the view of a neural network layer as the solution of an initial-value problem and popularized adjoint sensitivity methods for memory-efficient training [8]. Implementations such as torchdiffeq provide differentiable ODE solvers, support direct backpropagation through solver operations, and expose an adjoint interface for constant-memory reverse-mode differentiation [6]. These tools are effective when the model is an ODE and the state evolves continuously between observation times. Event-aware ODE methods extend this setting by adding event functions and reset maps. They allow models such as bouncing balls or switching systems to be represented as smooth ODE flows separated by event-triggered state updates [7]. In such methods, gradients can pass through event times, terminal states, and reset maps, provided the event sequence is fixed locally. This is closely related to our AD-through-simulation approach. The key difference is that our setting includes algebraic constraints: the simulator must solve for algebraic variables during integration, after events, and during output reconstruction. Other recent work uses ODEs to model irregular event sequences. For example, COTODE constructs continuous latent trajectories for event-sequence modeling by interpolating event embeddings and integrating a Neural ODE-type model [18]. This addresses a different problem. In such models, events are observations or inputs to a latent representation. In our setting, events are physical or logical constraints generated by guard equations; they trigger reinitialization rules that must remain consistent with algebraic equations. Classical DAE solvers and equation-based simulation tools already provide robust mechanisms for forward simulation of DAEs with events, including root finding, state reinitialization, and consistency restoration. However, they are not usually designed for end-to-end differentiable parameter learning. Sensitivity analysis for DAEs is well established, but events add additional terms through event-time shifts and reset maps. Practical simulation tools also often expose the forward trajectory without exposing the residual-level structure needed for efficient gradient-based optimization. Our work occupies the intersection of these directions. Compared with differentiable ODE solvers, we treat algebraic variables as implicit functions of time, differential states, and parameters, and differentiate them through the implicit function theorem. Compared with event-sequence Neural ODE models, we treat events as constraints of the physical model rather than as data tokens. Compared with classical DAE simulation, we focus on differentiable parameter learning and provide both an AD-through-simulation implementation and an explicit discrete-adjoint formulation. Table 3 summarizes the conceptual differences. The AD-through-simulation method is closest in spirit to differentiable ODE solvers with event handling. Its ad-vantage is implementation simplicity: once the DAE is reduced by solving the algebraic equations, the event-driven simulation can be written as a differentiable program. Its limitation is that the returned gradient is the derivative of the computational path selected by the forward event solver. The explicit discrete-adjoint method is closer to constrained optimization. It keeps the residual equations visible and solves for their Lagrange multipliers. This gives direct control over the discrete residuals, event blocks, and event-time stationarity conditions. It also clarifies the theoretical role of residuals: they are not loss penalties, but equality constraints whose multipliers produce the adjoint gradient. The discrete-adjoint construction used here is closely related to earlier work in the control and sensitivity-analysis communities. In power-system and hybrid systems analysis, trajectory sensitivities for differential-algebraic-discrete models were developed with explicit jump conditions at switching and reset events [12, 15]. Adjoint sensitivity meth-ods were also developed for DAEs, including the derivation and numerical solution of adjoint DAE systems [4]. More recently, discrete-adjoint methods have been implemented for hybrid dynamical systems with state- and time-9Differentiable Parameter Optimization for DAEs with State-Dependent Events Table 3: Comparison of differentiable event-learning approaches. Approach Model class Event treatment Gradient mechanism Neural ODE / differen-tiable ODE solvers ODEs Usually continuous trajecto-ries; event handling avail-able in some solvers Backpropagation through solver oper-ations or continuous adjoint Neural event ODEs ODEs with event functions and reset maps Events terminate integration and trigger state updates AD through event time, terminal state, and reset map; event sequence fixed locally ODE-based event-sequence models Latent ODEs for irregular event data Events are observations or inputs used to construct la-tent trajectories AD through latent continuous-time model AD-through-simulation DAE method Semi-explicit DAEs with state-dependent events Events are guard-triggered resets; algebraic variables are re-solved after events AD through reduced DAE simulation, im-plicit algebraic solve, event time, and reset map Explicit discrete-adjoint DAE method Discretized hybrid DAE residual system Smooth-segment residuals coupled with event residuals Backward solve for residual Lagrange multipliers; event-time stationarity handled explicitly dependent switching, with applications to preventive and corrective control [25]. Our formulation follows this same first-discretize-then-adjoint philosophy, but focuses on parameter learning for DAEs with event-triggered reinitial-ization and makes the event-split residual structure explicit. he distinction in this paper is not the existence of ad-joint methods for hybrid systems, but the combination of an event-split DAE residual construction with a practical parameter-learning workflow and a comparison against AD-through-simulation implementations. The algebraic solve used in our AD-through-simulation implementation should be viewed as a baseline realization of implicit differentiation rather than as a state-of-the-art Modelica-like compilation strategy [11]. We solve the algebraic equations with a Newton-type iteration and differentiate the solution map using the implicit function theorem. This is mathematically standard and sufficient for exposing the role of algebraic constraints in gradient computation. However, production DAE solvers and Modelica tools typically perform substantial symbolic and structural preprocessing before any numerical nonlinear solve is called. Classical DAE solvers such as DASSL and the SUNDIALS family provide robust implicit integration and nonlinear-solver infrastructure for DAE/ODE systems [14, 21]. In Modelica-based workflows, the compiler first analyzes the equation structure, performs matching and sorting, identifies algebraic loops, and applies tearing to reduce the number of variables that must be solved simultaneously [5, 9, 24, 26]. Thus, our Newton/implicit-function approach should be understood as a clear differentiable reference implementation. A production implementation could replace the full algebraic solve by the smaller torn algebraic loops produced by a Modelica compiler, thereby reducing both the forward nonlinear solve and the backward implicit linear solve. Related work on equation-based algorithmic differentiation also emphasizes that exploiting the equation structure of DAE models can be more memory efficient than differentiating a fully expanded simulation trace [10]. Julia and the SciML ecosystem are highly relevant to differentiable simulation. Julia was designed to combine high-level numerical programming with performance comparable to traditional compiled languages [2], and DifferentialE-quations.jl provides a feature-rich ecosystem for ODEs, DAEs, and hybrid differential equations [22]. Therefore, a Julia/SciML implementation could be faster for some solver-heavy or AD-heavy workloads, especially when the solver, event handling, and sensitivity calculation are compiled and specialized together. Our focus on JAX and Py-Torch is motivated instead by their broader adoption in the machine learning community and the larger surrounding ecosystem of tooling, examples, GPU workflows, and developer support [3, 20]. This difference also makes a di-rect runtime comparison potentially misleading: performance would depend not only on the programming language, but also on the chosen solver, event-location strategy, algebraic-loop handling, AD mode, compiler specialization, batching strategy, and hardware backend. For this reason, we treat Julia/SciML as an important complementary im-plementation path, but not as a direct baseline unless both implementations are engineered to the same level of solver and compiler optimization. 10 Differentiable Parameter Optimization for DAEs with State-Dependent Events 
+
+# 7 Conclusion 
+
+This paper studied differentiable parameter optimization for semi-explicit DAEs with state-dependent events. The central difficulty is that the parameter-to-output map is shaped not only by the continuous DAE dynamics, but also by algebraic consistency constraints, parameter-dependent event times, and event-triggered reset maps. These features make direct application of standard ODE-based differentiable simulation methods insufficient without additional care. We presented two complementary approaches. The first is an AD-through-simulation method that reduces the DAE by solving the algebraic variables inside the vector field and differentiates the algebraic solve using the implicit func-tion theorem. Events are handled through segmented integration, composite guard detection, reset maps, and right-continuous target-time evaluation. This approach is relatively simple to implement in modern AD frameworks and naturally fits JAX/PyTorch-style differentiable programming. The second approach is an explicit discrete-adjoint method. It represents the forward simulation as an event-split residual system, with trapezoidal DAE residuals on smooth segments and event residuals at guard crossings. The residuals are treated as equality constraints rather than penalty terms. Their Lagrange multipliers define the discrete adjoint variables, and a backward event-split sweep computes the parameter gradient while avoiding explicit trajectory and event-time sensitivity matrices. The two methods offer different tradeoffs. AD-through-simulation benefits from the flexibility of differentiable pro-gramming and is easier to integrate with machine-learning toolchains. The explicit discrete-adjoint method does not require an AD-through simulation engine, it gives more control over the numerical residuals, event-time stationarity conditions, and linear algebra used in the gradient computation. In both cases, the gradients are local to the event path selected by the forward simulation and rely on transversal guard crossings and unchanged event ordering under small parameter perturbations. Future work will focus on improving robustness near nonsmooth event transitions, including grazing contacts, simulta-neous events, and event-order changes. A second direction is to integrate more advanced DAE compilation techniques, such as algebraic-loop detection and tearing, so that both the forward algebraic solve and the backward implicit solve operate on smaller systems. Finally, larger-scale comparisons across AD frameworks, Modelica-based toolchains, and production DAE solvers would help clarify the practical performance and scalability limits of differentiable optimiza-tion for hybrid DAE models. 
+
+# References 
+
+[1] Uri M. Ascher and Linda R. Petzold. Computer Methods for Ordinary Differential Equations and Differential-Algebraic Equations . Society for Industrial and Applied Mathematics, Philadelphia, PA, 1998. [2] Jeff Bezanson, Alan Edelman, Stefan Karpinski, and Viral B. Shah. Julia: A fresh approach to numerical com-puting. SIAM Review , 59(1):65–98, 2017. [3] James Bradbury, Roy Frostig, Peter Hawkins, Matthew James Johnson, Chris Leary, Dougal Maclaurin, George Necula, Adam Paszke, Jake VanderPlas, Skye Wanderman-Milne, and Qiao Zhang. JAX: composable transfor-mations of Python+NumPy programs, 2018. [4] Yang Cao, Shengtai Li, Linda Petzold, and Radu Serban. Adjoint sensitivity analysis for differential-algebraic equations: The adjoint DAE system and its numerical solution. SIAM Journal on Scientific Computing ,24(3):1076–1089, 2003. [5] Francesco Casella. Simulation of large-scale models in Modelica: State of the art and future perspectives. In 
+
+Proceedings of the 11th International Modelica Conference , pages 459–468, Versailles, France, 2015. [6] Ricky T. Q. Chen. torchdiffeq: Differentiable ode solvers with full gpu support and o(1)-memory backpropaga-tion. https://github.com/rtqichen/torchdiffeq , 2018. GitHub repository. [7] Ricky T. Q. Chen, Brandon Amos, and Maximilian Nickel. Learning neural event functions for ordinary differ-ential equations. In International Conference on Learning Representations , 2021. [8] Ricky T. Q. Chen, Yulia Rubanova, Jesse Bettencourt, and David K. Duvenaud. Neural ordinary differential equations. In Advances in Neural Information Processing Systems , volume 31, pages 6571–6583, 2018. [9] Hilding Elmqvist and Martin Otter. Methods for tearing systems of equations in object-oriented modeling. In 
+
+Proceedings of the European Simulation Multiconference , pages 326–332, Barcelona, Spain, 1994. Society for Computer Simulation. 11 Differentiable Parameter Optimization for DAEs with State-Dependent Events [10] Ahmed Elsheikh, Francesco Casella, Dirk Zimmer, and Wladimir Schamai. An equation-based algorithmic dif-ferentiation technique for differential algebraic equations. Journal of Computational and Applied Mathematics ,281:135–151, 2015. [11] Peter Fritzson. Principles of Object-Oriented Modeling and Simulation with Modelica 3.3: A Cyber-Physical Approach . John Wiley & Sons, 2014. [12] Santos Gal´ an, William F. Feehery, and Paul I. Barton. Parametric sensitivity functions for hybrid discrete/con-tinuous systems. Applied Numerical Mathematics , 31(1):17–47, 1999. [13] Ernst Hairer and Gerhard Wanner. Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems , volume 14 of Springer Series in Computational Mathematics . Springer, Berlin, Heidelberg, 2 edition, 1996. [14] Alan C. Hindmarsh, Peter N. Brown, Keith E. Grant, Steven L. Lee, Radu Serban, Dan E. Shumaker, and Carol S. Woodward. SUNDIALS: Suite of nonlinear and differential/algebraic equation solvers. ACM Transactions on Mathematical Software , 31(3):363–396, 2005. [15] Ian A. Hiskens and M. A. Pai. Trajectory sensitivity analysis of hybrid systems. IEEE Transactions on Circuits and Systems I: Fundamental Theory and Applications , 47(2):204–220, 2000. [16] Patrick Kidger. Diffrax: Numerical differential equation solvers in JAX. https://github.com/ patrick-kidger/diffrax , 2021. Software library. [17] Nathan J. Kong, J. Joe Payne, James Zhu, and Aaron M. Johnson. Saltation matrices: The essential tool for linearizing hybrid dynamical systems. Proceedings of the IEEE , 2024. [18] Ilya Kuleshov, Galina Boeva, Vladislav Zhuzhel, Evgenia Romanenkova, Evgeni Vorsin, and Alexey Zaytsev. COTODE: COntinuous Trajectory neural Ordinary Differential Equations for modelling event sequences, 2024. [19] Modelica Association. Modelica Language Specification: Appendix B, Modelica DAE Representation . Modelica Association, 2025. Accessed 2026-05-04. [20] Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, Alban Desmaison, Andreas K¨ opf, Edward Yang, Zachary DeVito, Martin Raison, Alykhan Tejani, Sasank Chilamkurthy, Benoit Steiner, Lu Fang, Junjie Bai, and Soumith Chintala. PyTorch: An imperative style, high-performance deep learning library. In Advances in Neural Information Processing Systems , volume 32, 2019. [21] Linda R. Petzold. Description of DASSL: A differential/algebraic system solver. Technical report, Sandia National Laboratories, September 1982. [22] Christopher Rackauckas and Qing Nie. DifferentialEquations.jl – a performant and feature-rich ecosystem for solving differential equations in Julia. Journal of Open Research Software , 5(1):15, 2017. [23] Alessandro Saccon, Nathan van de Wouw, and Henk Nijmeijer. Sensitivity analysis of hybrid systems with state jumps with application to trajectory tracking. In Proceedings of the 53rd IEEE Conference on Decision and Control , pages 3065–3070, 2014. [24] Patrick T¨ auber, Lennart Ochel, Willi Braun, and Bernhard Bachmann. Practical realization and adaptation of Cellier’s tearing method. In Proceedings of the 6th International Workshop on Equation-Based Object-Oriented Modeling Languages and Tools , pages 11–19. ACM Press, 2014. [25] Hong Zhang, Shrirang Abhyankar, Emil M. Constantinescu, and Mihai Anitescu. Discrete adjoint sensitivity analysis of hybrid dynamical systems with switching. IEEE Transactions on Circuits and Systems I: Regular Papers , 64(5):1247–1259, 2017. [26] Dirk Zimmer. Module-preserving compilation of Modelica models. In Proceedings of the 7th International Modelica Conference , pages 556–565, Como, Italy, 2009. 12 Differentiable Parameter Optimization for DAEs with State-Dependent Events 
+
+# A Details of the AD-through-Simulation DAE Method 
+
+This appendix gives the mathematical and implementation details of the AD-through-simulation method for DAEs with state-dependent events. The method treats the event-driven simulator as a differentiable program. A loss is evaluated by simulating the DAE at prescribed observation times, and the parameter gradient is obtained by automatic differentiation through the simulation path selected during the forward pass. 
+
+A.1 DAE specification and parameter layout 
+
+The model is specified by differential states x(t) ∈ Rnx , algebraic variables z(t) ∈ Rnz , parameters p ∈ Rnp , and outputs y(t) ∈ Rny . The semi-explicit DAE has the form 
+
+˙x = f (t, x, z, p ), 0 = g(t, x, z, p ), y = h(t, x, z, p ),
+
+where f is the differential-state vector field, g is the algebraic constraint, and h is the output map. Only a subset of the full parameter vector may be optimized. Let popt ∈ Rnopt denote the optimized parameter vector, and let Iopt denote the corresponding indices inside the full parameter vector p. During loss evaluation, the full parameter vector is reconstructed as 
+
+p = insert ( pbase , I opt , p opt ) ,
+
+where pbase contains the fixed baseline values for all parameters not being optimized. If no explicit output map h is specified, the differential state x is used as the output. The equations defining f , g, h, and the event guards are compiled into JAX-compatible numerical functions. This avoids per-equation Python evaluation inside the JIT-compiled simulation and gives fixed-shape functions of 
+
+(t, x, z, p ).
+
+A.2 Algebraic variables as implicit functions 
+
+The numerical ODE solver advances only the differential state x. At each vector-field evaluation, the algebraic variable 
+
+z is obtained by solving 
+
+g(t, x, z, p ) = 0 .
+
+When this algebraic equation has a locally unique solution, we denote it by 
+
+z = ζ(t, x, p ), g(t, x, ζ (t, x, p ), p ) = 0 .
+
+The DAE is then integrated through the reduced vector field 
+
+˙x = F (t, x, p ) = f (t, x, ζ (t, x, p ), p ),
+
+where F is the vector field passed to the ODE solver. In the implementation, ζ(t, x, p ) is computed by a chord-Newton iteration. Let z(0) denote the initial algebraic guess and let Q denote the number of chord-Newton iterations. A regularized algebraic Jacobian is formed as 
+
+Gz = ∂g ∂z (t, x, z (0) , p ) + ϵz I, 
+
+where ϵz > 0 is a small regularization constant and I is the identity matrix of dimension nz . The iteration is 
+
+z(q+1) = z(q) − G−1 
+
+> z
+
+g(t, x, z (q), p ), q = 0 , . . . , Q − 1.
+
+The same factorization of Gz is reused across these chord iterations. The algebraic solve is differentiated using a custom JVP based on the implicit function theorem. Let 
+
+gt = ∂g ∂t , gx = ∂g ∂x , gz = ∂g ∂z , gp = ∂g ∂p ,
+
+all evaluated at (t, x, ζ (t, x, p ), p ). For perturbations (dt, dx, dp ) in (t, x, p ), the corresponding algebraic perturbation is dz . Differentiating 
+
+g(t, x, ζ (t, x, p ), p ) = 0 
+
+gives 
+
+gz dz + gt dt + gx dx + gp dp = 0 .
+
+Therefore, 
+
+dz = −g−1 
+
+> z
+
+(gt dt + gx dx + gp dp ) . (A.1) Equation (A.1) is the JVP used for the algebraic solve. It allows gradients to propagate through the algebraic constraint without differentiating through every Newton iteration. 13 Differentiable Parameter Optimization for DAEs with State-Dependent Events 
+
+A.3 Event guards and reset maps 
+
+Events are specified by guard conditions and reinitialization rules. Let ne denote the number of event guards. Each guard is represented as a scalar function 
+
+ϕe(t, x, z, p ), e = 1 , . . . , n e.
+
+The implementation uses the sign convention 
+
+ϕe > 0 before the event , ϕe = 0 at the event , ϕe < 0 after the event .
+
+Thus, all events are represented as positive-to-nonpositive crossings. For example, a condition a > b is rewritten as 
+
+ϕ = b − a, while a condition a < b is rewritten as ϕ = a − b.The event vector is 
+
+Φ( t, x, z, p ) = 
+
+
+
+ϕ1(t, x, z, p )
+
+...
+
+ϕne (t, x, z, p )
+
+ .
+
+Since guards may depend on algebraic variables, the event vector used by the solver is evaluated after solving the algebraic equation: 
+
+Φ( t, x, p ) = Φ( t, x, ζ (t, x, p ), p ).
+
+Each event type e has an associated reset map 
+
+x+ = Ψ e(t, x −, z −, p ),
+
+where x− and z− are the pre-event differential and algebraic variables, and x+ is the post-event differential state. The implementation supports direct reinitialization of differential states. Algebraic variables are not reset directly. Instead, after x+ is computed, the post-event algebraic variable z+ is recomputed from 
+
+g(t, x +, z +, p ) = 0 .
+
+For a fixed event index e, the reset map is differentiated as an ordinary JAX function. Its local differential is 
+
+dx + = Ψ e,x dx − + Ψ e,z dz − + Ψ e,p dp + Ψ e,t dt, 
+
+where Ψe,x , Ψe,z , Ψe,p , and Ψe,t denote the partial derivatives of Ψe with respect to x−, z−, p, and t, respectively. 
+
+A.4 Segmented event simulation 
+
+The simulation is represented as a sequence of smooth segments separated by events. Let ts and xs denote the start time and initial differential state of a segment. The algebraic state at the segment start is 
+
+zs = ζ(ts, x s, p ).
+
+The event vector is evaluated at the segment start, and an active-event mask is formed: 
+
+αe = 1{ϕe(ts, x s, z s, p ) > ε ϕ}, e = 1 , . . . , n e.
+
+Here αe ∈ { 0, 1} indicates whether guard e is active for event detection on the current segment, and εϕ > 0 is a small threshold. Guards already active at the segment boundary are masked out to avoid immediate retriggering after a reset. The active guards are combined into a scalar event condition 
+
+Φmin (t, x, p ; α) = min 
+
+> e=1 ,...,n e
+
+ϕe(t, x, ζ (t, x, p ), p ), αe = 1 ,C, αe = 0 ,
+
+where C > 0 is a large constant. The ODE solver advances the reduced system 
+
+˙x = F (t, x, p )
+
+until either the terminal time T is reached or the composite guard Φmin crosses zero. A bracketing root finder is then used to refine the event time. If an event is detected at time τ , the active event index is selected as 
+
+e⋆ = arg min  
+
+> e:αe=1
+
+ϕe(τ, x (τ −), ζ (τ, x (τ −), p ), p ).
+
+14 Differentiable Parameter Optimization for DAEs with State-Dependent Events Here x(τ −) denotes the pre-event differential state. The pre-event algebraic variable is 
+
+z− = ζ(τ, x (τ −), p ),
+
+and the reset gives 
+
+x(τ +) = Ψ e⋆ (τ, x (τ −), z −, p ).
+
+The next segment starts from the post-event pair (τ, x (τ +)) .For JIT compilation, event detection is implemented as a fixed-length scan over a prescribed maximum number of segments, denoted by Kmax . Each scan step records 
+
+(ak, b k, x k, r k), k = 1 , . . . , K max .
+
+Here ak is the start time of segment k, bk is the segment end time (either an event time or the terminal time), xk is the differential state at ak, and rk ∈ { 0, 1} indicates whether the segment is a real physical segment or padding. If the terminal time is reached before Kmax segments are used, the remaining scan iterations are degenerate padding segments. If the scan reaches Kmax before the terminal time, the trajectory is marked as saturated and the loss is made non-finite to avoid optimizing against an invalid simulation. 
+
+A.5 Target-time evaluation and output reconstruction 
+
+After event detection, each real segment is reintegrated to evaluate the trajectory at the observation times. Let 
+
+t1, . . . , t N
+
+denote the observation or target times. For segment k with interval [ak, b k], each target time ti is clipped into the segment interval: ˜tk,i = min {max {ti, a k}, b k}.
+
+The segment is then integrated with output saved at all clipped times, giving 
+
+Xk,i ≈ x(˜ tk,i ).
+
+The array Xk,i contains candidate state values for all segment-target pairs. Under hard selection, only the value associated with the segment that contains ti is used. With right-continuous hard selection, the selected segment for target time ti is 
+
+k⋆(i) = max {k : rk = 1 , t i ∈ [ak, b k]} .
+
+The predicted differential state is 
+
+ˆx(ti; p) = Xk⋆(i),i .
+
+Thus, if ti is exactly an event time, the target is assigned to the post-event segment. The implementation also supports optional soft segment selection. For each segment-target pair, define 
+
+ωk,i = σ(β(ti − ak)) σ(β(bk − ti)) rk,
+
+where σ(s) = 1 /(1 + exp( −s)) is the logistic sigmoid and β > 0 controls the sharpness of the segment-membership transition. The normalized weights are 
+
+¯ωk,i = ωk,i 
+
+PKmax  
+
+> ℓ=1
+
+ωℓ,i + ϵω
+
+,
+
+where ϵω > 0 prevents division by zero. The blended state is 
+
+ˆx(ti; p) = 
+
+> Kmax
+
+X
+
+> k=1
+
+¯ωk,i Xk,i . (A.2) As β → ∞ , this approaches hard segment selection. For finite β, the predicted state changes more smoothly near event boundaries. Once ˆx(ti; p) is available, the algebraic variable and output are reconstructed as 
+
+ˆz(ti; p) = ζ(ti, ˆx(ti; p), p ),
+
+and 
+
+ˆy(ti; p) = h(ti, ˆx(ti; p), ˆz(ti; p), p ).
+
+15 Differentiable Parameter Optimization for DAEs with State-Dependent Events 
+
+A.6 Loss, gradient, and outer optimization 
+
+Let ydata  
+
+> i
+
+denote the measured or reference output at target time ti. The loss is 
+
+J (popt ) = 
+
+> N
+
+X
+
+> i=1
+
+ˆy(ti; popt ) − ydata  
+
+> i
+> 22
+
+,
+
+or the corresponding mean loss. The full loss evaluation reconstructs the full parameter vector p, simulates the event-driven DAE, evaluates ˆy(ti; popt ) at all target times, and computes the output mismatch. The implementation computes  J (popt ), ∇popt J (popt )
+
+with a JIT-compiled value and grad call. Gradients propagate through the algebraic solve, reduced ODE integration, event-time computation, reset map, target-time selection, and output reconstruction. The resulting gradient can be used by a first-order method such as Adam or by a quasi-Newton method such as L-BFGS-B. In both cases, the optimizer uses the same JIT-compiled loss and gradient. The optimization driver records the loss, gradient norm, parameter values, and iteration time, and stops if the loss or gradient becomes non-finite. 
+
+A.7 Local validity 
+
+The AD-through-simulation gradient is local to the event path selected during the forward pass. It assumes that small parameter perturbations do not change the number of events, their active indices, or their ordering. It also assumes transversal guard crossings. For event e at time τ , this means 
+
+ddt ϕe(t, x (t), z (t), p ) 
+
+> t=τ−
+
+̸ = 0 ,
+
+where τ − denotes the left limit before the event. If an event becomes grazing, two events become simultaneous, or the event ordering changes, the reduced simulation map can be nonsmooth. In that case, the returned gradient should be interpreted as the derivative of the selected computational path rather than as a globally smooth sensitivity. 
+
+# B Details of the Explicit Discrete-Adjoint Method 
+
+This appendix describes the discrete-adjoint method. Unlike the AD-through-simulation approach, this method keeps the discretized DAE and event constraints visible and computes the gradient by solving for the corresponding Lagrange multipliers. 
+
+B.1 Event-split discrete trajectory 
+
+The forward simulation produces an event-split trajectory. Smooth segment m stores discrete values 
+
+{tm,k , x m,k , z m,k , ˙xm,k }Nm−1 
+
+> k=0
+
+,
+
+where tm,k is the k-th time node in segment m, xm,k is the differential state, zm,k is the algebraic state, ˙xm,k is the state derivative, and Nm is the number of nodes in the segment. Each event record stores 
+
+τm, em, w−
+
+> m
+
+, w+
+
+> m
+
+.
+
+Here τm is the m-th event time, em ∈ { 1, . . . , n e} is the index of the event guard that fired, and ne is the number of event guards. The variables w− 
+
+> m
+
+and w+ 
+
+> m
+
+denote the pre- and post-event DAE variables: 
+
+w− 
+
+> m
+
+=
+
+x−
+
+> m
+
+z−
+
+> m
+
+
+
+, w+ 
+
+> m
+
+=
+
+x+
+
+> m
+
+z+
+
+> m
+
+
+
+.
+
+The index em selects the event-specific guard, reset equations, and continuity equations used in the event residual. For fixed-shape compilation, the event-split trajectory is stored in padded block arrays. Each block is either padding, a smooth segment, or an event: 
+
+0 = padding , 1 = segment , 2 = event .
+
+16 Differentiable Parameter Optimization for DAEs with State-Dependent Events For a segment bounded by event times τm and τm+1 , physical node times are reconstructed from normalized coordi-nates: 
+
+tm,k = τm + ηm,k (τm+1 − τm), 0 ≤ ηm,k ≤ 1. (B.1) Thus, event times determine both the segment boundaries and the physical time grid used in the residuals. 
+
+B.2 Loss derivatives and adjoint loads 
+
+The discrete loss is evaluated by interpolating the event-split trajectory at the observation times: 
+
+Jh(W, τ, p ) = 1
+
+Nobs 
+
+> Nobs
+
+X
+
+> i=1
+
+ˆy(ti; W, τ, p ) − ydata  
+
+> i
+> 22
+
+.
+
+Here W denotes all discrete differential and algebraic variables over all segments, τ = ( τ1, . . . , τ M ) denotes the event times, and p denotes the model parameters. Automatic differentiation is used only for this loss-evaluation map, producing the direct derivatives 
+
+ℓW = ∂Jh
+
+∂W , ℓp = ∂Jh
+
+∂p , ℓτ = ∂Jh
+
+∂τ .
+
+For an individual node wm,k , we write 
+
+ℓm,k = ∂Jh
+
+∂w m,k 
+
+.
+
+The vector ℓp is the direct parameter derivative of the loss. The vector ℓτ contains the direct derivatives of the loss with respect to the event times. During the backward sweep, we use the following accumulated quantities. The symbol a denotes an adjoint load with respect to a node variable w. The symbol qp denotes the running accumulator for the parameter gradient. The symbols 
+
+qts and qte denote accumulated sensitivities with respect to the start and end times of a smooth segment. When a segment boundary is an event time, these boundary-time sensitivities contribute to stationarity with respect to that event time. 
+
+B.3 Smooth-step residuals 
+
+For one smooth step in segment m, define 
+
+wc = wm,k , wn = wm,k +1 , tc = tm,k , tn = tm,k +1 .
+
+The subscripts c and n denote the current and next nodes in the forward time direction. With 
+
+wc =
+
+xc
+
+zc
+
+
+
+, wn =
+
+xn
+
+zn
+
+
+
+,
+
+the trapezoidal DAE residual is 
+
+Rk(wc, w n, t c, t n, p ) = 
+
+−xn + xc + tn−tc 
+
+> 2
+
+[f (tc, x c, z c, p ) + f (tn, x n, z n, p )] 
+
+g(tn, x n, z n, p )
+
+
+
+. (B.2) The first block is the trapezoidal residual for the differential state. The second block enforces the algebraic constraint at the end of the step. The adjoint sweep uses the Jacobians 
+
+Jn = ∂R k
+
+∂w n
+
+, Jc = ∂R k
+
+∂w c
+
+, Jp = ∂R k
+
+∂p ,
+
+and the time derivatives 
+
+rtc = ∂R k
+
+∂t c
+
+, rtn = ∂R k
+
+∂t n
+
+.
+
+All derivatives are evaluated at the stored forward trajectory and current parameter value. 17 Differentiable Parameter Optimization for DAEs with State-Dependent Events 
+
+B.4 Backward sweep through a smooth segment 
+
+Let an be the adjoint load entering node wn from later times. This load contains the direct loss derivative at wn and all contributions propagated backward from future steps and events. The local multiplier λk for the step residual Rk = 0 
+
+is found from 
+
+J⊤ 
+
+> n
+
+λk = −an.
+
+The dimension of λk matches the dimension of the residual Rk.After solving for λk, the load propagated to the previous node is 
+
+ac = ℓc + J⊤ 
+
+> c
+
+λk,
+
+where 
+
+ℓc = ∂Jh
+
+∂w c
+
+.
+
+The parameter-gradient accumulator is updated by 
+
+qp ← qp + J⊤ 
+
+> p
+
+λk.
+
+At the beginning of the complete backward sweep, qp is initialized with the direct loss derivative ℓp.The same multiplier contributes to derivatives with respect to the physical times tc and tn. Define 
+
+dc = r⊤ 
+
+> tc
+
+λk, dn = r⊤ 
+
+> tn
+
+λk.
+
+These are scalar sensitivities of the Lagrangian contribution λ⊤ 
+
+> k
+
+Rk with respect to the current and next node times. Let ts and te denote the start and end times of the segment. From (B.1), 
+
+tc = ts + ηc(te − ts), tn = ts + ηn(te − ts),
+
+where ηc and ηn are the normalized coordinates associated with tc and tn. Therefore, the step contributes to the segment-boundary sensitivities as 
+
+qts ← qts + dc(1 − ηc) + dn(1 − ηn),
+
+and 
+
+qte ← qte + dcηc + dnηn.
+
+This is how event-time dependence enters the smooth-segment adjoint sweep: if ts or te is an event time, then the corresponding boundary sensitivity contributes to stationarity with respect to that event time. 
+
+B.5 Event residuals 
+
+At event time τm, the active event index is em. To simplify notation in this subsection, we write τ = τm and e = em.The event residual is 
+
+E(τ, w +, w −, p ) = 
+
+
+
+ϕe(τ, w −, p )
+
+ρe(τ, w +, w −, p )
+
+ce(w+, w −)
+
+g(τ, x +, z +, p )
+
+ = 0 . (B.3) Here ϕe is the active guard function, ρe contains the event-specific reset equations, ce contains continuity equations for variables not changed by the event, and the final block enforces post-event algebraic consistency. Define the event Jacobians 
+
+A = ∂E ∂w + , B = ∂E ∂w − , C = ∂E ∂p , eτ = ∂E ∂τ .
+
+These derivatives are evaluated at the stored event data (τ, w −, w +, p ).18 Differentiable Parameter Optimization for DAEs with State-Dependent Events 
+
+B.6 Event adjoint and pending-event representation 
+
+When the reverse scan reaches an event block, the post-event segment has already been processed. Let a+ denote the adjoint load arriving from the post-event side, i.e., the accumulated derivative with respect to w+. The event multiplier 
+
+μ satisfies 
+
+A⊤μ = −a+.
+
+This equation enforces stationarity with respect to the post-event variables w+.The event time τ also appears in the event residual and in the neighboring segment time grids. Therefore, stationarity with respect to τ must also be enforced. In the implementation, the solution of the event-adjoint equation is represented in affine form: 
+
+μ(c) = μ0 + cv, A⊤v = 0 .
+
+Here μ0 is a particular solution of A⊤μ = −a+, v is a null vector of A⊤, and c is a scalar coefficient that will be determined from event-time stationarity. This affine representation is used because the event block alone does not determine c.The affine event multiplier induces an affine load on the pre-event variables: 
+
+a−(c) = B⊤μ(c) = a− 
+
+> 0
+
++ ca − 
+
+> v
+
+,
+
+where 
+
+a− 
+
+> 0
+
+= B⊤μ0, a− 
+
+> v
+
+= B⊤v. 
+
+The vector a−(c) is the terminal adjoint load passed to the segment before the event. The event contribution to the parameter-gradient accumulator is 
+
+qEp (c) = C⊤μ(c) = qEp, 0 + cq Ep,v ,
+
+where 
+
+qEp, 0 = C⊤μ0, qEp,v = C⊤v. 
+
+The superscript E denotes an event-block contribution. The subscript 0 denotes the contribution from the particular multiplier μ0, while the subscript v denotes the contribution from the null direction v.The event contribution to stationarity with respect to the event time is 
+
+qEτ (c) = ℓτ,m + q+ 
+
+> τ
+
++ e⊤ 
+
+> τ
+
+μ(c) = qEτ, 0 + cq Eτ,v .
+
+Here ℓτ,m is the direct derivative of the loss with respect to the event time τm, obtained from ℓτ . The scalar q+
+
+> τ
+
+is the boundary-time sensitivity contributed by the already-processed post-event segment. The term e⊤ 
+
+> τ
+
+μ(c) is the event-residual contribution with respect to τ . Therefore, 
+
+qEτ, 0 = ℓτ,m + q+ 
+
+> τ
+
++ e⊤ 
+
+> τ
+
+μ0, qEτ,v = e⊤ 
+
+> τ
+
+v. 
+
+The scalar c is not determined at the event block itself because the segment before the event also contributes to the same event-time stationarity condition. The event block is therefore stored as a pending event containing the affine quantities 
+
+a− 
+
+> 0
+
+, a− 
+
+> v
+
+, qEp, 0, qEp,v , qEτ, 0, qEτ,v .
+
+B.7 Resolving the pending event 
+
+When the reverse scan reaches the segment before the pending event, the segment end time is the same event time τm.Consequently, that segment contributes to the same event-time stationarity condition used to determine c.The segment is swept twice. The first sweep uses terminal load a− 
+
+> 0
+
+and the true loss loads on the segment. It produces three quantities: 
+
+as, 0, qSp, 0, qSτ, 0.
+
+Here as, 0 is the adjoint load propagated to the start of the segment, qSp, 0 is the parameter-gradient contribution from the segment, and qSτ, 0 is the segment contribution to the derivative with respect to the segment end time, which is the event time. The second sweep uses terminal load a− 
+
+> v
+
+and zero loss loads. It produces 
+
+as,v , qSp,v , qSτ,v .
+
+19 Differentiable Parameter Optimization for DAEs with State-Dependent Events These quantities measure how the segment contribution changes with the null-direction component cv of the event multiplier. The superscript S denotes a smooth-segment contribution. Together, the two sweeps define affine segment quantities: 
+
+as(c) = as, 0 + ca s,v ,qSp (c) = qSp, 0 + cq Sp,v ,
+
+and 
+
+qSτ (c) = qSτ, 0 + cq Sτ,v .
+
+The event time is an internal variable of the event-split trajectory. Hence the total derivative of the Lagrangian with respect to this event time must vanish: 
+
+0 = qEτ (c) + qSτ (c).
+
+Substituting the affine forms gives 
+
+0 = qEτ, 0 + cq Eτ,v + qSτ, 0 + cq Sτ,v .
+
+Therefore, 
+
+c = − qEτ, 0 + qSτ, 0
+
+qEτ,v + qSτ,v 
+
+. (B.4) A small numerical regularization may be added to the denominator in the implementation. After c is known, the affine quantities are evaluated. The load propagated to the start of the preceding segment is 
+
+as = as, 0 + ca s,v .
+
+The parameter-gradient accumulator is updated by 
+
+qp ← qp + qEp, 0 + cq Ep,v + qSp, 0 + cq Sp,v .
+
+The pending event is cleared, and the reverse scan continues to earlier blocks. 
+
+B.8 Total gradient 
+
+The gradient returned by the discrete-adjoint method has the form 
+
+∇pJh = ℓp + X
+
+> m,k
+
+J⊤
+
+> p,m,k
+
+λm,k + X
+
+> m
+
+C⊤
+
+> m
+
+μm.
+
+The first term, ℓp, is the direct loss derivative with respect to the parameters. The second term accumulates smooth-step residual contributions, where Jp,m,k is the parameter Jacobian of the step residual and λm,k is the corresponding step multiplier. The third term accumulates event-residual contributions, where Cm is the parameter Jacobian of the 
+
+m-th event residual and μm is the corresponding event multiplier. In the implementation, this expression is accumulated in the running quantity qp. Event-time effects enter through the boundary-time sensitivities and through the scalar stationarity solve in (B.4); they do not appear as a separate final term because stationarity with respect to each event time has already been enforced. Thus, the method computes the gradient of the residual-constrained discrete problem by solving the Lagrange multi-pliers explicitly. The residuals are enforced as equality constraints, not as loss penalties. 20

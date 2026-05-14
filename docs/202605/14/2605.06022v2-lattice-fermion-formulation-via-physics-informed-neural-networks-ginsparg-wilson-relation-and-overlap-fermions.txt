@@ -1,0 +1,317 @@
+Title: Lattice fermion formulation via Physics-Informed Neural Networks: Ginsparg-Wilson relation and Overlap fermions
+
+URL Source: https://arxiv.org/pdf/2605.06022v2
+
+Published Time: Thu, 14 May 2026 00:42:48 GMT
+
+Number of Pages: 22
+
+Markdown Content:
+## Lattice fermion formulation via Physics-Informed Neural Networks: Ginsparg-Wilson relation and Overlap fermions 
+
+Tatsuhiro Misumi 1, ∗
+
+> 1
+
+Department of Physics, Kindai University, Higashi-Osaka, Osaka 577-8502, Japan 
+
+We propose a novel, machine-learning-based framework for constructing lattice fermions using Physics-Informed Neural Networks (PINNs). Our approach treats the formulation of the Dirac operator as an optimization problem guided by physical requirements, such as symmetries, locality and doubler-decoupling conditions. We first demonstrate that, when trained to satisfy the Ginsparg-Wilson (GW) relation as a soft constraint, a neural network reproduces the overlap fermion operator to high numerical accuracy and learns an effective sign-function mapping without explicitly using a prescribed polynomial or rational approxi-mation. Secondly, we extend the framework from operator construction to machine-assisted algebraic discovery. Within a generalized polynomial ansatz, the network autonomously drives higher-order terms to zero and recovers the standard Ginsparg-Wilson relation. Re-markably, by changing the initial search bias, the same framework also finds a distinct solution corresponding to a Fujikawa-type generalized GW relation.  
+
+> ∗
+
+misumi@phys.kindai.ac.jp 
+
+> arXiv:2605.06022v2 [hep-lat] 13 May 2026
+
+2
+
+> CONTENTS
+
+I. Introduction 3II. Lattice Fermions from Soft Constraints 5III. Review of the Ginsparg-Wilson relation and Overlap fermions 6IV. Deep Learning of Overlap Operator 7A. Neural Network Implementation Details 7B. Results: Learned Overlap Mapping in 2D 9C. Extension to 4D 11 V. Autonomous Discovery of Ginsparg-Wilson Relation 12 A. Differentiable Architecture Search and Global Scale 13 B. Results: Emergence of the GW Relation 14 C. Discovery of the Generalized GW Relation 15 VI. Conclusion 17 Acknowledgments 18 References 18 3 
+
+> I. INTRODUCTION
+
+Quantum Chromodynamics (QCD) formulated on a discretized spacetime lattice represents the most robust non-perturbative framework for understanding the strong interaction. However, formulating fermions on a discrete lattice is a long-standing fundamental challenge, primarily due to the fermion doubling problem and its inextricable link to the chiral anomaly. The fundamental obstacle is rigorously formalized by the Nielsen-Ninomiya no-go theorem [1–4], which dictates that no single-flavor lattice Dirac operator on the Euclidean spacetime can simultaneously preserve basic conditions: (1) locality, (2) translational invariance, (3) ( γ5-)hermiticity, and (4) onsite continuous chiral symmetry {D, γ 5} = 0. Historically, navigating these stringent constraints has relied exclusively on human analytical ingenuity, effectively creating a game of choosing which fundamental condition to sacrifice. Wilson fermions [5] successfully decouple the unphysical doublers by introducing an irrelevant dimension-five operator that lifts their masses to the cutoff scale, but at the heavy cost of explicitly breaking chiral symmetry. Staggered fermions [6, 7] distribute spinor components across lattice sites to maintain a remnant symmetry, sacrificing the strict single-flavor interpretation. A profound paradigm shift occurred with the discovery of the Ginsparg-Wilson (GW) relation [8]. The GW relation evades the Nielsen-Ninomiya theorem by replacing the exact, ultralocal onsite chiral symmetry with a lattice-deformed version, which was later proved to leave the path integral invariant under a well-defined lattice chiral transformation [9]. This elegant algebraic constraint culminated in exact analytical solutions, most notably the overlap fermion [10] and the closely related domain-wall fermion [11–13]. Despite their theoretical beauty, the exact chiral lattice fermions entail immense practical dif-ficulties. The overlap operator requires the evaluation of a matrix sign function. In standard numerical simulations, this sign function must be approximated via Chebyshev polynomials or Zolotarev rational approximations [14, 15], which incurs massive computational overhead and in-troduces truncation errors. Furthermore, the standard overlap fermion often suffers from delicate real-space locality issues that depend heavily on the smoothness of the background gauge fields. To circumvent these bottlenecks, lattice theorists have spent decades proposing improved versions, such as optimized and approximate GW operators [16–18], Brillouin-improved fermions [19–23], and related improved kernel constructions [24, 25], which utilize hypercubic isotropic derivatives to drastically optimize the dispersion relation and improve locality. Concurrently, machine learning (ML) techniques have revolutionized numerous scientific do-4mains. Particularly, Physics-Informed Neural Networks (PINNs) [26] have proven that deep learn-ing models can be constrained by fundamental physical laws—such as partial differential equations or algebraic symmetries—embedded directly into their loss functions. While ML has seen rapid adoption in lattice QCD for configuration generation [27–29], solving inverse problems and the formulation of improved gauge actions [30–33], its capacity as an engine for the fundamental for-mulation of the Dirac action itself remains an uncharted frontier [34]. In this paper, we propose a fundamental paradigm shift: utilizing PINNs not only to construct lattice fermion operators but to discover their underlying algebraic structures. Specifically, in the free-field setting, we demonstrate that a generic neural network trained with the GW relation as a soft constraint can reproduce the overlap Dirac operator to high numerical accuracy. Furthermore, by implementing a differentiable architecture search (DARTS [35])-inspired optimization over a generalized polynomial ansatz, we demonstrate that the network can autonomously recover the standard Ginsparg-Wilson relation from an agnostic initial condition. This recovery should be understood within the prescribed polynomial search space: starting from unbiased coefficients, the optimization selects the n = 1 structure and suppresses higher-order terms under the combined requirements of locality and doubler decoupling. Strikingly, by changing the initial logits, the same framework also finds a distinct solution corresponding to a Fujikawa-type generalized GW relation [36, 37]. The idea of optimizing lattice discretizations under physical constraints has a long history in the program of perfect and fixed-point actions [38, 39]. Optimized Dirac operators, including overlap-hypercube constructions, further showed that improved locality and dispersion properties can be pursued together with chiral symmetry constraints [40]. Our PINN framework can be interpreted as providing a complementary machine-learning route to such an optimization problem. This paper is organized as follows. In Section II, we outline the general methodology of our machine-learning framework and its potential extensions. In Section III, we review the foundational mechanics of the GW relation and its relation to overlap fermions. In Section IV, we demonstrate that a neural network can successfully learn the overlap mapping. We also discuss its straight-forward application to 4D. Finally, in Section V, we present the main result of this study: the autonomous algebraic discovery of the GW relation and its higher-order generalizations. Conclu-sions and future directions are summarized in Section VI. 5 
+
+> II. LATTICE FERMIONS FROM SOFT CONSTRAINTS
+
+The core philosophy of our proposal is to replace the analytical derivation of lattice operators with constraint-driven machine learning. A generic, translationally invariant lattice Dirac operator 
+
+D(k) can be parameterized by a highly expressive function approximator, such as a Multi-Layer Perceptron (MLP) defined in momentum space. The desired physical properties of the fermion are translated into “soft constraints” within a total loss function during the training phase, 
+
+Ltotal = X
+
+> i
+
+wiLi(D) . (1) The constraints, or loss functions, can naturally include: 
+
+• Symmetry constraints ( Lsym ): Enforcing continuous symmetries, discrete symmetries, or deformed algebraic structures. 
+
+• Locality constraints ( Lloc ): Penalizing long-range real-space hoppings via Fourier trans-forms to encourage physically acceptable locality properties. 
+
+• Spectrum constraints ( Lspec ): Explicitly suppressing doublers, or pinning doubler loca-tions in momentum space. By carefully balancing the relative weights wi, called hyperparameters, the neural network systematically navigates the landscape of valid lattice actions. The model discovers optimal com-promises between competing physical requirements (e.g., extreme locality versus exact symmetry), effectively automating the design of lattice field theories. This modular framework provides immense flexibility and is strictly not limited to the stan-dard single-flavor Dirac operator. For instance, the methodology can be naturally extended to one-component fermions such as staggered fermions. Furthermore, it opens new robust avenues for exploring minimally doubled fermions, where specific discrete symmetries ( C, P, T ) or full hy-percubic symmetries are intentionally broken [41–62]. The framework can also be adapted to the Hamiltonian formalism of lattice fermions, establishing a solid foundation for future studies aiming at quantum simulations and tensor network applications [63–71]. 6 
+
+> III. REVIEW OF THE GINSPARG-WILSON RELATION AND OVERLAP FERMIONS
+
+To provide a concrete realization of our PINN framework, we target the construction of a GW-compliant fermion. We briefly review the underlying mechanics of lattice chiral symmetry to formalize our optimization objectives. In continuum Euclidean space, the massless Dirac operator D = γμ∂μ perfectly anti-commutes with γ5. A naive symmetric finite-difference discretization yields the momentum-space operator 
+
+Dnaive (k) = ia
+
+X
+
+> μ
+
+γμ sin( ak μ) . (2) While {γ5, D naive } = 0 holds, Dnaive (k) possesses zeros at 2 d points in the Brillouin zone, cor-responding to 2 d doublers. From now, we consider the dimensionless operators and momenta as 
+
+aD → D and ak → k.This is resolved by adding a momentum-dependent mass term, or the Wilson kernel MW ,
+
+DW (k) = i X
+
+> μ
+
+γμ sin kμ + MW (k) ,MW (k) = m0 + r X
+
+> μ
+
+(1 − cos kμ) . (3) The physical mode at k = 0 retains the mass m0, whereas the doublers acquire masses of O(1 /a ). The unavoidable cost is the explicit breaking of chiral symmetry {γ5, D W }̸ = 0. It was proposed [8] that the anti-commutation relation should be deformed by a lattice artifact as 
+
+Dγ 5 + γ5D = Dγ 5D . (4) Assuming γ5-hermiticity D† = γ5Dγ 5, multiplying Eq. (4) by γ5 gives D + D† = D†D. Thus, the eigenvalues of any operator satisfying the GW relation must lie exactly on a circle in the complex plane, centered at (1 , 0) with radius 1. An exact analytical solution to this relation is the overlap Dirac operator [10] 
+
+Dov = 1 + γ5 sgn( γ5DW ) . (5) A crucial aspect of exact chiral lattice fermions is their spatial locality. Unlike the ultralo-cal Wilson Dirac operator, operators satisfying the GW relation, such as the overlap fermion, are inherently non-ultralocal (i.e., their couplings do not strictly vanish beyond a finite distance). However, it has been rigorously shown that as long as the underlying input kernel is sufficiently 7smooth and local, the resulting overlap operator exhibits strict exponential decay in real space 
+
+|D(x, y )| ≤ Ce −α∥x−y∥ [72–74]. Consequently, explicitly incorporating and evaluating the expo-nential spatial locality of the derived operator—characterized by the decay rate α—is a paramount criterion when exploring the landscape of GW-compliant solutions via machine learning.  
+
+> IV. DEEP LEARNING OF OVERLAP OPERATOR
+
+We first demonstrate that a neural network can successfully learn the exact overlap mapping to high numerical accuracy when the GW relation is explicitly provided as a target constraint. We parameterize the Dirac operator using an MLP defined in momentum space. To ensure the network learns a universal mapping rather than overfitting to a specific configuration, we employ domain randomization by uniformly sampling the bare mass m0 ∈ [−1.75 , −0.25] at each training epoch. The total loss function is defined as 
+
+Ltotal = wGW LGW + wpin Lpin + wloc Lloc . (6) Here, LGW penalizes deviations from the exact GW relation, defined as 
+
+LGW = 1
+
+Nk
+
+X
+
+> k
+
+||{ Dθ(k), γ 5} − Dθ(k)γ5Dθ(k)|| 2 . (7) The detailed roles of Lpin and Lloc are elaborated in the following subsection.  
+
+> A. Neural Network Implementation Details
+
+The Dirac operator is modeled by a Multi-Layer Perceptron (MLP) with three hidden layers (256 units each) using smooth tanh activation functions to ensure infinite differentiability in momentum space. For the 2D case, the input layer of the network takes a 3-dimensional vector consisting of the basic lattice momentum functions Input : (sin k1, sin k2, M W (k)) ∈ R3 . (8) The network, parameterized by weights θ, then outputs three real-valued components ( V1, V2, M) ∈
+
+R3, which construct the general momentum-space Dirac operator as Output : Dθ(k) = i
+
+> 2
+
+X
+
+> μ=1
+
+γμVμ(k) + IM(k) . (9) For 4D, the inputs and outputs are straightforwardly expanded to 5 dimensions to accommodate the four Euclidean gamma matrices and mass or Wilson terms. In essence, our neural network 8functions as a highly non-linear map that takes the conventional Wilson fermion kernel as its input and yields an optimized chiral lattice fermion operator as its output. Parity symmetry is explicitly enforced by symmetrizing the network’s forward pass: Vμ(k) =  
+
+> 12
+
+(Vf wd μ (k) − V bwd μ (−k)) and M(k) = 12 (Mf wd (k) + Mbwd (−k)), ensuring that the spatial vector components are exactly odd functions, while the scalar mass component is strictly an even function of momentum. In our loss function formulation, Lpin plays a critical role in enforcing the doubler-decoupling conditions. This spectrum constraint explicitly requires the physical zero mode to remain massless (D(0) = 0) while forcefully pushing the unphysical doubler modes to the cutoff scale ( D(kdoub ) = 2), leading to the loss function 
+
+Lpin = || Dθ(0 , 0) || 2 + || Dθ(0 , π ) − 2I|| 2 + || Dθ(π, 0) − 2I|| 2 + || Dθ(π, π ) − 2I|| 2 . (10) Without this doubler pinning loss, the network might easily fall into trivial parameter spaces, such as a null operator. Alternatively, this strict penalty can be relaxed into an inequality constraint, such as || Dθ(kdoub ) − 1.5I|| > 0, by employing a ReLU-based loss function. Finally, the locality penalty Lloc penalizes long-range real-space hoppings and thereby biases the learned operator toward an exponentially localized profile such as |D(r)| ∼ e−α|r| discussed in Sec. III. This is implemented via a Fast Fourier Transform (FFT) to real space as Dθ(r) = FFT[ Dθ(k)], applying a weighted exponential penalty 
+
+Lloc = X
+
+> r
+
+|| Dθ(r) · (eα|r| − 1) || 2 . (11) For the investigation in this section, we utilize the lattice size L = 32 with a decay parameter 
+
+α = 0 .8, 0.9 for 2D, and L = 10 with α = 0 .8 for 4D. By penalizing long-range real-space hoppings, 
+
+Lloc encourages the momentum-space operator to remain smooth and physically well behaved. During the training process, the network smoothly navigates the complex optimization land-scape. While the initial random weights produce arbitrary spectra that violate all symmetries, the simultaneous minimization of these three distinct loss components steadily guides the network toward a GW-compliant operator with suppressed long-range hoppings. The network parameters are optimized using the Adam optimizer. The learning rate is initialized to η = 0 .002 and is smoothly annealed during the training process to ensure stable convergence. The relative weights of the total loss function are chosen as wGW = 1 .0, wpin = 0 .1, and wloc = 0 .1. This specific weighting prevents the harsh spatial locality penalty from overpowering the optimization in the early epochs, allowing the network to first satisfy the exact algebraic and spectrum constraints 9         
+
+> FIG. 1. Comparison of the eigenvalue spectrum in the complex plane. Left: The original 2D Wilson Dirac spectrum (input). Right: The spectrum of the learned 2D operator (output), which collapses onto the Ginsparg-Wilson circle. While m0is randomized during training, the spectrum is evaluated here at
+> m0=−1.0.
+
+before fine-tuning the spatial profile. To verify the robustness and reproducibility of our framework, we performed multiple independent training runs with different random initializations. Across all trials (each with 10,000 epochs), the network consistently converged to nearly identical physical results, demonstrating the high stability of the optimization process.  
+
+> B. Results: Learned Overlap Mapping in 2D
+
+Post-training analysis demonstrates a good agreement with the GW formulation. As shown in Fig. 1, the eigenvalue spectrum of the learned operator collapses onto the GW circle. It is notable that, while m0 is randomized during training, the spectrum is evaluated here at m0 = −1.0. To test the accuracy of the learned mapping, we extract the effective sign function ϵef f from the learned operator and project it against the eigenvalues of the original Wilson Hamiltonian HW = γ5DW .As illustrated in Fig. 2, the extracted effective sign function forms a sharp step-like profile and is numerically saturated near ±1 on the sampled eigenvalues of HW . The result shows that the nonlinear neural-network ansatz can represent the overlap sign-function mapping with high numerical accuracy, without explicitly specifying a polynomial or rational approximation scheme. Real-space checks in Fig. 3 show that the hoppings of the learned operator are strongly sup-pressed at large distances, consistently with an exponentially localized profile. We note that one can obtain the learned operator with better locality by tuning the hyper-parameter wloc or the 10 
+
+FIG. 2. The effective sign function ϵef f (HW ) extracted from the learned operator, plotted against the eigenvalues of the original Wilson Hamiltonian HW . The network realizes a sharp step function. 
+
+FIG. 3. Magnitude of the real-space hopping parameters |D(r)| of the learned 2D operator as a function of the distance r. The observed exponential-like suppression provides a numerical check of the locality properties of the learned operator. 
+
+decay parameter α.We also plot the kinetic term magnitude |V x(k)|2 + |V y(k)|2 in Fig. 4 and the momentum-dependent mass term M(k) in Fig. 5 for Wilson-overlap, Brillouin-overlap [19, 20] and our learned operator. By examining the dispersion near the Brillouin zone boundaries, we observe that the operator learned by the neural network closely resembles the standard Wilson-overlap operator rather than the Brillouin-overlap, under the present choice of wloc and α. Notably, the neural net-work framework has the potential to discover improved formulations, such as the Brillouin-overlap operator, through appropriate tuning of the penalty parameters wloc and the decay parameter α.11      
+
+> FIG. 4. Plots of the kinetic term magnitude |V x|2+|V y|2. Left: Standard Wilson-overlap. Center: Brillouin-overlap with characteristic flat doubler basins. Right: The learned operator.
+> FIG. 5. Plots of the mass term M. Left: Standard Wilson-overlap. Center: Brillouin-overlap with charac-teristic flat doubler basins. Right: The learned operator.
+> C. Extension to 4D
+
+We successfully extend our methodology to four dimensions to confirm its broad applicability. The network architecture is expanded to output five components, and the exponential locality penalty is evaluated via a 4D FFT over a hypercubic grid. The optimization successfully converges, and the eigenvalue spectrum of the resulting 4D operator lies close to the GW circle as shown in Fig. 6. The effective sign function similarly realizes a step-like function as shown in Fig. 7. This demonstrates that the machine-learning framework can be similarly applied to higher dimensions. However, in this 4D study, we only have the small lattice as L = 10 and need larger lattices to investigate the locality and the property of bare kernels as done for 2D. Future work will be devoted to this investigation. 12 
+
+FIG. 6. The 4D spectrum of the learned operator. Left: The original 4D Wilson Dirac spectrum (input). Right: The spectrum of the learned 4D operator (output), which lies close to the Ginsparg-Wilson circle. While m0 is randomized during training, the spectrum is evaluated here at m0 = −1.0. 
+
+FIG. 7. The effective sign function ϵ(HW ) extracted from the 4D learned operator, where the network realizes a step function. 
+
+V. AUTONOMOUS DISCOVERY OF GINSPARG-WILSON RELATION 
+
+The previous section demonstrated that a neural network can solve the problem of finding a local lattice operator when explicitly given the GW relation ( D+D† = D†D) as a target constraint. However, a more ambitious question remains: can the network recover the GW algebraic structure within a prescribed polynomial search space, guided by locality and doubler-decoupling constraints? To answer this, we extend our framework from inverse construction to machine-assisted algebraic-structure search. We abandon the explicit GW constraint LGW and instead propose 13 a generalized polynomial ansatz for the algebraic structure, 
+
+D + D† =
+
+> N
+
+X
+
+> n=1
+
+cn(D†D)n , (12) or equivalently, 
+
+Lpol = 1
+
+Nk
+
+X
+
+> k
+
+|| Dθ(k) + D†
+
+> θ
+
+(k) −
+
+> N
+
+X
+
+> n=1
+
+cn(D†
+
+> θ
+
+(k)Dθ(k)) n|| 2 . (13) The coefficients cn define the specific algebraic structure of the fermion. In our numerical demon-stration of 2D Dirac operators, we truncate this expansion at N = 5. We note that, in this inves-tigation, m0 is again randomized during training, while the spectrum is evaluated at m0 = −1.0. The standard GW relation corresponds precisely to the subset {c1 = 1 .0, c n> 1 = 0 .0}. Our objec-tive is to determine whether the network can independently derive this exact subset of coefficients from a completely agnostic starting state.  
+
+> A. Differentiable Architecture Search and Global Scale
+
+We implement a Differentiable Architecture Search (DARTS) inspired mechanism [35]. We decouple the selection of the algebraic structure from its overall coefficient. The network is param-eterized by internal logits αn, which dictate the relative selection probability of each polynomial term via a Softmax function with temperature annealing. Concurrently, a completely independent parameter, sglobal , governs the overall coefficient of the relation. The coefficients are dynamically determined during training as 
+
+cn = sglobal × exp( αn/τ )
+
+P 
+
+> j
+
+exp( αj /τ ) × 4−(n−1) . (14) The factor 4 −(n−1) represents a standard basis normalization preventing gradient explosion near the Brillouin zone boundaries, not a structural constraint. Crucially, the algebraic coefficients are initialized without bias toward the standard GW relation. For instance, all structural logits are set to zero ( αn = 0, ensuring a completely flat probability distribution), and the global scale is initialized to sglobal = 0 .1. The network is then completely unaware that the physical target scale is 1 .0, nor does it know which combination of cn is optimal. The total loss function incorporates the polynomial algebraic condition Lpol , the locality penalty 
+
+Lloc in Eq. (11) with the decay parameter α = 0 .8 and the lattice size L = 32, and the doubler-decoupling conditions Lpin in Eq. (10) as 
+
+Ltotal = wpol Lpol + wloc Lloc + wpin Lpin . (15) 14      
+
+> FIG. 8. The learned eigenvalue spectrum in 2D. Guided by the generalized polynomial constraint, spatial locality, and doubler-decoupling conditions, the network selects sglobal →1.001 ( c1= 1 .001) and zeroes out higher-order coefficients ( cn> 1= 0 .000), indicating that the standard GW relation is selected as the preferred solution within the present polynomial optimization setup.
+
+For this autonomous discovery phase, the loss weights are set to wpol = 1 .0, wpin = 0 .1, and 
+
+wloc = 0 .01, and the network is trained using the Adam optimizer with a learning rate of η = 0 .002. The Softmax temperature τ is exponentially annealed from τ = 0 .5 down to τ = 0 .01 over the 10,000 epochs. The network must optimize its own algebraic rules to satisfy these basic requirements.  
+
+> B. Results: Emergence of the GW Relation
+
+The dynamics of the optimization process illustrate how the proposed framework performs machine-assisted algebraic-structure search. Starting from random initial network weights, the initial outputs yield arbitrary, non-local spectra that entirely violate chiral symmetry. However, constrained by the generalized polynomial framework and guided purely by the necessity to ful-fill the doubler-pinning condition ( D(kdoub ) = 2) and the spatial locality penalty, the network systematically traverses the loss landscape. As training progresses over 10,000 epochs, the network smoothly transitions from a broad ex-ploration of the generalized polynomial space to a sharp decision via temperature annealing in the Softmax function ( τ = 0 .5 → 0.01). During the early phases, the optimization suppresses 15 higher-order terms, suggesting that they are disfavored by the combined polynomial, locality, and pinning losses in the present setup. Consequently, the Softmax gating dynamically suppresses the higher-order logits, completely isolating the n = 1 structural term ( cn> 1 → 0.000). Simultane-ously, the network incrementally drives the global scale from its naive starting point of 0 .1 up to 
+
+∼ 1.00. As shown in Fig. 8, by the end of the 10,000 epochs, the resultant eigenvalue spectrum eventually converges to form a GW circle in the complex plane, confirming the emergence of the GW formulation. Let us show the explicit results of coefficients: Initial : sglobal = 0 .1, c n = 0 .1 × 0.2 × 4−n+1 (αn = 0) ,
+
+Final : sglobal = 1 .001 , c 1 = 1 .001 , c n> 1 ≃ 0.000 . (16) The other initial coefficients also result in the same final coefficients: Initial : sglobal = 0 .1, c 1 = 0 .01 , c 2 = 0 .016 , c 3 = 0 .001 , c 4,5 ≃ 0.000 (α2 = 1 .0, α n̸=2 = 0) ,
+
+Final : sglobal = 1 .001 , c 1 = 1 .001 , c n> 1 ≃ 0.000 . (17) We emphasize that the final 2D Dirac operator learned in this autonomous phase reproduces the overlap operator obtained in Section IV, with a similar momentum-space profile and real-space exponential locality. The network was not explicitly tasked with satisfying the Ginsparg-Wilson relation. Instead, starting from a generalized polynomial framework and naive initializations, the optimization selects the c1 ≃ 1, cn> 1 ≃ 0 structure as the preferred solution within the prescribed polynomial ansatz and the present loss function.  
+
+> C. Discovery of the Generalized GW Relation
+
+The successful autonomous derivation of the standard GW relation raises an intriguing question regarding the structure of the optimization landscape: does the generalized polynomial space contain other physically valid local minima, and can the network autonomously construct them? To investigate this, we maintain the same global scale ( sglobal = 0 .1) but introduce a slight initial bias in the structural logits, starting the network from [ α1, α 2, α 3, α 4, α 5] = [0 .0, 2.0, 0.0, 0.0, 0.0]. This gently nudges the initial search space toward the n = 2 term. The resulting training dynamics exhibits a second stable solution in the polynomial search space. As the epochs progress, the network systematically zeroes out the c1, c 3, c 4, and c5 coefficients. Remarkably, by epoch 6,000, the network rigorously drives the global scale to 1 .001 and precisely 16 
+
+FIG. 9. The learned eigenvalue spectrum corresponding to the autonomous discovery of the generalized Fujikawa relation. By initializing the search with a slight bias toward the n = 2 term, the network zeroes out all other coefficients and precisely converges to c2 = 0 .250 , c n̸=2 = 0, showing that the same framework can converge to an alternative higher-order GW-type algebraic structure. 
+
+converges to the coefficient set {c2 = 0 .250 , c n̸=2 = 0 .000 } as Initial : sglobal = 0 .1, c 1 = 0 .002 , c 2 = 0 .023 , c 3,4,5 ≃ 0 (α2 = 2 .0, α n̸=2 = 0) ,
+
+Final : sglobal = 1 .001 , c 2 = 0 .250 , c n̸=2 ≃ 0.000 . (18) Mathematically, this specific coefficient selection translates the generalized polynomial ansatz into 
+
+D + D† = 14 (D†D)2 . (19) This is not an arbitrary result; it is precisely the generalized Ginsparg-Wilson relation originally proposed by Fujikawa [36], which plays a pivotal role in the context of higher-order Dirac opera-tors and index theorems. The corresponding eigenvalue spectrum, depicted in Fig. 9, confirms a symmetric, topologically valid structure distinct from the standard GW circle. This result suggests that the optimization landscape contains more than the standard GW solution within the chosen polynomial ansatz. Instead, it can access different algebraic structures depending on the initial search bias. Thus, by altering the initial search bias, the same optimization framework can converge to distinct GW-type algebraic structures within the prescribed polynomial ansatz. 17  
+
+> VI. CONCLUSION
+
+We have proposed a novel framework that utilizes Physics-Informed Neural Networks to sys-tematically construct, optimize, and theoretically explore lattice fermions. By integrating doubler-decoupling conditions, spatial locality, and symmetry constraints into the loss function, we treated the formulation of the Dirac operator as a constraint-driven optimization problem. We first demonstrated that a neural network can learn the overlap mapping from the Wilson kernel to high numerical accuracy when trained with the GW relation as a soft constraint. As a proof of concept, we confirmed that the framework extends to 4D, where the learned spectrum satisfies the GW-circle constraint. In this work, we explored only a limited set of hyperparameters and the locality decay parameter. It remains an interesting question how the learned operators change when these parameters are varied. Most importantly, we elevated this framework from operator construction to machine-assisted algebraic discovery. Within a generalized polynomial ansatz and with an agnostic initial scale, the neural network autonomously suppresses higher-order structural terms and recovers the standard Ginsparg-Wilson relation, including its overall normalization. Furthermore, by exploring different initial search biases, the same framework finds a distinct algebraic structure corresponding to a Fujikawa-type generalized GW relation. These results indicate that the standard and generalized GW relations appear as preferred solutions in the present optimization landscape, selected by the combined requirements of locality, doubler decoupling, and polynomial algebraic consistency. Looking ahead, there are several promising directions for future research. First, extending this framework to the Hamiltonian formalism will be crucial for tensor network simulations and quan-tum computing applications. Second, applying this methodology to minimally doubled fermions could systematically identify optimal kernels where specific discrete symmetries such as C, P, T
+
+or hypercubic symmetries are partially relaxed. Third, exploring one-component fermions like staggered fermions under this machine-learning-driven framework may reveal new classes of highly localized operators. Finally, incorporating background gauge fields directly into the training pro-cess remains an important next step. These efforts will further establish deep learning as an indispensable theoretical tool for advancing the fundamental mathematical structures of quantum field theory. The author welcomes discussions on the computational framework and is happy to provide the Python source code used in this study to interested readers upon request. 18 
+
+ACKNOWLEDGMENTS 
+
+The author would like to thank Norihiro Tanahashi and Akio Tomiya for encouraging the author to publish the present work. The author also thanks the seminar “Deep Learning and Physics” and the workshop “Topology in Lattice Systems 2026” for providing opportunities of useful discussions. This work was supported by Japan Society for the Promotion of Science (JSPS) KAKENHI Grant No. 23K03425 and 22H05118. 
+
+[1] L. H. Karsten and J. Smit, “Lattice Fermions: Species Doubling, Chiral Invariance, and the Triangle Anomaly,” Nucl. Phys. B 183 (1981) 103. [2] H. B. Nielsen and M. Ninomiya, “Absence of Neutrinos on a Lattice. 1. Proof by Homotopy Theory,” 
+
+Nucl. Phys. B185 (1981) 20. [3] H. B. Nielsen and M. Ninomiya, “Absence of Neutrinos on a Lattice. 2. Intuitive Topological Proof,” 
+
+Nucl. Phys. B193 (1981) 173–194. [4] H. B. Nielsen and M. Ninomiya, “No Go Theorem for Regularizing Chiral Fermions,” Phys. Lett. 
+
+105B (1981) 219–223. [5] K. G. Wilson, “Quarks and Strings on a Lattice,” in New Phenomena in Subnuclear Physics: Proceedings, International School of Subnuclear Physics, Erice, Sicily, Jul 11-Aug 1 1975. Part A ,pp. 69–142. 1975. https://doi.org/10.1007/978-1-4613-4208-3_6 .[6] J. B. Kogut and L. Susskind, “Hamiltonian Formulation of Wilson’s Lattice Gauge Theories,” Phys. Rev. D11 (1975) 395–408. [7] L. Susskind, “Lattice Fermions,” Phys. Rev. D16 (1977) 3031–3039. [8] P. H. Ginsparg and K. G. Wilson, “A Remnant of Chiral Symmetry on the Lattice,” Phys. Rev. D25 
+
+(1982) 2649. [9] M. Luscher, “Exact chiral symmetry on the lattice and the Ginsparg-Wilson relation,” Phys. Lett. B 
+
+428 (1998) 342–345, arXiv:hep-lat/9802011 .[10] H. Neuberger, “More about exactly massless quarks on the lattice,” Phys. Lett. B427 (1998) 353–355, 
+
+arXiv:hep-lat/9801031 [hep-lat] .[11] D. B. Kaplan, “A Method for simulating chiral fermions on the lattice,” Phys. Lett. B288 (1992) 342–347, arXiv:hep-lat/9206013 [hep-lat] .[12] Y. Shamir, “Chiral fermions from lattice boundaries,” Nucl. Phys. B406 (1993) 90–106, 
+
+arXiv:hep-lat/9303005 [hep-lat] .[13] V. Furman and Y. Shamir, “Axial symmetries in lattice QCD with Kaplan fermions,” Nucl. Phys. B 
+
+439 (1995) 54–78, arXiv:hep-lat/9405004 .[14] T.-W. Chiu, T.-H. Hsieh, C.-H. Huang, and T.-R. Huang, “A Note on the Zolotarev optimal rational 19 
+
+approximation for the overlap Dirac operator,” Phys. Rev. D 66 (2002) 114502, 
+
+arXiv:hep-lat/0206007 .[15] T.-W. Chiu, “Optimal domain wall fermions,” Phys. Rev. Lett. 90 (2003) 071601, 
+
+arXiv:hep-lat/0209153 .[16] C. Gattringer, “A New approach to Ginsparg-Wilson fermions,” Phys. Rev. D 63 (2001) 114501, 
+
+arXiv:hep-lat/0003005 .[17] W. Bietenholz, “Solutions of the Ginsparg-Wilson relation and improved domain wall fermions,” Eur. Phys. J. C 6 (1999) 537–547, arXiv:hep-lat/9803023 .[18] W. Bietenholz and I. Hip, “The Scaling of exact and approximate Ginsparg-Wilson fermions,” Nucl. Phys. B 570 (2000) 423–451, arXiv:hep-lat/9902019 .[19] S. D¨ urr and G. Koutsou, “Brillouin improvement for Wilson fermions,” Phys. Rev. D 83 (Jun, 2011) 114512, arXiv:1012.3615 [hep-lat] . https://link.aps.org/doi/10.1103/PhysRevD.83.114512 .[20] S. D¨ urr, G. Koutsou, and T. Lippert, “Meson and Baryon dispersion relations with Brillouin fermions,” Phys. Rev. D 86 (2012) 114514, arXiv:1208.6270 [hep-lat] .[21] Y.-G. Cho, S. Hashimoto, J.-I. Noaki, A. Juttner, and M. Marinkovic, “ O(a2)-improved actions for heavy quarks and scaling studies on quenched lattices,” PoS LATTICE2013 (2014) 255, 
+
+arXiv:1312.4630 [hep-lat] .[22] Y.-G. Cho, S. Hashimoto, A. Juttner, T. Kaneko, M. Marinkovic, J.-I. Noaki, and J. T. Tsang, “Improved lattice fermion action for heavy quarks,” JHEP 05 (2015) 072, arXiv:1504.01630 [hep-lat] .[23] S. D¨ urr and G. Koutsou, “On the suitability of the Brillouin action as a kernel to the overlap procedure,” arXiv:1701.00726 [hep-lat] .[24] M. Creutz, T. Kimura, and T. Misumi, “Index Theorem and Overlap Formalism with Naive and Minimally Doubled Fermions,” JHEP 12 (2010) 041, arXiv:1011.0761 [hep-lat] .[25] T. Misumi, “New fermion discretizations and their applications,” PoS LATTICE2012 (2012) 005, 
+
+arXiv:1211.6999 [hep-lat] .[26] M. Raissi, P. Perdikaris, and G. E. Karniadakis, “Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations,” J. Comput. Phys. 378 (2019) 686–707, arXiv:1711.10561 [cs.AI] .[27] D. Boyda et al. , “Applications of Machine Learning to Lattice Quantum Field Theory,” in Snowmass 2021 . 2, 2022. arXiv:2202.05838 [hep-lat] .[28] A. Tomiya, “Machine Learning for Lattice QCD,” J. Phys. Soc. Jap. 94 no. 3, (2025) 031006. [29] U. Wenger, “Machine learning for four-dimensional SU(3) lattice gauge theories,” in 42th International Symposium on Lattice Field Theory . 4, 2026. arXiv:2604.12416 [hep-lat] .[30] K. Holland, A. Ipp, D. I. M¨ uller, and U. Wenger, “Fixed point actions from convolutional neural networks,” PoS LATTICE2023 (2024) 038, arXiv:2311.17816 [hep-lat] .[31] K. Holland, A. Ipp, D. I. M¨ uller, and U. Wenger, “Machine learning a fixed point action for SU(3) 20 
+
+gauge theory with a gauge equivariant convolutional neural network,” Phys. Rev. D 110 no. 7, (2024) 074502, arXiv:2401.06481 [hep-lat] .[32] U. Wenger, K. Holland, A. Ipp, and D. I. M¨ uller, “HMC and gradient flow with machine-learned classically perfect fixed point actions,” PoS LATTICE2024 (2025) 466, arXiv:2502.03315 [hep-lat] .[33] K. Holland, A. Ipp, D. I. M¨ uller, and U. Wenger, “Machine-Learned Renormalization-Group-Improved Gauge Actions and Classically Perfect Gradient Flows,” Phys. Rev. Lett. 136 no. 3, (2026) 031901, arXiv:2504.15870 [hep-lat] .[34] S. Yasunaga, K. Yoshimura, A. Tomiya, and Y. Nagai, “Parameter Optimization of Domain-Wall Fermion using Machine Learning,” in 42th International Symposium on Lattice Field Theory . 3, 2026. 
+
+arXiv:2603.16329 [hep-lat] .[35] H. Liu, K. Simonyan, and Y. Yang, “DARTS: Differentiable Architecture Search,” arXiv:1806.09055 [cs.LG] .[36] K. Fujikawa, “Algebraic generalization of the Ginsparg-Wilson relation,” Nucl. Phys. B 589 (2000) 487–503, arXiv:hep-lat/0004012 .[37] M. Clancy, D. B. Kaplan, and H. Singh, “Generalized Ginsparg-Wilson relations,” Phys. Rev. D 109 
+
+no. 1, (2024) 014502, arXiv:2309.08542 [hep-lat] .[38] P. Hasenfratz and F. Niedermayer, “Perfect lattice action for asymptotically free theories,” Nucl. Phys. B 414 (1994) 785–814, arXiv:hep-lat/9308004 .[39] W. Bietenholz and U. J. Wiese, “Perfect lattice actions for quarks and gluons,” Nucl. Phys. B 464 
+
+(1996) 319–352, arXiv:hep-lat/9510026 .[40] W. Bietenholz, “Optimised Dirac Operators on the Lattice: Construction, Properties and Applications,” Fortsch. Phys. 56 (2008) 107–180, arXiv:hep-lat/0611030 .[41] L. H. Karsten, “Lattice Fermions in Euclidean Space-time,” Phys. Lett. B 104 (1981) 315–319. [42] F. Wilczek, “ON LATTICE FERMIONS,” Phys. Rev. Lett. 59 (1987) 2397. [43] M. Creutz, “Four-dimensional graphene and chiral fermions,” JHEP 04 (2008) 017, arXiv:0712.1201 [hep-lat] .[44] A. Borici, “Creutz fermions on an orthogonal lattice,” Phys. Rev. D 78 (2008) 074504, 
+
+arXiv:0712.4401 [hep-lat] .[45] P. F. Bedaque, M. I. Buchoff, B. C. Tiburzi, and A. Walker-Loud, “Broken Symmetries from Minimally Doubled Fermions,” Phys. Lett. B 662 (2008) 449–455, arXiv:0801.3361 [hep-lat] .[46] P. F. Bedaque, M. I. Buchoff, B. C. Tiburzi, and A. Walker-Loud, “Search for Fermion Actions on Hyperdiamond Lattices,” Phys. Rev. D 78 (2008) 017502, arXiv:0804.1145 [hep-lat] .[47] S. Capitani, J. Weber, and H. Wittig, “Minimally doubled fermions at one loop,” Phys. Lett. B 681 
+
+(2009) 105–112, arXiv:0907.2825 [hep-lat] .[48] T. Kimura and T. Misumi, “Characters of Lattice Fermions Based on the Hyperdiamond Lattice,” 
+
+Prog. Theor. Phys. 124 (2010) 415–432, arXiv:0907.1371 [hep-lat] .21 
+
+[49] T. Kimura and T. Misumi, “Lattice Fermions Based on Higher-Dimensional Hyperdiamond Lattices,” 
+
+Prog. Theor. Phys. 123 (2010) 63–78, arXiv:0907.3774 [hep-lat] .[50] M. Creutz and T. Misumi, “Classification of Minimally Doubled Fermions,” Phys. Rev. D 82 (2010) 074502, arXiv:1007.3328 [hep-lat] .[51] M. Creutz, “Minimal doubling and point splitting,” PoS LATTICE2010 (2010) 078, 
+
+arXiv:1009.3154 [hep-lat] .[52] S. Capitani, M. Creutz, J. Weber, and H. Wittig, “Renormalization of minimally doubled fermions,” 
+
+JHEP 09 (2010) 027, arXiv:1006.2009 [hep-lat] .[53] B. C. Tiburzi, “Chiral Lattice Fermions, Minimal Doubling, and the Axial Anomaly,” Phys. Rev. D 
+
+82 (2010) 034511, arXiv:1006.0172 [hep-lat] .[54] S. Kamata and H. Tanaka, “Minimal Doubling Fermion and Hermiticity,” PTEP 2013 (2013) 023B05, arXiv:1111.4536 [hep-lat] .[55] T. Misumi, “Phase structure for lattice fermions with flavored chemical potential terms,” JHEP 08 
+
+(2012) 068, arXiv:1206.0969 [hep-lat] .[56] T. Misumi, T. Kimura, and A. Ohnishi, “QCD phase diagram with 2-flavor lattice fermion formulations,” Phys. Rev. D 86 (2012) 094505, arXiv:1206.1977 [hep-lat] .[57] S. Capitani, “Reducing the number of counterterms with new minimally doubled actions,” Phys. Rev. D 89 no. 1, (2014) 014501, arXiv:1307.7497 [hep-lat] .[58] S. Capitani, “New chiral lattice actions of the Borici-Creutz type,” Phys. Rev. D 89 no. 7, (2014) 074508, arXiv:1311.5664 [hep-lat] .[59] T. Misumi, “Fermion Actions extracted from Lattice Super Yang-Mills Theories,” JHEP 12 (2013) 063, arXiv:1311.4365 [hep-lat] .[60] J. H. Weber, S. Capitani, and H. Wittig, “Numerical studies of Minimally Doubled Fermions,” PoS 
+
+LATTICE2013 (2014) 122, arXiv:1312.0488 [hep-lat] .[61] J. H. Weber, Properties of minimally doubled fermions . PhD thesis, Mainz U., 2015. 
+
+arXiv:1706.07104 [hep-lat] .[62] S. D¨ urr and J. H. Weber, “Dispersion relation and spectral range of Karsten-Wilczek and Borici-Creutz fermions,” Phys. Rev. D 102 (Jul, 2020) 014516, arXiv:2003.10803 [hep-lat] .
+
+https://link.aps.org/doi/10.1103/PhysRevD.102.014516 .[63] Y.-Y. Li, J. Wang, and Y.-Z. You, “Quantum Many-Body Lattice C-R-T Symmetry: Fractionalization, Anomaly, and Symmetric Mass Generation,” arXiv:2412.19691 [cond-mat.str-el] .[64] A. Chatterjee, S. D. Pace, and S.-H. Shao, “Quantized Axial Charge of Staggered Fermions and the Chiral Anomaly,” Phys. Rev. Lett. 134 no. 2, (2025) 021601, arXiv:2409.12220 [hep-th] .[65] S. Catterall and A. Pradhan, “Symmetries and Anomalies of Hamiltonian Staggered Fermions,” 
+
+arXiv:2501.10862 [hep-lat] .[66] T. Yamaoka, “Quantized axial charge in the Hamiltonian approach to Wilson fermions,” JHEP 10 22 
+
+(2025) 102, arXiv:2504.10263 [hep-lat] .[67] T. Onogi and T. Yamaoka, “Non-singlet conserved charges and anomalies in 3+1 D staggered fermions,” arXiv:2509.04906 [hep-lat] .[68] S. Aoki, Y. Kikukawa, and T. Takemoto, “Chiral Anomaly of Kogut-Susskind Fermion in (3+1)-dimensional Hamiltonian formalism,” arXiv:2511.06198 [hep-lat] .[69] N. Seiberg and W. Zhang, “Tori, Klein Bottles, and Modulo 8 Parity/Time-reversal Anomalies of 2+1d Staggered Fermions,” arXiv:2601.01191 [hep-th] .[70] T. Misumi, “Minimal-doubling and single-Weyl fermion Hamiltonians,” Phys. Rev. D 113 no. 7, (2026) 074521, arXiv:2512.22609 [hep-lat] .[71] T. Misumi, T. Onogi, and T. Yamaoka, “Taste-splitting mass and edge modes in 3 + 1˜D staggered fermions,” arXiv:2604.02078 [hep-lat] .[72] P. Hernandez, K. Jansen, and M. Luscher, “Locality properties of Neuberger’s lattice Dirac operator,” 
+
+Nucl. Phys. B 552 (1999) 363–378, arXiv:hep-lat/9808010 .[73] I. Horvath, “Ginsparg-Wilson relation and ultralocality,” Phys. Rev. Lett. 81 (1998) 4063–4066, 
+
+arXiv:hep-lat/9808002 .[74] W. Bietenholz, “On the absence of ultralocal Ginsparg-Wilson fermions,” arXiv:hep-lat/9901005 .

@@ -1,0 +1,416 @@
+Title: Koopman Identification of Nonlinear Systems via Reservoir Liftings
+
+URL Source: https://arxiv.org/pdf/2605.04917v1
+
+Published Time: Thu, 07 May 2026 01:00:38 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Koopman Identification of Nonlinear Systems via Reservoir Liftings 
+
+Weibin Gu 1, Chen Yang 1,2, Lu Shi 1
+
+Abstract — Learning tractable linear representations of non-linear dynamical systems via Koopman operator theory is often hindered by dictionary selection, temporal memory encoding, and numerical ill-conditioning. Inspired by Reservoir Comput-ing (RC) paradigm, this paper introduces the RC–Koopman framework, which interprets reservoir as a stateful, finite-dimensional Koopman dictionary whose temporal depth is ex-plicitly controlled by its spectral radius. We show that the Echo State Property (ESP) guarantees well-posedness and favorable numerical conditioning of the lifted Koopman approximation. A correlation-based spectral radius selection algorithm aligns reservoir memory with dominant system timescales. Analysis reveals how the finite memory of the reservoir determines which Koopman eigenfunctions remain observable from the lifted fea-tures. Evaluation on synthetic benchmarks demonstrates that RC–Koopman achieves a favorable balance between reconstruc-tion accuracy of the underlying nonlinear dynamics and dynam-ical stability, compared to Extended Dynamic Mode Decom-position (EDMD) and Hankel-based lifting approaches. Code available at: https://github.com/NEAR-the-future/ RC-Koopman.git 
+
+I. I NTRODUCTION 
+
+Learning tractable models of nonlinear dynamical systems remains a fundamental challenge in system identification and control. While nonlinear models can capture complex behav-iors with high fidelity, they are often difficult to integrate with classical analysis, control synthesis, and optimization frameworks. A widely adopted strategy to address this diffi-culty is to lift system observations into a higher-dimensional feature space where the dynamics admit an approximately linear representation. Typically, Koopman operator theory provides a principled foundation for this idea by showing that nonlinear state evolution can be represented as linear dy-namics in an infinite-dimensional space of observables [1]– [3]. In practice, finite-dimensional approximations of this operator are typically obtained through data-driven identifica-tion. Prominent examples include Extended Dynamic Mode Decomposition (EDMD) [4], which employs predefined ob-servable dictionaries, and delay-coordinate approaches such as Hankel Alternative View of Koopman (HAVOK) [5] and related Hankel-based methods [6], [7]. Despite their success, these approaches face two fundamental challenges. First, dictionary-based methods rely on hand-crafted, memoryless observables, making the discovery of a Koopman-invariant                
+
+> 1The authors are with the Institute for AI Industry Research (AIR), Tsinghua University, Beijing, PR China
+
+{guweibin, shilu }@air.tsinghua.edu.cn  
+
+> 2Chen Yang is also with the School of Engineering, China University of Petroleum-Beijing at Karamay, Xinjiang Uygur Autonomous Region, PR China
+
+2025216932@student.cup.edu.cn         
+
+> This work was partly supported by the China Postdoctoral Science Foundation under Grant Number 2025M781650.
+> Fig. 1. Schematic of the proposed RC–Koopman framework. System measurements are mapped to a high-dimensional reservoir that serves as a stateful dictionary, where the resulting reservoir state is augmented by the system state or output to form the lifted state ψk. The Koopman matrices
+> Aand Bare then identified via least-squares regression using time-shifted snapshot matrices ( Ψ,Ψ′) and control inputs ( U).
+
+subspace highly heuristic. Second, delay-coordinate embed-dings incorporate temporal information but often suffer from dimensionality growth and severe numerical ill-conditioning due to the strong correlations present in Hankel matrices. Reservoir Computing (RC) architectures, such as Echo State Networks (ESNs), offer an alternative yet appealing paradigm for constructing expressive lifting representations by projecting inputs through a fixed, randomly initialized recurrent network [8]. A driven reservoir establishes gener-alized synchronization with the input system, where the syn-chronization map typically forms a topological embedding; this ensures the reservoir state space preserves the geomet-ric structure of the input attractor [9]. Such representation allows approximation from the current reservoir state via a learned, usually linear map, which in Koopman theory corresponds to identifying the Koopman operator on an observable space. Notably, we distinguish between stateless 
+
+liftings such as memoryless basis functions in EDMD and 
+
+stateful liftings. As a stateful system, the reservoir possesses internal dynamics that enable temporal memory encoding, rendering the current lifted observable a functional of the entire input history. The stability of this representation is ensured by contractive dynamics [10] under the Echo State Property (ESP), which guarantees the reservoir state remains a stable functional of past inputs [11]. The temporal depth of this memory is explicitly modulated by the reservoir’s spectral radius. Together, these properties establish reservoir dynamics as a natural stateful lifting mechanism for Koop-man identification, capturing essential temporal dependencies without the need for explicit delay embeddings. Several recent studies have explored connections between the RC paradigm and Koopman-based modeling [12]–[15]. For example, it was shown in [12] that linear reservoirs with identity activation functions are functionally equivalent 
+
+> arXiv:2605.04917v1 [cs.LG] 6 May 2026
+
+to Hankel Dynamic Mode Decomposition (HDMD), linking reservoir dynamics to delay-coordinate approximations of the Koopman operator. Extensions incorporating nonlinear transformations of delay embeddings were later proposed in [13]. Other works combine reservoirs with EDMD-type constructions [14] or integrate reservoir features into Hankel-based frameworks [15]. While these studies demonstrate empirical compatibility between reservoir dynamics and Koopman lifting, the role of reservoir properties such as contraction and spectral structure in the resulting Koopman identification remains insufficiently understood. In this work, we propose a Koopman identification frame-work (Fig. 1) that interprets the reservoir as a stateful Koop-man dictionary . The recurrent dynamics lift system histories into a high-dimensional fading-memory space, enabling ex-pressive representations while maintaining favorable numer-ical conditioning. The contraction properties induced by the ESP naturally compress temporal information into a stable latent representation, mitigating the dimensionality explo-sion and ill-conditioning commonly encountered in delay-coordinate liftings. Our main contributions are as follows:  
+
+> •
+
+We formalize a unified RC–Koopman framework and establish how ESP ensures well-posedness and favor-able numerical conditioning of the lifted approximation.  
+
+> •
+
+We characterize how finite reservoir memory determines Koopman eigenfunction observability and provide acorrelation-based algorithm for spectral radius selection. The remainder of this paper is organized as follows. Sec-tion II introduces the proposed RC–Koopman identification framework. Section III presents the theoretical analysis of the lifting properties. Section IV evaluates the approach on synthetic benchmarks. Finally, Section V concludes the paper and outlines future directions. II. T HE RC–K OOPMAN FRAMEWORK 
+
+A. Problem Formulation 
+
+Consider the discrete-time nonlinear system 
+
+xk+1 = f (xk, uk), (1a) 
+
+yk = h(xk), (1b) where xk ∈ Rnx denotes the system state, uk ∈ Rnu the control input, and yk ∈ Rny the measured output. The non-linear state transition map f and the measurement function h
+
+are assumed unknown. Our objective is to construct a finite-dimensional linear representation of the dynamics from data that admits an operator-theoretic interpretation and is suitable for prediction and control. For systems with control inputs, we adopt the commonly used approximation employed in Koopman-with-control for-mulations such as EDMDc [16], in which the lifted dynamics are modeled as affine in the control input, 
+
+ψk+1 ≈ Aψk + Bu k, (2) where ψk denotes the lifted state and A, B are finite-dimensional operators to be identified from data (Fig. 1). The central design choice in this framework is therefore the construction of the lifting functions ψk.
+
+B. Stateful Lifting via Reservoir Dynamics 
+
+Rather than employing stateless dictionaries as in standard EDMD, we construct a stateful lifting using a reservoir system driven by measurements of (1). The reservoir state 
+
+rk ∈ Rnr evolves according to 
+
+rk = σ(Wres rk−1 + Win vk) , (3) where σ is a nonlinear activation function, vk ∈ Rnv is the reservoir input, and Wres ∈ Rnr ×nr and Win ∈ Rnr ×nv
+
+are fixed reservoir and input weight matrices, respectively. For simplicity, bias terms are omitted, although they can be incorporated without affecting the analysis. Throughout this work, we set vk = yk, therefore implying nv = ny .As illustrated in Fig. 1, the lifted state is defined as 
+
+ψk = [ v⊤ 
+
+> k
+
+r⊤ 
+
+> k
+
+]⊤ ∈ Rnψ , nψ = nv + nr , (4) where we typically choose nr ≫ nv , ensuring that the nonlinear system dynamics are projected into a sufficiently rich feature space. This defines a nonlinear observable map-ping from the current measurement and reservoir state to a finite-dimensional feature vector. Although the observable depends only on the current measurement vk, the reservoir state rk implicitly summarizes past measurements through the recurrent dynamics in (3). Consequently, temporal de-pendencies are encoded implicitly through the reservoir recurrence rather than explicitly through stacked delays, as in Hankel-based liftings. Moreover, when the system state is not directly measurable, the reservoir effectively constructs a history-dependent embedding of the measurement sequence, analogous in spirit to delay-coordinate embeddings used in Hankel-based Koopman methods. 
+
+C. Echo State Property 
+
+A fundamental requirement for the above lifting to be well-posed is that the reservoir state be uniquely determined by the input history. This is guaranteed by the ESP from the RC paradigm, which ensures that, for any bounded input sequence, the reservoir state is uniquely determined by the input history and becomes independent of the initial reservoir condition. Under the following assumption, the reservoir update defines a contractive, input-driven dynamical system. 
+
+Assumption 1 (Sufficient Condition for ESP) . The activation function σ in (3) is globally Lipschitz with constant Lσ , and 
+
+Lσ ∥Wres ∥2 < 1, (5) 
+
+where ∥ · ∥ 2 denotes the spectral norm. 
+
+Assumption 2 (Practical ESP Scaling Rule) . The reservoir weight matrix in (3) is scaled such that 
+
+ρ(Wres ) < 1, (6) 
+
+where ρ(·) denotes the spectral radius. This condition is widely used in practice with tanh activation function. Remark. Condition (6) is weaker than the sufficient condi-tion (5), as ρ(W) ≤ ∥ W∥2. While (5) provides a rigorous contraction guarantee, it is often overly conservative, limiting the reservoir’s memory and expressivity. In practice, the spectral radius condition (6) is the standard RC design rule; it facilitates richer dynamics where the activation function’s nonlinearity typically ensures empirical stability. Accord-ingly, we distinguish between the theoretical well-posedness of Assumption 1 and the practical scaling of Assumption 2, used here to balance lifting richness with stability. 
+
+D. Koopman Operator Identification 
+
+As defined in (3) and (4), the lifted state ψk comprises the system measurement yk and the stateful reservoir features 
+
+rk. Using the data sequence {(ψk, ψk+1 , uk)}Kk=1 over K
+
+time steps, we form the snapshot matrices (Fig. 1) 
+
+Ψ = [ ψ1, . . . , ψK ] ∈ Rnψ ×K , (7a) 
+
+Ψ′ = [ ψ2, . . . , ψK+1 ] ∈ Rnψ ×K , (7b) 
+
+U = [ u1, . . . , uK ] ∈ Rnu×K . (7c) Note that the control input is not lifted and therefore enters the identified model affinely. A finite-dimensional Koopman approximation is obtained by solving 
+
+Ψ′ ≈ AΨ + BU , A ∈ Rnψ ×nψ , B ∈ Rnψ ×nu , (8) in the least-squares sense, yielding 
+
+[A B ] = Ψ′
+
+ΨU
+
+†
+
+, (9) where (·)† denotes the Moore–Penrose pseudoinverse. In practice, regularization (e.g., ridge regression) may be in-corporated to improve numerical robustness. Since vk = yk
+
+is explicitly included in the lifted state, the system output can be recovered through a simple projection 
+
+ˆyk = Cψk, C = Inv 0nr
+
+ , (10) yielding a one-step prediction with measurement updates. 
+
+Remark. Unlike many RC applications focused on multi-step forecasting, our approach utilizes the reservoir as a stateful dictionary for operator-theoretic identification, adhering to the standard Koopman formulation. III. T HEORETICAL ANALYSIS OF RESERVOIR LIFTINGS 
+
+Consider the reservoir system (3) and the lifted state defined as (4), we clarify hereafter the theoretical role of reservoir dynamics in Koopman-based identification. 
+
+A. Well-Posedness of Reservoir Liftings 
+
+We first establish that the reservoir state is uniquely deter-mined by the input sequence under the ESP. Moreover, the lifted coordinates ψk are guaranteed to evolve on a bounded invariant set determined solely by the input sequence. Such well-posedness is not intrinsic to data-driven liftings such as EDMD or delay embeddings. Let ℓ∞(Z, Rnr ) denote the Banach space of bounded sequences with norm 
+
+∥r∥ℓ∞ = sup 
+
+> k∈Z
+
+∥rk∥2. (11) 
+
+Theorem 3.1 (Well-Posed Reservoir Lifting) . Assume the activation function σ is Lipschitz continuous with constant 
+
+Lσ and sufficient condition for ESP (5) is satisfied. Then for any bounded input sequence {vk} ∈ ℓ∞(Z, Rnv ), the reservoir system (3) admits a unique bounded state trajectory 
+
+{rk} ∈ ℓ∞(Z, Rnr ) independent of the initial condition. Moreover, the induced mapping from input histories to reser-voir states is causal and has the fading-memory property. Proof. Define the operator T acting on sequence space 
+
+ℓ∞(Z, Rnr ) as (T r)k = σ(Wres rk−1 + Win vk) .
+
+For any two sequences r, ˜r, ∥(T r)k − (T ˜r)k∥2 ≤
+
+Lσ ∥Wres ∥2∥rk−1 − ˜rk−1∥2. Taking the supremum over 
+
+k gives ∥T r − T ˜r∥ℓ∞ ≤ Lσ ∥Wres ∥2∥r − ˜r∥ℓ∞ . Under condition (5), T is a contraction mapping. Existence and uniqueness of a fixed point therefore follow from the Banach fixed-point theorem. The resulting state sequence depends causally on the input history and exhibits exponential forgetting of initial conditions, which establishes the fading-memory property [11]. 
+
+B. Conditioning of Reservoir Lifted Data 
+
+Let the lifted data matrix be defined by (7a) and define the empirical Gramian 
+
+G = ΨΨ ⊤ =
+
+> K
+
+X
+
+> k=1
+
+ψkψ⊤ 
+
+> k
+
+. (12) The following proposition shows that given the persistence of excitation condition [17], Gram matrix does not grow unboundedly with the sample length K. Consequently, the resulting condition number bound remains K-independent, which explains the empirical observation that RC–Koopman maintains high numerical stability even as the dataset size or reservoir dimension increases. 
+
+Proposition 3.2 (Conditioning of Reservoir Lifted Data) .
+
+Assume ∥vk∥2 ≤ Mv for all k. Under Theorem 3.1, there exists a constant Cψ > 0 such that ∥ψk∥2 ≤ Cψ . Hence, 
+
+λmax (G) ≤ C2 
+
+> ψ
+
+K. (13) 
+
+Furthermore, if the lifted sequence satisfies the persistent excitation condition 
+
+1
+
+K
+
+> K
+
+X
+
+> k=1
+
+ψkψ⊤ 
+
+> k
+
+⪰ αI, α > 0, (14) 
+
+then 
+
+κ(G) ≤ C2
+
+> ψ
+
+α , (15) 
+
+which is independent of the sample length K.Proof. From reservoir dynamics (3) and Lipschitz continu-ity, ∥rk∥ ≤ Lσ (∥Wres ∥2∥rk−1∥ + ∥Win ∥2Mv ). Let a =
+
+Lσ ∥Wres ∥2, b = Lσ ∥Win ∥2Mv . Since a < 1 (Assump-tion 1), ∥rk∥2 ≤ ak∥r0∥2 + b 
+
+> 1−a
+
+. Hence rk is uniformly bounded. Define C2 
+
+> ψ
+
+= M 2 
+
+> v
+
++ ( b/ (1 − a)) 2, thus ∥ψk∥22 =
+
+∥vk∥22 + ∥rk∥22 ≤ C2 
+
+> ψ
+
+. Since G is symmetric and positive semidefinite, λmax (G) = ∥G∥2 ≤ PKk=1 ∥ψkψ⊤ 
+
+> k
+
+∥2 ≤
+
+C2 
+
+> ψ
+
+K. The lower bound follows directly from (14). C. Temporal Memory Structure 
+
+Reservoir liftings encode temporal information through exponentially fading memory. We argue that this allows the identified operator by RC–Koopman to approximate Koopman eigenfunctions that are functionals of the system’s history, effectively enriching the spectral decomposition of the underlying nonlinear flow. 
+
+Proposition 3.3 (Exponential Memory Decay) . Let γ =
+
+Lσ ∥Wres ∥2. Under condition γ < 1 (Assumption 1), the sensitivity of the reservoir state to past inputs satisfies 
+
+∂rk
+
+∂vk−τ 2
+
+≤ γτ ∥Win ∥2. (16) 
+
+Consequently the effective memory horizon for precision ϵ > 
+
+0 satisfies 
+
+τϵ ≥ log( ϵ/ ∥Win ∥2)log γ . (17) 
+
+Proof. Considering the reservoir dynamics (3) and applying the chain rule, the sensitivity of the state at step k to an input at step k − τ is given by the product of Jacobians along the trajectory: ∂rk 
+
+> ∂vk−τ
+
+=
+
+Qτj=1 
+
+> ∂rk−j+1
+> ∂rk−j
+
+ ∂rk−τ 
+
+> ∂vk−τ
+
+. The Jacobian of the reservoir update with respect to the state is 
+
+Dj Wres , where Dj = diag( σ′(·)) is the diagonal matrix of activation derivatives. Since σ is Lσ -Lipschitz (Assump-tion 1), ∥Dj ∥2 ≤ Lσ . Similarly, ∂rk−τ 
+
+> ∂vk−τ
+
+= Dk−τ Win . Taking spectral norms yields 
+
+∂rk
+
+∂vk−τ 2 ≤
+
+
+
+> τ
+
+Y
+
+> j=1
+
+|| Dk−j+1 || 2|| Wres || 2
+
+ || Dk−τ || 2|| Win || 2
+
+≤ (Lσ || Wres || 2)τ Lσ || Win || 2.
+
+Since Lσ = 1 for tanh activation, we obtain the simplified bound γτ ∥Win ∥2. Setting the upper bound equal to ϵ and solving for τ yields (17). 
+
+Remark. This result implies that while the reservoir can the-oretically hold a memory indefinitely 1, its practical memory is finite and tunable via the spectral properties of Wres .By contrast, Hankel liftings impose a uniform dependence and hard truncation on a finite window. A Hankel lifting of length d for temporal embedding produces observables that depend uniformly on the finite window {yk−d+1 , . . . , yk}.The memory is strictly zero for lags τ ≥ d.
+
+D. Reservoir Memory and Koopman Spectrum 
+
+Theorem 3.4 (Koopman Spectral Observability) . Consider the discrete-time system (1) and assume the reservoir satisfies the ESP condition under Assumption 1. Let τϵ denote the effective memory horizon defined in Proposition 3.3. Then the lifted observable space generated by (4) can approximate Koopman eigenfunctions ϕj with eigenvalues λj satisfying 
+
+|λj |τϵ ≳ ϵ. (18)      
+
+> 1As γ→1, the effective horizon τϵ→ ∞ .
+
+Here, a ≳ b denotes a ≥ Cb for some constant C >
+
+0 independent of j and τϵ. Koopman eigenfunctions (or equivalently, spectral components) satisfying 
+
+|λj | ≳ exp 
+
+ log ϵτϵ
+
+
+
+(19) 
+
+remain persistent within the reservoir memory horizon and can be retained in the lifted observables, whereas modes with faster decay vanish within the effective memory horizon. Consequently, increasing the spectral radius ρ(Wres ) en-larges τϵ and increases the range of Koopman eigenfunction components whose temporal correlations remain observable within the lifted feature space. Proof. Koopman eigenfunctions evolve according to 
+
+ϕj (yk) = λkj ϕj (y0). Recovering such eigenfunction components from time-series observables requires temporal correlations over a time span comparable to the decay rate of the corresponding spectral component. If |λj |τϵ ≪ ϵ, 
+
+the temporal correlations associated with this eigenfunction component vanish within the reservoir memory horizon and therefore cannot be recovered from the lifted observables. Conversely, eigenfunction components satisfying |λj |τϵ ≳ ϵ
+
+remain persistent within the observable time window and can be captured by the reservoir lifting. Substituting the expression for τϵ from Proposition 3.3 yields the stated spectral resolution condition. 
+
+Remark. Theorem 3.4 characterizes Koopman eigenfunction observability within finite reservoir memory but does not guarantee an invariant subspace. It establishes a spectral trade-off governed by ρ(Wres ): a smaller ρ(Wres ) enhances contraction and numerical stability but restricts the temporal depth τϵ, potentially filtering slow-decaying modes. Con-versely, increasing ρ(Wres ) expands the observable spectral range at the expense of reduced contraction margins. Algorithm 1 translates the theoretical connection between reservoir memory and Koopman spectral resolution into a practical design rule. Instead of selecting the spectral radius heuristically, the reservoir memory may be tuned to match the dominant dynamical time scales of the system. Specifically, since Koopman eigenvalues govern the decay of temporal correlations in the observed dynamics, the dominant system time scale could be estimated directly from the autocorrelation function of the measurements. In particular, the correlation time τc is defined as the e-folding time of the normalized autocorrelation function, i.e., the smallest lag satisfying C(τc) ≤ e−1. Matching this correlation decay with the reservoir memory decay provides a practical guideline for spectral radius selection. IV. R ESULTS AND DISCUSSION 
+
+The RC–Koopman framework is evaluated on two systems assuming full-state measurements ( yk = xk): (i) an unforced 
+
+Duffing oscillator ( ˙x1 = x2, ˙x2 = −c1x2 − (c2x21 + c3)x1,where c1 = 0 .5, c 2 = 1 , c 3 = −1) and (ii) a controlled 
+
+differential-drive robot ( ˙x = v cos θ, ˙y = v sin θ, ˙θ = ω,where x, y denotes planar position, θ the heading angle, v, ω Algorithm 1: Spectral Radius Selection 
+
+Input: Observation trajectory {yk }Kk=1 ; correlation threshold (default e−1)
+
+Output: Selected spectral radius ρ(Wres ); estimated correlation time τc
+
+Data: maximum lag L for autocorrelation computation Collect a trajectory {yk }Kk=1 as input data; Estimate the normalized autocorrelation for lags 
+
+τ = 1 , . . . , L : C(τ ) = ( PK−τk=1 y⊤ 
+
+> k
+
+yk+τ )/(PKk=1 y⊤ 
+
+> k
+
+yk );Determine the correlation time as the smallest lag where autocorrelation drops below e−1:
+
+τc = min {τ : C(τ ) ≤ e−1};Choose the reservoir spectral radius using the exponential decay relation: ρ(Wres ) ≈ exp( −1/τ c);Initialize reservoir weights with this spectral radius; Perform Koopman identification using the lifted observables from the reservoir states; 
+
+return ρ(Wres ), τc
+
+the linear and angular velocities) integrated via forward Euler (∆t = 0 .05 ). We compare RC–Koopman against EDMD with Radial Basis Function (RBF) dictionary and HAVOK 2
+
+using a fixed lifting dimension of 12 and identical regular-ization. Beyond prediction accuracy, we analyze numerical conditioning and spectral properties to verify the theoretical results in Section III. 
+
+A. Comparative Performance 1) Dynamics Reconstruction: Reconstruction accuracy is evaluated using the one-step-ahead Normalized Root Mean Square Error (NRMSE) over test trajectories: NRMSE( k) = q 1
+
+> N n y
+
+PNk=1 ∥ˆyk − yk∥22, where ˆyk denotes the predicted state. Figure 2 shows the system trajectories reconstructed via the identified RC–Koopman dynamics and Table I summa-rizes the results for each method on the two benchmark sys-tems. For Duffing oscillator, HAVOK achieves the highest ac-curacy, outperforming RC–Koopman and EDMD. However, this comes at the cost of stability as shown in Fig. 3. HAVOK yields 7 unstable eigenvalues, whereas RC–Koopman ex-hibits only 1 and EDMD none. For differential-drive robot, all three methods yield comparable performance, yet EDMD produces 4 unstable eigenvalues. These results demonstrate that RC–Koopman achieves a favorable balance between reconstruction accuracy and dynamical stability compared to EDMD and HAVOK. Note that since all compared methods utilize a least-squares formulation for operator identification, each is numerically optimal for its respective observable set. The satisfactory performance of RC–Koopman, therefore, stems from the reservoir’s ability to generate an informative and numerically stable dictionary. 
+
+2) Numerical Conditioning: The numerical conditioning of the lifted representations is summarized in Table II. For    
+
+> 2Our HAVOK implementation utilizes the delay-embedding procedure from [5] but performs identification via the same least-squares regression used for EDMD and RC–Koopman, making it methodologically equiva-lent to HDMD [12]. This ensures that performance variances are strictly attributable to the dictionary architecture rather than the underlying solver.
+> Fig. 2. Comparison of ground truth and reconstructed dynamics. (a) The Duffing oscillator and (b) a differential-drive robot model. TABLE I NRMSE COMPARISON FOR RECONSTRUCTION .
+
+Method NRMSE Duffing Oscillator Differential-Drive Robot RC–Koopman 5.38 × 10 −3 2.02 × 10 −1
+
+EDMD 3.17 × 10 −2 2.02 × 10 −1
+
+HAVOK 7.39 × 10 −4 2.03 × 10 −1
+
+the Duffing oscillator, reservoir lifting satisfies the persis-tent excitation condition with α = 8 .3 × 10 −7, yielding a moderate condition number κ(G) = 1.6 × 10 6 that adheres to the theoretical bound C2 
+
+> ψ
+
+/α in Proposition 3.2. Conversely, EDMD and HAVOK produce nearly singular Gram matrices ( κ ≈ 10 16 –10 17 ) with minimum eigenvalues reaching numerical precision, effectively violating the per-sistent excitation condition. On the differential-drive robot, while EDMD remains poorly conditioned, HAVOK achieves 
+
+κ(G) = 7 .5 × 10 2 and a positive excitation constant α =2.7 × 10 −3. This difference reflects the sensitivity of Hankel embeddings to signal characteristics; delay coordinates may become rank-deficient for highly correlated or transient dy-namics. Overall, the results demonstrate that reservoir lifting consistently produces well-conditioned feature representa-tions. This empirical behavior supports Proposition 3.2 and highlights the robustness of reservoir-based observables for Koopman operator identification.       
+
+> Fig. 3. Eigenvalue spectra of the learned Koopman operators. (a) The Duffing oscillator and (b) a differential-drive robot. Dots ( •) indicate eigen-values within or on the unit circle, while crosses ( ×) denote eigenvalues outside the unit circle, representing numerically unstable modes. For visual clarity, eigenvalues with |λ|>3are not shown.
+
+TABLE II VERIFICATION OF PROPOSITION 3.2. 
+
+Method Cψ α κ(G) C2 
+
+> ψ
+
+/α 
+
+Duffing Oscillator RC–Koopman 2.34 8.3 × 10 −7 1.6 × 10 6 6.6 × 10 6
+
+EDMD 2.23 < 10 −16 1.2 × 10 17 —HAVOK 3.11 < 10 −16 2.6 × 10 16 —Differential-Drive Robot RC–Koopman 2.53 2.3 × 10 −4 3.8 × 10 3 2.8 × 10 4
+
+EDMD 2.68 < 10 −16 5.7 × 10 16 —HAVOK 3.67 2.7 × 10 −3 7.5 × 10 2 5.0 × 10 3
+
+Fig. 4. Koopman eigenvalue lifetimes Ti versus reservoir memory horizon τϵ across varying spectral radii ρ. Each dot represents an identified eigenvalue, color-coded by ρ. The diagonal line Ti = τϵ indicates the boundary of identifiable dynamics: eigenvalues below the line evolve on time scales shorter than the reservoir memory and are therefore observable in the lifted representation. The spectral radius selected by the proposed correlation-based rule ( ρ ≈ 0.98 ) places all spectral components within the observable region. (a) Duffing oscillator. (b) Differential-drive robot. 
+
+3) Koopman Spectral Observability: To validate the spec-tral resolution predicted by Theorem 3.4, we analyze the re-lationship between identified Koopman eigenvalue lifetimes, 
+
+Ti = −1/ log |λi|, and the reservoir memory horizon τϵ.Scatter plots of Ti versus τϵ illustrate the distribution of spectral components across varying reservoir spectral radii 
+
+ρ, with the boundary Ti = τϵ denoting the theoretical limit of identifiable dynamics. The spectral distribution varies systematically with ρ across both benchmark systems. Low spectral radii (e.g., ρ = 0 .1) restrict the memory horizon, capturing only a few dominant slow components. Conversely, excessive radii (e.g., ρ ≥ 1.5) yield eigenvalues with life-times exceeding the effective memory horizon, suggesting temporal over-extension and unreliable identification. When 
+
+ρ is chosen via Algorithm 1 ( ρ ≈ 0.98 ), all identified eigen-values lie within the Ti ≤ τϵ region. This alignment confirms that the reservoir memory effectively matches the system’s dominant time scales, enabling the RC–Koopman framework to capture the Koopman spectrum without introducing spuri-ous, long-lived artifacts. These results empirically support the theoretical interpretation that ρ governs the temporal resolution of the lifted feature space. V. C ONCLUSION 
+
+This paper introduces RC–Koopman, a framework that utilizes reservoir as a stateful dictionary for linearizing nonlinear dynamical systems. By embedding fading-memory dynamics into the lifting process, the approach establishes a principled link between reservoir contraction and Koop-man spectral observability. Theoretical and empirical results demonstrate that RC–Koopman achieves a superior balance between prediction accuracy and numerical conditioning compared to EDMD and HAVOK. Future work will inves-tigate reservoir quality measures and extend the framework to long-horizon state estimation and trajectory reconstruction for robots with complex, nonlinear dynamics. REFERENCES [1] B. O. Koopman, “Hamiltonian systems and transformation in Hilbert space,” Proceedings of the National Academy of Sciences , vol. 17, no. 5, pp. 315–318, 1931. [2] S. L. Brunton, M. Budiˇ si´ c, E. Kaiser, and J. N. Kutz, “Modern Koopman theory for dynamical systems,” SIAM Review , 2022. [3] L. Shi, M. Haseli, G. Mamakoukas, D. Bruder, I. Abraham, T. Mur-phey, J. Cort´ es, and K. Karydis, “Koopman operators in robot learn-ing,” IEEE Transactions on Robotics , 2026. [4] M. O. Williams, I. G. Kevrekidis, and C. W. Rowley, “A data– driven approximation of the Koopman operator: Extending dynamic mode decomposition,” Journal of Nonlinear Science , vol. 25, no. 6, pp. 1307–1346, 2015. [5] S. L. Brunton, B. W. Brunton, J. L. Proctor, E. Kaiser, and J. N. Kutz, “Chaos as an intermittently forced linear system,” Nature Communications , vol. 8, no. 1, p. 19, 2017. [6] M. Kamb, E. Kaiser, S. L. Brunton, and J. N. Kutz, “Time-delay observables for Koopman: Theory and applications,” SIAM Journal on Applied Dynamical Systems , vol. 19, no. 2, pp. 886–917, 2020. [7] S. M. Hirsh, S. M. Ichinaga, S. L. Brunton, J. Nathan Kutz, and B. W. Brunton, “Structured time-delay models for dynamical systems with connections to Frenet–Serret frame,” Proceedings of the Royal Society A, vol. 477, no. 2254, p. 20210097, 2021. [8] M. Lukoˇ seviˇ cius and H. Jaeger, “Reservoir computing approaches to recurrent neural network training,” Computer Science Review , vol. 3, no. 3, pp. 127–149, 2009. [9] A. G. Hart, “Generic and isometric embeddings in reservoir com-puters,” Chaos: An Interdisciplinary Journal of Nonlinear Science ,vol. 35, no. 11, 2025. [10] N. Kaplan, A. Padoan, and A. Bizyaeva, “On dominant manifolds in reservoir computing networks,” arXiv preprint arXiv:2604.05967 ,2026. [11] H. Jaeger, “The “echo state” approach to analysing and training recurrent neural networks-with an erratum note,” Bonn, Germany: German national research center for information technology gmd technical report , vol. 148, no. 34, p. 13, 2001. [12] E. Bollt, “On explaining the surprising success of reservoir computing forecaster of chaos? The universal machine learning dynamical system with contrast to VAR and DMD,” Chaos: An Interdisciplinary Journal of Nonlinear Science , vol. 31, no. 1, 2021. [13] D. J. Gauthier, E. Bollt, A. Griffith, and W. A. Barbosa, “Next generation reservoir computing,” Nature Communications , vol. 12, no. 1, p. 5564, 2021. [14] M. Gulina and A. Mauroy, “Two methods to approximate the Koopman operator with a reservoir computer,” Chaos: An Interdisciplinary Journal of Nonlinear Science , vol. 31, no. 2, 2021. [15] G. Yılmaz Bing¨ ol, O. Soysal, and E. G¨ unay, “Model reduction of dynamical systems with a novel data-driven approach: The RC-HAVOK algorithm,” Chaos: An Interdisciplinary Journal of Nonlinear Science , vol. 34, no. 8, 2024. [16] J. L. Proctor, S. L. Brunton, and J. N. Kutz, “Dynamic mode decomposition with control,” SIAM Journal on Applied Dynamical Systems , vol. 15, no. 1, pp. 142–161, 2016. [17] N. Boddupalli, A. Hasnain, S. P. Nandanoori, and E. Yeung, “Koopman operators for generalized persistence of excitation conditions for nonlinear systems,” in 2019 IEEE 58th Conference on Decision and Control (CDC) , pp. 8106–8111, 2019.
