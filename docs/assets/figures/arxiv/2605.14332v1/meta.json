@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2605.14332v1/fig-001.webp",
+      "caption": "Fig. 2: Generalization across initial positions in environments of various complexities. Representative PI-SONet predictions at four time instances for three planar multi-agent path-planning tasks: (a) collision avoidance for 64 agents in free space (256D overall), (b) navigation of 64 agents around a circular obstacle (256D overall), and (c) navigation of 8 agents through a maze-like environment (64D overall). Colored curves denote agent trajectories, blue arrows denote velocity vectors, and red arrows denote control inputs. In all three scenarios, PI-SONet produces collision-free coordinated maneuvers in sub-second level timing that adapt to the geometry of the feasible set and are robust to perturbation of the agents’ initial positions. These results show that PI-SONet achieves high generalizability, optimality, and feasibility, even in increasingly complex (e.g., constrained, nonconvex/nonsmooth) environments. See https:// github.com/alanjohnvarghese/ physics-informed-sonet/ tree/main/ animations/ figure2 for animated visualizations.",
+      "page": 6,
+      "index": 1,
+      "width": 991,
+      "height": 805
+    },
+    {
+      "url": "assets/figures/arxiv/2605.14332v1/fig-002.webp",
+      "caption": "Fig. 3: Generalization to unseen obstacle geometries. Representative predictions for three different obstacle radii: (a) small, (b) intermediate, and (c) large. Each column corresponds to a different time instant. Blue arrows denote velocities, and red arrows denote controls. As the obstacle radius increases, PI-SONet smoothly expands the trajectories to preserve minimal clearance of the central obstacle, while maintaining the same overall global maneuver. These results demonstrate that PI-SONet is capable of learning families of solution operators that continuously depend on abstract problem parameters, such as obstacle geometry. See https: // github.com/alanjohnvarghese/ physics-informed-sonet/ tree/main/ animations/ figure3 for animated visualizations.",
+      "page": 7,
+      "index": 2,
+      "width": 991,
+      "height": 809
+    },
+    {
+      "url": "assets/figures/arxiv/2605.14332v1/fig-003.webp",
+      "caption": "Table 1:Benchmarking PI-SONet against state-of-the-art baselines. (a) Average runtime. (b) Average optimal control cost and average maximum collision-constraint violation with the percentage of collision-free runs shown in parentheses. Timing was obtained on a workstation with an Intel Xeon E5-2620 v4 CPU and an NVIDIA GeForce RTX 2080 Ti GPU. The test scenarios are identical to those in Figure 2. We ran 10 trials for Free and Obstacle with 4-16 agents, and 5 trials for all other cases. Pseudospectral method has no listed results for the 32-agent cases as it failed to complete after > 12 hours. For PI-SONet, we report offline training times and online inference times, separately. Speedup is computed as the minimum runtime among the baselines divided by PI-SONet inference time to reflect the time each method requires to re-compute the solution on a new problem instance. PI-SONet demonstrates remarkable speedups, while maintaining high optimality and feasibility, indicating that we do not sacrifice computational speed for solution quality.",
+      "page": 10,
+      "index": 3,
+      "width": 1008,
+      "height": 917
+    },
+    {
+      "url": "assets/figures/arxiv/2605.14332v1/fig-004.webp",
+      "caption": "Fig. 1: PI-SONet: a physics-informed, structure-preserving operator network for families of optimal control problems. Parameterization of a multi-agent optimal control problem (e.g., by initial conditions or other problem parameters) induces a corresponding family of Pontryagin maximum principle (PMP) systems and solution operators, rather a than single-instance solution. PI-SONet approximates this family through (1) a latent right-space solver, which produces a computationally tractable Hamiltonian trajectory, and (2) a conditional symplectic operator trained by minimizing PMP residuals that maps the latent trajectory back to physical phase space. On a broad suite of benchmark problems, PI-SONet demonstrates robust generalizability across initial conditions, obstacle geometries, and agent heterogeneity, while achieving near-optimal costs, high feasibility, sub-second online inferences, and 21− 10, 868x speedups over state-of-the-art baseline methods.",
+      "page": 3,
+      "index": 4,
+      "width": 1004,
+      "height": 512
+    },
+    {
+      "url": "assets/figures/arxiv/2605.14332v1/fig-005.webp",
+      "caption": "Fig. 5: Overall architecture of the conditional symplectic decoder Symplectic Operator Network (SONet). A latent Hamiltonian trajectory (y(t), q(t)) is mapped to the physical trajectory (x(t),p(t)) through alternating lower and upper symplectic blocks, whose parameters are generated from the problem inputs. This architecture yields a time-dependent family of structure-preserving maps that generalizes across problem instances.",
+      "page": 13,
+      "index": 5,
+      "width": 990,
+      "height": 786
+    },
+    {
+      "url": "assets/figures/arxiv/2605.14332v1/fig-006.webp",
+      "caption": "Fig. 4: PI-SONet handles heterogeneous agents in two and three dimensions. (a) Planar navigation around a circular obstacle with agents of different radii, indicated by marker size. Larger agents induce larger clearance margins while the collective maneuver remains coordinated. (b) Extension to a three-dimensional cluttered environment, where heterogeneous agents navigate around multiple obstacles while preserving spatial separation. These results indicate that PI-SONet can condition on agent-specific capability parameters and transfer across heterogeneous swarms. See https:// github.com/alanjohnvarghese/ physics-informed-sonet/ tree/ main/ animations/ figure4 for animated visualizations.",
+      "page": 9,
+      "index": 6,
+      "width": 991,
+      "height": 574
+    }
+  ]
+}
