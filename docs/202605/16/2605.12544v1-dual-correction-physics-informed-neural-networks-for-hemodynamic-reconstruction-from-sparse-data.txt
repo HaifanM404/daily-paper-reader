@@ -1,0 +1,383 @@
+Title: Dual-Correction Physics-Informed Neural Networks for Hemodynamic Reconstruction from Sparse Data
+
+URL Source: https://arxiv.org/pdf/2605.12544v1
+
+Published Time: Thu, 14 May 2026 00:03:23 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+> IEEE TRANSACTIONS AND JOURNALS TEMPLATE 1
+
+# Dual-Correction Physics-Informed Neural Networks for Hemodynamic Reconstruction from Sparse Data 
+
+Jingtai Song, Qinsheng Zhu, Xiaodong Xing, Yufeng Tang, Zhiyun Zhang, Xianwen Zhang, and Hao Wu 
+
+Abstract — Quantifying hemodynamics in the curved segments of the intracranial internal carotid artery is a core challenge in diagnosing vascular stenosis. Conven-tional full-field imaging, such as 4D Flow MRI, is costly and difficult to widely promote. Meanwhile, reconstructing full-field fluid information from easily accessible and non-invasive sparse measurement data (such as transcranial Doppler ultrasound/computed tomography angiography) is essentially a highly challenging ill-posed inverse problem. To overcome the severe optimization difficulties and gener-alization failures of conventional physics-informed neural networks (PINNs) in highly tortuous geometries, we pro-pose a dual-correction physics-informed neural network (DCP-INN) framework taking into account a causal decou-pling strategy. The proposed DCP-INN model utilizes a diamond-shaped main network to capture low-frequency trends in physical evolution, and employs a parallel wide-deep correction network to compensate for high-frequency residuals resulting from complex geometric shapes. Fur-thermore, the framework introduces a high-order physical loss function based on Taylor expansion to enhance local continuity under extremely sparse data constraints. To val-idate the proposed method, we performed computational evaluations on realistic vascular geometries with signifi-
+
+Manuscript received XXXX; revised XXXX; accepted XXXX. Date of publication XXXX; date of current version XXXX. This work was supported in part by the Natural Science Foundation of Xinjiang Uygur Autonomous Region under Grant 2024D01A17; in part by the Chengdu Key Research and Development Program under Grant 2025-YF08-00109-GX; in part by the Research Fund of Sichuan Medical Association under Grant 2025RY15; and in part by the Clinical Key Special Fund of Mianyang Central Hospital under Grant 2025LC004. (Corresponding authors: Qinsheng Zhu.) This study retrospectively utilized anonymized clinical imaging data. The authors confirm that the data usage protocols were approved by the Institutional Review Board (IRB) of Mianyang Central Hospital, and the requirement for informed consent was waived. Jingtai Song, Qinsheng Zhu, and Hao Wu are with the School of Physics, University of Electronic Science and Technology of China, Chengdu 611731, China. Qinsheng Zhu is also with the Kashgar In-stitute of Electronic Information Industry Technology, Kashgar 844000, China (e-mail: zhuqinsheng@uestc.edu.cn). Xiaodong Xing is with School of Quantum Information Future Tech-nology, Henan University, Zhengzhou 450046, China; Henan Key Lab-oratory of Quantum Materials and Quantum Energy, Henan University, Zhengzhou 450046, China; Institute of Quantum Materials and Physics, Henan Academy of Sciences, Zhengzhou, 450046 China . Yufeng Tang, Zhiyun Zhang, and Xianwen Zhang are with the De-partment of Neurology, Mianyang Central Hospital, School of Medicine, University of Electronic Science and Technology of China, Mianyang 621000, China. Yufeng Tang is also with the Sichuan Provincial En-gineering Research Center of Nuclear Medical Equipment Translation and Application, Mianyang Central Hospital, Mianyang 621000, China. Xianwen Zhang is also with the Sichuan Clinical Research Center for Radiation and Therapy, Mianyang Central Hospital, Mianyang 621000, China . 
+
+cant tortuosity. The results demonstrate that the method effectively mitigates optimization challenges and signifi-cantly reduces flow field reconstruction error. This study not only achieves physically credible and robust flow field reconstruction in complex morphologies but also provides a highly promising algorithmic foundation for building low-cost, high-resolution personalized cardiovascular digital twins in future. 
+
+Index Terms — 1D hemodynamics, dual-correction ar-chitecture, inverse problem, physics-informed neural net-works, sparse data reconstruction. 
+
+I. I NTRODUCTION 
+
+# ISCHEMIC stroke caused by internal carotid artery stenosis (ICAS) is one of the leading causes of death and long-term disability worldwide, and its precise prevention and treat-ment constitute a core challenge in modern neuromedicine. Currently, clinical risk assessment for ICAS has shifted from relying solely on static anatomical stenosis rates to the com-prehensive quantification of hemodynamic parameters such as trans-stenotic pressure gradients and complete spatiotemporal velocity fields. However, conventional full-field imaging (e.g., 4D Flow MRI) is costly, and high-resolution CTA lacks flow velocity features. Consequently, clinical practice highly relies on portable transcranial Doppler (TCD) ultrasound for assessment. Nonetheless, TCD is essentially a single-point measurement limited by individual “acoustic windows.” De-spite its clinical utility, TCD remains fundamentally limited in its ability to resolve continuous spatial flow fields within highly tortuous vascular structures, such as the intracranial carotid siphon. This spatial incompleteness introduces consid-erable uncertainty into hemodynamic assessment, potentially compromising the reliability of clinical decision-making. Con-sequently, accurate reconstruction of full-field hemodynamic evolution in ICAS patients from sparse, non-invasive TCD measurements represents a pressing and largely unresolved clinical challenge. [1]–[3]. To address the highly ill-posed problem of reconstructing continuous full-field hemodynamics from extremely sparse clinical observations, the core challenge lies in achieving precise fusion between physical governing equations and the limited measurement data. Traditional computational fluid dy-namics (CFD) relying on data assimilation or Kalman filtering suffers from tedious mesh generation and extreme sensitiv-ity to boundary conditions [4]. Conversely, pure data-driven  
+
+> arXiv:2605.12544v1 [physics.med-ph] 9 May 2026 2IEEE TRANSACTIONS AND JOURNALS TEMPLATE
+
+machine learning (e.g., standard deep neural networks) lacks physical constraints, risking severe overfitting on sparse data. These limitations compel a pivot toward mesh-free physics-informed deep learning paradigms capable of integrating phys-ical priors with data flexibility. To achieve the ultimate goal of robust, mesh-free hemo-dynamic reconstruction from sparse clinical data, physics-informed neural networks (PINNs) provide a highly promising solution [5]–[7]. By directly embedding physical governing equations (e.g., 1D hemodynamic models) into the loss func-tion of the neural network as regularization terms, PINNs can learn continuous spatiotemporal representations of physical fields from sparse, noisy data within a mesh-free framework. This circumvents the multiple iterative solutions and prior assumptions on error statistics required by traditional data assimilation methods (like Kalman filtering). Although PINNs perform excellently in regular vessels, their reconstruction error surges to over 40% when generalized to real clinical vessels with highly tortuous morphologies. This study assumes that the root cause of this failure lies in the fundamen-tal contradiction between the high-frequency nonlinearities induced by complex geometries and the inherent “spectral bias” of deep networks. Drastic changes in the cross-sectional area induce rich high-frequency components, whereas stan-dard multi-layer perceptrons naturally prioritize learning low-frequency trends. This forces standard PINNs into a dilemma: either ignoring flow perturbations to satisfy global smoothness constraints (physical underfitting) or generating non-physical high-frequency oscillations to forcefully fit sparse probes (local overfitting). Synthesizing the aforementioned clinical realities and algo-rithmic challenges, the core task of this study can be formu-lated as a severely data-deficient ill-posed inverse problem. Mathematically, the idea is to identify a highly nonlinear mapping operator G that takes two inputs: the geometric descriptor A0(x) , extracted and dimensionality-reduced from patient-specific 3D imaging data, and the sparse velocity time-series u(t), acquired at a limited number of discrete measure-ment probes. The operator G is then required to produce a continuous, high-resolution full-field blood velocity solution 
+
+u(x, t ) over the entire spatiotemporal computational domain. To resolve this optimization conflict co-induced by “spectral bias” and “geometric nonlinearity” and successfully approx-imate the aforementioned complex mapping operator G, this paper proposes a dual-correction physics-informed neural net-work (DCP-INN) for sparse data hemodynamic reconstruction. The main contributions are as follows: 1) A decoupled “main + correction network” architecture is proposed, where the main network captures low-frequency flow field trends, and the parallel correction network compensates for geometry-induced high-frequency residuals. 2) A Taylor expansion-based physi-cal loss (Taylor Loss) is innovatively introduced into 1D hemo-dynamic reconstruction, serving as a strong neighborhood constraint to significantly enhance physical fidelity near sparse data points. 3) The superiority of an asymmetric “diamond-shaped” network topology in balancing feature extraction and information regression is revealed. 4) Computational valida-tions on realistic vascular geometries derived from clinical imaging demonstrate that the proposed method significantly reduces reconstruction errors and exhibits strong robustness in resolving complex geometric bottlenecks. The structure of this article is organized as follows. Section II details the mathematical formulation and the proposed DCP-INN methodology. Section III presents the data preparation, evaluation metrics, and the flow field reconstruction results. Section IV discusses the clinical implications and limitations of our method. Finally, Section V concludes this study. 
+
+II. M ETHODS 
+
+The methodology presents the fundamental challenge of accurately reconstructing complex hemodynamics from sparse data. We start with establishing the mathematical formulation of this inverse problem (Section A). Building on this founda-tion, we further introduce and evaluate two components de-signed to enhance the performance of generic PINNs (Section B). Subsequently, we elucidate the optimization convergence limitations encountered by these enhancement methods when applied to complex geometries with high curvature. This anal-ysis provides the theoretical rationale for the core contribution of this work: a novel Double Correction Physics-Informed Neural Network (DCP-INN) architecture (Section C). Finally, we summarize the network design principles distilled through systematic tuning and provides the comprehensive implemen-tation details and evaluation metrics of the final model (Section D). As illustrated in Fig. 1, the methodological workflow is partitioned into three core stages: 1) non-dimensionalization of geometric priors and sparse observations; 2) solver evolution integrated with physical constraints; and 3) reconstruction and evaluation of the high-resolution flow field. Within this module, we not only introduce the illustrated Taylor loss upon the fundamental physical constraints to enforce strong local gradient constraints, but also build upon this foundation to ultimately derive the dual-correction architecture designed to decouple the low-frequency baseline from high-frequency residuals. The entire workflow ultimately culminates in the continuous reconstruction of the full-spatiotemporal-resolution flow field, which is quantitatively benchmarked against the ground truth via the global L2 error metric. 
+
+A. Mathematical Formulation of Physics-Informed Neural Networks    
+
+> 1) Non-dimensionalized Governing Equations:
+
+The fluid computational domains in this study are directly extracted from authentic clinical imaging data. By employing the SimVascular software for 3D anatomical reconstruction and 1D geometric centerline abstraction, we accurately calculate the cross-sectional area function A(x) along the path. The computational domains involved in our study originate from two authentic vessels with distinct geometric complexities, as illustrated in Fig. 2. Vessel 0 represents a relatively regular vessel segment with low curvature; whereas Vessel 4, serving as the core challenge of this study, is a highly tortuous and complex vessel whose curvature variations introduce a nonlinear testing environment for the model. Within these specific geometric domains, the fluid dynamics are governed AUTHOR et al. : TITLE 3       
+
+> Fig. 1. Overview of the computational workflow and methodological evolution. (a) Non-dimensionalization: The geometric function A(x)and sparse probe measurements are non-dimensionalized prior to integration into the computational framework. (b) Solver Evolution: The Taylor loss is introduced upon the fundamental physical constraints, with the learning and solving processes executed via the PINN. (c) Reconstruction and Evaluation: The solver outputs a high-resolution, continuous reconstructed flow field, which is compared against the ground truth via the L2error metric.
+> Fig. 2. Computational domain and sparse data problem setup. This figure illustrates two realistic vessel models with distinct geometric complexities used in this study. (a) A relatively straight vascular segment (Vessel 0), where the white dashed line indicates the 1D spatial axis x.(b) A highly tortuous vascular segment (Vessel 4), where the two planes denote the spatial probe locations (Probe 1 and Probe 2) utilized for extracting sparse boundary data.
+
+by the classical one-dimensional incompressible Navier-Stokes mass and momentum conservation equations [8], [9]. To formulate a well-posed mathematical model, we introduce an algebraic constitutive state equation based on an exponential function to accurately correlate the internal pressure p with the instantaneous area A:
+
+p(A) = p0 + K1 exp 
+
+
+
+K2
+
+AA0
+
+
+
+(1) Here, A0 and p0 denote the reference cross-sectional area and reference pressure, respectively, while K1 and K2 repre-sent empirical material constants that characterize the elasticity and stiffness of the vessel wall. To construct a numerically stable optimization problem that can be effectively learned by neural networks, we must non-dimensionalize the aforementioned physical prior equations. We define the dimensionless time ( t′), spatial coordinate ( x′), cross-sectional area ( A′), and blood flow velocity ( V ′) as follows: 
+
+t′ = tTref 
+
+, x′ = xLref 
+
+, A′ = AAref 
+
+, V ′ = VVref 
+
+(2) where Tref , Lref , Aref , and Vref denote the characteristic reference scales for their respective physical quantities. By substituting these dimensionless variables into the original equations, the governing equations can be rewritten in the following form: 
+
+∂A ′
+
+∂t ′ + c1
+
+∂(A′V ′)
+
+∂x ′ = 0 (3) 
+
+∂V ′
+
+∂t ′ + c1V ′ ∂V ′
+
+∂x ′ + c2
+
+∂p ∂x ′ = 0 (4) Here, the factor c1 = ( Tref ·Vref )/L ref and c2 = Tref /(ρ·Vref ).The partial derivative of the pressure term is analytically computed via the chain rule combined with the equation of state, which is seamlessly integrated into the automatic differentiation computation graph. 
+
+2) Baseline PINN Formulation: The dimensionless flow vari-ables [A′(x′, t ′), V ′(x′, t ′)] are parameterized by a fully con-nected neural network NN (x′, t ′; θ). We optimize the network parameters θ by minimizing a baseline total loss function, constructed as a weighted composition of a data fidelity term 
+
+Ldata and a physics constraint term Lphys :
+
+Lbaseline = Wdata Ldata + Wphys Lphys (5) The first component is the data fidelity loss Ldata , which quantifies the discrepancy between the network predictions and the sparse, ground-truth observational data. It is composed of three Mean Squared Error (MSE) terms, corresponding to the initial condition and the boundary conditions at two probe monitoring points, respectively: 4 IEEE TRANSACTIONS AND JOURNALS TEMPLATE 
+
+Ldata = 1
+
+Nic 
+
+> Nic
+
+X
+
+> i=1
+
+|A′(xi, 0) − A′
+
+> true ,i
+
+|2
+
++ 1
+
+Nbc ,A Nbc ,A 
+
+X
+
+> j=1
+
+|A′(xprobe , t j ) − A′ 
+
+> true ,j
+
+|2
+
++ 1
+
+Nbc ,V Nbc ,V 
+
+X
+
+> k=1
+
+|V ′(xprobe , t k) − V ′
+
+> true ,k
+
+|2
+
+(6) where Nic , Nbc ,A , and Nbc ,V denote the number of sample points for the initial condition, area boundary condition, and velocity boundary condition, respectively. The second component, the physics constraint loss Lphys ,acts to enforce the network predictions to satisfy the dimen-sionless governing equations across the entire spatiotemporal domain. To this end, we first define the physical residuals corresponding to the continuity equation ( Rcont ) and the mo-mentum equation ( Rmom ): 
+
+Rcont (A′, V ′) = ∂A ′
+
+∂t ′ + c1
+
+∂(A′V ′)
+
+∂x ′ (7) 
+
+Rmom (A′, V ′) = ∂V ′
+
+∂t ′ + c1V ′ ∂V ′
+
+∂x ′ + c2
+
+∂p ∂x ′ (8) Here, all partial derivative terms (e.g., ∂A ′/∂t ′, ∂A ′/∂x ′)are precisely computed via the back-propagation and Auto-matic Differentiation (AD) mechanisms of the neural net-work [10], [11]. Lphys is finally defined as the sum of the MSE of these two residuals evaluated at Nc collocation points randomly sampled from the spatiotemporal domain [0 , 1] ×
+
+[0 , 1] :
+
+Lphys = 1
+
+NcNcX
+
+> i=1
+
+ Rcont (xi, t i)2 + Rmom (xi, t i)2 (9) This Lbaseline loss function represents a standard PINN framework for solving this problem and serves as the per-formance benchmark for all our subsequent methodological enhancements. 
+
+B. Loss Function Design and Optimization Strategy 
+
+This section aims to explore algorithmic-level enhancement strategies to improve the physical consistency and convergence stability of the solver under sparse data constraints. Specifi-cally, we introduce a higher-order derivative-based geomet-ric constraint mechanism (Section B.1) and a dynamic loss weighting strategy (Section B.2), and systematically evaluate the effectiveness of these generic components in solving complex hemodynamic inverse problems.    
+
+> 1) Gradient-Enhanced Physics Loss:
+
+Under extremely sparse constraints, the standard physics loss Lphys acts as a weak “pointwise constraint” ( R(xi) ≈ 0), rendering the model prone to parasitic high-frequency oscillations between collocation points. To suppress non-physical oscillations and enforce local continuous smoothness, we introduce a gradient-enhanced Taylor Loss [12], [13]. It requires both the physical residual and its spatial gradient to simultaneously approach zero. Mathematically, for an arbitrary collocation point x, if we perform a first-order Taylor expansion of the residual in the neighborhood x + ϵ:
+
+R(x + ϵ) ≈ R(x) + ϵ · ∂R ∂x (10) To ensure the minimization of the residual R(x + ϵ) within the neighborhood, we must simultaneously minimize both the zero-order term R(x) and the first-order derivative term 
+
+∂R/∂x . Consequently, we define the Taylor Loss Ltaylor as the Mean Squared Error (MSE) of the partial derivatives of the physical residuals with respect to the spatial coordinate 
+
+x′:
+
+Ltaylor = 1
+
+NcNcX
+
+> i=1
+
+|∂x′ Ri
+
+> cont
+
+|2 + |∂x′ Ri
+
+> mom
+
+|2 (11) where the gradient term of the residual, ∂R/∂x ′, is also pre-cisely computed via automatic differentiation techniques. Un-der the standard physical loss, the model is constrained solely at the collocation points, allowing non-physical high-frequency oscillations to proliferate between them. Conversely, upon introducing Ltaylor , an additional spatial gradient constraint is imposed alongside the zero-residual enforcement. This functions as a robust “neighborhood regularization” within the solution space, effectively penalizing drastic fluctuations in the residual field and compelling the network to learn a solution that not only satisfies the physical equations at the collocation points but also maintains high physical consistency within its local neighborhoods.  
+
+> 2) Adaptive Loss Weighting Strategy:
+
+The training of PINNs is inherently a multi-objective optimization problem, where the total loss function is composed of data terms, physics terms, and other regularization terms (such as Taylor Loss). Since the gradient magnitudes of different loss components often differ by orders of magnitude and change dynamically during training, using fixed weight coefficients often leads the optimizer to prioritize fitting simpler terms (e.g., boundary conditions) while neglecting complex physical constraints, thereby resulting in entrapment in local optima. To address this optimization challenge, we explore and adopt a quantum computing-inspired adaptive weighting strat-egy [14]–[17]. The core motivation of this strategy is to simulate the mechanism of tunneling through energy barriers in quantum annealing processes, facilitating the optimizer in escaping local minima. Specifically, instead of relying on man-ually tuned fixed weights, this algorithm dynamically adjusts the weight Wk for each component based on the gradient statistical properties and descent rates observed throughout the training history [18], [19]. This strategy aims to mitigate the gradient imbalance prob-lem in multi-objective optimization by dynamically balancing the gradient contributions of different terms. Computational evaluation indicates that in the low-curvature benchmark ge-ometry (Vessel 0), this method effectively improves the con-vergence stability of the model. However, when applied to the highly tortuous complex geometry (Vessel 4), solely relying on such algorithmic-level weight adjustments failed to achieve the AUTHOR et al. : TITLE 5
+
+expected optimization results, and the convergence accuracy of the model remained limited. This result suggests that for such complex problems, merely improving the optimization strategy may be insufficient. 
+
+C. Double Correction Physics-Informed Neural Network (DCP-INN) Architecture 
+
+To address the convergence bottlenecks encountered by con-ventional algorithmic enhancement strategies under the dual constraints of complex geometry and sparse data, this section presents the core contribution of this study—the proposed DCP-INN framework. This section first theoretically analyzes the failure mechanism of standard PINNs when handling high-frequency geometric features (Section C.1). Subsequently, it details a dual-network structure designed to decouple the flow field baseline from high-frequency residuals (Section C.2), and introduces a specialized regularization mechanism to ensure the physical reliability of the correction process (Section C.3).  
+
+> 1) Analysis of Optimization Failure under Complex Geome-tries:
+
+When the generic enhancement components (Taylor Loss and adaptive weighting) are applied to the highly tortuous Vessel 4, the model’s performance deteriorates significantly, failing to reconstruct the internal velocity field. This optimiza-tion failure stems from the coupling of two core factors. First, the inherent spectral bias of deep neural networks prioritizes low-frequency trends [9], [18], missing the rich high-frequency features (e.g., sharp pressure gradients) induced by complex geometries. Second, sparse observational data exacerbates the non-convexity of the optimization landscape, lacking sufficient spatial anchors to constrain the solution space. Consequently, the optimizer becomes trapped in sub-optimal local minima. Overcoming this bottleneck requires fundamental innovation at the network architecture’s inductive bias level rather than merely patching loss functions.  
+
+> 2) Architecture Design and Principles of DCP-INN:
+
+To funda-mentally address the aforementioned optimization bottlenecks, we propose the DCP-INN architecture. The core idea of this framework is to adopt a “divide-and-conquer” strategy, decoupling the solution task of a single network into two sub-tasks: “baseline learning” and “residual correction” [20]–[22]. The overall architecture and information flow are illustrated in Fig. 3. The DCP-INN employs parallel modules: the Main Net-work (Nmain ) predicts state variables to capture the low-frequency physical baseline, using a Softplus activation on 
+
+A′ to structurally ensure strictly positive cross-sectional areas. Concurrently, the wider and deeper Correction Network ( Ncorr )outputs correction fields f ′ 
+
+> cont
+
+and f ′ 
+
+> mom
+
+to capture the high-frequency physical residuals missed by Nmain due to spectral bias. The core mechanism of DCP-INN lies in counteracting the physical errors generated by the Main Network via the correction fields. During the training process, we no longer directly minimize the original physical residuals Rcont and 
+
+Rmom , but instead minimize the modified physical residuals defined as follows: 
+
+Rcorr  
+
+> i
+
+= Ri(A′, V ′) − f ′ 
+
+> i
+
+(x′, t ′), i ∈ { cont , mom } (12) This architecture introduces a key training/inference asym-metry. In the training phase, Nmain and Ncorr are collaboratively updated via the total loss function. Ncorr acts as a learnable, spatially-aware slack variable. By absorbing high-frequency errors, it smooths the optimization landscape of the Main Network, enabling it to converge more easily to the correct low-frequency baseline. Conversely, in the inference phase, once training is completed, Ncorr is completely discarded. We solely use the fully optimized Nmain as the final surrogate model. At this point, the weights of Nmain have implicitly encoded the physical constraint information, allowing it to independently perform efficient predictions.  
+
+> 3) Correction Field Regularization:
+
+To prevent Ncorr from excessively dominating physical learning and reducing Nmain 
+
+to a mere data fitter, we introduce an Occam’s Razor-based regularization loss [23]–[27]. This term enforces sparsity in the correction fields ( f ′
+
+> cont
+
+, f ′
+
+> mom
+
+), compelling the optimizer to leverage Ncorr solely in regions where Nmain fails (e.g., high-frequency geometric variations). It is defined as the L2 norm of the outputs: 
+
+Lcorr-reg = 1
+
+NcNcX
+
+> i=1
+
+ |f ′
+
+> cont
+
+(x′
+
+> i
+
+, t ′
+
+> i
+
+)|2 + |f ′
+
+> mom
+
+(x′
+
+> i
+
+, t ′
+
+> i
+
+)|2 (13) By incorporating this regularization term into the total loss function, we establish a dynamic balance between “satisfying physical constraints” and “maintaining model parsimony,” thereby ensuring the physical interpretability and robustness of the final solution. 
+
+D. Implementation Details and Evaluation Metrics 
+
+All model training was implemented using PyTorch [28] and executed on a single NVIDIA A100 GPU. To ensure reproducibility and delineate the architectural evolution, Table I details the key hyperparameter configurations across the baseline, generic enhanced, and final DCP-INN models. Through a series of systematic architecture tuning, we established two core network design principles applicable to the double correction framework and applied them to the final model. First, to effectively capture the high-frequency physical residuals induced by complex geometry, the Correc-tion Network ( Ncorr ) is designed to possess a larger model capacity than the Main Network, i.e., employing a deeper and wider layer structure. Second, for the Main Network (Nmain ), computational evaluations indicate that an asymmetric “diamond-shaped” topology (where layer width first expands and then contracts, e.g., [50, 100, 100, 50]) is superior to the traditional rectangular structure in terms of the balancing efficiency between feature extraction and regression accuracy. In terms of model performance evaluation, to quantitatively measure the consistency between the reconstructed flow field and the ground truth over the entire spatiotemporal domain, we employ the global relative L2 error as the core metric [2]. Its mathematical definition is as follows: 6 IEEE TRANSACTIONS AND JOURNALS TEMPLATE 
+
+Fig. 3. Architecture and information flow of the DCP-INN. (a) Training Phase: Non-dimensionalized spatiotemporal coordinates ( x′, t ′) are input in parallel. The main network in the upper branch ( Nmain , blue nodes) outputs state variables ( A′, V ′); the correction network in the lower branch (Ncorr , yellow nodes) outputs correction fields ( f ′
+
+> cont
+
+, f ′
+
+> mom
+
+). The grey boxes illustrate the computation of the corrected physical residuals using both outputs, which are ultimately aggregated into the Total Loss for backpropagation and co-optimization. (b) Inference Phase: The correction network is detached, and solely the trained Nmain independently outputs the Predicted Flow Dynamics. TABLE I NETWORK TOPOLOGY EVOLUTION AND TRAINING HYPERPARAMETER CONFIGURATIONS OF KEY MODELS . P ROVIDES A DETAILED COMPARISON OF CORE PARAMETERS ACROSS THE BASELINE PINN, THE GENERIC ENHANCED MODEL , AND THE FINAL DCP-INN ARCHITECTURE , ENCOMPASSING THE TOPOLOGIES OF BOTH THE MAIN AND CORRECTION NETWORKS , AS WELL AS THE LOSS FUNCTION COMPOSITIONS .
+
+Model Stage Main Network ( Nmain ) Correction Net ( Ncorr ) Loss Components 
+
+Baseline PINN Rectangular [ 50 × 4] None Ldata + Lphys 
+
+Enhanced PINN Rectangular [ 50 × 4] None Lbaseline + Ltaylor 
+
+DCP-INN (Initial) Rectangular [ 50 × 4] Rectangular [ 64 × 3] Lbaseline + Ltaylor + Lcorr-reg 
+
+DCP-INN (Final) Diamond [50, 100, 100, 50] Deep & Wide [ 128 × 5] Lbaseline + Ltaylor + Lcorr-reg 
+
+EL2 = ∥upred − utrue ∥2
+
+∥utrue ∥2
+
+=
+
+qPNi=1 |u(i) 
+
+> pred
+
+− u(i)
+
+> true
+
+|2
+
+qPNi=1 |u(i)
+
+> true
+
+|2
+
+(14) where u represents the vector form of the predicted field, and N is the total number of evaluation points. A lower value of this metric indicates higher reconstruction accuracy of the model for complex hemodynamics. 
+
+III. R ESULTS 
+
+Based on the data generation workflow described previously, this study instantiates two vessel models with significant geo-metric differences to comprehensively evaluate the adaptability of the DCP-INN framework under distinct fluid environments. The study subjects, Vessel 0 and Vessel 4, are both derived from the reconstruction of real patient Computed Tomography Angiography (CTA) images [29]–[33]. Specifically, Vessel 0 represents a relatively straight vessel segment. Its compara-tively regular geometric features make it suitable as a baseline, utilized to validate the fundamental effectiveness of physical constraint components while excluding the interference of extreme curvature. In contrast, Vessel 4 is a segment of the internal carotid artery characterized by high tortuosity and drastic curvature variations. It represents the core challenge this study aims to address: achieving precise reconstruction in complex flow fields strongly induced by geometry. Although these two models are morphologically distinct, their simulation AUTHOR et al. : TITLE 7
+
+settings both adhere to strict physical conservation laws. Key parameters, including specific geometric dimensions, fluid physical properties, and Reynolds number ranges, are detailed in Table II. Regarding the construction of the quantitative evaluation system, this study focuses primarily on the global numerical accuracy and predictive fidelity of the flow field reconstruc-tion. To this end, we employ the global relative L2 error (EL2 ) defined previously to quantify the overall deviation between the predicted flow field and the ground truth, thereby quantitatively measuring the model’s capacity to approximate and generalize complex hemodynamics under extremely sparse data constraints. Utilizing this metric, our initial evaluations reveal the lim-itations of the Enhanced PINN in handling complex geome-tries. Although it accurately reconstructs the flow in the low-curvature Vessel 0 (9.70% relative L2 error), its performance declines on the highly tortuous Vessel 4, with prediction errors reaching 41.49% (Table III). This geometry-induced degra-dation delineates the applicability boundary of conventional single-network PINN architectures in real clinical scenarios. To examine the physical mechanisms behind this failure, we performed a spatiotemporal visualization analysis of the baseline model’s predictions on Vessel 4. As illustrated by the velocity waveform comparison in Fig. 4(a), the baseline model’s predictions (red dashed line) exhibit typical “over-smoothing” characteristics. Although it captures the overall flow trend, it fails to resolve the high-frequency pulsation details induced by sharp vessel curvature. This phenomenon aligns with the inherent spectral bias of deep neural net-works, where a single network prioritizes fitting low-frequency components and struggles to capture high-frequency features within limited gradient update steps. In the high-curvature regions of Vessel 4, complex geometric boundaries induce abrupt local velocity gradient changes. During optimization, the network treats these high-frequency physical features as “noise” and filters them out, yielding predictions that are smooth yet erroneous. The spatial error heatmap in Fig. 4(b) further corroborates this observation. The error concentrates in regions with the highest vessel curvature, indicating that a single network cannot effectively deconstruct the high-dimensional nonlinear mapping introduced by complex ge-ometries under the weak constraints of sparse data. In contrast, the proposed DCP-INN architecture improves reconstruction performance. By decoupling the solution task into “low-frequency baseline prediction” and “high-frequency residual correction,” DCP-INN overcomes the spectral bias limitations of a single network. Quantitative results show that under identical sparse inputs and training cycles, DCP-INN reduces the reconstruction error on Vessel 4 from 41.49% (baseline) to 14.81% [34], [35], and further to 12.87% after final topology tuning. The waveform details in Fig. 4(a) indicate that the DCP-INN prediction curve (blue dotted line) maintains phase synchronization with the ground truth and ac-curately reproduces peak and valley variations. Concurrently, the error heatmap in Fig. 4(b) shows that the high-error regions previously concentrated at curvatures are suppressed, leaving only a sporadic error distribution. This comparative evalua-tion demonstrates that, rather than merely approximating the ground truth numerically, the DCP-INN architecture enhances the model’s capability to capture high-frequency hemodynamic features induced by complex geometries via architectural-level inductive biases. The effectiveness of the DCP-INN architecture stems not only from the “divide-and-conquer” decoupling strategy but, more fundamentally, relies on aligning the topological capac-ities of the sub-networks with their specific physical-scale tasks.A systematic sensitivity analysis of the Main Network (Nmain ) and Correction Network ( Ncorr ) reveals differences in their feature manifold learning. As shown in Fig. 5(a), the reconstruction performance of the Correction Network exhibits a “capacity threshold effect”. Data indicate that when the network width is below 64 or the depth is less than 3 layers, the model is limited by its fitting capability and struggles to eliminate the high-frequency residuals induced by complex geometries via gradient descent [1]. Conversely, when the width is expanded to 128 and the depth to 5layers, the model crosses a performance inflection point and enters a stable convergence zone, with the error dropping and stabilizing. This phenomenon quantitatively confirms that capturing high-frequency physical details requires a higher parameter capacity than fitting the low-frequency baseline. In contrast, the Main Network exhibits lower sensitivity to width but demonstrates a structural dependence on topological morphology. As illustrated in Fig. 5(b), compared to the tradi-tional rectangular stacked structure, the asymmetric “diamond-shaped” topology (i.e., expanding then contracting, e.g., [50, 100, 100, 50]) achieves a balance between feature extraction efficiency and regression stability. This design principle of “asymmetric capacity allocation”—endowing the Correction Network with high degrees of freedom to capture details while constraining the Main Network to maintain baseline robustness—constitutes the structural foundation for DCP-INN to achieve an error of 12.87% under complex geometries. 
+
+IV. D ISCUSSION 
+
+This study addresses a fundamental bottleneck restricting PINNs in complex anatomies: the spectral bias dilemma when processing multi-scale fluid features. While baseline models perform well in straight vessels (Vessel 0), their accuracy degrades in highly tortuous arteries (Vessel 4), constrained by a trade-off between fitting global trends and capturing local high-frequency details. Instead of counteracting this mathe-matical property, the DCP-INN architecture accommodates it through an architectural decoupling strategy. This framework orthogonally decomposes the complex spatiotemporal flow field: the main network captures low-frequency, large-scale physical trends, while the correction network compensates for high-frequency residuals induced by geometric nonlinear-ities. Furthermore, the Softplus activation function prevents the numerical collapse commonly observed under extremely sparse data, while the Taylor expansion-based high-order loss propagates local derivative information from the probes to unobserved regions. This integrated strategy of architectural frequency-division and physical regularization reduces the 8 IEEE TRANSACTIONS AND JOURNALS TEMPLATE 
+
+TABLE II PHYSICAL AND GEOMETRIC PARAMETER CONFIGURATIONS OF THE VESSEL MODELS . D ETAILS THE KEY GEOMETRIC DIMENSIONS , FLUID DYNAMIC PROPERTIES , AND NON -DIMENSIONAL REFERENCE SCALES FOR BOTH THE STRAIGHT (V ESSEL 0) AND HIGHLY TORTUOUS (V ESSEL 4) VESSELS .
+
+Parameter Category Physical Property / Scale Vessel 0 (Baseline) Vessel 4 (Complex) 
+
+Geometric Features Total Length ( L) 6.77 cm 14.17 cm Tortuosity Index (TI) 1.11 (Mild) 1.60 (Severe) Fluid Properties Blood Density ( ρ) 1.06 g/cm 3 1.06 g/cm 3
+
+Dynamic Viscosity ( μ) 0.04 dyn ·s/cm 2 0.04 dyn ·s/cm 2
+
+Reference Scales Lref , Tref 6.7730 cm, 0.7143 s 6.7730 cm, 0.7143 s 
+
+Aref , Vref 0.5121 cm 2, 51.3389 cm/s 0.5121 cm 2, 51.3389 cm/s Hemodynamics Peak Reynolds Number (Re) 1147.934 1221.942 
+
+Fig. 4. Flow field reconstruction validation and error comparison under complex geometry. (a) Velocity waveform comparison: Single-cardiac-cycle velocity time series extracted at the feature point of maximum curvature in Vessel 4. Black solid lines represent the ground truth, red dashed lines denote the baseline model, and blue dash-dot lines indicate the DCP-INN. (b) Spatial error heatmaps: Distribution of the absolute error 
+
+|upred − utrue | across the full spatiotemporal domain. The two horizontal dashed lines delineate the core spatial interval of high vascular curvature. 
+
+reconstruction error from 41.49% to 12.87% and recovers the high-frequency physical textures of the flow field. At the level of clinical translation, DCP-INN overcomes the inherent trade-off between spatial and temporal resolution in traditional hemodynamic assessments. By integrating the temporal advantages of TCD with the anatomical precision of CTA/MRI, DCP-INN reconstructs a continuous flow field with high-frequency details at any spatial location. Furthermore, this technology demonstrates greater clinical adaptability than traditional computational fluid dynamics (CFD). As a mesh-free method, DCP-INN inherently circumvents the numerical artifacts caused by grid quality. More importantly, it flexibly assimilates sparse downstream probe data as soft constraints, ensuring convergence to physically credible solutions even under unknown or uncertain boundary conditions. Ultimately, this framework enables the rapid construction of personal-ized digital models using patients’ preoperative anatomical structures and baseline blood flow data, providing a low-cost AUTHOR et al. : TITLE 9
+
+Fig. 5. Network topology sensitivity analysis and optimal architecture search. The y-axis denotes the Relative L2 Error (%). (a) Ncorr Capacity Effect: The blue gradient bars display the error variation trends under progressively increasing network depth and width configurations. (b) Nmain 
+
+Topology Design: Compares the error performance of the traditional rectangular topology (teal bars) versus the asymmetric “diamond-shaped” topology (orange bars) across low, medium, and high capacity configurations with similar parameter counts. TABLE III QUANTITATIVE PERFORMANCE COMPARISON OF MODEL ARCHITECTURES UNDER COMPLEX GEOMETRY (V ESSEL 4). D ETAILS THE ERROR EVOLUTION FROM THE STANDARD BASELINE TO THE FINAL 
+
+DCP-INN MODEL . H ERE , “G ENERIC ENHANCED ” SPECIFICALLY DENOTES THE SINGLE -NETWORK MODEL INTEGRATED WITH TAYLOR LOSS AND AN ADAPTIVE WEIGHTING STRATEGY .
+
+Model Stage Loss Components Relative L2
+
+Error (%) 
+
+Baseline PINN Ldata + Lphys 33.65 Enhanced PINN Lbaseline + Ltaylor 41.49 DCP-INN (Initial) Lbaseline + Ltaylor + Lcorr-reg 14.81 DCP-INN (Final) Lbaseline + Ltaylor + Lcorr-reg 12.87 
+
+virtual evaluation platform for interventional treatments such as carotid artery stenting (CAS) [36], [37]. Despite its clinical potential, this study acknowledges sev-eral limitations. First, the ground truth is derived from 1D ROM numerical simulations, which may not fully capture the complex noise distributions and fluid-structure interaction (FSI) effects present in real clinical 4D Flow MRI data. Second, the DCP-INN framework relies on 1D equations, inherently neglecting 3D spatial features such as secondary flow vorticity or non-axisymmetric shear. Third, the model is trained on a single standard cardiac cycle, limiting its capacity to handle heart rate variability or non-periodic flow events. Finally, the physics-constrained optimization process still requires hours of computation. Future work will explore transfer learning strategies to improve computational efficiency and extend this architecture to full 3D flow field reconstruction tasks [38]–[40]. 
+
+V. C ONCLUSION 
+
+This study proposes the DCP-INN framework to tackle the ill-posed inverse problem of reconstructing hemodynam-ics from sparse data in complex vascular geometries. To overcome the spectral bias bottleneck of standard PINNs in handling multi-scale fluid features, we employ a synergistic “main-correction” dual-network architecture. By processing the flow field across different frequency bands, the DCP-INN framework successfully decouples the low-frequency physical baseline from high-frequency geometric perturba-tions. Furthermore, by introducing a higher-order loss based on Taylor expansion, the DCP-INN framework significantly enhances the physical consistency and robustness of the model under extremely sparse data constraints. Validated on complex geometries derived from real patient imaging, the DCP-INN framework demonstrates exceptional performance in highly tortuous internal carotid arteries. It drastically reduces the relative reconstruction error from 41.49% (baseline model) to 12.87%, successfully recovering complex flow textures often lost by conventional methods. The methodology presented in this study offers a novel clinical tool and approach for research into the development of low-cost, high-resolution personalized cardiovascular digital twins. Beyond this specific application, this study provides compelling evidence for the generalizability of physics-informed deep learning to a wide range of challenging problems in biofluid mechanics and related fields. 10 IEEE TRANSACTIONS AND JOURNALS TEMPLATE 
+
+REFERENCES 
+
+[1] D. Lesage et al. , “A review of 3D vessel lumen segmentation techniques: models, features and extraction schemes,” Med. Image Anal. , 2009. [2] S. Moccia et al. , “Blood vessel segmentation algorithms—Review of methods, datasets and evaluation metrics,” Comput. Methods Programs Biomed. , 2018. [3] M. A. Ur Rehman et al. , “Fluid-structure interaction analysis of pulsatile flow in arterial aneurysms with physics-informed neural networks and computational fluid dynamics,” Phys. Fluids , 2025. [4] M. R. Pfaller et al. , “Automated generation of 0D and 1D reduced-order models of patient-specific blood flow,” Int. J. Numer. Meth. Biomed. Eng. , 2022. [5] M. Raissi, P. Perdikaris, and G. E. Karniadakis, “Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations,” J. Comput. Phys. , 2018. [6] M. Sarabian, H. Babaee, and K. Laksari, “Physics-Informed Neural Networks for Brain Hemodynamic Predictions Using Medical Imaging,” 
+
+IEEE Trans. Med. Imag. , 2022. [7] J. Kang et al. , “Flow-Rate-Constrained Physics-Informed Neural Net-works for Flow Field Error Correction in Four-Dimensional Flow Magnetic Resonance Imaging,” IEEE Trans. Med. Imag. , 2025. [8] A. Sen et al. , “Physics-Informed Graph Neural Networks to solve 1-D equations of blood flow,” Comput. Methods Programs Biomed. , 2024. [9] R. Wang et al. , “Towards Physics-informed Deep Learning for Turbulent Flow Prediction,” arXiv preprint arXiv:1911.08655 , 2019. [10] A. G. Baydin et al. , “Automatic differentiation in machine learning: a survey,” J. Mach. Learn. Res. , 2018. [11] Y. Liu et al. , “ICPINN: Integral conservation physics-informed neural networks based on adaptive activation functions for 3D blood flow simulations,” Comput. Phys. Commun. , 2025. [12] J. Yu et al. , “Gradient-enhanced physics-informed neural networks for forward and inverse PDE problems,” Comput. Methods Appl. Mech. Eng. , 2022. [13] A. Aghaee and M. O. Khan, “Performance of Fourier-based activation function in physics-informed neural networks for patient-specific car-diovascular flows,” Comput. Methods Programs Biomed. , 2024. [14] Y. Huang et al. , “PALQO: Physics-informed Model for Accelerating Large-scale Quantum Optimization,” arXiv preprint arXiv:2509.20733 ,2025. [15] C. Trahan, M. Loveland, and S. Dent, “Quantum Physics-Informed Neural Networks,” Entropy , 2024. [16] A. Sedykh et al. , “Hybrid quantum physics-informed neural networks for simulating computational fluid dynamics in complex shapes,” Mach. Learn.: Sci. Technol. , 2024. [17] A. Setty, R. Abdusalamov, and F. Motzoi, “Self-adaptive physics-informed quantum machine learning for solving differential equations,” 
+
+Mach. Learn.: Sci. Technol. , 2025. [18] S. Wang, Y. Teng, and P. Perdikaris, “Understanding and Mitigating Gradient Flow Pathologies in Physics-Informed Neural Networks,” SIAM J. Sci. Comput. , 2021. [19] L. D. McClenny and U. M. Braga-Neto, “Self-adaptive physics-informed neural networks,” J. Comput. Phys. , 2022. [20] X. Meng and G. E. Karniadakis, “A composite neural network that learns from multi-fidelity data: Application to function approximation and inverse PDE problems,” J. Comput. Phys. , 2019. [21] Y. Yang et al. , “ADMM-Net: A Deep Learning Approach for Compres-sive Sensing MRI,” IEEE Trans. Pattern Anal. Mach. Intell. , 2018. [22] M. Shafiq and Z. Gu, “Deep Residual Learning for Image Recognition: A Survey,” Appl. Sci. , 2022. [23] Y. Son and J. Lee, “Active learning using transductive sparse Bayesian regression,” Inf. Sci. , 2016. [24] K. C. Tezcan et al. , “MR Image Reconstruction Using Deep Density Priors,” IEEE Trans. Med. Imag. , 2018. [25] S. Han et al. , “Physics-informed Score-based Diffusion Model for Limited-angle Reconstruction of Cardiac Computed Tomography,” IEEE Trans. Med. Imag. , 2024. [26] G. Kim et al. , “Depth-aware guidance with self-estimated depth repre-sentations of diffusion models,” Pattern Recognit. , 2024. [27] Y. Song et al. , “Score-Based Generative Modeling through Stochastic Differential Equations,” Int. Conf. Learn. Represent. , 2020. [28] A. Paszke et al. , “PyTorch: An Imperative Style, High-Performance Deep Learning Library,” Adv. Neural Inf. Process. Syst. , 2019. [29] H. Narotamo, M. Silveira, and C. A. Franco, “3DVascNet: an automated software for segmentation and quantification of vascular networks in 3D,” bioRxiv , 2023. [30] A. Iltaf et al. , “VesselSAM: Leveraging SAM for Aortic Ves-sel Segmentation with LoRA and Atrous Attention,” arXiv preprint arXiv:2502.18185 , 2025. [31] A. Chandrashekar et al. , “A deep learning approach to automate high-resolution blood vessel reconstruction on computerised tomography images with or without the use of contrast agents,” Eur. Heart J. , 2020. [32] J. Wang et al. , “Coarse-to-fine multiplanar D-SEA UNet for automatic 3D carotid segmentation in CTA images,” Int. J. Comput. Assist. Radiol. Surg. , 2021. [33] L. Chen et al. , “Deep Open Snake Tracker for Vessel Tracing,” arXiv preprint arXiv:2107.09049 , 2021. [34] D. Long et al. , “Super-resolution 4D flow MRI to quantify aortic regurgitation using computational fluid dynamics and deep learning,” 
+
+Int. J. Cardiovasc. Imaging , 2023. [35] G. S. Roberts et al. , “Virtual injections using 4D flow MRI with dis-placement corrections and constrained probabilistic streamlines,” Magn. Reson. Med. , 2021. [36] K. Sel et al. , “Physics-informed neural networks for modeling physi-ological time series for cuffless blood pressure estimation,” npj Digit. Med. , 2023. [37] C. Li et al. , “Generative adversarial dehaze mapping nets,” Pattern Recognit. Lett. , 2019. [38] G. Ruan et al. , “Magnetic Resonance Electrical Properties Tomography Based on Modified Physics-Informed Neural Network and Multicon-straints,” IEEE Trans. Med. Imag. , 2024. [39] Z.-X. Cui et al. , “Physics-Informed DeepMRI: k-Space Interpolation Meets Heat Diffusion,” IEEE Trans. Med. Imag. , 2024. [40] M. Morik et al. , “Enhancing Brain Source Reconstruction by Initializing 3D Neural Networks with Physical Inverse Solutions,” IEEE Trans. Med. Imag. , 2025.
