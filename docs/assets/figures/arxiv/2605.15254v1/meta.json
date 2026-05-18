@@ -1,0 +1,142 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-001.webp",
+      "caption": "Figure 1: Overview of the proposed method. The upper-left panel shows the classical PINN model. The proposed curriculum learning framework consists of three main parts. As a preparation step, the computational domain is partitioned into multiple subregions and further organized into distance-based layers from the boundary toward the interior. In the first phase, a spatially correlated curriculum is implemented by assigning causal weights to the PDE losses of different layers. Meanwhile, an information bridge based on a low-order fitting function is introduced to capture the global low-frequency component. In the second phase, a region-adaptive reweighting strategy is introduced to dynamically rebalance the PDE loss weights across subregions, so that insufficiently optimized regions receive appropriate training emphasis and local accuracy is further improved. Through these stages, the network progressively recovers the solution from a globally consistent low-frequency structure to accurate local high-frequency details.",
+      "page": 6,
+      "index": 1,
+      "width": 816,
+      "height": 878
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-002.webp",
+      "caption": "Figure 4: Low frequency drift and weighted low order fitting. (a) shows the 1D ODE example used in the later experiments. In this case, the training process is dominated by the PDE loss, so the high-frequency structure of the solution is captured reasonably well, while a significant low-frequency drift still remains, as the solutions near the two boundaries fail to converge consistently to a globally compatible solution. (b) illustrates the weighted low-order fitting performed on a set of selected anchor points, yielding a function that represents the low-frequency component of the solution.",
+      "page": 11,
+      "index": 2,
+      "width": 842,
+      "height": 252
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-003.webp",
+      "caption": "Figure 13: Prediction results for the incompressible Navier–Stokes equations in the lid-driven cavity flow case. (a) Reference solution. (b) Prediction results and absolute error distribution of the baseline PINN, which gives a PDE residual of 3.1058×10−2 and L2 relative errors of 1.0454×10−1, 7.0820×10−2, and 1.0492×10−1 for p, u, and v, respectively. (c) Prediction results and absolute error distribution of PINN-C2, which reduces the PDE residual to 1.9113×10−2 and the corresponding L2 relative errors to 6.7516×10−2, 4.2435×10−2, and 6.2153×10−2.",
+      "page": 25,
+      "index": 3,
+      "width": 877,
+      "height": 444
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-004.webp",
+      "caption": "Figure 14: Visualization of the proposed training strategy for the incompressible Navier–Stokes equations in the lid-driven cavity flow case. (a) Phase-I curriculum weighting, emphasizing the upper region and the upper-right corner to guide boundary-to-interior learning. (b) Phase-II adaptive local reweighting based on regional PDE losses and gradient norms, assigning the largest weight to the region slightly below the upperright corner after their joint assessment. (c) Information bridge fitted from anchor points using a third-order two-dimensional polynomial, where ch=0, 1, and 2 correspond to the low-frequency structures of u, v, and p, respectively.",
+      "page": 26,
+      "index": 4,
+      "width": 860,
+      "height": 389
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-005.webp",
+      "caption": "Figure 10: Intermediate training process for the PoissonHF case. (a) Phase-I causal weighting from the boundary toward the interior. (b) Information bridge constructed from anchor points using a two-dimensional quadratic polynomial. (c) Phase-II adaptive local reweighting based on regional PDE losses and gradient norms.",
+      "page": 21,
+      "index": 5,
+      "width": 608,
+      "height": 423
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-006.webp",
+      "caption": "Table 8: Parameter settings for Cases B.2–B.4",
+      "page": 34,
+      "index": 6,
+      "width": 652,
+      "height": 265
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-007.webp",
+      "caption": "Table 9: Reweighting configuration for Cases B.2–B.4",
+      "page": 34,
+      "index": 7,
+      "width": 735,
+      "height": 267
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-008.webp",
+      "caption": "Table 6: Parameter settings for Case B.1 under different frequency settings",
+      "page": 34,
+      "index": 8,
+      "width": 781,
+      "height": 267
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-009.webp",
+      "caption": "Figure 5: Illustration of the region-adaptive reweighting mechanism. Adaptive regional weights, PDE losses, and gradient magnitudes across subregions. The proposed strategy assigns larger weights to regions with large residuals but weak gradient effectiveness.",
+      "page": 14,
+      "index": 9,
+      "width": 802,
+      "height": 259
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-010.webp",
+      "caption": "Figure 7: Results for the high-frequency 1D ODE case. (a)(b) PINN with a strong BC weight, which reduces the BC loss but collapses to a trivial zero solution due to failed information propagation. (c)(d) PINN-C1 without the information bridge, which recovers the main solution structure but still exhibits low-frequency drift. (e)(f) PINN-C1 with the information bridge, which suppresses low-frequency drift and improves global consistency, leading to a more accurate solution.",
+      "page": 18,
+      "index": 10,
+      "width": 673,
+      "height": 926
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-011.webp",
+      "caption": "Figure 12: Intermediate training snapshots for the 2D advection–diffusion–reaction equation. (a) Phase-I curriculum weighting, with larger weights assigned to the outer and middle layers than to the inner layer. (b) Information bridge constructed from anchor points using a two-dimensional quadratic polynomial. (c) Phase-II region-adaptive reweighting, which assigns a larger local weight to the lower-left region with large PDE loss and weak gradient influence.",
+      "page": 23,
+      "index": 11,
+      "width": 608,
+      "height": 421
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-012.webp",
+      "caption": "Figure 11: Results for the 2D advection–diffusion–reaction equation. (a)(b) Classical PINN, which shows limited PDE-loss convergence and relatively large prediction errors: MSE = 1.9192×10−5, L2 relative error = 8.8126×10−3, max absolute error = 2.1332×10−2, and PDE residual = 5.2266×10−1. (c)(d) PINN-C2, which improves both solution accuracy and convergence behavior: MSE = 7.0912×10−6, L2 relative error =5.3567×10−3, max absolute error =1.3212×10−2, and PDE residual =2.9840×10−1.",
+      "page": 23,
+      "index": 12,
+      "width": 862,
+      "height": 444
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-013.webp",
+      "caption": "Figure 2: Boundary distance based layering in 1D and 2D domains. Here, d denotes the discrete distance to the boundary, and both examples can be partitioned into three layers with d=0,1,2.",
+      "page": 8,
+      "index": 13,
+      "width": 711,
+      "height": 581
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-014.webp",
+      "caption": "Figure 8: Illustration of the training process for the high-frequency 1D ODE case. (a) Boundary-to-interior causal weighting. (b) Sampled anchor points and the fitted second-order polynomial used in the information bridge.",
+      "page": 19,
+      "index": 14,
+      "width": 675,
+      "height": 221
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-015.webp",
+      "caption": "Figure 3: Causal-weight and subregional PDE-loss distributions in the 1D and 2D cases. The causal weights decrease from the boundary toward the interior and are adaptively adjusted according to the PDE-loss distribution across subregions.",
+      "page": 9,
+      "index": 15,
+      "width": 852,
+      "height": 283
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-016.webp",
+      "caption": "Figure 9: Results for the PoissonHF case. (a)(b) The classical PINN captures only the low-frequency component and fails to resolve localized high-frequency details. (c)(d) PINN-C1(w/o bridge) recovers the main solution structure but exhibits low-frequency drift. (e)(f) PINN-C2 accurately recovers both the global structure and local details, with stable convergence of the PDE and BC losses.",
+      "page": 20,
+      "index": 16,
+      "width": 852,
+      "height": 656
+    },
+    {
+      "url": "assets/figures/arxiv/2605.15254v1/fig-017.webp",
+      "caption": "Figure 6: Results for the low-frequency 1D ODE case. (a)(b) Classical PINN with the default loss weights, where the PDE loss dominates and the boundary conditions are not satisfied. (c)(d) PINN with a strong BC weight, which collapses to a trivial zero solution due to failed information propagation. (e)(f) PINN-C1 with causal weights only, which successfully guides boundary information into the interior and recovers the correct solution.",
+      "page": 16,
+      "index": 17,
+      "width": 673,
+      "height": 929
+    }
+  ]
+}

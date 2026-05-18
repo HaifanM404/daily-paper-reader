@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "extractor": "pdffigures2",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-001.webp",
+      "caption": "Figure 1. The METAL-SCI benchmark. Top: six optimization regimes (R1–R6), each stressing a structurally distinct GPU/memory bottleneck whose canonical recipe does not transfer to its neighbors (Sec. 2). Bottom: the harness loop. A frozen LLM M emits a Metal source κk; the harness runtime-compiles it, dispatches across the in-distribution size configurations ΣT , and scores it against per-size roofline ceilings. The candidate becomes the new incumbent κ⋆ k only when ST strictly improves. Compile diagnostics and per-size (χT , aT ) flow back through a structured feedback packet Fk that primes the next iteration. The held-out evaluation ΦT at σ⋆ T runs once at end-of-run (Sec. 3).",
+      "page": 1,
+      "index": 1,
+      "width": 517,
+      "height": 674
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-002.webp",
+      "caption": "Figure 3. Paradigmatic candidate evolution: hmc, Opus 4.7, iter 5→ 6. Both Opus and Gemini independently arrive at this structural change. The lever is one declaration: template <uint D>with runtime-dispatched instantiations on d. Iter 5 had a manually-unrolled float4 inner loop against a fixed Dmax=32 layout (over-computing at d=8, plus a 4-way horizontal sum); iter 6 sizes q,p,f exactly to D so both loops fully unroll into scalar FMAs — moving d=8 from 121 to 970 GFLOPS in one iteration after five had stalled at 2–4% of peak. Opus enumerated D∈{8, 16, 32} and broke correctness at the held-out d=24; Gemini kept a runtime-d fallback and generalized cleanly.",
+      "page": 6,
+      "index": 2,
+      "width": 804,
+      "height": 285
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-003.webp",
+      "caption": "Figure 4. GPT-5.5 fft3d iter-10 best: hand-coded fft_line_32/64/128 routines (left dispatch) deliver the 2.95× in-distribution self-speedup; for any N outside {32, 64, 128} the kernel falls into a textbook direct O(N2) DFT (right). At held-out N=256 this costs ∼32× more arithmetic per output than the seed’s O(N logN) Stockham FFT, producing the 0.23× held-out slowdown reported in Table 3. The fast paths reuse a 64-entry constant float2 W128[] twiddle table whose stride indexing only covers N≤128, the structural reason the fallback is direct DFT rather than a longer FFT.",
+      "page": 7,
+      "index": 3,
+      "width": 921,
+      "height": 223
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-004.webp",
+      "caption": "Table 1. METAL-SCI versus existing LLM kernel-generation benchmarks across the axes that drive the design of our harness. Domain: ML = neural-network operators (GEMM, attention, convolution, normalization, activation); HPC = scientific compute (stencil, N -body, LBM, MD, MCMC, PDE solver, FFT). Score basis: what achieved is normalized against. Multi-size: whether the score requires generalization across problem sizes. Search: the loop structure exposed to the LLM. Within the ML row, all listed benchmarks span a single optimization regime (matmul-style, with norm/activation epilogues); METAL-SCI spans six structurally distinct regimes (R1–R6 of Section 2).",
+      "page": 3,
+      "index": 4,
+      "width": 1017,
+      "height": 191
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-005.webp",
+      "caption": "Table 2. The 10 METAL-SCI tasks. “Optimization lever” names the dominant move an LLM must reach for in that regime. Nx×Ny grids written as N2 when square; cube edges as N3. saxpy is a bandwidth smoke-test outside the regime structure, used to validate the harness.",
+      "page": 3,
+      "index": 5,
+      "width": 1017,
+      "height": 269
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-006.webp",
+      "caption": "Figure 6. fft3d iter-10 best, Opus (left) vs Gemini iter-10 best (right). Opus implements Stockham radix-4 with threadgroup-memory ping-pong and a barrier per stage; Gemini exploits the 32-wide simdgroup to do the first five stages with simd_shuffle_xor, eliminating five barriers per 1D FFT. In-distribution gmean: Opus 0.167 vs Gemini 0.282.",
+      "page": 13,
+      "index": 6,
+      "width": 837,
+      "height": 252
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-007.webp",
+      "caption": "Figure 5. lbm iter-23 best, Opus (left) vs Gemini iter-13 best (right). Opus extracts A once, folds feq k into two FMAs per direction and the relaxation into a third, and pins the threadgroup geometry; Gemini stays with the canonical BGK formula and the default geometry. In-distribution gmean: Opus 0.576 vs Gemini 0.553.",
+      "page": 12,
+      "index": 7,
+      "width": 837,
+      "height": 268
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-008.webp",
+      "caption": "Table 3. Evolutionary kernel refinement sweeps on Apple M1 Pro (Opus = claude-opus-4-7, Gemini = gemini-3.1-pro-preview, GPT = gpt-5.5). In-dist. × = best / seed, gmean over three in-distribution size configurations. Held-out frac-of-ceiling = achieved/ceiling at the unseen size, measured in a single fresh session for all three models; held-out × = best / seed at that size config. Bold in the in-distribution and held-out speedup columns marks meaningful improvements (≥ 1.05×).",
+      "page": 5,
+      "index": 8,
+      "width": 1017,
+      "height": 296
+    },
+    {
+      "url": "assets/figures/arxiv/2605.09708v1/fig-009.webp",
+      "caption": "Figure 2. Per-task running self-speedup (best-so-far / seed) versus iteration, Opus 4.7 (orange) vs Gemini 3.1 Pro (purple) vs GPT-5.5 (green). Filled circles mark the iteration that achieved the final best; each x along y=1 is a candidate that compiled or ran wrong (the incumbent is unchanged). The visible counts make the silent-correctness story concrete: Opus emits more failures than Gemini or GPT at every task with non-trivial search (nbody, hmc, ising, lj, wave3d). The plot also justifies the asymmetric per-task budgets: on most tasks (saxpy, heat2d, nbody, gradshaf, hmc, ising, lj) the incumbent stops moving by iter ∼8 for all three models, but lbm’s Opus run plateaus at 1.36× from iter 3 through iter 22 and only breaks through to 1.46× at iter 23 (the BGK fold + pinned threadgroup of App. C); wave3d’s Opus run shows the same shape with the lift at iter 14 (1.26×). A 10-iter budget would have missed both Opus exemplars. GPT’s fft3d climbs monotonically to 2.95×, and is exactly the win that fails to generalize on the held-out gate.",
+      "page": 5,
+      "index": 9,
+      "width": 1017,
+      "height": 435
+    }
+  ]
+}

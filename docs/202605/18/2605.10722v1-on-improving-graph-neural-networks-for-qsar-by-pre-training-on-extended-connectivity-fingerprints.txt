@@ -1,0 +1,7905 @@
+Title: On Improving Graph Neural Networks for QSAR by Pre-training on Extended-Connectivity Fingerprints
+
+URL Source: https://arxiv.org/pdf/2605.10722v1
+
+Published Time: Tue, 12 May 2026 03:15:32 GMT
+
+Number of Pages: 75
+
+Markdown Content:
+# On Improving Graph Neural Networks for QSAR by Pre-training on Extended-Connectivity Fingerprints 
+
+Sam Money-Kyrle 1, Markus Dablander 2, Thierry Hanser 3,Stephane Werner 3, Charlotte M. Deane 1, Garrett M. Morris 1* 
+
+1Department of Statistics, University of Oxford, 24-29 St Giles’, Oxford, OX1 3LB, United Kingdom. 
+
+2Mathematical Institute, University of Oxford, Andrew Wiles Building, Woodstock Road, Oxford, OX2 6GG, United Kingdom. 
+
+3Molecular Informatics and AI, Lhasa Limited, Granary Wharf House, 2 Canal Wharf, Leeds, LS11 5PS, United Kingdom. *Corresponding author(s). E-mail(s): morris@stats.ox.ac.uk; 
+
+Abstract 
+
+Molecular Graph Neural Networks (GNNs) are increasingly common in drug discovery, particularly for Quantitative Structure-Activity Relationship (QSAR) studies; yet, their superiority compared to classical molecular featurisation approaches is disputed. We report a general strategy for improving GNNs for QSAR by pre-training to predict Extended-Connectivity Fingerprints (ECFP). We validate our approach with statistical tests and challenging out-of-distribution (OOD) splits. Across five out of six Biogen benchmarks, we observed a statistically significant improvement in standard performance metrics over all evaluated baselines when using ECFP pre-trained GNNs. However, for more heterogeneous datasets and more complex endpoints, such as binding affinity prediction, pre-trained GNNs underperformed in OOD settings. Importantly, we investigated the impact of substructure-level data leakage during pre-training on downstream performance. While we identified scenarios where pre-training on ECFPs was less effective, our findings show that ECFP-based pre-training can enhance downstream OOD performance on a diverse set of practically relevant QSAR tasks. 
+
+Keywords: Extended-connectivity fingerprints, Molecular property prediction, Graph neural networks, Pre-training, QSAR, Out-of-distribution generalisation, molecular substructures 
+
+1
+
+> arXiv:2605.10722v1 [cs.LG] 11 May 2026
+
+## 1 Introduction 
+
+Machine learning (ML) has become a prominent method for accelerating therapeutic drug discovery research [1]. An example of this is Quantitative Structure-Activity Rela-tionship (QSAR) studies, where computational models are used to predict molecular properties. QSAR studies are useful for profiling and filtering candidate drugs before clinical trials. In drug discovery, after binding affinity, molecular properties primar-ily relate to absorption, distribution, metabolism, excretion, and toxicity (ADMET). Numerous methods have pushed state-of-the-art performance forward on ADMET benchmarks, e.g., [2–9]. However, attrition rates in small molecule drug discovery have increased in recent years [10], suggesting benchmark performance does not reflect impact. This is partly due to a key limitation in drug discovery; experimental datasets for training and benchmarking are typically small, noisy, and heterogeneous, leading to biased models and inaccurate performance estimates [11–13]. To overcome the limitations in QSAR, we need robust molecular representations that reduce bias and capture relevant task-specific information. Classical repre-sentations include topological fingerprints, e.g., Extended-Connectivity Fingerprints (ECFP) [14], where substructure or pharmacophore presence is encoded by bits in a binary vector [15]. Differentiable representations based on deep learning are a more recent approach which utilise forward- and back-propagation to extract meaningful features from the input data in a latent embedding space. The ability to automatically derive abstract, non-linear patterns from non-tabular data should make differentiable approaches particularly useful in complex domains like chemistry. One such differentiable approach is graph-based representation learning, which is an intuitive choice for molecular featurisation; molecules can be easily repre-sented as graphs, with atoms as nodes and bonds as edges. Graph neural networks (GNNs), which operate on molecular graphs and learn task-specific molecular embed-dings, have been applied to QSAR, showing promising performance as a featurisation method [3, 4, 7, 9], but other results suggest GNN-based methods struggle to outper-form classical approaches [16–18]. Self-supervised pre-training has been proposed as a solution for improving GNN performance and overcoming dataset constraints [2, 19– 21]. Implemented strategies include pre-training on context prediction and attribute masking [6], self-supervised pre-training via contrastive learning [8], a disentangled transformer approach pre-trained on topological substructure environments [2], and pre-training on physicochemical descriptor vectors (PDV) [21]. Although pre-training GNNs for QSAR, both supervised and self-supervised, has been investigated and shown promise, there are limitations with how some meth-ods have been assessed. Firstly, there is a lack of statistical testing against baselines, such as models trained from scratch on benchmark data represented via commonly used static fingerprints [22, 23]. Secondly, benchmark comparisons between learned representations pre-trained on different datasets do not provide a picture of archi-tectural superiority. Thirdly, the interpretability of pre-trained models is rarely explored beyond nearest-neighbour analyses of learned embeddings. Finally, data leak-age between pre-training and benchmark datasets is often overlooked, particularly at the substructural level. M´ endez-Lucio et al. excluded molecules with identical Tani-moto similarities to benchmark molecules from pre-training data [2]. More recently, 2van Tilborg et al. used a 0 .7 Tanimoto similarity threshold of between Bemis–Murcko scaffolds to filter pre-training data [24] We propose a more stringent similarity thresh-old of 0 .5 to filter pre-training data, and investigate the impact of substructure-level data leakage on downstream performance. Data leakage is especially concerning in supervised pre-training, where benchmark and pre-training datasets can overlap at both task and molecule levels due to limited open-source experimental data. Generalisation in the form of robust out-of-distribution (OOD) performance is essential for identifying novel areas of chemical space with therapeutic potential and validating in-distribution performance [25, 26]. Therefore, consideration of potential data leakage between pre-training and benchmark datasets is essential in QSAR model development. We investigate the impact of data leakage on downstream performance by applying similarity filtering to pre-training data. In addition to data leakage, the choice of benchmark splits is essential for evaluating OOD performance, as in-distribution splitting can exacerbate benchmark bias [26, 27]. Since exploring novel chemical space is important for developing new drugs, ML mod-els should be evaluated for robust OOD performance using benchmark splits with minimal molecular overlap. Commonly used OOD splitting by molecular scaffolds is vulnerable to information leakage and performance overestimation [26, 27]. Hierar-chical clustering on UMAP projections of molecular fingerprints produces challenging OOD splits; however, train-test split sizes tend to vary [28], which could increase the variance in performance estimates. On the other hand, Butina clustering on topologi-cal fingerprints is a fast, distance-based method that forms evenly sized clusters [29]. Here we opt for the latter approach to generate many evenly-sized OOD splits. Despite using a consistent splitting strategy, test set performance is variable between splits; this volatility can obscure whether differences between ML approaches are meaningful. To validate whether these differences are statistically significant, repeated cross-validation (CV) combined with statistical testing and effect size esti-mation is recommended [22]. However, robust effect size estimation can be challenging in cases where differences are expected to be subtle, or for tasks where performance is highly variable (e.g., highly imbalanced classification tasks). Moreover, as folds within each k-fold split are mutually exclusive, fold-level metrics within a CV repeat are not independent and should be averaged before statistical testing. We therefore use a high number of repetitions (200 × 5 CV) to generate many OOD train-test splits for robust statistical comparison. Here, we explore self-supervised pre-training on topological fingerprints as a gen-eral method for improving GNN predictive performance in QSAR. We also include an exploratory analysis of substructure importance in Supplementary Information Section 1.3, facilitated by our multi-radius substructure tokenisation approach. Finally, we investigate the impact of substructure data leakage between pre-training and benchmark datasets, finding that the impact with our pre-training strategy is limited. 
+
+## 2 Results 
+
+Graph Isomorphism Networks (GINs) [30] pre-trained to predict topological finger-prints (PT-GIN), showed statistically significant improvements over baseline methods 3on challenging OOD splits in five out of six Biogen regression tasks. We also observed relative underperformance on MoleculeNet tasks, particularly virtual screening, and ChEMBL binding affinity prediction tasks, suggesting that our pre-training strategy may not fully overcome the challenges posed by data heterogeneity and complex end-points. Additionally, we found that data leakage between pre-training and benchmark datasets has a minimal impact on downstream performance when using our proposed pre-training strategy. Benchmarking was carried out on 40 tasks (11 regression and 29 classification) from Biogen [31], MoleculeNet [32], and ChEMBL [16, 33]. For our baseline featurisation methods, we compared the predictive performance of PT-GIN against three classi-cal molecular fingerprinting techniques; hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ) [14], and ECFPs vectorised via S&S (ECFP S&S ) [34]. On Biogen, we additionally benchmarked Scratch GINs to demonstrate pre-training impact. All featurisation methods were eval-uated with Light Gradient-Boosted Machines (LightGBM) [35], except Scratch GIN (end-to-end MLP head). Performance metrics are reported as 5-fold test-set means for each CV repeat; statistical significance tests and effect sizes were computed across repeats. See methods for further details. 
+
+2.1 GINs pre-trained on ECFPs outperform baselines on homogeneous QSAR datasets 
+
+Biogen is a homogeneous dataset of drug-like molecules with six diverse QSAR regres-sion tasks. A model with greater correlation and lower error on OOD splits for these tasks is more likely to generalise well to novel chemical space. On five of six Biogen tasks, PT-GIN achieves the highest mean coefficient of determination (R 2), with sta-tistically significant improvements over baseline approaches (Fig. 1). On these five tasks, PT-GIN has the highest mean Pearson Correlation ( ρ) (Fig. 1). Moreover, the 
+
+rrb effect sizes for R 2 between PT-GIN and the baseline methods are consistently 1 .00, indicating that PT-GIN outperforms all baselines on every CV repeat (Fig. 2). The only exception is on the Human Plasma Protein Binding (PPB) task, where ECFP S&S 
+
+performs best by R 2 and ρ. However, on Human PPB there is no significant difference in R 2 between PT-GIN and ECFP hashed , and PT-GIN still has significantly greater R 2
+
+than FCFP hashed and Scratch GIN, with a rrb of 1 .00 between PT-GIN and Scratch GIN (Fig. 2). Overall, rrb values for R 2 are smaller between PT-GIN and baseline methods on Human PPB than for other Biogen tasks, suggesting that pre-training has a diminished effect on performance for this task in particular. Although PT-GIN does not exhibit the greatest correlation compared to baselines on Human PPB, it has the lowest mean absolute percentage error (MAPE), with significant differences between PT-GIN and baselines. These observations suggest that self-supervised pre-training on topological fingerprints provides a robust predictive advantage over the baseline methods. Scratch GIN models achieve the lowest mean MAPE on both intrinsic hepatic clearance (CLint) tasks and the Efflux Ratio task, with a significant difference from all other approaches (Fig. 1), despite significantly lower R 2 than PT-GIN on these three tasks. In addition, PT-GIN has the highest ρ on the same three tasks, with a significant 4Human PPB Rat PPB Human CLint Rat CLint Efflux Solubility 
+
+> 0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> R2
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+
+(a)      
+
+> Human PPB Rat PPB Human CLint Rat CLint Efflux Solubility
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> ****
+> ****
+> ****
+> ****
+> ns
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+
+(b)      
+
+> Human PPB Rat PPB Human CLint Rat CLint Efflux Solubility
+> 10 2
+> 10 3
+> MAPE(%)  ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+
+(c) 
+
+PT-GIN Scratch GIN ECFP S&S ECFP hashed FCFP hashed Best Mean Fig. 1 Performance metrics on Biogen ADMET regression tasks. Tasks shown are Human Plasma Protein Binding (PPB), Rat PPB, Human Intrinsic Clearance (CLint), Rat CLint, Efflux, and Solu-bility. The metrics shown are (a) coefficient of determination ( ↑ R2), (b) Pearson correlation ( ↑ ρ) and (c) mean absolute percentage error ( ↓MAPE (%)). Featurisation methods shown are GINs trained from scratch (Scratch GIN), ECFP-pre-trained GINs (PT-GIN), hashed Extended-Connectivity Fin-gerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For each task and metric, the approach with the best mean is hatched. Statistical significances, determined by the Wilcoxon signed-rank test ( n = 199, α = 0 .05), between the best method by mean and all other approaches are shown with asterisks; ns (not signif-icant) is p ≥ 0.05; * is 0 .01 ≤ p < 0.05; ** is 0 .001 ≤ p < 0.01; *** is 0 .0001 ≤ p < 0.001; and **** is p < 0.0001. Violins are normalised such that each violin has the same maximum width. 
+
+5difference from Scratch GIN on Human CLint and Efflux. This combination of lower error, lower explained variance and lower correlation for Scratch GIN compared to PT-GIN, may indicate a reduced capability of Scratch models to predict outliers on certain tasks. For in-distribution prediction, overfitting to the mean of the ground truth could be useful for interpolation in well-characterised areas of chemical space; however, for extrapolative OOD performance, prediction of outliers would be of greater interest. In summary, our results on the Biogen data set indicate that GINs pre-trained on topological fingerprint targets enable stronger OOD prediction performance on a variety of ADMET tasks. On the three MoleculeNet regression tasks, the performance gains from pre-training on hashed ECFPs are not as clear. PT-GIN only attains the highest mean R 2 on ESOL, underperforming compared to ECFP S&S on FreeSolv and Lipophilicity (Extended Data Fig. 1). Additionally, PT-GIN has a significantly lower R 2 on FreeSolv compared to FCFP hashed (Extended Data Fig. 2). PT-GIN attains a significantly greater R 2 than ECFP hashed on all three tasks, suggesting pre-training on hashed ECFPs beneficial over the classical equivalent; however, the effect size of 0 .301 on FreeSolv suggests that performance gains are not ubiquitous (Extended Data Fig. 2). The R 2 and ρ scores of all methods declines on ESOL when only considering test set molecules with a drug-like solubility, 1 μM < S < 1000 μM; however, PT-GIN retains a superior correlation (Supplementary Information Fig. 1). Fingerprints folded via hashing are prone to bit collisions [34], although FCFPs less so than ECFPs due to coarse-grained grouping of atomic environments in FCFPs. ECFP S&S reduces the occurrence of bit collisions by mapping frequent substructures to specific bits. Bit collisions in ECFP hashed may have impacted performance on FreeSolv, with methods that use classical hashed ECFPs (PT-GIN and ECFP hashed ) exhibiting lower R 2. PT-GIN is superior to ECFP hashed and FCFP hashed for Lipophilicity, but ECFP S&S outperforms all other approaches. The superiority of ECFP S&S may be due to the absence of bit collisions; however, this requires further investigation. Although alternative pre-training targets (such as ECFP S&S ) may be more appro-priate for certain tasks, the related nature of lipophilicity, free energy of aqueous solvation, and aqueous solubility (all three are related to interactions with water) suggests that task-level differences may be driven by another underlying cause. For example, substructure importance analysis on FreeSolv (Supplementary Information Section 1.3) suggests ECFP S&S may be prone to reliance on, and potentially overfitting to, a specific substructure. Furthermore, experimental data in Lipophilicity and Free-Solv are aggregated from multiple sources, whereas the experimental data in ESOL originates from a single source. Discrepancies between tasks could therefore be due to greater data heterogeneity introduced by aggregating experimental data; learned representations may struggle to overcome noise from experimental inconsistency more than simpler representations. For target-specific binding affinity, PT-GIN underperformed compared to baselines (Extended Data Fig. 3). PT-GIN has a significantly lower R 2 score than all classical approaches for DRD2 and Factor X A, suggesting pre-training on 2D circular finger-prints harms the molecular representation for OOD binding affinity prediction. Due to the complexity of the task, it is possible that a greater volume of pre-training data 6PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+0.672 -0.995 0.824 0.966 
+
+-0.601 -1.000 -0.685 
+
+-0.149 -1.000 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** ns **** **** 
+
+(a) Human PPB 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 0.099 0.016 0.003 
+
+1.000 0.077 -0.027 
+
+1.000 0.102 
+
+0.999 
+
+ns 
+
+ns ns 
+
+ns ns ns 
+
+**** **** **** **** 
+
+(b) Rat PPB 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 0.998 1.000 1.000 
+
+1.000 -0.993 -1.000 
+
+1.000 0.528 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(c) Human CLint 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 0.995 1.000 1.000 
+
+1.000 -0.996 -1.000 
+
+1.000 0.456 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(d) Rat CLint 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 -0.986 0.995 0.646 
+
+1.000 -0.996 0.923 
+
+1.000 -1.000 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(e) Efflux 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 0.988 0.225 0.162 
+
+1.000 0.985 0.101 
+
+1.000 0.970 
+
+1.000 
+
+ns 
+
+ns ns 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(f) Solubility    
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Fig. 2 Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test 
+
+p-values (lower triangle) comparison of R 2 between methods on Biogen datasets. Tasks are (a) Human Plasma Protein Binding (PPB), (b) Rat PPB, (c) Human Intrinsic Clearance (CLint), (d) Rat CLint, (e) Efflux, (f) Solubility. Featurisation methods shown are GINs trained from scratch (Scratch GIN), ECFP-pre-trained GINs (PT-GIN), hashed Extended-Connectivity Finger-prints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the 
+
+x -axis has a higher R 2 than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indi-cates a smaller p-value ( n = 199, α = 0 .05). 
+
+7is required. Three-dimensional topological representations, such as E3FPs [36], may be more appropriate pre-training targets for affinity prediction due to the relevance of three-dimensional interactions. The MUV dataset presents a challenging task; target-specific virtual screening (VS). On MUV tasks, models using PT-GIN and baseline methods for featurisation often predict only negatives, leading to a high proportion of Matthews correlation coefficient (MCC) scores being MCC = 0 (Extended Data Fig. 4, Supplementary Information Section 1.4.2). This highlights the challenge of VS in an OOD setting, where 2D ligand topology is likely insufficient for accurately predicting 3D protein-ligand interactions, and class imbalance is expected. For VS, models can be useful for ranking ligands even with low recall at a 0 .5 threshold. Enrichment Factors (EF) are a method for determining the quality of ligand ranking by a VS model. EF x% measures the ratio of active compounds in the top x% ranked compared to the entire dataset. At all thresholds, there is no clear advantage for any particular method across the different targets; for example, PT-GIN achieves the highest mean EF 10% on only 24% of targets (Fig. 5). This inconsistency is corroborated by Area Under the Precision-recall Curve (AUCPR) scores, with no method achieving the greatest AUCPR on the majority of targets (Extended Data Fig. 4). Improvements resulting from our pre-training strategy are clearer for toxicity clas-sification. In this case, PT-GIN exhibited the highest AUCPR with a significant difference from all baseline approaches on 7 out of 12 tasks (Extended Data Fig. 6). Across all Tox21 tasks, the effect sizes ( rrb ) for AUCPR between PT-GIN and baseline methods exceed 0 .5 in favour of PT-GIN for 72% of paired comparisons, indicating a strong and frequently observed improvement from pre-training over baseline methods (Supplementary Information Fig. 19). Low MCC scores occur for all approaches, with mean(MCC) = 0 on several tasks and mean(MCC) < 0.2 for 60% of scores (Extended Data Fig. 6), suggest poor performance at a 0 .5 classification threshold, although this is not as prevalent as on the MUV dataset. Overall, these findings suggest that while pre-training on ECFPs can enhance model performance in an out-of-distribution setting, improvements are often data and task-dependent. On regression endpoints, particularly with homogeneous data, pre-training on ECFPs can lead to more robust GNN models, highlighted by consistently favourable effect sizes for PT-GIN on five out of six Biogen tasks. In contrast, the improvements over classical approaches do not occur in settings where the data sources are heterogeneous (e.g., Lipophilicity and affinity datasets), when the endpoint is more complex and may require 3D information (e.g., binding affinity), or when architectural factors may hinder prediction, such as information loss during graph pooling in cases where specific substructures may greatly influence the endpoint (e.g., FreeSolv). 
+
+2.2 On data leakage effects in self-supervised pre-training for QSAR 
+
+As data leakage is a known issue in ML for drug discovery [37], we investigated the potential effects of pre-training on molecules similar to those in the benchmark data. We generated six QMugs pre-training datasets with molecules 462189 each, using varying Tanimoto similarity thresholds to exclude molecules similar to the benchmark 8data, the most stringent being a 0 .5 threshold and the most relaxed being a 1 .0threshold (see methods). PT-GIN models were pre-trained on the filtered datasets and benchmarked on Biogen. On five out of six tasks, there is no clear improvement in performance as data leak-age increases. At the greatest dissimilarity, 0 .5, PT-GIN exhibits the highest mean R 2
+
+on three tasks, Rat PPB, Efflux, and Solubility (Fig. 3). The model achieving both the highest correlation ( ρ) and lowest error (MAPE) is the same only for two tasks, Human PPB and Human CLint (Fig. 3). For Human CLint, the general trend indi-cates a decrease in R 2 with increased similarity between pre-training and benchmark data (Fig. 4). In contrast, for Human PPB, increasing data leakage is associated with higher performance, with models trained at higher similarity thresholds (0 .8–1 .0) con-sistently outperforming those trained at lower thresholds (0 .5–0 .7) across all three metrics (Fig. 3). The smallest benchmarks exhibit a far greater maximum percentage difference in R 2, 41% for Human PPB and 34% for Rat PPB, compared to tasks with more data; the next highest is Human CLint at 11%. The inconsistent, at times negative, effects of data leakage on Biogen ADMET per-formance scores are counterintuitive, as data leakage is typically associated with overly optimistic model performance [37]. Examining the substructures in the pre-training dataset, QMugs, the number of unique substructures increases asymptotically with more molecules (Extended Data Fig. 7a). In Biogen benchmark data, the proportion of substructures that appear in QMugs pre-training subsets does not substantially change as the Tanimoto similarity filter becomes more relaxed (Extended Data Fig. 7b), i.e., the relative change in substructure content between QMugs subsets is very small. At 462189 molecules, each QMugs subset is likely to contain over 80% of the total sub-structures that appear in QMugs (Extended Data Fig. 7a). Our filtered QMugs subsets are therefore not OOD relative to the benchmark data with respect to individual substructures, but rather with respect to their combinations. Pre-training objectives focused on substructure topology can potentially generalise to novel combinations of familiar substructures, as the majority of the underlying substructure content is already observed on the most stringently filtered QMugs sub-set. Additionally, the robustness of topological pre-training would likely increase as pre-training dataset size, and thus substructure coverage, increases. However, this assumption is unlikely to hold for more extreme similarity thresholds, or more robust similarity measures, where the pre-training data may be more OOD with respect to the benchmark data at the individual substructure level. The expected effect of increased performance with greater data leakage was only observed on Human PPB, the only Biogen task where PT-GIN failed to outperform classical approaches, suggesting that substructure data leakage can still lead to overly optimistic performance. Decreasing R2 with greater data leakage in some instances could be due to increased variance in molecular topology within the pre-training data, without a corresponding increase in the number of samples. Our findings suggest that in addition to performance improvements on Bio-gen ADMET tasks, pre-training on diverse molecular substructures enhances GNN robustness to benchmark data that contains molecules with OOD combinations of 9Human PPB Rat PPB Human CLint Rat CLint Efflux Solubility           
+
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> R2
+> ****
+> ns
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ns
+> ****
+> *
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> (a)
+> Human PPB Rat PPB Human CLint Rat CLint Efflux Solubility
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> ****
+> ns
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ns
+> ****
+> ****
+> ****
+> ns
+> ****
+> ****
+> ****
+> ****
+> ****
+> (b)
+> Human PPB Rat PPB Human CLint Rat CLint Efflux Solubility
+> 10 1
+> 10 2
+> 10 3
+> MAPE(%)
+> ns
+> ****
+> ****
+> ****
+> ****
+> **
+> ****
+> ****
+> ****
+> ns
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> (c)
+
+0.5 0.6 0.7 0.8 0.9 1.0 Best Mean Fig. 3 Biogen ADMET regression task metrics for models pre-trained on data with varying Tan-imoto similarity filter thresholds (see 4.2.2). Dissimilarity is greatest between the pre-training and benchmark molecules at the 0 .5 threshold; at 1 .0, the pre-training data includes molecules that appear in the benchmark data. The metrics shown are coefficient of determination (R 2), Pearson correlation (ρ) and mean absolute percentage error (MAPE) (%) For each task and metric, the approach with the best mean is hatched. Statistical significances, determined by the Wilcoxon signed-rank test ( n = 199, 
+
+α = 0 .05), between the best method by mean and all other approaches are shown with asterisks; ns (not significant) is p ≥ 0.05; * is 0 .01 ≤ p < 0.05; ** is 0 .001 ≤ p < 0.01; *** is 0 .0001 ≤ p < 0.001; and **** is p < 0.0001. Violins are normalised such that each violin has the same maximum width. 
+
+10 0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+-0.998 -0.993 -1.000 -0.937 0.060 
+
+-0.997 -0.959 -1.000 -0.915 
+
+-0.862 -0.343 -0.928 
+
+0.103 0.815 
+
+-0.713 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+**** *** **** **** 
+
+**** ns **** **** **** 
+
+(a) Human PPB 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.274 0.689 -0.512 0.889 0.129 
+
+0.134 0.625 -0.606 0.870 
+
+-0.761 -0.378 -0.977 
+
+0.731 0.913 
+
+-0.565 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+**** **** **** ns *
+
+(b) Rat PPB 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.989 0.789 -0.618 0.948 -0.970 
+
+1.000 0.993 0.813 1.000 
+
+0.484 -0.454 -0.992 
+
+0.999 0.959 
+
+0.769 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+**** **** **** **** **** 
+
+(c) Human CLint 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+-0.497 -0.104 -0.910 -0.988 -0.476 
+
+-0.080 0.344 -0.681 -0.965 
+
+0.915 0.989 0.807 
+
+0.533 0.824 
+
+-0.387 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** *** ns 
+
+**** **** **** ns **** 
+
+(d) Rat CLint 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.435 0.190 -0.994 -0.869 -0.304 
+
+0.647 0.418 -0.964 -0.713 
+
+0.953 0.889 -0.575 
+
+0.996 0.985 
+
+0.246 
+
+** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** ns 
+
+* **** **** **** **** 
+
+(e) Efflux 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.978 -0.371 -0.697 -0.118 -0.797 
+
+0.997 0.472 0.153 0.764 
+
+0.992 -0.302 -0.658 
+
+0.996 0.368 
+
+0.994 
+
+**** 
+
+**** ns 
+
+**** ns **** 
+
+*** ** **** **** 
+
+**** **** **** **** **** 
+
+(f) Solubility    
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Fig. 4 Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) comparison of R 2 between PT-GIN models pre-trained on Tanimoto similarity-filtered QMugs data with varying thresholds. Tasks are (a) Human Plasma Protein Binding (PPB), (b) Rat PPB, (c) Human Intrinsic Clearance (CLint), (d) Rat CLint, (e) Efflux, (f) Solubility. Methods shown are PT-GIN models pre-trained on filtered QMugs data at varying similarity filter thresholds; 0.5 indicates that no molecule with Tanimoto similarity > 0.5 to any molecule in the benchmark data was included in the pre-training data. For rrb effect sizes (upper triangle): blue indicates the method on the x -axis has a higher R 2 than the method on the y-axis; red indicates the inverse. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199, α = 0 .05). See methods for details. 
+
+11 substructures. Data leakage may have a limited impact on models pre-trained to pre-dict molecular topology, as the substructure corpus is already well-represented by a dissimilar set of molecules. While the filtered subsets may not be OOD with respect to individual substructures, they remain OOD in terms of molecular composition. This suggests that our pre-training strategy effectively learns to generalise from sub-structure components to entire molecules, more so than GNNs trained from scratch, achieving robustness that would likely increase with even larger pre-training datasets. 
+
+## 3 Discussion 
+
+Graph neural networks have historically struggled to outperform classical molecular featurisation methods for QSAR [16–18]. Our work demonstrates that self-supervised pre-training on Extended-Connectivity Fingerprints is a simple, robust, and effec-tive strategy for improving the OOD performance of GNNs on key QSAR tasks. By leveraging the structural information encoded in ECFPs, ECFP-pre-trained GINs significantly outperformed GINs trained from scratch and classical fingerprinting methods on a diverse set of ADMET tasks in the Biogen dataset, validated through rigorous statistical testing. As such, enhancement of GNNs for drug discovery can be achieved without increasing model complexity or utilizing large, noisy, labelled pre-training datasets. However, the success of our pre-training approach is not ubiquitous. On tasks directly relating to 3D protein-ligand interactions, such as binding affinity prediction and virtual screening, PT-GINs fail to outperform baseline approaches. Additionally, PT-GINs struggle to compete on more heterogeneous datasets, such as the Lipophilic-ity benchmark. Prior work has shown that binding affinity datasets aggregated from multiple sources can be noisy and inconsistent, suggesting that data heterogeneity leads to inaccurate performance estimates [38]. These limitations highlight that a more nuanced approach to pre-training may be necessary. For example, it would be preferable to select self-supervised targets based on the specific characteristics of the downstream task, such as E3FPs for 3D molecular representations. Given enough data, a multi-task learning approach could also be beneficial; however, this may not entirely mitigate an erroneous relationship between one or more pre-training tasks and downstream performance. In addition, we analysed the impact of pre-training data leakage, in the form of topological similarity (ECFP4 2048 Tanimoto similarity), on model performance. Our findings suggest that increased data leakage between benchmark and pre-training datasets has an inconsistent impact on model performance; for example, on a subset of Biogen tasks, greater data leakage showed an association with reduced performance or no association at all. This is counterintuitive, as data leakage typically leads to overly optimistic performance. This suggests that as long as the pre-training corpus is large enough to contain a diverse vocabulary of chemical substructures, a GNN could learn to generalise to novel substructure combinations. The focus for self-supervised pre-training may not need to be on finding perfectly matched pre-training domains, but rather on maximizing the diversity of chemical motifs. However, this may not hold for more extreme similarity thresholds, or more robust similarity measures, where 12 the pre-training data may be more OOD with respect to the benchmark data at the substructure level. Looking forward, our topological pre-training approach can be adopted as a sim-ple method to boost GNN performance on relevant ADMET tasks in an OOD setting, even with limited pre-training data. Our findings suggest that pre-training on topo-logical fingerprints can enhance GNN robustness in regimes with lower data overlap between pre-training and benchmark datasets. Additionally, our substructure-based tokenisation also allows for interpretable model insights, via permutation impor-tance (Supplementary Information Section 1.3). Secondly, multi-modal self-supervised pre-training strategies should be developed, such as pre-training on topological fin-gerprints and PDVs simultaneously, although this would require more data than used in this study. Thirdly, pre-training strategies should be devised and implemented with consideration for the specific characteristics of the downstream task or tasks. Finally, the community would benefit greatly from standardised pre-training proto-cols, including curated and consistent pre-training datasets that consider downstream tasks. Such standards would clarify the strengths and detriments of different pre-training approaches for molecular property prediction, and are vital for fairly assessing performance differences between pre-training methods. 
+
+## 4 Methods 
+
+For package versions used here, see Supplementary Information Table 2. 
+
+4.1 Datasets 
+
+4.1.1 QMugs for self-supervised pre-training 
+
+Self-supervised pre-training of GINs was performed on QMugs [39], a chemical dataset consisting of 665 k molecules. QMugs contains drug-like molecules and prior work has shown QMugs has potential for pre-training [40], and the dataset is large enough, even with similarity filtering, for pre-training, whilst being small enough for extensive ablation studies. 
+
+4.1.2 Benchmarking datasets: Biogen, MoleculeNet, ChEMBL 
+
+The primary benchmarking dataset used in this study was Biogen [31], a dataset of 3521 molecules with six ADMET tasks. Its prediction tasks are plasma protein binding (PPB) in human and rat blood plasma, intrinsic hepatic clearance (CLint) in human and rat liver, a measure of active transport, as an efflux ratio, by multidrug resistance protein 1, and aqueous solubility. Biogen was selected for its high degree of experi-mental consistency, with all assays conducted under uniform conditions, ensuring data homogeneity [31]. We also used a subset of MoleculeNet [32] for benchmarking, including three regression datasets, ESOL [41], FreeSolv [42], and Lipophilicity [33], and two binary classification datasets, MUV [43], and Tox21 [44]. ESOL is a solubility task, although solubility values extend outside the typical range for drug-like molecules [45]. Free-Solv is a benchmark for free energies of solvation. MUV contains 17 target-specific, 13 imbalanced virtual screening (VS) tasks. Tox21 contains 12 toxicity tasks from high-throughput in vitro assays. Whilst MoleculeNet benchmarks have been subject to critique [12, 13, 23, 46], they are still widely used for ADMET benchmarking and can highlight potential model weaknesses, hence their inclusion. We also benchmarked the featurisation methods on the challenging task of target-specific binding affinity prediction. We employed two datasets derived from ChEMBL [33] that were previously used in another systematic QSAR study [16]. The target associated with the first dataset is Dopamine Receptor D2 (DRD2), a regula-tory signalling protein implicated in neurological disorders [47], and the second dataset is Factor X A, a pharmaceutical protein target for anticoagulation therapies [48]. 
+
+4.2 Data preparation and splitting 
+
+All Tanimoto similarities were determined using hashed ECFPs, with chirality set to True, radius = 2, and fpsize = 2048. 
+
+4.2.1 Molecular standardisation 
+
+All pre-training and benchmark molecules were standardised using RDKit [49]: 1. Molecules were checked for incorrect chemistry by Chem.SanitizeMol .2. Hydrogens and disconnected metal atoms were removed using Cleanup from 
+
+rdMolStandardize .3. Disconnected fragments were removed using FragmentParent from 
+
+rdMolStandardize .4. Molecules were neutralised using Uncharger from rdMolStandardize .5. The canonical tautomer was determined using TautomerEnumerator from 
+
+rdMolStandardize . Tautomerisation was performed without Sp3 stereochemistry removal to retain chirality. Any molecule that failed to pass standardisation was excluded. 
+
+4.2.2 Pre-training data filtering based on Tanimoto similarities with benchmarking data 
+
+QMugs was filtered into different subsets for pre-training to investigate the effects of data leakage, in the form of topological similarity, on model performance. Tani-moto similarities were determined between the molecules in QMugs, and the molecules in every benchmark dataset used (Biogen, MUV, Tox21, etc.). Any molecule in the QMugs dataset with > 0.5 similarity to any benchmark molecule was excluded, leav-ing an initial pre-training dataset of 462189 molecules. For data leakage analysis, the same process was repeated with similarity thresholds of 0 .6, 0 .7, 0 .8, 0 .9, and 1 .0. To ensure that the same number of molecules were used for pre-training at each similar-ity threshold, random uniform sampling without replacement was performed on the filtered QMugs subsets to yield 462189 molecules for each threshold. 14 4.2.3 QMugs duplicate screening 
+
+There are approximately 10k duplicate SMILES strings in QMugs [39]; on inspection many of the duplicates are enantiomers with missing chirality flags. To avoid loss of chirality and erroneous duplicates, we used the ChEMBL IDs saved to QMugs to retrieve SMILES strings directly from ChEMBL v.27 [33]. 
+
+4.2.4 Repeated cross-validated splitting for out-of-distribution testing 
+
+Pairwise Tanimoto similarities between molecules were calculated for each benchmark dataset. Distances between molecules were calculated as dist = 1 − Tanimoto similarity. Benchmark datasets were individually clustered using Butina clustering on Tanimoto distances [29] with a cutoff of 0 .65; the default cutoff in Useful RDKit Utils [50]. We chose Butina for its speed, ease of implementation in RDKit, and the evenly sized clusters it produces. Here we assume that molecules within the same cluster are more similar to each other than to molecules in other clusters, enabling us to split the data by clusters for out-of-distribution (OOD) train-test sets. Datasets were repeatedly resampled into k-folds, similarly to Ash et al. (2024) [22], for grouped cross-validation; we used GroupKFold for regression tasks and 
+
+StratifiedGroupKFold for classification tasks [51]. We used 200 repetitions, each time splitting into five folds of held-out clusters with a new random seed, producing an abundant number of 1000 train-test splits for each dataset. One repetition was used for hyperparameter tuning, the remaining 199 were used for model evaluation. Even with stratifying by target label, the MUV dataset occa-sionally produced folds with no positive labels due to extreme class imbalance; test metrics over these folds were ignored (see Supplementary Information Table 4). 
+
+4.2.5 Units 
+
+For binding affinity tasks, DRD2 and Factor X A, affinity was converted from nM to M before calculating pKi. For ESOL, log(S) was converted from log(M) to log( μM), such that drug-like solubility values were comparable to the Biogen Solubility dataset. 
+
+4.3 Model architecture and training strategy 
+
+4.3.1 Graph Neural Networks 
+
+Graph neural networks were implemented using PyTorch and PyTorch Geometric [52, 53]. In this work, we used Graph Isomorphism Networks (GINs) [30] as our GNN architecture of choice. Our study was motivated by the fact that previous work has suggested that GINs without pre-training struggle to outperform classical featurisation methods for QSAR [16]. 
+
+4.3.2 Substructure tokenisation 
+
+Molecular graph featurisation is commonly performed with curated atom-level descrip-tors, [16, 20, 54]. An alternative approach is to embed the molecule based on atom 15 Sort & Slice Key 
+
+Map local subgraphs to 
+
+atomic tokens 
+
+Enumerate 
+
+substructures 
+
+Pre-train 
+
+Dataset 
+
+Sort by 
+
+frequency, rank, 
+
+& Slice      
+
+> Identifier Rank
+> 849275503 :0
+> 864942730 :1
+
+⫶ 
+
+> 2807684310 : 2048
+
+(a) 
+
+GIN MLP 
+
+Graph 
+
+Embedding 2048-bit 
+
+ECFP4 
+
+Graph 
+
+Embedding LightGBM ŷ
+
+(target) 
+
+PT-GIN 
+
+Pre-training 
+
+Benchmarking 
+
+(b) 
+
+(c) 
+
+> r = 0
+> r = 1
+> r = 2
+
+Fig. 5 Model architecture. (a) Substructure tokenisation of molecular graphs through Sort & Slice (S&S) [34]. (b) Self-supervised, topological pre-training pipeline. GINs were pre-trained to predict hashed ECFPs [14] from substructure tokenised molecular graphs. (c) Benchmarking pipeline with frozen ECFP-pre-trained GINs and LightGBM [35]. 
+
+16 types. For MolE, M´ endez-Lucio et al. [2] introduced encoding via Daylight atomic invariants, i.e., via Morgan identifiers with radius r = 0 [14]. We explored taking this further by expanding this strategy to include local substructures beyond a radius of 
+
+r = 0 and assigning multiple tokens to each atom, one token for each radius (Fig. 5a). We refer to this process as substructure tokenisation. The vocabulary is generated by ranking Morgan identifiers based on their frequency in the pre-training corpus, a process analogous to the creation of corpus-dependent vocabularies in NLP. Circular substructure vocabularies for pre-training datasets were determined by applying Sort and Slice (S&S) [34] (Supplementary Information Algorithm 1). S&S is an easy-to-implement and bit-collision-free alternative to hash-based folding for the vectorisation of the set of ECFP-substructures detected in an input molecule. S&S first sorts ECFP substructures according to their relative prevalence in a given set of training compounds and then incorporates only the most frequent substructures into the final binary fingerprint. This vectorisation technique has been shown to robustly outperform hash-based folding at a diverse set of molecular property prediction tasks. Here, we apply S&S in a new context; rather than mapping substructures to positions in a binary fingerprint, we map substructures to tokens for vectorial embedding. We use S&S, with chirality as True, to 1. sort circular substructures by the number of molecules they appear in, 2. map each circular substructure to a rank, and 3. slice the vocabulary to a specific size. Substructure enumeration was performed using the Morgan Fingerprint generator in RDKit [49]. By applying the S&S algorithm to the substructure vocabulary, we were able to rank the substructures by frequency and control the vocabulary size. The maximum radius of circular substructures and vocabulary size were treated as hyperparameters. Each substructure in the vocabulary was mapped to a learnable embedding using 
+
+torch.nn.Embedding , producing a node embedding shape of ( i, j, k ), where: 
+
+• i is the number of atoms in the molecular graph, 
+
+• j is the number of radii, e.g, j = 2 for a maximum radius of r = 1 with a zero radius and a one radius token, and 
+
+• k is the embedding size. Multi-token node embeddings were concatenated to produce one unified vectorial representation per atom with shape ( i, jk ). Thus, the atomic embedding shape var-ied depending on the maximum radius of the tokenisation strategy (Supplementary Information Table 7). For PT-GIN, vocabulary sizes used were 1024, 2048, 4096, 8192, and 16384. Vocab-ularies beyond 16384 were not considered due to increasingly high parameter counts relative to the amount of pre-training data (e.g. 16384 tokens of 128 dimensions would be 2M parameters). Maximum radii of r = 0, r = 1, and r = 2 were explored. For Scratch GIN, the hyperparameter search space was constrained to smaller vocabulary sizes and maximum radii, as preliminary work suggested that larger vocab-ularies and maximum radii did not lead to performance improvements, and increased 17 the computational cost of training. This was likely due to insufficient benchmark data for Scratch GIN to generalise in an OOD setting with larger vocabularies, and small benchmark datasets leading to more rare substructures being included at training and unused during inference. The vocabularies sizes explored in hyperparameter tuning were constrained to 16, 32, 64 for radius r = 0, and 16, 32, 64 for radius r = 1. We initially explored using atomic features, such as atomic mass, and tokens based only on atom type, however, performance was notably improved by tokenising based on local atomic environments. The resulting substructure vocabularies were used to featurise molecular graphs by assigning substructure tokens to each atom for all radii up to the pre-defined maximum (Supplementary Information Algorithm 2). Unknown substructures were assigned an 
+
+UNK token. 
+
+4.3.3 Self-supervised pre-training 
+
+GINs were pre-trained (PT-GIN) on hashed two radius 2048-bit ECFPs fingerprints (ECFP4 2048 ), with chirality as True. This approach is malleable as the label can be substituted for different topological targets, such as Functional-Connectivity Fin-gerprints (FCFP). The ECFP4 2048 bit-vectors were used as a multi-task binary classification target for self-supervised pre-training (Fig. 5b). While hash-based vec-torisation is prone to noise resulting from bit collisions [34], it allows compression of the constituent circular substructures in a molecule into a smaller vectorial repre-sentation. Prediction of the entire substructure corpus without hashed-based folding would require substantially more trainable parameters within our neural architecture. We did not use S&S to fold ECFPs for pre-training, as S&S would have removed rare substructures entirely. Loss was calculated using binary cross-entropy with balanced class weighting [51]. Pre-training GIN hyperparameters were explored using Optuna [55] with 50 trials and 5-fold CV on the 0 .5 similarity-filtered QMugs subset, aiming to maximise mean test fold AUROC on ECFP4 2048 predictions. Splitting was performed via KFold [51]. For pre-training hyperparameters, see Supplementary Information Tables 5,6. The initial learning rate was calculated as lr = d−0.5
+
+> model
+
+, where d is the number of model parameters; the learning rate scheduler was a hyperparameter. After tuning, the best hyperparameters were used to pre-train models on the entirety of each pre-training subset. During pre-training, the output from the last GIN layer was the input for the prediction head. Multiple models with varying vocabulary sizes and maximum radii were pre-trained; for benchmarking, each pre-trained model was used for featurisa-tion in individual LightGBM hyperparameter tuning runs on the benchmark data (see Section 4.4.5). The ECFP-pre-trained GIN with the best performance during the benchmark hyperparameter tuning was selected for testing on the remaining 199 train-test splits, using the model with the highest mean R 2 for regression tasks and AUCPR for classification tasks. For each task, models pre-trained for investigating threshold similarity used the same radius and vocabulary size as the PT-GIN pre-trained on the 0.5 filtered dataset with the highest R 2.18 4.4 Benchmarking Setup 
+
+4.4.1 Pre-trained embedding representations 
+
+In downstream benchmarking, frozen embeddings from pre-trained models were used as molecular representations (Fig. 5c); PT-GIN outputs after each layer were pooled and concatenated to form a global molecular embedding. The graph pooling method (mean, max, etc.) was a hyperparameter (Supplementary Information Table 5). Fine tuning was explored in preliminary experiments, however, end-to-end fine tuning was computationally expensive relative to using frozen embeddings with Light Gradient-Boosted Machines (LightGBM) [35], and the benefits were often negligible. In some cases fine tuning was even detrimental. This was most likely due to the small size of the downstream benchmark datasets relative to the parameter count in the pre-trained model, even when only fine tuning a subset of model layers. As such, we used frozen pre-trained embeddings as inputs for LightGBM models in downstream benchmarking. The use of pre-trained embeddings with LightGBM additionally allowed for a more direct comparison with baseline molecular fingerprint representations, such as hashed ECFPs with LightGBM, as differences in performance could not be attributed to differences between architectures. As an initial baseline, we conducted experiments pre-training an autoencoder, equivalent in parameter count to PT-GIN, to reconstruct ECFP bit vectors. However, this approach underperformed compared to models using graph-based representations. 
+
+4.4.2 Baseline classical featurisation methods 
+
+For our baseline comparisons, we used static circular topological fingerprints, namely fingerprinting methods vectorised via classical hash-based folding, including Extended-Connectivity Fingerprints (ECFP hashed ) [14] and Functional-Connectivity Finger-prints (FCFP hashed ). Furthermore, we employed ECFPs vectorised via Sort & Slice (ECFP S&S ) [34]. The S&S vectorisation technique for ECFPs has been shown to lead to robustly superior predictive performance over classical hash-based folding on various molecular property prediction tasks [34]. For classical fingerprinting methods, the radius and bit-vector lengths were treated as hyperparameters. We used radii of r = 1 and r = 2, and bit-vector lengths of 1024 and 2048. For each train-test split, features with zero variance in the training split were excluded. 
+
+4.4.3 Light gradient-boosted machines 
+
+Light Gradient-Boosted Machines (LightGBM) models were used in benchmarking for their training speed and efficiency [35]. Frozen ECFP-pre-trained GIN embeddings were used as inputs with LightGBM models to evaluate PT-GIN as a featurisation method (Fig. 5c). All classical baseline molecular representations were fed into a LightGBM model as well for downstream prediction (Fig. 6a). 19 Graph   
+
+> Embedding MLP ŷGIN
+
+Scratch GIN  
+
+> Binary
+> topological
+> features
+> LightGBM ŷ
+> Enumerate
+> substructures
+> and fold
+
+Classical Baselines (a) 
+
+(b) 
+
+0 0 1… 1 1 0Fig. 6 Baseline pipelines for (a) classical fingerprinting methods (ECFP hashed , FCFP hashed ,ECFP S&S ), and (b) Scratch GIN. 
+
+4.4.4 Scratch GIN 
+
+Scratch GINs were trained with a standard multi-layer perceptron prediction head (Fig. 6b). Regression tasks were trained using mean squared error (MSE) loss. On binary classification tasks, models were trained using binary cross-entropy loss with balanced class weighting. We explored retraining LightGBM models on Scratch GIN embeddings for a consistent pipeline across all molecular representations, however, there was no noticeable difference in performance between end-to-end Scratch GIN models and LightGBMs trained on the same embeddings. As Scratch GIN models were computationally expensive to repeatedly train com-pared to the LightGBM used with the other approaches, comparisons to Scratch GINs were limited to Biogen. 
+
+4.4.5 Benchmark hyperparameter tuning 
+
+Hyperparameter tuning for benchmarking was performed on a held-out 5-fold CV using Optuna [55] with 50 trials. Ideally, nested cross-validation would have been used for tuning and evaluation. However, this would have required approximately 250 ,000 additional model fits (50 trials by 5 folds per trial by 1000 train-test splits) per baseline per dataset, which was computationally prohibitive. Regression tasks were optimised for minimizing mean absolute error (MAE) and binary classification tasks were optimised for minimizing binary cross-entropy loss. As nested cross-validated tuning would require many iterations over the full 1000 train-test splits, tuning was instead performed on one 5-fold set produced from repeated cross-validated splitting; these folds were excluded from the final evaluation. The search space for Scratch GIN was constrained such that the number of param-eters would be approximately the same order of magnitude as the dataset size. This was done to mitigate overfitting and improve generalisation in an OOD setting, as well 20 as to reduce the computational cost of training. Additionally, initial testing suggested that over-parameterisation did not lead to performance improvements of Scratch GIN, likely due to the small size of the benchmark datasets. For the search spaces used for LightGBM and Scratch GIN see Supplementary Information Tables 7-12. 
+
+4.5 Model evaluation and statistical testing 
+
+Ash et al. (2024) suggested performing multiple comparisons over repeated k-fold cross-validation (CV) splits [22]. We adopted this approach for our benchmarking, using 5-fold CV repeated 200 times for 1000 train-test splits with each dataset. As each of the folds within a single repeat are mutually exclusive—samples in one fold cannot appear in another—test sets within the same CV repeat are not independent. To account for this, we averaged the performance metrics across all folds for each repeat and assume each CV repeat is independent. Additionally, performances from individual test splits can be noisy, especially for small datasets; averaging performances over folds reduces the impact of this noise on statistical tests. The 5-fold split used for hyperparameter tuning and excluded from model evaluations, resulting in 199 samples for each statistical test. Tukey’s Honest Significant Difference Test (Tukey’s HSD), a statistical test for evaluating whether performance differences between ML models are significant, and Cohen’s d, an effect size measure, are commonly appropriate for comparing mod-els [22]. Both of these approaches are parametric, assuming sample sets are normally distributed and that the variance within each group is comparable. However, we found that metric distributions can be non-normally distributed, particularly for perfor-mance scores with values close to upper and lower bounds of the metric, such as AUCPR (Supplementary Information Section 1.4). Additionally, Tukey’s HSD assumes independent observations [56]; however, our results are paired, since the performance of a model on a CV repeat can be directly matched to the performance of a different model on the same CV repeat. Therefore, we used the Wilcoxon signed-rank test [57], a non-parametric test for evaluating differences in mean ranks between paired samples. To account for multiple comparisons, we applied the Bonferroni correction method to adjust p-values and reduce the occurrence of type I error [58]. Wilcoxon with Bonfer-roni correction was computed using scikit-posthocs [59]. Even when normality held, we still used non-parametric tests and effect sizes for consistency across tasks and metrics. To evaluate the effect size between models, we used rank-biserial correlation (rrb ) [60, 61], a paired non-parametric measure of effect size. Given two models, A and 
+
+B, rrb in our case can be interpreted as 
+
+rrb = P (A > B ) − P (A < B )where P (A > B ) is the probability of model A outperforming model B on the same CV repeat, and P (B > A ) is the reverse. Assuming that P (A = B) ≈ 0 (i.e., ties of model performance are rare), 
+
+P (A > B ) = rrb + 1 2 .
+
+21 For example, an rrb = 0 .5 would mean that model A outperforms model B on 75% of the CV repeats. For MAPE calculations, we excluded test samples with y = 0, as MAPE is unde-fined for these samples due to the division by zero (MAPE = 100 · 1
+
+> n
+
+Pni=1  
+
+> yi−ˆyi
+> yi
+
+). This resulted in two samples being excluded from the Biogen Solubility, one from ESOL, two from FreeSolv, and three from Lipophilicity. 
+
+4.6 Substructure Importance 
+
+As S&S maps substructures to bits and PT-GIN maps substructures to tokens, it is possible to measure the relative importance of substructures for both methods. For ECFP S&S , substructure importance was determined by measuring change in performance upon permutation as described previously [62], using R 2 for regression AUCPR for classification. For PT-GIN models, substructure importance was determined by iteratively per-muting the embedding for each substructure token (Supplementary Information Algorithm 3-4). To prevent token prevalence within each graph from influencing the measurement, a fixed number of permutations, equal to the node embedding dimen-sion, were distributed across every instance of a token in a graph; an alternative approach would be to permute a maximum of one node in each graph. By permut-ing substructure embeddings, we had a heuristic for substructure importance that we could compare directly to S&S. Feature importance was performed with LightGBM models over one of the 5-fold cross-validated splits used in benchmark evaluation, and repeated five times on each train-test split, totalling 25 iterations. See Supplementary Information Section 1.3 for Substructure Importance results and analysis. 
+
+## Declarations 
+
+Supplementary information Additional discussion, figures, tables, and algo-rithms are provided in the Supplementary Information. 
+
+Acknowledgements This work was supported by the Engineering and Physical Sciences Research Council [Grant number EP/W524311/1] and Lhasa Ltd. 
+
+Ethics declarations The authors declare no competing interests. 
+
+Code and Data availability The code and data for this work are available at: https://github.com/oxpig/topological-pretraining. 
+
+Author contributions S.M-K. and M.D. conceptualised the study. S.M-K. devel-oped the methodology, performed the experiments, and analysed the results. G.M.M., C.M.D., T.H., and S.W. supervised the project. All authors discussed the results and contributed to the interpretation. S.M-K. wrote the manuscript with editorial input from all authors. 22 Extended Data ESOL FreeSolv Lipophilicity            
+
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> R2
+> **** **** ****
+> **** ****
+> ns
+> **** **** ****
+> (a)
+> ESOL FreeSolv Lipophilicity
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> 1.0
+> ****
+> ****
+> ****
+> ****
+> ns
+> ****
+> ****
+> ****
+> ****
+> (b)
+> ESOL FreeSolv Lipophilicity
+> 50
+> 100
+> 150
+> 200
+> 250
+> 300
+> MAPE(%)
+> **** **** ****
+> **** **** ****
+> ****
+> ****
+> ****
+> (c)
+> PT-GIN ECFP S&S ECFP hashed FCFP hashed Best Mean
+
+Extended Data Figure 1 Performance metrics on MoleculeNet ADMET regression tasks. Datasets shown are ESOL, FreeSolv, and Lipophilicity. The metrics shown are (a) Coefficient of Deter-mination ( ↑ R2), (b) Pearson Correlation ( ↑ ρ) and (c) mean absolute percentage error ( ↓MAPE (%)). Featurisation methods shown are ECFP-pre-trained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). Statistical significances, determined by the Wilcoxon signed-rank test ( n = 199, α = 0 .05), between the best method by mean and all other approaches are shown with asterisks; ns (not significant) is p ≥ 0.05; * is 0 .01 ≤ p < 0.05; ** is 0 .001 ≤ p < 0.01; *** is 0.0001 ≤ p < 0.001; and **** is p < 0.0001. Violins are normalised such that each violin has the same maximum width. 
+
+23 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+
+1.000 -0.356 0.934 
+
+1.000 -1.000 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(a) ESOL    
+
+> PT-GIN ECFP hashed ECFP S&S FCFP hashed
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+
+-0.999 -1.000 0.086 
+
+-0.999 -1.000 
+
+0.301 
+
+ns 
+
+**** **** 
+
+** **** **** 
+
+(b) FreeSolv    
+
+> PT-GIN ECFP hashed ECFP S&S FCFP hashed
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+
+0.894 -0.469 0.974 
+
+-0.602 -1.000 
+
+0.976 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(c) Lipophilicity    
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Extended Data Figure 2 Rank-biserial coefficient (rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) comparison of R 2 between methods on Molecu-leNet regression datasets. Datasets are (a) ESOL, (b) FreeSolv, and (c) Lipophilicity. Featurisation methods shown are ECFP-pre-trained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x -axis has a higher R 2 than the method on the y-axis; red indicates the inverse. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller 
+
+p-value ( n = 199, α = 0 .05). 
+
+24 DRD2 Factor X A              
+
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> R2 ****
+> ****
+> ****
+> ****
+> ****
+> **
+> (a)
+> DRD2 Factor X A
+> 0.50
+> 0.55
+> 0.60
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> **** **** ****
+> **** **** ****
+> (b)
+> DRD2 Factor X A
+> 10
+> 12
+> 14
+> 16
+> 18
+> MAPE(%)
+> **** **** ****
+> **** **** ****
+> (c)
+> PT-GIN ECFP S&S ECFP hashed FCFP hashed Best Mean
+
+Extended Data Figure 3 Performance metrics on ChEMBL binding affinity tasks. Datasets shown are DRD2 and Factor X A. The metrics shown are (a) ↑ R2, (b) Pearson Correlation ( ↑ ρ) and (c) mean absolute percentage error ( ↓MAPE (%)). Featurisation methods shown are ECFP-pre-trained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For each task and metric, the approach with the best mean is hatched. Statistical significances, determined by the Wilcoxon signed-rank test ( n = 199, α = 0 .05), between the best method by mean and all other approaches are shown with asterisks; ns (not significant) is p ≥ 0.05; * is 0 .01 ≤ p < 0.05; ** is 0 .001 ≤ p < 0.01; *** is 0 .0001 ≤ p < 0.001; and **** is p < 0.0001. Violins are normalised such that each violin has the same maximum width. 
+
+25 MUV466 MUV548 MUV600 MUV644 MUV652 MUV689 MUV692 MUV712 MUV713 MUV733 MUV737 MUV810 MUV832 MUV846 MUV852 MUV858 MUV859 
+
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> 1.0
+> AUROC
+
+**** 
+
+** 
+
+**** 
+
+**** 
+
+**** 
+
+** 
+
+**** 
+
+**** 
+
+**** **** 
+
+*
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+** 
+
+**** 
+
+**** 
+
+** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+*** **** 
+
+**** 
+
+**** 
+
+*** 
+
+**** 
+
+**** 
+
+ns 
+
+ns 
+
+*
+
+*** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+(a)                 
+
+> MUV466 MUV548 MUV600 MUV644 MUV652 MUV689 MUV692 MUV712 MUV713 MUV733 MUV737 MUV810 MUV832 MUV846 MUV852 MUV858 MUV859
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> AUCPR
+
+**** 
+
+** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+*
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+*** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+(b)                 
+
+> MUV466 MUV548 MUV600 MUV644 MUV652 MUV689 MUV692 MUV712 MUV713 MUV733 MUV737 MUV810 MUV832 MUV846 MUV852 MUV858 MUV859
+> 0.1
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> MCC
+
+ns 
+
+**** 
+
+**** 
+
+ns 
+
+ns 
+
+ns 
+
+**** 
+
+**** 
+
+**** **** 
+
+**** 
+
+**** 
+
+ns 
+
+ns 
+
+ns **** 
+
+**** 
+
+**** 
+
+ns 
+
+ns 
+
+ns 
+
+ns 
+
+ns 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+ns 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+*** 
+
+** 
+
+ns 
+
+(c) 
+
+PT-GIN ECFP S&S ECFP hashed FCFP hashed Best Mean Extended Data Figure 4 Performance metrics on MUV virtual screening tasks. The met-rics shown are Area Under the Receiver Operating Characteristic ( ↑ AUROC), Area Under the Precision-Recall Curve ( ↑ AUCPR), and Matthews correlation coefficient ( ↑ MCC). Featurisation methods shown are ECFP-pre-trained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). Statistical significances, determined by the Wilcoxon signed-rank test (n = 199, α = 0 .05), between the best method by mean and all other approaches are shown with asterisks; ns (not significant) is p ≥ 0.05; * is 0 .01 ≤ p < 0.05; ** is 0 .001 ≤ p < 0.01; *** is 0.0001 ≤ p < 0.001; and **** is p < 0.0001. Violins are normalised such that each violin has the same maximum width. 
+
+26 MUV466 MUV548 MUV600 MUV644 MUV652 MUV689 MUV692 MUV712 MUV713 MUV733 MUV737 MUV810 MUV832 MUV846 MUV852 MUV858 MUV859 
+
+0.0 
+
+2.5 
+
+5.0 
+
+7.5 
+
+10.0 
+
+> EF 10%
+
+ns 
+
+**** 
+
+**** **** 
+
+**** 
+
+*** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+*
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+*
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+ns 
+
+ns 
+
+ns 
+
+**** 
+
+** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+*** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+(a) 
+
+MUV466 MUV548 MUV600 MUV644 MUV652 MUV689 MUV692 MUV712 MUV713 MUV733 MUV737 MUV810 MUV832 MUV846 MUV852 MUV858 MUV859 
+
+0
+
+5
+
+10 
+
+15 
+
+20 
+
+> EF 5%
+
+ns 
+
+**** 
+
+**** **** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+*** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+*
+
+**** 
+
+**** 
+
+** 
+
+**** 
+
+**** 
+
+** 
+
+** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+(b) 
+
+MUV466 MUV548 MUV600 MUV644 MUV652 MUV689 MUV692 MUV712 MUV713 MUV733 MUV737 MUV810 MUV832 MUV846 MUV852 MUV858 MUV859 
+
+0
+
+20 
+
+40 
+
+60 
+
+80 
+
+100 
+
+> EF 1%
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns ** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+** 
+
+**** 
+
+*** 
+
+** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+*** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+** 
+
+**** 
+
+**** 
+
+**** 
+
+(c) 
+
+MUV466 MUV548 MUV600 MUV644 MUV652 MUV689 MUV692 MUV712 MUV713 MUV733 MUV737 MUV810 MUV832 MUV846 MUV852 MUV858 MUV859 
+
+0
+
+50 
+
+100 
+
+150 
+
+200 
+
+> EF 0.5%
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+*** 
+
+ns 
+
+*** 
+
+**** 
+
+**** **** 
+
+*
+
+*
+
+**** 
+
+**** 
+
+**** 
+
+** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+(d) 
+
+PT-GIN ECFP S&S ECFP hashed FCFP hashed Best Mean Extended Data Figure 5 Enrichment factors at 10%, 5%, 1%, and 0.05% on MUV vir-tual screening tasks. Featurisation methods shown are ECFP-pre-trained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For each task and metric, the approach with the best mean is hatched. Statistical significances, determined by the Wilcoxon signed-rank test ( n = 199, α = 0 .05), between the best method by mean and all other approaches are shown with asterisks; ns (not significant) is p ≥ 0.05; * is 0 .01 ≤ p < 0.05; ** is 0 .001 ≤ p < 0.01; *** is 0.0001 ≤ p < 0.001; and **** is p < 0.0001. Sample sizes (i.e., the number of train-test splits) are in the Supplementary Information Section 4. Violins are normalised such that each violin has the same maximum width. 
+
+27 NR AR NR AR LBD NR AhR NR Aromatase NR ER NR ER LBD NR PPAR SR ARE SR ATAD5 SR HSE SR MMP SR p53 
+
+> 0.65
+> 0.70
+> 0.75
+> 0.80
+> 0.85
+> 0.90
+> 0.95
+> 1.00
+> AUROC
+
+**** 
+
+ns 
+
+** **** 
+
+**** 
+
+**** **** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+(a)            
+
+> NR AR NR AR LBD NR AhR NR Aromatase NR ER NR ER LBD NR PPAR SR ARE SR ATAD5 SR HSE SR MMP SR p53
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> AUCPR
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** **** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** **** 
+
+**** 
+
+**** 
+
+**** 
+
+ns 
+
+**** 
+
+ns 
+
+**** 
+
+ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+(b)            
+
+> NR AR NR AR LBD NR AhR NR Aromatase NR ER NR ER LBD NR PPAR SR ARE SR ATAD5 SR HSE SR MMP SR p53
+> 0.1
+> 0.0
+> 0.1
+> 0.2
+> 0.3
+> 0.4
+> 0.5
+> 0.6
+> 0.7
+> 0.8
+> MCC
+
+**** 
+
+**** 
+
+**** **** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** ns 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+**** 
+
+(c) 
+
+PT-GIN ECFP S&S ECFP hashed FCFP hashed Best Mean Extended Data Figure 6 Performance metrics on Tox21 binary toxicity tasks. The metrics shown are Area Under the Receiver Operating Characteristic ( ↑ AUROC), Area Under the Precision-Recall Curve ( ↑ AUCPR), and Matthews correlation coefficient ( ↑ MCC). Featurisation methods shown are ECFP-pre-trained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For each task and metric, the approach with the best mean is hatched. Statistical signif-icances, determined by the Wilcoxon signed-rank test ( n = 199, α = 0 .05), between the best method by mean and all other approaches are shown with asterisks; ns (not significant) is p ≥ 0.05; * is 0.01 ≤ p < 0.05; ** is 0 .001 ≤ p < 0.01; *** is 0 .0001 ≤ p < 0.001; and **** is p < 0.0001. Violins are normalised such that each violin has the same maximum width. 
+
+28 0 100000 200000 300000 400000 500000 
+
+> Number of molecules
+> 0
+> 2
+> 4
+> 6
+> 8
+> 10
+> 12
+> Number of  Unique Substructures Number of Molecules
+
+(a)        
+
+> Number of Unique Substructures Number of Molecules Number of Unique Substructures
+> 0.5 0.6 0.7 0.8 0.9 1.0
+
+Tanimoto Threshold 
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Substructure Coverage (%)
+
+(b) 
+
+> Solubility
+> Rat CLint
+> Human PPB
+> Efflux
+> Human CLint
+> Rat PPB
+> All QMugs Substructures
+> 2048 Most Frequent QMugs Substructures
+> 0
+> 50000
+> 100000
+> 150000
+> 200000
+> 250000
+> 300000
+> Number of Unique Substructures
+
+Extended Data Figure 7 QMugs substructure content. (a) The number of molecules in randomly selected subsets of QMugs ( x -axis) versus the ratio of the number of unique substructures to the number of molecules (black, dashed, left y-axis) and the total number of unique substructures (blue, right y-axis). As the number of molecules increases, the ratio of the number of unique substructures to the number of molecules decreases. (b) The proportion of substructures in the Biogen subsets that appear in the Tanimoto filtered QMugs pre-training subsets. Substructure coverage is expressed as a percentage. Coverage using the entirety of QMugs (no hatching) and only the 2048 most frequent substructures in the QMugs subset (hatched) are shown. The coverage of Biogen substructures does not substantially change with increased data leakage. Substructures were determined using RDKit with a radius r = 2, chirality as True, and Daylight atomic invariants. 
+
+29 References 
+
+[1] Koohy, H. The rise and fall of machine learning methods in biomedical research. 
+
+F1000Research 6, 2012 (2018). URL https://f1000research.com/articles/6-2012/ v2. [2] M´ endez-Lucio, O., Nicolaou, C. A. & Earnshaw, B. MolE: A foundation model for molecular graphs using disentangled attention. Nature Communications 15 ,9431 (2024). URL https://doi.org/10.1038/s41467-024-53751-y. [3] Kearnes, S., McCloskey, K., Berndl, M., Pande, V. & Riley, P. Molecular graph convolutions: Moving beyond fingerprints. Journal of Computer-Aided Molecular Design 30 , 595–608 (2016). URL https://doi.org/10.1007/s10822-016-9938-8. [4] Yang, K. et al. Analyzing Learned Molecular Representations for Property Pre-diction. Journal of Chemical Information and Modeling 59 , 3370–3388 (2019). URL https://doi.org/10.1021/acs.jcim.9b00237. [5] Jaeger, S., Fulle, S. & Turk, S. Mol2vec: Unsupervised Machine Learning Approach with Chemical Intuition. Journal of Chemical Information and Modeling 58 , 27–35 (2018). URL https://doi.org/10.1021/acs.jcim.7b00616. [6] Hu, W. et al. Strategies for Pre-training Graph Neural Networks (2020). arXiv:1905.12265. [7] Hou, Z. et al. GraphMAE: Self-Supervised Masked Graph Autoencoders . In Pro-ceedings of the 28th ACM SIGKDD Conference on Knowledge Discovery and Data Mining , 594–604 (ACM, 2022). URL https://doi.org/10.1145/3534678. 3539321. [8] Wang, Y., Wang, J., Cao, Z. & Barati Farimani, A. Molecular contrastive learning of representations via graph neural networks. Nature Machine Intelligence 4,279–287 (2022). URL https://doi.org/10.1038/s42256-022-00447-x. [9] Ying, C. et al. Do transformers really perform badly for graph representation? 
+
+In Proceedings of the 35th International Conference on Neural Information Pro-cessing Systems , Vol. 34, 28877–28888 (Curran Associates Inc., 2021). URL https://dl.acm.org/doi/10.5555/3540261.3542473. [10] Aitken, M., Roland, A. & Kleinrock, M. Global Trends in R&D 2025: Progress in recapturing momentum in biopharma innovation. Tech. Rep., IQVIA Institute for Human Data Science (2025). URL https://www.iqvia.com/insights/the-iqvia-institute/reports-and-publications/ reports/global-trends-in-r-and-d-2025. [11] Crusius, D., Cipcigan, F. & C. Biggin, P. Are we fitting data or noise? Analysing the predictive power of commonly used datasets in Drug-, Materials-, 30 and molecular-discovery. Faraday Discussions 256 , 304–321 (2025). URL https://doi.org/10.1039/D4FD00091A. [12] Kretschmer, F., Seipp, J., Ludwig, M., Klau, G. W. & B¨ ocker, S. Coverage bias in small molecule machine learning. Nature Communications 16 , 554 (2025). URL https://doi.org/10.1038/s41467-024-55462-w. [13] Wallach, I. & Heifets, A. Most Ligand-Based Classification Benchmarks Reward Memorization Rather than Generalization. Journal of Chemical Information and Modeling 58 , 916–932 (2018). URL https://doi.org/10.1021/acs.jcim.7b00403. [14] Rogers, D. & Hahn, M. Extended-connectivity fingerprints. Journal of Chemical Information and Modeling 50 , 742–754 (2010). URL https://doi.org/10.1021/ ci100050t. [15] McGibbon, M. et al. From intuition to AI: Evolution of small molecule represen-tations in drug discovery. Briefings in Bioinformatics 25 , bbad422 (2024). URL https://doi.org/10.1093/bib/bbad422. [16] Dablander, M., Hanser, T., Lambiotte, R. & Morris, G. M. Exploring QSAR models for activity-cliff prediction. Journal of Cheminformatics 15 , 47 (2023). URL https://doi.org/10.1186/s13321-023-00708-w. [17] Jiang, D. et al. Could graph neural networks learn better molecular representa-tion for drug discovery? A comparison study of descriptor-based and graph-based models. Journal of Cheminformatics 13 , 12 (2021). URL https://doi.org/10. 1186/s13321-020-00479-8. [18] Xia, J. et al. Understanding the Limitations of Deep Models for Molecular prop-erty prediction: Insights and Solutions . In Proceedings of the 37th International Conference on Neural Information Processing Systems (Curran Associates Inc., 2023). URL https://dl.acm.org/doi/10.5555/3666122.3668949. [19] Sypetkowski, M. et al. On the Scalability of GNNs for Molecular Graphs (2024). arXiv:2404.11568. [20] Zaidi, S. et al. Pre-training via Denoising for Molecular Property Prediction (2022). arXiv:2206.00133. [21] Burns, J., Zalte, A. & Green, W. Descriptor-based Foundation Models for Molecular Property Prediction (2025). arXiv:2506.15792. [22] Ash, J. R. et al. Practically significant method comparison protocols for machine learning in small molecule drug discovery. Journal of Chemical Information and Modeling 65 , 9398–9411 (2025). URL https://doi.org/10.1021/acs.jcim.5c01609. 31 [23] Wognum, C. et al. A call for an industry-led initiative to critically assess machine learning for real-world drug discovery. Nature Machine Intelligence 6, 1120–1121 (2024). URL https://doi.org/10.1038/s42256-024-00911-w. [24] van Tilborg, D., Rossen, L. & Grisoni, F. Molecular deep learning at the edge of chemical space. Nature Machine Intelligence 1–13 (2026). [25] Barker, A., Kettle, J. G., Nowak, T. & Pease, J. E. Expanding medicinal chem-istry space. Drug Discovery Today 18 , 298–304 (2013). URL https://www. sciencedirect.com/science/article/pii/S1359644612003650. [26] Klarner, L. et al. Drug Discovery under Covariate Shift with Domain-Informed Prior Distributions over Functions . In Proceedings of the 40th International Conference on Machine Learning , 17176–17197 (PMLR, 2023). URL https: //proceedings.mlr.press/v202/klarner23a.html. [27] Guo, Q., Hernandez-Hernandez, S. & Ballester, P. J. Scaffold Splits Overesti-mate Virtual Screening Performance . In Artificial Neural Networks and Machine Learning – ICANN 2024 , 58–72 (Springer Nature Switzerland, Cham, 2024). URL https://doi.org/10.1007/978-3-031-72359-9 5. [28] Guo, Q., Hernandez-Hernandez, S. & Ballester, P. J. UMAP-based clustering split for rigorous evaluation of AI models for virtual screening on cancer cell lines. Journal of Cheminformatics 17 , 94 (2025). URL https://doi.org/10.1186/ s13321-025-01039-8. [29] Butina, D. Unsupervised Data Base Clustering Based on Daylight’s Fingerprint and Tanimoto Similarity: A Fast and Automated Way To Cluster Small and Large Data Sets. Journal of Chemical Information and Computer Sciences 39 , 747–750 (1999). URL https://doi.org/10.1021/ci9803381. [30] Xu, K., Hu, W., Leskovec, J. & Jegelka, S. How Powerful are Graph Neural Networks? (2019). arXiv:1810.00826. [31] Fang, C. et al. Prospective Validation of Machine Learning Algorithms for Absorption, Distribution, Metabolism, and Excretion Prediction: An Industrial Perspective. Journal of Chemical Information and Modeling 63 , 3263–3274 (2023). URL https://doi.org/10.1021/acs.jcim.3c00160. [32] Wu, Z. et al. MoleculeNet: A benchmark for molecular machine learning. 
+
+Chemical Science 9, 513–530 (2018). URL https://doi.org/10.1039/C7SC02664A. [33] Zdrazil, B. et al. The ChEMBL Database in 2023: A drug discovery platform span-ning multiple bioactivity data types and time periods. Nucleic Acids Research 
+
+52 , D1180–D1192 (2024). URL https://doi.org/10.1093/nar/gkad1004. 32 [34] Dablander, M., Hanser, T., Lambiotte, R. & Morris, G. M. Sort & Slice: A simple and superior alternative to hash-based folding for extended-connectivity fingerprints. Journal of Cheminformatics 16 , 135 (2024). URL https://doi.org/ 10.1186/s13321-024-00932-y. [35] Ke, G. et al. LightGBM: A Highly Efficient Gradient Boosting Decision Tree . In 
+
+Proceedings of the 31st International Conference on Neural Information Process-ing Systems , 3149–3157 (Curran Associates, Inc., 2017). URL https://dl.acm. org/doi/10.5555/3294996.3295074. [36] Axen, S. D. et al. A Simple Representation of Three-Dimensional Molecular Structure. Journal of Medicinal Chemistry 60 , 7393–7409 (2017). URL https: //doi.org/10.1021/acs.jmedchem.7b00696. [37] Bernett, J. et al. Guiding questions to avoid data leakage in biological machine learning applications. Nature Methods 21 , 1444–1453 (2024). URL https://doi. org/10.1038/s41592-024-02362-y. [38] Landrum, G. A. & Riniker, S. Combining IC50 or Ki Values from Different Sources Is a Source of Significant Noise. Journal of Chemical Information and Modeling 64 , 1560–1567 (2024). [39] Isert, C., Atz, K., Jim´ enez-Luna, J. & Schneider, G. QMugs, quantum mechanical properties of drug-like molecules. Scientific Data 9, 273 (2022). URL https: //doi.org/10.1038/s41597-022-01390-7. [40] Raja, A. et al. On the Effectiveness of Quantum Chemistry Pre-training for Phar-macological Property Prediction . In ICML 2024 AI for Science Workshop (2024). URL https://openreview.net/forum?id=ffSLXl666Q. [41] Delaney, J. S. ESOL: Estimating Aqueous Solubility Directly from Molecular Structure. Journal of Chemical Information and Computer Sciences 44 , 1000– 1005 (2004). URL https://doi.org/10.1021/ci034243x. [42] Mobley, D. L. & Guthrie, J. P. FreeSolv: A database of experimental and calculated hydration free energies, with input files. Journal of Computer-Aided Molecular Design 28 , 711–720 (2014). URL https://doi.org/10.1007/ s10822-014-9747-x. [43] Rohrer, S. G. & Baumann, K. Maximum unbiased validation (MUV) data sets for virtual screening based on PubChem bioactivity data. Journal of Chemical Information and Modeling 49 , 169–184 (2009). URL https://doi.org/10.1021/ ci8002649. [44] Richard, A. M. et al. The Tox21 10K Compound Library: Collaborative Chem-istry Advancing Toxicology. Chemical Research in Toxicology 34 , 189–216 (2021). URL https://doi.org/10.1021/acs.chemrestox.0c00264. 33 [45] Rytting, E., Lentz, K. A., Chen, X.-Q., Qian, F. & Venkatesh, S. Aqueous and cosolvent solubility data for drug-like organic compounds. The AAPS Journal 7,10 (2005). URL https://doi.org/10.1208/aapsj070110. [46] Walters, W. P. We Need Better Benchmarks for Machine Learning in Drug Discovery. Practical Cheminformatics Blog (2023). URL https://practicalcheminformatics.blogspot.com/2023/08/ we-need-better-benchmarks-for-machine.html. [47] Pan, X. et al. Dopamine and Dopamine Receptors in Alzheimer’s Disease: A Systematic Review and Network Meta-Analysis. Frontiers in Aging Neuroscience 
+
+11 (2019). URL https://doi.org/10.3389/fnagi.2019.00175. [48] Alexander, J. H. & Singh, K. P. Inhibition of Factor Xa. American Jour-nal of Cardiovascular Drugs 5, 279–290 (2005). URL https://doi.org/10.2165/ 00129784-200505050-00001. [49] Landrum, G. RDKit: Open-source cheminformatics (2024). URL https://www. rdkit.org/. Version 2024.09.1. [50] Walters, W. P. Useful RDKit Utils (2024). URL https://github.com/PatWalters/ useful rdkit utils. [51] Pedregosa, F. et al. Scikit-learn: Machine Learning in Python. Journal of Machine Learning Research 12 , 2825–2830 (2011). URL http://jmlr.org/papers/ v12/pedregosa11a.html. [52] Paszke, A. et al. PyTorch: An Imperative Style, High-Performance Deep Learn-ing Library . In Proceedings of the 33rd International Conference on Neural Information Processing Systems , Vol. 32 (Curran Associates, Inc., 2019). URL https://dl.acm.org/doi/10.5555/3454287.3455008. [53] Fey, M. & Lenssen, J. E. Fast Graph Representation Learning with PyTorch Geometric (2019). arXiv:1903.02428. [54] Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O. & Dahl, G. E. Neural message passing for quantum chemistry . In Proceedings of the 34th International Conference on Machine Learning , Vol. 70, 1263—-1272 (PMLR, 2017). URL http://proceedings.mlr.press/v70/gilmer17a.html. [55] Akiba, T., Sano, S., Yanase, T., Ohta, T. & Koyama, M. Optuna: A next-generation hyperparameter optimization framework . In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Min-ing , KDD ’19, 2623—-2631 (ACM, 2019). URL https://doi.org/10.1145/3292500. 3330701. 34 [56] SciPy. Scipy.stats.tukey hsd — tukey’s honestly significant difference test — SciPy v1.17.0 Documentation (2023). URL https://docs.scipy.org/doc/scipy/ reference/generated/scipy.stats.tukey hsd.html. [57] Wilcoxon, F. Individual Comparisons by Ranking Methods. Biometrics Bulletin 
+
+1, 80–83 (1945). URL https://doi.org/10.2307/3001968. [58] Armstrong, R. A. When to use the Bonferroni correction. Ophthalmic and Physiological Optics 34 , 502–508 (2014). URL https://doi.org/10.1111/opo. 12131. [59] Maksim Terpilovskii. Scikit-posthocs: Statistical post-hoc analysis and outlier detection algorithms v.0.11.4 (2025). [60] Kerby, D. S. The Simple Difference Formula: An Approach to Teaching Non-parametric Correlation. Comprehensive Psychology 3, 11.IT.3.1 (2014). URL https://journals.sagepub.com/doi/10.2466/11.IT.3.1. [61] Cureton, E. E. Rank-biserial correlation. Psychometrika 21 , 287–290 (1956). URL https://doi.org/10.1007/BF02289138. [62] Breiman, L. Random Forests. Machine Learning 45 , 5–32 (2001). URL https: //doi.org/10.1023/A:1010933404324. 35 Supplementary Information for: On Improving Graph Neural Networks for QSAR by Pre-training on Extended-Connectivity Fingerprints Supplementary Information 1 Supplementary Results 
+
+Supplementary Information 1.1 Metric Violin Plots ESOL ESOL Drug-Like Only                
+
+> 3
+> 2
+> 1
+> 0
+> 1
+> R2
+> ****
+> ****
+> ****
+> ****
+> ****
+> ****
+> (a)
+> ESOL ESOL Drug-Like Only
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1.0 **** **** ****
+> **** **** ****
+> (b)
+> ESOL ESOL Drug-Like Only
+> 100
+> 150
+> 200
+> 250
+> MAPE(%)
+> **** **** ****
+> **** **** ****
+> (c)
+> PT-GIN ECFP S&S ECFP hashed FCFP hashed Best Mean
+
+Figure 1: Performance metrics on ESOL aqueous solubility with all molecules (ESOL) and only molecules with a drug-like solubility (ESOL Drug-like Only) ( 0 < log 10 (S( μM)) < 3). The metrics shown are (a) coefficient of determination ( ↑ R2), (b) Pearson correlation ( ↑ ρ) and (c) mean absolute percentage error ( ↓MAPE (%)). Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For each task and metric, the approach with the best mean is hatched. Statistical significances, determined by the Wilcoxon signed-rank test ( n = 199 , α = 0 .05 ), between the best method by mean and all other approaches are shown with asterisks; ns (not significant) is p ≥ 0.05 ; * is 0.01 ≤ p < 0.05 ; ** is 0.001 ≤ p < 0.01 ; *** is 
+
+0.0001 ≤ p < 0.001 ; and **** is p < 0.0001 . Violins are normalized such that each violin has the same maximum width. 
+
+2Supplementary Information 1.2 Multiple Comparisons Plots Supplementary Information 1.2.1 Biogen PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+0.781 -0.981 0.830 0.963 
+
+-0.520 -1.000 -0.662 
+
+-0.042 -1.000 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** ns **** **** 
+
+(a) Human PPB 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 0.196 -0.004 
+
+1.000 0.166 
+
+1.000 
+
+ns 
+
+ns ns 
+
+ns ns ns 
+
+ns **** **** **** 
+
+(b) Rat PPB 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 1.000 1.000 1.000 
+
+1.000 0.852 -1.000 
+
+1.000 1.000 
+
+0.890 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(c) Human CLint 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 1.000 1.000 1.000 
+
+1.000 0.990 -1.000 
+
+1.000 1.000 
+
+0.426 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(d) Rat CLint 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 0.990 0.990 0.642 
+
+1.000 0.939 0.885 
+
+1.000 0.586 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(e) Efflux 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+1.000 1.000 0.564 0.249 
+
+1.000 1.000 0.435 
+
+1.000 1.000 
+
+0.968 
+
+*
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(f) Solubility    
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis 
+
+Figure 2: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Pearson correlation ( ↑ ρ) between methods on Biogen datasets. Tasks are (a) Human Plasma Protein Binding (PPB), (b) Rat PPB, (c) Human Intrinsic Clearance (CLint), (d) Rat CLint, (e) Efflux, (f) Solubility. Featurisation methods shown are GINs trained from scratch (Scratch GIN), ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher ρ than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value (n = 199 , α = 0 .05 ). 
+
+3PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+-0.371 0.987 0.897 0.919 
+
+-0.964 0.821 0.000 
+
+-0.952 0.823 
+
+-0.993 
+
+**** 
+
+ns **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(a) Human PPB 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+-1.000 -0.348 -0.190 -0.901 
+
+-0.982 0.237 0.747 
+
+-1.000 -0.252 
+
+-0.956 
+
+**** 
+
+**** ns 
+
+* * *** 
+
+**** **** **** **** 
+
+(b) Rat PPB 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+-1.000 -1.000 -0.999 -1.000 
+
+-0.887 -1.000 1.000 
+
+-1.000 -1.000 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(c) Human CLint 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+-1.000 -1.000 -1.000 -1.000 
+
+-0.996 -1.000 1.000 
+
+-1.000 -1.000 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(d) Rat CLint 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+-0.545 -1.000 -0.995 -1.000 
+
+1.000 -1.000 0.992 
+
+0.935 -1.000 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+(e) Efflux 
+
+PT-GIN Scratch GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+Scratch GIN 
+
+PT-GIN 
+
+-1.000 -0.456 -1.000 -0.868 
+
+-1.000 0.301 -0.996 
+
+-0.839 0.955 
+
+-1.000 
+
+**** 
+
+**** **** 
+
+**** ** **** 
+
+**** **** **** **** 
+
+(f) Solubility    
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 3: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the mean absolute percentage error ( ↓ MAPE(%) ) between methods on Biogen datasets. Tasks are (a) Human Plasma Protein Binding (PPB), (b) Rat PPB, (c) Human Intrinsic Clearance (CLint), (d) Rat CLint, (e) Efflux, (f) Solubility. Featurisation methods shown are GINs trained from scratch (Scratch GIN), ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb 
+
+effect sizes (upper triangle): blue indicates the method on the x-axis has a higher MAPE than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+4Supplementary Information 1.2.2 Biogen Tanimoto Similarity Filter 0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+-0.999 -0.989 -1.000 -0.928 0.091 
+
+-0.997 -0.953 -1.000 -0.924 
+
+-0.858 -0.415 -0.945 
+
+0.227 0.772 
+
+-0.627 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+**** ns **** **** **** 
+
+(a) Human PPB 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.169 0.726 -0.561 0.903 0.134 
+
+0.018 0.632 -0.598 0.855 
+
+-0.821 -0.416 -0.973 
+
+0.656 0.927 
+
+-0.675 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+**** **** **** ns ns 
+
+(b) Rat PPB 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.990 0.785 -0.626 0.950 -0.972 
+
+1.000 0.992 0.820 1.000 
+
+0.472 -0.452 -0.992 
+
+0.999 0.954 
+
+0.761 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+**** **** **** **** **** 
+
+(c) Human CLint 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+-0.838 -0.419 -0.970 -0.997 -0.670 
+
+-0.369 0.258 -0.735 -0.988 
+
+0.910 0.994 0.864 
+
+0.361 0.817 
+
+-0.570 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** * **** 
+
+**** *** **** **** **** 
+
+(d) Rat CLint 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.178 0.048 -0.995 -0.814 -0.486 
+
+0.584 0.461 -0.951 -0.558 
+
+0.862 0.808 -0.683 
+
+0.993 0.982 
+
+0.132 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** ns 
+
+ns **** **** **** ns 
+
+(e) Efflux 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.977 -0.367 -0.668 0.157 -0.725 
+
+0.996 0.399 0.079 0.790 
+
+0.976 -0.492 -0.747 
+
+0.994 0.354 
+
+0.995 
+
+**** 
+
+**** ns 
+
+**** ns **** 
+
+*** **** **** *** 
+
+**** **** **** **** **** 
+
+(f) Solubility    
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis 
+
+Figure 4: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Pearson correlation ( ↑ ρ) of PT-GIN models pre-trained on Tanimoto filtered QMugs subsets. Tasks are (a) Human Plasma Protein Binding (PPB), (b) Rat PPB, (c) Human Intrinsic Clearance (CLint), (d) Rat CLint, (e) Efflux, (f) Solubility. Featurisation methods shown are GINs pre-trained (PT-GIN) to predict ECFP 42048 on QMugs with a Tanimoto filter of 0.5, 0.6, 0.7, 0.8, 0.9, and 1.0. All filter subsets were equal in size. For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher ρ than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+50.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.062 0.918 0.507 -0.263 -0.517 
+
+0.412 0.975 0.766 0.173 
+
+0.278 0.918 0.609 
+
+-0.356 0.586 
+
+-0.809 
+
+**** 
+
+ns *
+
+**** **** **** 
+
+**** **** **** **** 
+
+**** *** ** **** ns 
+
+(a) Human PPB 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.132 0.593 0.926 0.450 0.305 
+
+-0.266 0.392 0.974 0.192 
+
+-0.375 0.263 0.928 
+
+-0.969 -0.844 
+
+-0.606 
+
+** 
+
+ns **** 
+
+**** **** **** 
+
+**** * **** **** 
+
+**** **** **** * ns 
+
+(b) Rat PPB 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+-0.857 -0.367 -0.194 -0.442 0.742 
+
+-0.991 -0.882 -0.833 -0.908 
+
+-0.729 0.114 0.290 
+
+-0.807 -0.150 
+
+-0.693 
+
+**** 
+
+**** **** 
+
+** **** ns 
+
+ns ns **** *** 
+
+**** **** **** **** **** 
+
+(c) Human CLint 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+-0.720 -0.427 0.510 0.741 0.091 
+
+-0.787 -0.503 0.410 0.718 
+
+-0.941 -0.932 -0.503 
+
+-0.915 -0.813 
+
+-0.403 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+**** **** **** **** 
+
+**** **** **** **** **** 
+
+(d) Rat CLint 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.829 -0.605 0.604 0.593 -0.062 
+
+0.854 -0.531 0.639 0.642 
+
+0.354 -0.910 -0.046 
+
+0.430 -0.927 
+
+0.967 
+
+ns 
+
+**** **** 
+
+ns **** **** 
+
+**** **** **** **** 
+
+**** **** *** **** **** 
+
+(e) Efflux 
+
+0.5 0.6 0.7 0.8 0.9 1.0 
+
+1.0 
+
+0.9 
+
+0.8 
+
+0.7 
+
+0.6 
+
+0.5 
+
+0.295 -0.584 0.733 0.111 0.945 
+
+-0.868 -0.985 -0.553 -0.924 
+
+0.175 -0.710 0.724 
+
+-0.543 -0.958 
+
+0.829 
+
+**** 
+
+**** ns 
+
+**** **** **** 
+
+**** **** **** **** 
+
+**** **** ns **** ** 
+
+(f) Solubility    
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 5: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the mean absolute percentage error ( ↓ MAPE(%) ) of PT-GIN models pre-trained on Tanimoto filtered QMugs subsets. Tasks are (a) Human Plasma Protein Binding (PPB), (b) Rat PPB, (c) Human Intrinsic Clearance (CLint), (d) Rat CLint, (e) Efflux, (f) Solubility. Featurisation methods shown are GINs pre-trained (PT-GIN) to predict ECFP 42048 on QMugs with a Tanimoto filter of 0.5, 0.6,
+
+0.7, 0.8, 0.9, and 1.0. All filter subsets were equal in size. For rrb effect sizes (upper triangle): blue indicates the method on the 
+
+x-axis has a higher MAPE than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+6Supplementary Information 1.2.3 ChEMBL PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.999 0.487 0.915 
+
+-1.000 -0.766 
+
+-0.998 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(a) DRD2 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.929 -0.099 0.288 
+
+-0.980 -0.496 
+
+-0.915 
+
+** 
+
+**** ns 
+
+**** **** **** 
+
+(b) Factor X A   
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis 
+
+Figure 6: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the coefficient of determination ( ↑ R2) between methods on ChEMBL datasets. Tasks are (a) DRD2, (b) Factor XA binding affinity prediction. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb 
+
+effect sizes (upper triangle): blue indicates the method on the x-axis has a higher R2 than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+7PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.999 0.707 0.966 
+
+-1.000 -0.803 
+
+-1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(a) DRD2 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.956 -0.088 0.695 
+
+-0.998 -0.826 
+
+-0.948 
+
+**** 
+
+**** ns 
+
+**** **** **** 
+
+(b) Factor X A   
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 7: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Pearson correlation ( ↑ ρ) between methods on ChEMBL datasets. Tasks are (a) DRD2, (b) Factor XA binding affinity prediction. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher ρ than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value (n = 199 , α = 0 .05 ). 
+
+8PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+1.000 -0.602 -0.912 
+
+1.000 0.620 
+
+1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(a) DRD2 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+1.000 0.596 -0.516 
+
+1.000 0.903 
+
+0.999 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(b) Factor X A   
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+
+Wilcoxon signed-rank test p-values (Lower Triangle)         
+
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 8: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the mean absolute percentage error ( ↓ MAPE(%) ) between methods on ChEMBL datasets. Tasks are (a) DRD2, (b) Factor XA binding affinity prediction. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb 
+
+effect sizes (upper triangle): blue indicates the method on the x-axis has a higher MAPE than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+9Supplementary Information 1.2.4 MoleculeNet Regression PT-GIN ECFP hashed ECFP S&S FCFP hashed       
+
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+> 1.000 -0.345 0.939
+> 1.000 -1.000
+> 1.000
+> ****
+> **** ***
+> **** **** ****
+
+(a) ESOL          
+
+> PT-GIN ECFP hashed ECFP S&S FCFP hashed
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+> -0.996 -1.000 -0.088
+> -0.994 -1.000
+> 0.735
+> ns
+> **** ****
+> **** **** ****
+
+(b) FreeSolv          
+
+> PT-GIN ECFP hashed ECFP S&S FCFP hashed
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+> 0.842 -0.617 0.993
+> -0.765 -1.000
+> 0.975
+> ****
+> **** ****
+> **** **** ****
+
+(c) Lipophilicity            
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+> Wilcoxon signed-rank test p-values (Lower Triangle)
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+> Rank-biserial correlation (r rb ) (Upper Triangle)
+
+Favourable for x-axis Unfavourable for x-axis 
+
+Figure 9: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Pearson correlation ( ↑ ρ) between methods on MoleculeNet regression datasets. Datasets shown are (a) ESOL, (b) FreeSolv, and (c) Lipophilicity. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb 
+
+effect sizes (upper triangle): blue indicates the method on the x-axis has a higher ρ than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). PT-GIN ECFP hashed ECFP S&S FCFP hashed       
+
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+> -1.000 0.034 0.432
+> -1.000 -0.497
+> -1.000
+> ****
+> **** ns
+> **** **** ****
+
+(a) ESOL          
+
+> PT-GIN ECFP hashed ECFP S&S FCFP hashed
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+> 1.000 0.293 -1.000
+> 1.000 1.000
+> 0.999
+> ****
+> **** **
+> **** **** ****
+
+(b) FreeSolv          
+
+> PT-GIN ECFP hashed ECFP S&S FCFP hashed
+> FCFP hashed
+> ECFP S&S
+> ECFP hashed
+> PT-GIN
+> 1.000 0.928 0.607
+> 1.000 0.760
+> 0.999
+> ****
+> **** ****
+> **** **** ****
+
+(c) Lipophilicity            
+
+> p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001
+> Wilcoxon signed-rank test p-values (Lower Triangle)
+> 1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00
+> Rank-biserial correlation (r rb ) (Upper Triangle)
+
+Favourable for x-axis Unfavourable for x-axis 
+
+Figure 10: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the mean absolute percentage error ( ↓ MAPE(%) ) between methods on MoleculeNet regression datasets. Datasets shown are (a) ESOL, (b) FreeSolv, and (c) Lipophilicity. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher MAPE than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+10 Supplementary Information 1.2.5 MUV PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.851 0.448 0.675 
+
+-0.949 -0.307 
+
+-0.919 
+
+**** 
+
+** **** 
+
+**** **** **** 
+
+(a) MUV466 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.493 -0.744 0.307 
+
+-0.668 -0.840 
+
+0.361 
+
+** 
+
+**** **** 
+
+**** **** **** 
+
+(b) MUV548 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.138 0.994 0.893 
+
+-0.874 0.790 
+
+-0.985 
+
+**** 
+
+**** **** 
+
+**** **** ns 
+
+(c) MUV600 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.394 -0.844 -0.239 
+
+-0.179 -0.860 
+
+0.721 
+
+*
+
+**** **** 
+
+**** ns **** 
+
+(d) MUV644 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.355 0.885 0.941 
+
+-0.972 -0.209 
+
+-0.966 
+
+**** 
+
+ns **** 
+
+**** **** **** 
+
+(e) MUV652 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.996 0.999 0.999 
+
+-0.232 0.263 
+
+-0.391 
+
+**** 
+
+** **** 
+
+**** * **** 
+
+(f) MUV689 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.086 -0.675 -0.140 
+
+0.284 -0.815 
+
+0.786 
+
+ns 
+
+**** **** 
+
+**** ** ns 
+
+(g) MUV692 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.963 -0.998 -0.964 
+
+-0.215 -0.712 
+
+0.511 
+
+**** 
+
+**** **** 
+
+**** ns **** 
+
+(h) MUV712 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.708 -0.896 -0.982 
+
+0.699 0.632 
+
+0.193 
+
+**** 
+
+**** **** 
+
+ns **** **** 
+
+(i) MUV713 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.554 0.061 -0.940 
+
+0.984 0.938 
+
+0.565 
+
+**** 
+
+**** ns 
+
+**** **** **** 
+
+(j) MUV733 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.483 -0.879 -0.882 
+
+0.526 0.077 
+
+0.524 
+
+**** 
+
+ns **** 
+
+**** **** **** 
+
+(k) MUV737 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.317 -0.617 -0.983 
+
+0.995 0.958 
+
+0.411 
+
+**** 
+
+**** **** 
+
+**** **** *** 
+
+(l) MUV810 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.812 0.863 -0.111 
+
+-0.756 0.947 
+
+-0.998 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+(m) MUV832 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.947 0.898 0.958 
+
+-0.314 -0.618 
+
+0.164 
+
+**** 
+
+**** **** 
+
+ns *** **** 
+
+(n) MUV846 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.224 -0.019 -0.105 
+
+-0.150 0.188 
+
+-0.243 
+
+ns 
+
+ns ns 
+
+* ns *
+
+(o) MUV852 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.969 -0.519 0.990 
+
+0.312 -0.993 
+
+0.976 
+
+**** 
+
+**** **** 
+
+**** *** **** 
+
+(p) MUV858 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.999 -0.301 0.666 
+
+0.979 -0.863 
+
+1.000 
+
+**** 
+
+**** ** 
+
+**** **** **** 
+
+(q) MUV859 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis 
+
+Figure 11: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Area Under the Receiver Operating Characteristic ( ↑ AUROC ) between methods on MUV virtual screening tasks. Tasks are (a) MUV466, (b) MUV548, (c) MUV600, (d) MUV644, (e) MUV652, (f) MUV689, (g) MUV692, (h) MUV712, (i) MUV713, (j) MUV733, (k) MUV737, (l) MUV810, (m) MUV832, (n) MUV846, (o) MUV852, (p) MUV858, (q) MUV859. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher AUROC than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 ,
+
+α = 0 .05 ). 
+
+11 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.288 0.491 0.558 
+
+-0.728 -0.307 
+
+-0.700 
+
+**** 
+
+** **** 
+
+**** **** ** 
+
+(a) MUV466 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.671 0.192 0.977 
+
+-0.763 -0.922 
+
+0.473 
+
+**** 
+
+**** ns 
+
+**** **** **** 
+
+(b) MUV548 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.578 0.412 0.181 
+
+-0.647 0.304 
+
+-0.771 
+
+ns 
+
+** **** 
+
+**** **** **** 
+
+(c) MUV600 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.611 0.479 0.979 
+
+-0.828 -0.808 
+
+0.117 
+
+**** 
+
+**** **** 
+
+ns **** **** 
+
+(d) MUV644 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.249 0.525 0.184 
+
+-0.380 0.452 
+
+-0.695 
+
+ns 
+
+**** **** 
+
+**** **** *
+
+(e) MUV652 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.946 0.989 0.977 
+
+-0.296 -0.057 
+
+-0.295 
+
+**** 
+
+ns **** 
+
+** ** **** 
+
+(f) MUV689 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.235 -0.787 -0.584 
+
+0.509 -0.188 
+
+0.676 
+
+**** 
+
+ns **** 
+
+**** **** *
+
+(g) MUV692 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.952 -0.363 0.945 
+
+0.048 -0.987 
+
+0.984 
+
+**** 
+
+**** **** 
+
+**** ns **** 
+
+(h) MUV712 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.406 0.793 -0.046 
+
+0.368 0.708 
+
+-0.390 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+(i) MUV713 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.089 -0.278 -0.622 
+
+0.501 0.457 
+
+0.070 
+
+**** 
+
+**** ** 
+
+ns **** ns 
+
+(j) MUV733 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.157 -0.186 0.353 
+
+-0.472 -0.530 
+
+0.062 
+
+**** 
+
+**** ns 
+
+ns **** ns 
+
+(k) MUV737 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.776 -0.049 0.734 
+
+-0.938 -0.701 
+
+-0.674 
+
+**** 
+
+**** ns 
+
+**** **** **** 
+
+(l) MUV810 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-1.000 -0.908 -0.762 
+
+-0.997 -0.241 
+
+-0.990 
+
+**** 
+
+* **** 
+
+**** **** **** 
+
+(m) MUV832 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.416 0.799 0.149 
+
+0.400 0.794 
+
+-0.395 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+(n) MUV846 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.910 -0.959 -0.870 
+
+-0.151 -0.501 
+
+0.408 
+
+**** 
+
+**** **** 
+
+**** ns **** 
+
+(o) MUV852 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.049 -0.641 -0.222 
+
+0.322 -0.556 
+
+0.677 
+
+*
+
+**** **** 
+
+**** *** ns 
+
+(p) MUV858 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+1.000 0.367 0.853 
+
+0.863 -0.624 
+
+0.956 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(q) MUV859 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 12: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Area Under the Precision-Recall Curve ( ↑ AUCPR ) between methods on MUV virtual screening tasks. Tasks are (a) MUV466, (b) MUV548, (c) MUV600, (d) MUV644, (e) MUV652, (f) MUV689, (g) MUV692, (h) MUV712, (i) MUV713, (j) MUV733, (k) MUV737, (l) MUV810, (m) MUV832, (n) MUV846, (o) MUV852, (p) MUV858, (q) MUV859. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher AUCPR than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test 
+
+p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+12 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.323 -0.940 -0.618 
+
+0.158 -0.730 
+
+0.319 
+
+**** 
+
+**** **** 
+
+*** ns *** 
+
+(a) MUV466 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 0.000 -0.746 
+
+0.746 0.746 
+
+0.000 
+
+ns 
+
+ns ns 
+
+ns ns ns 
+
+(b) MUV548 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.810 0.000 0.000 
+
+0.810 0.000 
+
+0.810 
+
+ns 
+
+ns ns 
+
+**** **** **** 
+
+(c) MUV600 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 1.000 0.000 
+
+0.000 1.000 
+
+-1.000 
+
+ns 
+
+**** **** 
+
+**** ns ns 
+
+(d) MUV644 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 -0.596 0.000 
+
+0.000 -0.596 
+
+0.596 
+
+ns 
+
+ns ns 
+
+ns ns ns 
+
+(e) MUV652 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.710 -0.710 -0.623 
+
+0.668 0.668 
+
+0.000 
+
+**** 
+
+* **** 
+
+ns * **** 
+
+(f) MUV689 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 0.000 0.000 
+
+0.000 0.000 
+
+0.000 
+
+ns 
+
+ns ns 
+
+ns ns ns 
+
+(g) MUV692 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 0.000 0.000 
+
+0.000 0.000 
+
+0.000 
+
+ns 
+
+ns ns 
+
+ns ns ns 
+
+(h) MUV712 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 0.000 0.995 
+
+-0.995 -0.995 
+
+0.000 
+
+**** 
+
+**** ns 
+
+ns **** ns 
+
+(i) MUV713 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.960 0.960 0.899 
+
+-0.917 -0.917 
+
+0.000 
+
+**** 
+
+**** **** 
+
+ns **** **** 
+
+(j) MUV733 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 0.000 0.000 
+
+0.000 0.000 
+
+0.000 
+
+ns 
+
+ns ns 
+
+ns ns ns 
+
+(k) MUV737 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 -0.762 0.996 
+
+-0.996 -0.971 
+
+0.762 
+
+**** 
+
+**** ** 
+
+** **** ns 
+
+(l) MUV810 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-1.000 -1.000 -0.596 
+
+-1.000 -1.000 
+
+0.000 
+
+**** 
+
+**** **** 
+
+ns **** **** 
+
+(m) MUV832 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-1.000 -1.000 -1.000 
+
+-0.214 -0.214 
+
+0.000 
+
+**** 
+
+** **** 
+
+ns ** **** 
+
+(n) MUV846 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-1.000 -1.000 -1.000 
+
+0.000 0.000 
+
+0.000 
+
+**** 
+
+ns **** 
+
+ns ns **** 
+
+(o) MUV852 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.000 0.966 -1.000 
+
+1.000 0.966 
+
+-0.966 
+
+**** 
+
+**** **** 
+
+**** **** ns 
+
+(p) MUV858 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.200 -0.324 -0.284 
+
+0.980 -0.234 
+
+0.320 
+
+** 
+
+* *** 
+
+*** **** ns 
+
+(q) MUV859 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 13: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Matthews correlation coefficient ( ↑ MCC ) between methods on MUV virtual screening tasks. Tasks are (a) MUV466, (b) MUV548, (c) MUV600, (d) MUV644, (e) MUV652, (f) MUV689, (g) MUV692, (h) MUV712, (i) MUV713, (j) MUV733, (k) MUV737, (l) MUV810, (m) MUV832, (n) MUV846, (o) MUV852, (p) MUV858, (q) MUV859. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher MCC than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test 
+
+p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+13 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.153 0.905 0.842 
+
+-0.710 0.181 
+
+-0.797 
+
+**** 
+
+ns **** 
+
+**** **** ns 
+
+(a) MUV466 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.466 -0.766 0.340 
+
+-0.701 -0.890 
+
+0.432 
+
+*** 
+
+**** **** 
+
+**** **** **** 
+
+(b) MUV548 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.279 0.975 0.602 
+
+-0.728 0.849 
+
+-0.966 
+
+**** 
+
+**** **** 
+
+**** **** ** 
+
+(c) MUV600 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.765 -0.876 -0.239 
+
+-0.686 -0.791 
+
+0.283 
+
+*
+
+**** **** 
+
+** **** **** 
+
+(d) MUV644 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.447 0.652 0.863 
+
+-0.952 -0.391 
+
+-0.891 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(e) MUV652 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.969 0.998 0.990 
+
+-0.367 0.237 
+
+-0.586 
+
+**** 
+
+* **** 
+
+**** **** **** 
+
+(f) MUV689 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.567 0.016 -0.035 
+
+0.599 0.067 
+
+0.518 
+
+ns 
+
+ns ns 
+
+**** **** **** 
+
+(g) MUV692 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.377 -0.953 -0.770 
+
+0.564 -0.596 
+
+0.882 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(h) MUV712 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.141 0.024 -0.077 
+
+0.189 0.104 
+
+0.142 
+
+ns 
+
+ns ns 
+
+ns ns ns 
+
+(i) MUV713 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.271 -0.112 -0.718 
+
+0.505 0.690 
+
+-0.225 
+
+**** 
+
+**** ns 
+
+* **** ** 
+
+(j) MUV733 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.716 -0.828 -0.754 
+
+0.072 -0.138 
+
+0.162 
+
+**** 
+
+ns **** 
+
+ns ns **** 
+
+(k) MUV737 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.590 -0.212 -0.795 
+
+0.393 0.705 
+
+-0.400 
+
+**** 
+
+**** ns 
+
+**** **** **** 
+
+(l) MUV810 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.991 0.677 -0.575 
+
+-0.880 0.915 
+
+-0.998 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(m) MUV832 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.996 0.993 1.000 
+
+-0.391 -0.403 
+
+-0.094 
+
+**** 
+
+**** **** 
+
+ns **** **** 
+
+(n) MUV846 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.474 -0.349 -0.415 
+
+-0.060 0.067 
+
+-0.145 
+
+**** 
+
+ns *** 
+
+ns ns **** 
+
+(o) MUV852 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.817 -0.454 0.214 
+
+0.730 -0.602 
+
+0.903 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+(p) MUV858 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.923 -0.490 0.378 
+
+0.782 -0.765 
+
+0.994 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(q) MUV859 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 14: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Enrichment Factor at 10% (↑ EF 10% ) between methods on MUV virtual screening tasks. Tasks are (a) MUV466, (b) MUV548, (c) MUV600, (d) MUV644, (e) MUV652, (f) MUV689, (g) MUV692, (h) MUV712, (i) MUV713, (j) MUV733, (k) MUV737, (l) MUV810, (m) MUV832, (n) MUV846, (o) MUV852, (p) MUV858, (q) MUV859. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher EF 10% than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test 
+
+p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+14 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.103 0.950 0.911 
+
+-0.788 -0.001 
+
+-0.820 
+
+**** 
+
+ns **** 
+
+**** **** ns 
+
+(a) MUV466 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.090 -0.327 0.789 
+
+-0.875 -0.931 
+
+0.217 
+
+**** 
+
+**** *** 
+
+* **** ns 
+
+(b) MUV548 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.712 0.979 0.391 
+
+-0.874 0.904 
+
+-0.993 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(c) MUV600 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.767 -0.792 0.134 
+
+-0.846 -0.875 
+
+0.081 
+
+ns 
+
+**** **** 
+
+ns **** **** 
+
+(d) MUV644 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.681 0.477 0.776 
+
+-0.955 -0.325 
+
+-0.913 
+
+**** 
+
+*** **** 
+
+**** **** **** 
+
+(e) MUV652 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.969 0.999 0.984 
+
+-0.463 0.378 
+
+-0.668 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(f) MUV689 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.240 -0.378 -0.317 
+
+0.435 -0.049 
+
+0.475 
+
+*** 
+
+ns **** 
+
+**** **** *
+
+(g) MUV692 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.289 -0.871 -0.404 
+
+0.610 -0.701 
+
+0.935 
+
+**** 
+
+**** **** 
+
+**** **** ** 
+
+(h) MUV712 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.256 0.572 0.065 
+
+0.172 0.449 
+
+-0.270 
+
+ns 
+
+**** **** 
+
+** ns *
+
+(i) MUV713 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.367 -0.273 -0.712 
+
+0.508 0.639 
+
+-0.129 
+
+**** 
+
+**** ** 
+
+ns **** **** 
+
+(j) MUV733 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.566 -0.717 -0.582 
+
+-0.059 -0.300 
+
+0.158 
+
+**** 
+
+** **** 
+
+ns ns **** 
+
+(k) MUV737 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.777 -0.129 -0.598 
+
+-0.254 0.451 
+
+-0.664 
+
+**** 
+
+**** ns 
+
+**** * **** 
+
+(l) MUV810 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.995 0.755 -0.591 
+
+-0.909 0.933 
+
+-1.000 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(m) MUV832 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.995 0.999 1.000 
+
+-0.753 -0.503 
+
+-0.435 
+
+**** 
+
+**** **** 
+
+**** **** **** 
+
+(n) MUV846 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.583 -0.676 -0.620 
+
+0.051 -0.121 
+
+0.153 
+
+**** 
+
+ns **** 
+
+ns ns **** 
+
+(o) MUV852 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.209 -0.726 -0.160 
+
+0.394 -0.626 
+
+0.741 
+
+ns 
+
+**** **** 
+
+**** **** ns 
+
+(p) MUV858 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.888 -0.426 0.149 
+
+0.813 -0.563 
+
+0.965 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+(q) MUV859 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 15: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Enrichment Factor at 5% (↑ EF 5% ) between methods on MUV virtual screening tasks. Tasks are (a) MUV466, (b) MUV548, (c) MUV600, (d) MUV644, (e) MUV652, (f) MUV689, (g) MUV692, (h) MUV712, (i) MUV713, (j) MUV733, (k) MUV737, (l) MUV810, (m) MUV832, (n) MUV846, (o) MUV852, (p) MUV858, (q) MUV859. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the 
+
+x-axis has a higher EF 5% than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+15 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.282 0.688 0.746 
+
+-0.772 -0.100 
+
+-0.761 
+
+**** 
+
+ns **** 
+
+**** **** *
+
+(a) MUV466 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.155 -0.161 0.906 
+
+-0.788 -0.925 
+
+0.229 
+
+**** 
+
+**** ns 
+
+* **** ns 
+
+(b) MUV548 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.972 0.679 0.276 
+
+-0.977 0.499 
+
+-0.995 
+
+** 
+
+**** **** 
+
+**** **** **** 
+
+(c) MUV600 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.021 0.018 0.626 
+
+-0.729 -0.611 
+
+-0.096 
+
+**** 
+
+**** ns 
+
+ns **** ns 
+
+(d) MUV644 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.546 0.441 -0.138 
+
+-0.486 0.587 
+
+-0.827 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+(e) MUV652 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.946 0.997 0.995 
+
+-0.379 0.150 
+
+-0.479 
+
+**** 
+
+ns **** 
+
+**** **** **** 
+
+(f) MUV689 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.230 -0.775 -0.519 
+
+0.328 -0.316 
+
+0.557 
+
+**** 
+
+* **** 
+
+**** ** ns 
+
+(g) MUV692 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.683 -0.677 0.518 
+
+0.283 -0.910 
+
+0.931 
+
+**** 
+
+**** **** 
+
+**** ** **** 
+
+(h) MUV712 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.305 0.813 0.160 
+
+0.181 0.706 
+
+-0.566 
+
+ns 
+
+**** **** 
+
+**** ns *** 
+
+(i) MUV713 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.313 -0.305 -0.524 
+
+0.243 0.270 
+
+-0.058 
+
+**** 
+
+** ** 
+
+ns * *** 
+
+(j) MUV733 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.151 0.007 0.410 
+
+-0.288 -0.451 
+
+0.177 
+
+**** 
+
+**** ns 
+
+ns ** ns 
+
+(k) MUV737 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.783 -0.111 -0.039 
+
+-0.743 -0.071 
+
+-0.662 
+
+ns 
+
+ns ns 
+
+**** **** **** 
+
+(l) MUV810 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-1.000 -0.673 -0.762 
+
+-0.998 0.273 
+
+-0.998 
+
+**** 
+
+** **** 
+
+**** **** **** 
+
+(m) MUV832 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.979 0.990 0.994 
+
+-0.376 -0.347 
+
+-0.034 
+
+**** 
+
+*** **** 
+
+ns **** **** 
+
+(n) MUV846 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.944 -0.936 -0.910 
+
+-0.332 -0.356 
+
+-0.006 
+
+**** 
+
+*** **** 
+
+ns *** **** 
+
+(o) MUV852 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.280 -0.762 -0.573 
+
+0.244 -0.400 
+
+0.460 
+
+**** 
+
+**** **** 
+
+**** * ** 
+
+(p) MUV858 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.592 -0.511 -0.374 
+
+0.745 -0.223 
+
+0.839 
+
+** 
+
+ns **** 
+
+**** **** **** 
+
+(q) MUV859 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 16: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Enrichment Factor at 1% (↑ EF 1% ) between methods on MUV virtual screening tasks. Tasks are (a) MUV466, (b) MUV548, (c) MUV600, (d) MUV644, (e) MUV652, (f) MUV689, (g) MUV692, (h) MUV712, (i) MUV713, (j) MUV733, (k) MUV737, (l) MUV810, (m) MUV832, (n) MUV846, (o) MUV852, (p) MUV858, (q) MUV859. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the 
+
+x-axis has a higher EF 1% than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+16 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.336 0.333 0.470 
+
+-0.675 -0.177 
+
+-0.584 
+
+**** 
+
+ns ** 
+
+**** **** *
+
+(a) MUV466 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.396 0.208 0.949 
+
+-0.773 -0.913 
+
+0.206 
+
+**** 
+
+**** ns 
+
+ns **** **** 
+
+(b) MUV548 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.865 0.462 0.315 
+
+-0.954 0.194 
+
+-0.954 
+
+*** 
+
+ns **** 
+
+**** **** **** 
+
+(c) MUV600 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.374 0.361 0.703 
+
+-0.460 -0.367 
+
+-0.036 
+
+**** 
+
+**** **** 
+
+ns **** **** 
+
+(d) MUV644 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.318 0.488 -0.139 
+
+-0.229 0.629 
+
+-0.702 
+
+ns 
+
+**** **** 
+
+**** * *** 
+
+(e) MUV652 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.895 0.961 0.966 
+
+-0.124 0.081 
+
+-0.170 
+
+**** 
+
+ns **** 
+
+ns ns **** 
+
+(f) MUV689 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.381 -0.796 -0.666 
+
+0.360 -0.243 
+
+0.551 
+
+**** 
+
+ns **** 
+
+**** * **** 
+
+(g) MUV692 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.821 -0.439 0.861 
+
+0.076 -0.953 
+
+0.920 
+
+**** 
+
+**** **** 
+
+**** ns **** 
+
+(h) MUV712 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.465 0.789 0.078 
+
+0.412 0.755 
+
+-0.470 
+
+ns 
+
+**** **** 
+
+**** **** **** 
+
+(i) MUV713 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.106 -0.209 -0.367 
+
+0.203 0.204 
+
+0.043 
+
+*** 
+
+ns ns 
+
+ns ns ns 
+
+(j) MUV733 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.389 0.332 0.646 
+
+-0.365 -0.510 
+
+0.029 
+
+**** 
+
+**** ** 
+
+ns *** *** 
+
+(k) MUV737 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.749 -0.026 0.252 
+
+-0.829 -0.244 
+
+-0.703 
+
+*
+
+* ns 
+
+**** **** **** 
+
+(l) MUV810 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-1.000 -0.704 -0.717 
+
+-0.995 0.050 
+
+-0.979 
+
+**** 
+
+ns **** 
+
+**** **** **** 
+
+(m) MUV832 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.780 0.911 0.866 
+
+-0.001 0.262 
+
+-0.213 
+
+**** 
+
+** **** 
+
+ns ns **** 
+
+(n) MUV846 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.967 -0.981 -0.936 
+
+-0.469 -0.407 
+
+-0.084 
+
+**** 
+
+**** **** 
+
+ns **** **** 
+
+(o) MUV852 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+-0.109 -0.676 -0.533 
+
+0.385 -0.367 
+
+0.582 
+
+**** 
+
+*** **** 
+
+**** ** ns 
+
+(p) MUV858 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN 
+
+0.493 -0.615 -0.451 
+
+0.766 -0.275 
+
+0.881 
+
+*
+
+ns *** 
+
+**** **** **** 
+
+(q) MUV859 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 17: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Enrichment Factor at 0.5% (↑ EF 0.5% ) between methods on MUV virtual screening tasks. Tasks are (a) MUV466, (b) MUV548, (c) MUV600, (d) MUV644, (e) MUV652, (f) MUV689, (g) MUV692, (h) MUV712, (i) MUV713, (j) MUV733, (k) MUV737, (l) MUV810, (m) MUV832, (n) MUV846, (o) MUV852, (p) MUV858, (q) MUV859. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher EF 0.5% than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test 
+
+p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+17 Supplementary Information 1.2.6 Tox21 
+
+Abbreviation Label PubChem Assay ID NR AR androgen receptor activation 743040 
+
+NR AR LBD androgen receptor ligand binding domain activation 743053 
+
+NR AhR aryl hydrocarbon receptor activation 743122 
+
+NR Aromatase aromatase enzyme inhibition 743139 
+
+NR ER estrogen receptor alpha activation 743079 
+
+NR ER LBD estrogen receptor alpha ligand binding domain activation 743077 
+
+NR PPAR γ peroxisome proliferator-activated receptor γ activation 743140 
+
+SR ARE antioxidant responsive element signalling pathway activation 743219 
+
+SR ATAD5 ATPase family AAA domain containing 5 expression 720516 
+
+SR HSE heat shock element signalling pathway activation 743228 
+
+SR MMP mitochondrial membrane potential disruption 720637 
+
+SR p53 p53 signalling pathway activation 720552    
+
+> Table 1: Tox21 toxicity screening tasks [ 1]. See https://tripod.nih.gov/tox21/challenge/data.jsp .NR = nuclear receptor signalling pathway, SR = stress response pathway. All twelve tasks correspond to quantitative high-throughput screening (qHTS) assay endpoints, where labels indicate whether a compound is active or inactive for a given biological pathway.
+
+18 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.263 0.161 -0.669
+> 0.830 0.694
+> 0.089
+> ****
+> **** ns
+> ns **** **
+
+(a) NR AR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 1.000
+> -0.538 -0.820
+> 0.170
+> ****
+> **** ****
+> ns **** ****
+
+(b) NR AR LBD 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 1.000
+> 0.975 -0.810
+> 0.996
+> ****
+> **** ****
+> **** **** ****
+
+(c) NR AhR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 -0.768 0.697
+> 1.000 -0.995
+> 1.000
+> ****
+> **** ****
+> **** **** ****
+
+(d) NR Aromatase 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 0.532 0.973
+> 1.000 -0.863
+> 1.000
+> ****
+> **** ****
+> **** **** ****
+
+(e) NR ER 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 -0.995 -0.915
+> 1.000 -0.746
+> 1.000
+> ****
+> **** ****
+> **** **** ****
+
+(f) NR ER LBD 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 0.996 1.000
+> 0.154 -0.254
+> 0.389
+> ****
+> *****
+> **** ns ****
+
+(g) NR PPAR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 0.900 0.937
+> 1.000 0.000
+> 1.000
+> ****
+> ns ****
+> **** **** ****
+
+(h) SR ARE 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 0.945
+> 0.990 0.990
+> 0.368
+> ****
+> **** ****
+> **** **** ****
+
+(i) SR ATAD5 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 1.000
+> 0.990 -0.697
+> 0.998
+> ****
+> **** ****
+> **** **** ****
+
+(j) SR HSE 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 -0.444 0.482
+> 1.000 -0.876
+> 1.000
+> ****
+> **** ****
+> **** **** ****
+
+(k) SR MMP 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 0.645
+> 1.000 1.000
+> 1.000
+> ****
+> **** ****
+> **** **** ****
+
+(l) SR p53 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 18: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Area Under the Receiver Operating Characteristic ( ↑ AUROC ) between methods on Tox21 toxicity tasks. For task labels, see Table 1. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher AUROC than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+19 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> -0.420 0.966 -1.000
+> 1.000 1.000
+> -0.952
+> ****
+> **** ****
+> **** **** ****
+
+(a) NR AR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.676 0.988 0.969
+> -0.717 0.482
+> -0.906
+> ****
+> **** ****
+> **** **** ****
+
+(b) NR AR LBD 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 1.000
+> 0.435 -0.946
+> 0.961
+> ****
+> **** ****
+> **** **** ****
+
+(c) NR AhR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.999 -0.247 0.357
+> 1.000 -0.630
+> 1.000
+> ****
+> **** *
+> **** **** ****
+
+(d) NR Aromatase 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 0.765 0.997
+> 1.000 -0.982
+> 1.000
+> ****
+> **** ****
+> **** **** ****
+
+(e) NR ER 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.999 1.000 0.984
+> 0.811 0.888
+> 0.007
+> ****
+> **** ****
+> ns **** ****
+
+(f) NR ER LBD 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.573 0.637 0.705
+> -0.046 0.038
+> -0.055
+> ****
+> ns ****
+> ns ns ****
+
+(g) NR PPAR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 0.768 0.974
+> 0.999 -0.834
+> 1.000
+> ****
+> **** ****
+> **** **** ****
+
+(h) SR ARE 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 0.995 0.870
+> 1.000 0.946
+> 0.972
+> ****
+> **** ****
+> **** **** ****
+
+(i) SR ATAD5 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 1.000
+> -0.998 -0.572
+> -0.971
+> ****
+> **** ****
+> **** **** ****
+
+(j) SR HSE 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 -0.823 -0.721
+> 1.000 -0.209
+> 1.000
+> ****
+> ns ****
+> **** **** ****
+
+(k) SR MMP 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.996 0.762 -0.112
+> 1.000 0.878
+> 0.988
+> ns
+> **** ****
+> **** **** ****
+
+(l) SR p53 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 19: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Area Under the Precision-Recall Curve ( ↑ AUCPR ) between methods on Tox21 toxicity tasks. For task labels, see Table 1. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher AUCPR than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller p-value ( n = 199 , α = 0 .05 ). 
+
+20 PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.000 0.000 1.000
+> -1.000 -1.000
+> 0.000
+> ****
+> **** ns
+> ns **** ns
+
+(a) NR AR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> -1.000 0.996 0.669
+> -1.000 0.944
+> -1.000
+> ****
+> **** ****
+> **** **** ****
+
+(b) NR AR LBD 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 1.000
+> 0.988 -0.091
+> 0.990
+> ****
+> ns ****
+> **** **** ****
+
+(c) NR AhR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.993 -0.057 -0.197
+> 1.000 0.158
+> 0.997
+> ns
+> ns ns
+> **** **** ****
+
+(d) NR Aromatase 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> -1.000 -1.000 -1.000
+> 0.000 0.000
+> 0.000
+> ****
+> ns ****
+> ns ns ****
+
+(e) NR ER 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.000 1.000 0.000
+> 0.000 1.000
+> -1.000
+> ns
+> **** ****
+> **** ns ns
+
+(f) NR ER LBD 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> -1.000 -1.000 -1.000
+> 0.000 0.000
+> 0.000
+> ****
+> ns ****
+> ns ns ****
+
+(g) NR PPAR 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.995 0.989 0.999
+> -0.120 -0.621
+> 0.452
+> ****
+> **** ****
+> **** ns ****
+
+(h) SR ARE 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 0.781 0.991 0.954
+> -0.289 0.695
+> -0.722
+> ****
+> **** ****
+> **** ** ****
+
+(i) SR ATAD5 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 1.000
+> -0.879 0.821
+> -0.984
+> ****
+> **** ****
+> **** **** ****
+
+(j) SR HSE 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 -0.166 -0.474
+> 1.000 0.320
+> 1.000
+> ****
+> *** ns
+> **** **** ****
+
+(k) SR MMP 
+
+PT-GIN ECFP hashed ECFP S&S FCFP hashed 
+
+FCFP hashed 
+
+ECFP S&S 
+
+ECFP hashed 
+
+PT-GIN       
+
+> 1.000 1.000 1.000
+> -0.919 0.939
+> -0.999
+> ****
+> **** ****
+> **** **** ****
+
+(l) SR p53 
+
+p-value > 0.05 p-value < 0.01 p-value < 0.001 p-value < 0.0001 
+
+Wilcoxon signed-rank test p-values (Lower Triangle) 
+
+1.00 0.75 0.50 0.25 0.00 0.25 0.50 0.75 1.00 
+
+Rank-biserial correlation (r rb ) (Upper Triangle) 
+
+Favourable for x-axis Unfavourable for x-axis Figure 20: Rank-biserial coefficient ( rrb ) effect sizes (upper triangle) and Wilcoxon signed-rank test p-values (lower triangle) of the Matthews correlation coefficient ( ↑ MCC ) between methods on Tox21 toxicity screening tasks. For task labels, see Table 1. Featurisation methods shown are ECFP-pretrained GINs (PT-GIN), hashed Extended-Connectivity Fingerprints (ECFP hashed ), hashed Functional-Connectivity Fingerprints (FCFP hashed ), and ECFPs folded via Sort & Slice (ECFP S&S ). For rrb effect sizes (upper triangle): blue indicates the method on the x-axis has a higher MCC than the method on the y-axis; red indicates the opposite. For Wilcoxon signed-rank test p-values (lower triangle): white indicates no significant difference and darker indicates a smaller 
+
+p-value ( n = 199 , α = 0 .05 ). 
+
+21 Supplementary Information 1.3 Determining substructure importance via permutation 
+
+As both ECFPs folded via Sort & Slice (ECFP S&S ) [2] and PT-GIN leverage substructure representations—ECFP S&S 
+
+maps substructures to bits and PT-GIN maps substructures to tokens in molecular graphs—the relative importance of substructures can be compared. We investigated substructure importance for LightGBM models trained on ECFP S&S and PT-GIN with the FreeSolv dataset [ 3 ], along with additional examples on other datasets. We implemented permutation importance [ 4] for ECFP S&S , and we implemented embedding permutation on substructure tokens prior to message passing for PT-GIN (see Methods). We found that pharmacophoric features commonly associated with high aqueous solubility (e.g., polar groups and hydrogen bond donors) are present in high ranking substructures for both approaches. Hydroxyls are the top-ranked substructure by importance when predicting aqueous free energy of solvation ( ∆G solv ) for both ECFP S&S and PT-GIN (Fig. 21). For ECFP S&S , five other oxygen-containing substructures rank in the top ten, including esters, ketones, and cycloalkanol (Fig. 21a). Ketones and esters also rank highly for PT-GIN (Fig. 21b). For both featurisation approaches, models also consider nitrogenous substructures important, with three substructures containing a central nitrogen atom appearing for ECFP S&S , and four for PT-GIN. PT-GIN additionally ranks a haloalkane (Fig. 21b). The overt presence of oxygen and nitrogen is reasonable; both elements are indicative of dipole moments and zwitterions, which enable a molecule to form electrostatic interactions with water, reducing ∆G solv . One would expect molecules with functional groups containing the majority of the top-ranked substructures to have a lower ∆G solv . Collectively, this suggests that both featurisation approaches effectively capture relevant features for predicting ∆G solv .The models differ noticeably in their reliance on individual substructures. Models trained on ECFP S&S exhibits a stronger reliance on a specific substructure compared to those trained on PT-GIN. There is a clear skew in importance towards the top-ranked hydroxyl substructure using ECFP S&S (Fig. 21a); R2 reduces by over 0.6 on three instances with ECFP S&S . For folds 0 and 4 with ECFP S&S , every importance measurement except one exceeds a 0.4 decrease in R2.Hydroxyls are also the top-ranked substructure for PT-GIN, with R-OH being the only substructure where the majority of measurements have a −∆R 2 > 0.1, however the skew is not as extreme (Fig. 21b). Models, especially those trained on ECFP S&S , are potentially overfitting to a single substructure as a proxy for predicting ∆G solv . Comparing ∆G solv 
+
+values for molecules with and without R-OH reveals a distribution shift (Fig. 22). Any model trained on a representation that conveys hydroxyl presence is prone to overfitting to a single feature for a complex task. Predicting ∆G solv only on molecules with R-OH substructures might be a more accurate measure of model robustness. The decrease in reliance on hydroxyl presence of PT-GIN compared to ECFP S&S suggests that PT-GIN overfits less to a single substructure in this instance; this may indicate a loss of atom-level information from graph pooling. Our novel graph tokenisation approach based on local circular substructures enabled analysis of substructure importance in PT-GINs, with direct comparison to ECFP S&S , providing interpretable insight into model behavior and chemical understanding. Our case study on the FreeSolv benchmark revealed that ECFP S&S may overfit to a single, dominant chemical feature (e.g., hydroxyls), a shortcut that PT-GINs were less prone to. This capability allows researchers to move beyond simple performance metrics and ask why a model is making its predictions on a dataset-wide level, enabling the diagnosis of model weaknesses and the identification of biases in benchmark datasets themselves. 22 864662311 864942730 847957139 2132511834 2041434490 675765711 10565946 3189457552 3217380708 864674487 
+
+> Substructure
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Importance (- R2)
+
+(a)          
+
+> 864662311 864942730 2246728737 2041434490 847957139 2132511834 848128881 3218693969 1016841875 864674487
+> Substructure
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> Importance (- R2)
+
+(b) 
+
+Folds 
+
+0 1 2 3 4
+
+Central Atom 
+
+O C N Cl Aromatic Ring Figure 21: Substructure importances on the FreeSolv dataset. (a) Permutation feature importances for ECFP S&S , mapped to substructures. (b) Token embedding importances for PT-GIN, mapped to substructures. For both (a) and (b), importances were measured as −∆R 2 on the test set upon permutation. Only the top ten ranked substructures by mean importance are shown. Violin plots are colored by central atom element type; hatches from the bottom left to the top right indicate the central atom is aromatic; hatches from the bottom right to the top left indicate the central atom is in a non-aromatic ring. Individual scores are shown as a swarm plot; marker shape indicates the test set fold. 
+
+23 25 
+
+20 
+
+15 
+
+10 
+
+5
+
+0
+
+5
+
+> Gsolv
+
+OH Present 
+
+False 
+
+True Figure 22: Distribution of ∆G solv in the FreeSolv dataset for molecules with and without R-OH. 
+
+24 864662311 1533864325 994485099 3999906991 98513984 847957139 3351556771 2142032900 3458774156 10565946 
+
+> Substructure
+> 0.025
+> 0.000
+> 0.025
+> 0.050
+> 0.075
+> 0.100
+> 0.125
+> 0.150
+> Importance (- R2)
+
+(a)          
+
+> 2092489639 864942730 3218693969 3217380708 2245384272 2041434490 864662311 2246699815 2246728737 1026928756
+> Substructure
+> 0.025
+> 0.000
+> 0.025
+> 0.050
+> 0.075
+> 0.100
+> 0.125
+> 0.150
+> Importance (- R2)
+
+(b) 
+
+Folds 
+
+0 1 2 3 4
+
+Central Atom 
+
+O C N S Aromatic Ring Figure 23: Substructure importances on the Human CLint dataset [ 5]. (a) Permutation feature importances for ECFP S&S , mapped to substructures. (b) Token embedding importances for PT-GIN, mapped to substructures. For both (a) and (b), importances were measured as −∆R 2 on the test set upon permutation. Only the top ten ranked substructures by mean importance are shown. Violin plots are colored by central atom element type; hatches from the bottom left to the top right indicate the central atom is aromatic; hatches from the bottom right to the top left indicate the central atom is in a non-aromatic ring. Individual scores are shown as a swarm plot; marker shape indicates the test set fold. 
+
+25 2245384272 2353112200 1790668568 2353583745 2246703798 2473389857 3776905034 3207567135 64070612 435232729 
+
+> Substructure
+> 0.04
+> 0.02
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> Importance (- R2)
+
+(a)          
+
+> 3217380708 847961216 2246728737 2041434490 3176806076 3218693969 2132511834 2245277810 864662311 2245384272
+> Substructure
+> 0.04
+> 0.02
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> Importance (- R2)
+
+(b) 
+
+Folds 
+
+0 1 2 3 4
+
+Central Atom 
+
+C N O Aromatic Ring Figure 24: Substructure importances on the Biogen Solubility task [ 5]. (a) Permutation feature importances for ECFP S&S , mapped to substructures. (b) Token embedding importances for PT-GIN, mapped to substructures. For both (a) and (b), importances were measured as −∆R 2 on the test set upon permutation. Only the top ten ranked substructures by mean importance are shown. Violin plots are colored by central atom element type; hatches from the bottom left to the top right indicate the central atom is aromatic; hatches from the bottom right to the top left indicate the central atom is in a non-aromatic ring. Individual scores are shown as a swarm plot; marker shape indicates the test set fold. 
+
+26 1510328189 3542456614 422715066 1135286194 3994088662 864942730 2827868305 2041434490 1257718710 10565946 
+
+> Substructure
+> 0.002
+> 0.001
+> 0.000
+> 0.001
+> 0.002
+> 0.003
+> 0.004
+> Importance (- AUCPR)
+
+(a)          
+
+> 847336149 458993620 3999906991 128522177 2763854213 UNK 2132511834 98513984 3542456614 1790668568
+> Substructure
+> 0.002
+> 0.001
+> 0.000
+> 0.001
+> 0.002
+> 0.003
+> 0.004
+> Importance (- AUCPR)
+
+(b) 
+
+Folds 
+
+0 1 2 3 4
+
+Central Atom 
+
+O C N UNK Aromatic Ring Figure 25: Substructure importances on the MUV858 task [ 6 ]. (a) Permutation feature importances for ECFP S&S , mapped to substructures. (b) Token embedding importances for PT-GIN, mapped to substructures. For both (a) and (b), importances were measured as −∆AUCPR on the test set upon permutation. Only the top ten ranked substructures by mean importance are shown. Violin plots are colored by central atom element type; hatches from the bottom left to the top right indicate the central atom is aromatic; hatches from the bottom right to the top left indicate the central atom is in a non-aromatic ring. Individual scores are shown as a swarm plot; marker shape indicates the test set fold. 
+
+27 2246703798 2246728737 26234434 3218693969 994485099 166544320 2206467902 2629723425 2680376369 1313967653 
+
+> Substructure
+> 0.02
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> Importance (- AUCPR)
+
+(a)          
+
+> 2246703798 847957139 2246728737 3217380708 848127915 951226070 3218693969 10565946 3268335377 864942730
+> Substructure
+> 0.02
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> Importance (- AUCPR)
+
+(b) 
+
+Folds 
+
+0 1 2 3 4
+
+Central Atom 
+
+O C N Aromatic Ring Figure 26: Substructure importances on the Tox21 SR ARE task [ 1]. (a) Permutation feature importances for ECFP S&S , mapped to substructures. (b) Token embedding importances for PT-GIN, mapped to substructures. For both (a) and (b), importances were measured as −∆AUCPR on the test set upon permutation. Only the top ten ranked substructures by mean importance are shown. Violin plots are colored by central atom element type; hatches from the bottom left to the top right indicate the central atom is aromatic; hatches from the bottom right to the top left indicate the central atom is in a non-aromatic ring. Individual scores are shown as a swarm plot; marker shape indicates the test set fold. 
+
+28 Supplementary Information 1.4 Example Metric Distribution Plots Supplementary Information 1.4.1 Biogen (a)        
+
+> 0.445 0.450 0.455 0.460 0.465 0.470 0.475 0.480
+
+R2    
+
+> 0
+> 10
+> 20
+> 30
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 0.45
+> 0.46
+> 0.47
+> 0.48
+> R2
+
+(b) 
+
+(c)          
+
+> 0.670 0.675 0.680 0.685 0.690 0.695
+> 0
+> 10
+> 20
+> 30
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 0.670
+> 0.675
+> 0.680
+> 0.685
+> 0.690
+> 0.695
+
+(d) 
+
+(e)      
+
+> 340 360 380 400 420 440
+
+MAPE(%)     
+
+> 0
+> 10
+> 20
+> 30
+> 40
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 340
+> 360
+> 380
+> 400
+> 420
+> 440
+> MAPE(%)
+
+(f) 
+
+Figure 27: Metric distributions for PT-GIN on Efflux. Left column contains histograms and boxplots. Right column contains normal distribution Q-Q probability plots. Metrics shown are the (a, b) coefficient of determination ( R2), (c, d) Pearson correlation ( ρ), and (e, f) mean absolute percentage error (MAPE (%)). 
+
+29 Supplementary Information 1.4.2 MUV (a)       
+
+> 0.40 0.45 0.50 0.55 0.60 0.65 0.70
+
+AUROC     
+
+> 0
+> 10
+> 20
+> 30
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 0.40
+> 0.45
+> 0.50
+> 0.55
+> 0.60
+> 0.65
+> 0.70
+> AUROC
+
+(b) 
+
+(c)     
+
+> 0.00 0.02 0.04 0.06 0.08
+
+AUCPR     
+
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 0.00
+> 0.02
+> 0.04
+> 0.06
+> 0.08
+> AUCPR
+
+(d) 
+
+(e)     
+
+> 0.00 0.01 0.02 0.03 0.04
+
+MCC     
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 0.02
+> 0.01
+> 0.00
+> 0.01
+> 0.02
+> 0.03
+> 0.04
+> MCC
+
+(f) 
+
+Figure 28: Metric distributions for PT-GIN on MUV466. Left column contains histograms and boxplots. Right column contains normal distribution Q-Q probability plots. Metrics shown are the (a, b) Area Under the Receiver Operating Characteristic ( AUROC ), (c, d) Area Under the Precision-Recall Curve ( AUCPR ), and (e, f) Matthews correlation coefficient ( MCC ). 
+
+30 (a)    
+
+> 1234
+
+EF 10%     
+
+> 0
+> 10
+> 20
+> 30
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 0
+> 1
+> 2
+> 3
+> 4
+> EF 10%
+
+(b) 
+
+(c)    
+
+> 0246
+
+EF 5%     
+
+> 0
+> 10
+> 20
+> 30
+> 40
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 0
+> 2
+> 4
+> 6
+> 8
+> EF 5%
+
+(d) 
+
+(e)      
+
+> 0510 15 20 25
+
+EF 1%     
+
+> 0
+> 25
+> 50
+> 75
+> 100
+> 125
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 5
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> EF 1%
+
+(f) 
+
+(g)     
+
+> 010 20 30 40
+
+EF 0.5%     
+
+> 0
+> 50
+> 100
+> 150
+> Count
+> 21012
+
+Theoretical quantiles 
+
+> 0
+> 10
+> 20
+> 30
+> 40
+> EF 0.5%
+
+(h) Figure 29: Enrichment Factor distributions for PT-GIN on MUV466. Left column contains histograms and boxplots. Right column contains normal distribution Q-Q probability plots. Metrics shown are Enrichment Factor at (a, b) 10% , (c, d) 5% , (e, f) 1% , and (g, h) 0.5% .
+
+31 Supplementary Information 2 Algorithms 
+
+Algorithm 1 Generating a molecular substructure (i.e., circular subgraph) vocabulary using Sort & Slice 
+
+Input: A molecular dataset, M
+
+Input: A Morgan algorithm-based circular substructure enumeration function, morgan _generator 
+
+Input: The maximum radius for circular substructures, rmax 
+
+Input: The maximum substructure vocabulary size, k 
+
+> 1:
+
+D ← {} ▷ Initialize empty dictionary  
+
+> 2:
+
+for molecule ∈ M do  
+
+> 3:
+
+▷ Loop over molecules and tally the number of molecules each substructure appears in  
+
+> 4:
+
+S ← morgan _generator (molecule , r max ) ▷ Enumerate and hash circular substructures up to rmax  
+
+> 5:
+
+for (substructure , radius ) ∈ set (S) do ▷ Loop over the set of substructure identifiers  
+
+> 6:
+
+if substructure ∈ D then  
+
+> 7:
+
+D[substructure ] ← D[substructure ] + 1 ▷ Add to count for substructure  
+
+> 8:
+
+else  
+
+> 9:
+
+D[substructure ] ← 1 ▷ Initialize substructure count  
+
+> 10:
+
+end if  
+
+> 11:
+
+end for  
+
+> 12:
+
+end for  
+
+> 13:
+
+Dsorted ← sort _by _value (D, descending ) ▷ Sort substructures by frequency  
+
+> 14:
+
+Dranked ← assign _ranks (Dsorted ) ▷ Assign integer ranks substructures based on sorted positions  
+
+> 15:
+
+vocab ← top _k(Dranked , k) ▷ Slice dictionary to retain top-ranked substructures  
+
+> 16:
+
+max _id ← max( {vocab [k] : k ∈ keys (vocab )}) 
+
+> 17:
+
+vocab [“ UNK ”] ← max _id + 1  
+
+> 18:
+
+return vocab ▷ Return substructure vocabulary as a dictionary 
+
+Algorithm 2 Molecular substructure tokenization 
+
+Input: A molecule 
+
+Input: A dictionary output from Algorithm 1, vocab 
+
+Input: The same substructure enumeration function used for Algorithm 1, morgan _generator 
+
+Input: The same maximum radius used for Algorithm 1, rmax  
+
+> 1:
+
+graph = ( V, E ) where V := heavy _atoms ∈ molecule , E := bonds ∈ molecule  
+
+> 2:
+
+graph .tokens ← 0|V |× (rmax +1) ▷ Initialize token tensor; rows for each atom and columns for each radius  
+
+> 3:
+
+S ← morgan _generator (molecule , r max ) ▷ Get circular substructures in the molecule  
+
+> 4:
+
+for (substructure , radius ) ∈ S do ▷ Loop over all circular substructures  
+
+> 5:
+
+if substructure ∈ vocab then  
+
+> 6:
+
+token ← vocab [substructure ] ▷ Represent token using substructure rank  
+
+> 7:
+
+else  
+
+> 8:
+
+token ← vocab [“ UNK ”] ▷ Get the unknown token  
+
+> 9:
+
+end if  
+
+> 10:
+
+central _atom ← get _central _atom (substructure ) ▷ Get the central atom index  
+
+> 11:
+
+graph .tokens [central _atom , radius ] ← token ▷ Add substructure token to graph token tensor  
+
+> 12:
+
+end for  
+
+> 13:
+
+return graph 
+
+32 Algorithm 3 Permute the embeddings of a graph for a particular token 
+
+Input: A graph = ( V, E ), where n = |V |
+
+Input: The token to permute token ∈ { 0, 1, . . . , v − 1}, where v is the token vocabulary size 
+
+Input: A random index permutation for node embeddings shuffled _indices ∈ { 0, 1, . . . , l − 1}l, where l is the node embedding dimension 
+
+Ensure: l ≥ n ▷ This assumption was always the case for our PT-GIN models 
+
+Ensure: Graph token tensor graph .tokens ∈ { 0, 1, . . . , v − 1}n×m, where m is the number of tokens per node 
+
+Ensure: Graph embedding tensor graph .Fv ∈ Rn×m×l 
+
+> 1:
+
+▷ Find the locations of the token in the graph  
+
+> 2:
+
+token _locs ← { (i, j) | graph .tokens [i, j] = token , i ∈ [0 , . . . , n − 1] , j ∈ [0 , . . . , m − 1] } 
+
+> 3:
+
+if token _locs = ∅ then  
+
+> 4:
+
+return graph ▷ If token is not present, return original graph  
+
+> 5:
+
+end if  
+
+> 6:
+
+permuted _graph ← copy (graph ) 
+
+> 7:
+
+node _embeddings ← permuted _graph .Fv 
+
+> 8:
+
+start ← 0 
+
+> 9:
+
+▷ Calculate the chunk size for permutations to distribute over the different locations of the token  
+
+> 10:
+
+chunk _size ←
+
+j l
+
+> |token _locs |
+
+k 
+
+> 11:
+
+for (i, j) ∈ token _locs do  
+
+> 12:
+
+▷ Loop through instances of the token and distribute the permutations over the graph  
+
+> 13:
+
+end ← min( start + chunk _size , l ) 
+
+> 14:
+
+shuffled _subset ← shuffled _indices [start : end ] 
+
+> 15:
+
+node _embeddings [i, j, start : end ] = node _embeddings [i, j, shuffled _subset ] 
+
+> 16:
+
+start ← end  
+
+> 17:
+
+end for  
+
+> 18:
+
+permuted _graph .Fv ← node _embeddings  
+
+> 19:
+
+return permuted _graph 
+
+33 Algorithm 4 GNN substructure importance on one train-test split using embedding permutation 
+
+Input: A pre-trained graph neural network GNN with substructure tokenization 
+
+Input: Training data and labels, Dtrain and Ytrain 
+
+Input: Testing data and labels, Dtest and Ytest 
+
+Input: A metric function 
+
+Input: The number of importance measurements to make, iterations 
+
+Ensure: Pre-trained GNN has a substructure token vocabulary, vocab 
+
+Ensure: Pre-trained GNN has learned node embeddings ∈ R(|vocab |)×l, where l is the embedding dimension 
+
+Ensure: Pre-trained GNN has the substructure enumeration function used for tokenization, morgan _generator 
+
+Ensure: Pre-trained GNN has the maximum radius used for substructure tokenization, max _radius 
+
+1: Xtrain ← GNN (Dtrain ) ▷ Compute frozen global embeddings of train data 
+
+2: Xtest ← GNN (Dtest ) ▷ Compute frozen global embeddings of test data 
+
+3: light _gbm .fit (Xtrain , Y train ) ▷ Fit a LightGBM model on training data 
+
+4: ˆYtest ← light _gbm (Xtest )
+
+5: b0 ← metric ( ˆYtest , Y test ) ▷ Calculate base metric score 
+
+6: output ← 0|vocab |× iterations ▷ Initialize output array 
+
+7: for iter = 0 , . . . , iterations − 1 do ▷ Loop over iterations 
+
+8: for index = 0 , . . . , |vocab | − 1 do ▷ Loop over the vocabulary 
+
+9: token ← index 
+
+10: shuffled _indices ← shuffle _array _order ([ 0, 1, . . . , l − 1]) 
+
+11: Xpermuted ← [ ]
+
+12: for molecule ∈ Dtest do 
+
+13: n ← |{ heavy _atoms ∈ molecule }| 
+
+14: graph ← tokenize (molecule , vocab , morgan _generator , max _radius ) ▷ See Algorithm 2 
+
+15: graph ← permute _graph (graph , token , shuffled _indices ) ▷ See Algorithm 3 
+
+16: graph ← GNN .message _passing (graph )
+
+17: x ∈ Rh ← GNN .pooling (graph ), where h is the dimension of the global embedding 
+
+18: Xpermuted .append (x)
+
+19: end for 
+
+20: ˆYpermuted ← light _gbm (Xpermuted ) ▷ Predict label using permuted global embeddings 
+
+21: bpermuted ← metric ( ˆYpermuted , Y test ) ▷ Calculate permuted metric 
+
+22: score ← b0 − bpermuted ▷ Calculate metric difference 
+
+23: output [token , iter ] ← score ▷ Add score to output array 
+
+24: end for 
+
+25: end for 
+
+26: output ← mean (output , axis = 1) 
+
+27: return output 
+
+34 Supplementary Information 3 Package Versions 
+
+Package Version 
+
+LightGBM 4.6.0 NumPy 2.2.3 Optuna 4.2.1 Pandas 2.2.3 PyTorch 2.5.1 PyTorch Geometric 2.6.1 RDKit 2024.09.03 Scikit-learn 1.6.0 Scikit-posthocs 0.11.4 SciPy 1.15.2 TorchEval 0.0.7 
+
+> Table 2: Python package versions used in this work.
+
+35 Supplementary Information 4 Datasets 
+
+Dataset Source Number of Molecules 
+
+Efflux ratio Biogen [5] 2642 Human plasma protein binding Biogen [5] 194 Human intrinsic hepatic clearance Biogen [5] 3087 Rat plasma protein binding Biogen [5] 168 Rat intrinsic hepatic clearance Biogen [5] 3054 Solubility Biogen [5] 2173 ESOL MoleculeNet [7], ESOL [8] 1069 FreeSolv MoleculeNet [7], FreeSolv [3] 640 Lipophilicity MoleculeNet [7], ChEMBL [9] 4200 MUV466 MoleculeNet [7], Rohrer et al. [6] 14844 MUV548 MoleculeNet [7], Rohrer et al. [6] 14737 MUV600 MoleculeNet [7], Rohrer et al. [6] 14734 MUV652 MoleculeNet [7], Rohrer et al. [6] 14903 MUV689 MoleculeNet [7], Rohrer et al. [6] 14606 MUV692 MoleculeNet [7], Rohrer et al. [6] 14647 MUV712 MoleculeNet [7], Rohrer et al. [6] 14415 MUV713 MoleculeNet [7], Rohrer et al. [6] 14841 MUV733 MoleculeNet [7], Rohrer et al. [6] 14691 MUV737 MoleculeNet [7], Rohrer et al. [6] 14696 MUV810 MoleculeNet [7], Rohrer et al. [6] 14646 MUV832 MoleculeNet [7], Rohrer et al. [6] 14676 MUV846 MoleculeNet [7], Rohrer et al. [6] 14714 MUV852 MoleculeNet [7], Rohrer et al. [6] 14658 MUV858 MoleculeNet [7], Rohrer et al. [6] 14775 MUV859 MoleculeNet [7], Rohrer et al. [6] 14751 NR AR MoleculeNet [7], Tox21 [1] 7257 NR AR LBD MoleculeNet [7], Tox21 [1] 6750 NR AhR MoleculeNet [7], Tox21 [1] 6541 NR Aromatase MoleculeNet [7], Tox21 [1] 5814 NR ER MoleculeNet [7], Tox21 [1] 6185 NR ER LBD MoleculeNet [7], Tox21 [1] 6947 NR PPAR γ MoleculeNet [7], Tox21 [1] 6442 SR ARE MoleculeNet [7], Tox21 [1] 5824 SR ATAD5 MoleculeNet [7], Tox21 [1] 7064 SR HSE MoleculeNet [7], Tox21 [1] 6459 SR MMP MoleculeNet [7], Tox21 [1] 5804 SR p53 MoleculeNet [7], Tox21 [1] 6766 DRD2 ChEMBL [9], Dablander et al. [10] 6333 Factor XA ChEMBL [9], Dablander et al. [10] 3605 
+
+> Table 3: Summary of the benchmark datasets used in this study. The number of molecules shown is the total number of SMILES that passed RDKit standardization.
+
+36 Dataset Number of Train-Test Splits with Positive Samples in the Test Set 
+
+MUV466 991 MUV548 990 MUV600 994 MUV644 989 MUV652 993 MUV689 992 MUV692 994 MUV712 991 MUV713 990 MUV733 992 MUV737 986 MUV810 994 MUV832 992 MUV846 989 MUV852 994 MUV858 992 MUV859 987 
+
+Table 4: Total number of test sets used for metric evaluation for MUV tasks. As MUV tasks are highly imbalanced, StratifiedGroup-KFold splitting occasionally produces one fold with no positive classes. Folds without positive samples were excluded as test sets for metric evaluation; cross-validation averages were determined using the remaining available folds for each repeat. QMugs 
+
+Pre -training data  Benchmark 
+
+data 
+
+max Tanimoto ≤ 0.5
+
+Figure 30: Tanimoto similarity filtering of pre-training dataset. 
+
+37 Supplementary Information 5 Hyperparameters 
+
+Hyperparameter Search Type Search Space 
+
+Activation categorical LeakyReLU, GELU, Hardswish Batch Normalization categorical True, False Dropout float 0.0 - 0.5 Embedding dimensions categorical 128, 256, 512 GIN MLP Layers categorical 1, 2, 3 Graph Pooling categorical mean, sum, max Hidden dimensions categorical 128, 256, 512 Message Passing Layers categorical 1, 2, 3 Prediction Head Layers categorical 2, 3, 4 Weight Sharing categorical True, False 
+
+> Table 5: GIN hyperparameters explored for pre-training.
+
+Hyperparameter Value 
+
+Activation Hardswish Batch Normalization False Batch Size 128 Bias initialization Zeros Dropout 0.125 Embedding Dimensions 512 Epochs 50 GIN MLP Layers 3Graph pooling Sum Hidden Dimensions 512 Layer aggregation (readout) last (pre-training); concat (benchmarking) Learning Rate Half-Life (Epochs) 5Learning Rate Start Factor 0.5 Message Passing Layers 3Optimizer Adam Prediction Head Layers 2Share Weights True Train eps True Warm-up Epochs 2Weight initialization Xavier Normal 
+
+> Table 6: PT-GIN hyperparameters. For pre-training, layer aggregation was set to "last" to use the output of the final GIN layer as the global embedding. This was done to reduce the number of parameters in the prediction head and speed up pre-training. For benchmarking, layer aggregation was set to "concat" to concatenate the outputs of all GIN layers as the global embedding. This was done to maximize the information available in the global embedding for downstream tasks; the number of features was not a concern for benchmarking, as LightGBM models are capable of handling high-dimensional input relatively well.
+
+Substructure Token Embedding Initial Node Hidden Layer Number of Final Concatenated Maximum Radius Dimension Dimension Dimension Convolutions Embedding Dimension 
+
+0 512 512 512 3 2048 1 512 1024 512 3 2560 2 512 1536 512 3 3072 
+
+> Table 7: PT-GIN embedding dimensions before and after convolutions.
+
+38 Hyperparameter Search Type Search Space 
+
+num_leaves int 10-100 learning_rate float with log 0.001-0.3 n_estimators int 10-120 subsample_for_bin int 20000-200000 min_data_in_leaf int with log 1-1000 bagging_fraction float 0.25-1.0 feature_fraction float 0.25-1.0 reg_alpha float with log 0.01-10.0 reg_lambda float with log 0.01-10.0 
+
+> Table 8: LightGBM hyperparameters explored in benchmarking.
+
+Hyperparameter Search Type Search Space 
+
+Activation categorical Hardswish Dropout float 0.0 - 0.5 Graph pooling categorical Max Layer aggregation categorical concatenate Learning Rate Half Life (Epochs) int 5-50 Learning Rate Scaling Factor float 0.1-1.0 Message Passing Layers int 1-5 Prediction Head Layers int 1-5 Train eps categorical True, False Weight Sharing categorical True, False          
+
+> Table 9: Hyperparameters explored for Scratch GIN models in benchmarking, regardless of dataset size. The initial learning rate was calculated as lr =c·d−0.5
+> model , where cis the learning rate scaling factor and dis the number of model parameters.
+
+Hyperparameter Search Type Search Space 
+
+Batch Size int 16 Embedding dimensions categorical 2, 4, 8 GIN MLP Layers int 1-3 Hidden dimensions categorical 4, 8 
+
+> Table 10: Hyperparameters explored for Scratch GIN models on datasets with fewer than 500 samples.
+
+Hyperparameter Search Type Search Space 
+
+Batch Size int 32 Embedding dimensions categorical 4, 8, 16 GIN MLP Layers int 1-5 Hidden dimensions categorical 4, 8, 16      
+
+> Table 11: Hyperparameters explored for Scratch GIN models on datasets with 500 ≤n < 1000 samples.
+
+Hyperparameter Search Type Search Space 
+
+Batch Size int 128 Embedding dimensions categorical 8, 16, 32 GIN MLP Layers int 1-5 Hidden dimensions categorical 8, 16, 32      
+
+> Table 12: Hyperparameters explored for Scratch GIN models on datasets with 1000 ≤n < 5000 samples.
+
+39 Hyperparameter Search Type Search Space 
+
+Batch Size int 64 Embedding dimensions categorical 16, 32, 64 GIN MLP Layers categorical 1-5 Hidden dimensions categorical 16, 32, 64     
+
+> Table 13: Hyperparameters explored for Scratch GIN models on datasets with n≥5000 samples.
+
+References 
+
+[1] Richard, A. M. et al. The Tox21 10K Compound Library: Collaborative Chemistry Advancing Toxicology. 
+
+Chemical Research in Toxicology 34 , 189–216 (2021). URL https://doi.org/10.1021/acs.chemrestox. 0c00264 .[2] Dablander, M., Hanser, T., Lambiotte, R. & Morris, G. M. Sort & Slice: A simple and superior alternative to hash-based folding for extended-connectivity fingerprints. Journal of Cheminformatics 16 , 135 (2024). URL 
+
+https://doi.org/10.1186/s13321-024-00932-y .[3] Mobley, D. L. & Guthrie, J. P. FreeSolv: A database of experimental and calculated hydration free energies, with input files. Journal of Computer-Aided Molecular Design 28 , 711–720 (2014). URL https://doi.org/10. 1007/s10822-014-9747-x .[4] Breiman, L. Random Forests. Machine Learning 45 , 5–32 (2001). URL https://doi.org/10.1023/A: 1010933404324 .[5] Fang, C. et al. Prospective Validation of Machine Learning Algorithms for Absorption, Distribution, Metabolism, and Excretion Prediction: An Industrial Perspective. Journal of Chemical Information and Modeling 63 , 3263– 3274 (2023). URL https://doi.org/10.1021/acs.jcim.3c00160 .[6] Rohrer, S. G. & Baumann, K. Maximum unbiased validation (MUV) data sets for virtual screening based on PubChem bioactivity data. Journal of Chemical Information and Modeling 49 , 169–184 (2009). URL 
+
+https://doi.org/10.1021/ci8002649 .[7] Wu, Z. et al. MoleculeNet: A benchmark for molecular machine learning. Chemical Science 9, 513–530 (2018). URL https://doi.org/10.1039/C7SC02664A .[8] Delaney, J. S. ESOL: Estimating Aqueous Solubility Directly from Molecular Structure. Journal of Chemical Information and Computer Sciences 44 , 1000–1005 (2004). URL https://doi.org/10.1021/ci034243x .[9] Zdrazil, B. et al. The ChEMBL Database in 2023: A drug discovery platform spanning multiple bioactivity data types and time periods. Nucleic Acids Research 52 , D1180–D1192 (2024). URL https://doi.org/10.1093/ nar/gkad1004 .[10] Dablander, M., Hanser, T., Lambiotte, R. & Morris, G. M. Exploring QSAR models for activity-cliff prediction. 
+
+Journal of Cheminformatics 15 , 47 (2023). URL https://doi.org/10.1186/s13321-023-00708-w .40
